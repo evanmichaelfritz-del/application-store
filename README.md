@@ -64,27 +64,38 @@ npm run android
 
 ## Deploy on Vercel (continuous ship)
 
-Expo web export is the host path. `vercel.json` sets install, build, and `dist` output.
+Expo web export is the host path. `vercel.json` sets install, build, and `dist` output. Production branch is **main**. Do **not** GitHub-mirror this repo just to get a Vercel URL. Do **not** use grok.me.
 
-### Ship / Store — CLI
+### Origin ↔ Vercel (required for continuous deploys)
 
-From the repo root (logged in with `vercel`):
+Origin-hosted repos stay private. Vercel’s Origin git integration is in public beta and **will not deploy Origin repos from a Hobby team** — use a Vercel Pro/team.
+
+**From Origin (preferred)**
+
+1. Open this repo on Cursor: [cursor.com/codebase](https://cursor.com/codebase) → this Application Store repo.
+2. **Settings → Apps → Manage Apps**.
+3. Connect **Vercel** and authorize Evan’s Vercel team (Owner or Member).
+4. Import this Origin repo into a Vercel project.
+5. Confirm production branch **main**. Framework **Other**. Build / output already in `vercel.json`:
+   - Build: `npx setup-skia-web public && npx expo export --platform web`
+   - Output: `dist`
+   - Install: `npm install`
+   - Node **20+**
+6. Deploy. After that, every push to `main` is production; other branches / PRs get previews.
+
+**From Vercel**
+
+1. [vercel.com](https://vercel.com) → **Add New Project** → **Continue with Origin** ([docs](https://vercel.com/docs/git/vercel-for-origin)).
+2. Connect the Origin team, pick this repo, review settings, **Deploy**.
+
+### One-shot CLI (not continuous)
+
+Needs `vercel login` or `VERCEL_TOKEN` in an interactive / secret-backed environment. Does **not** replace the Origin git link:
 
 ```bash
-npm install
 npx vercel           # preview
 npx vercel --prod    # production
 ```
-
-Or connect the Git remote in the Vercel dashboard:
-
-1. **Add New Project** → import this repo.
-2. Framework Preset: **Other** (do not pick Next.js).
-3. Build Command: `npx setup-skia-web public && npx expo export --platform web`
-4. Output Directory: `dist`
-5. Install Command: `npm install`
-6. Node.js **20+**.
-7. Deploy. Vercel rewrites SPA routes to `/index.html` and serves `/canvaskit.wasm` as `application/wasm`.
 
 Local production-shaped check:
 
