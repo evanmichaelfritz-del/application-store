@@ -21,6 +21,10 @@ import { DragDropDemo } from './demos/DragDrop';
 import { ShimmerTextDemo } from './demos/ShimmerText';
 import { TooltipDemo } from './demos/Tooltip';
 import { TiltCardDemo } from './demos/TiltCard';
+import { BorderBeamDemo } from './demos/border-beam';
+import { GooeyDemo } from './demos/gooey';
+import { LiquidMetalDemo } from './demos/liquid-metal';
+import { ThinkingOrbsDemo } from './demos/thinking-orbs';
 import type { NavSection } from './sections';
 
 /**
@@ -248,6 +252,42 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['effects'],
     pro: false,
     Demo: TiltCardDemo,
+  },
+  {
+    id: 'border-beam',
+    title: 'Border Beam',
+    subtitle: 'Animated border beam component',
+    categories: ['effects'],
+    sections: ['effects'],
+    pro: false,
+    Demo: BorderBeamDemo,
+  },
+  {
+    id: 'thinking-orbs',
+    title: 'Thinking orbs',
+    subtitle: 'Animated thinking orb component',
+    categories: ['effects', 'ai'],
+    sections: ['effects', 'ai-skills'],
+    pro: false,
+    Demo: ThinkingOrbsDemo,
+  },
+  {
+    id: 'gooey',
+    title: 'Gooey',
+    subtitle: 'Liquid effects for UI',
+    categories: ['effects'],
+    sections: ['effects'],
+    pro: false,
+    Demo: GooeyDemo,
+  },
+  {
+    id: 'liquid-metal',
+    title: 'Liquid metal',
+    subtitle: 'Animated liquid metal border component',
+    categories: ['effects'],
+    sections: ['effects'],
+    pro: false,
+    Demo: LiquidMetalDemo,
   },
 ];
 

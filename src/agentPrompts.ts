@@ -106,6 +106,26 @@ const LOCKS: Record<string, PromptLock> = {
     content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`.',
     rn: 'Web mouse move without setPointerCapture. No hover-only dead end. Copy emits `.t-tilt`.',
   },
+  'border-beam': {
+    motion: 'Skia beam dots walk a rounded-rect perimeter. Chat loop 2800ms; Search bottom-stroke loop 5200ms, dim 0.55. Tail 18. Reduced motion freezes at 0.12 / 0.4.',
+    content: 'Chat row: `}` + `…` + Auto pill + send. Search pill: magnifier + `Search`. Beam colors `#ff4d9a #c026d3 #a855f7 #fb7c3a`. Search colors `#ff8ab8 #ff5aa5 #e879f9`.',
+    rn: 'LoadSkiaWeb once at the web root. Do not wrap WithSkiaWeb per card. Copy emits `.t-beam`.',
+  },
+  'thinking-orbs': {
+    motion: 'Dotted Fibonacci sphere spin 9000ms linear; metallic orb swirl 7200ms linear. Reduced motion holds spin 0.4 / swirl 0.9.',
+    content: '`Agent searching...` / `Agent listening...` / `Solving....` + dotted sphere / `Thinking....` + metallic orb. 56 dots.',
+    rn: 'Skia Canvas 44×44 per orb. AI skills tag. Copy emits `.t-orb`.',
+  },
+  gooey: {
+    motion: 'Lower tile Gesture.Pan translateX/Y. Snap-back `withSpring` damping 20, stiffness 280, mass 0.85 after SNAP_DRAG 168px. Pink neck ≥16px between tile centers.',
+    content: 'Purple tile `#7c2bff` + rose tile `#e11d48` + neck `#ff4ad2`. Tiles 120×148, radius 28, rest offset 28 / 78.',
+    rn: 'Web SHA: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
+  },
+  'liquid-metal': {
+    motion: 'SweepGradient metal ring 3400ms. Stroke = thickness + sin(progress)·1.4. Auto thickness 4.5; send 5.5. Blur 8 on the glow pass.',
+    content: 'Auto pill + circular send `↑`. Metal colors `#5CE1FF #FF4ECD #FFD166 #7CFFB2 #7AA2FF`.',
+    rn: 'Skia RoundedRect stroke + SweepGradient. Copy emits `.t-metal`.',
+  },
 };
 
 function buildPrompt(id: string): string {
@@ -161,7 +181,7 @@ Each card must support:
 
 ## Out of scope
 
-Do not wait on libraries.dev (Border Beam / Gooey extras / Liquid metal / Thinking orbs).
+Do not invent demos beyond this piece. Not Helix, not grok.me.
 `;
 }
 

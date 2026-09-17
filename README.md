@@ -11,9 +11,9 @@ Public repo: [evanmichaelfritz-del/application-store](https://github.com/evanmic
 | Section | Contents |
 | --- | --- |
 | Transitions | Essential + text pieces from the transitions catalog |
-| Effects | Confetti, gooey, stacks, dissolve, drag physics, 3D tilt |
-| Graphic design | Empty add slot (libraries.dev ingest later) |
-| AI skills | Shimmer text (AI-tagged seed) |
+| Effects | Confetti, gooey plus menu, stacks, tilt, Border Beam, Gooey, Liquid metal, Thinking orbs |
+| Graphic design | Empty add slot (CLEAR pieces live under Effects) |
+| AI skills | Shimmer text + Thinking orbs |
 | Tools | Empty add slot |
 | Manual | Hand-authored add slot |
 | + Add | Extra section slot in the rail |
