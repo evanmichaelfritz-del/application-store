@@ -66,4 +66,4 @@ Transitions section: essential + texts pieces. Effects section: effects pieces. 
 
 Do not wait on libraries.dev (Border Beam / Gooey extras / Liquid metal / Thinking orbs).
 
-Keep Success subtitle typo exactly: **`Succes check with blur and rotate`**.
+Success card subtitle: **`Success check with blur and rotate`**.

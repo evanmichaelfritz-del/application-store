@@ -144,7 +144,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'success-check',
     title: 'Success check',
-    subtitle: 'Succes check with blur and rotate',
+    subtitle: 'Success check with blur and rotate',
     categories: ['essential'],
     sections: ['transitions'],
     pro: false,
@@ -251,10 +251,21 @@ export const TRANSITIONS: TransitionItem[] = [
   },
 ];
 
+export function itemTags(item: TransitionItem): string[] {
+  return item.pro ? [...item.categories, 'pro'] : [...item.categories];
+}
+
 export function matchesFilter(item: TransitionItem, key: FilterKey): boolean {
   if (key === 'all') return true;
   if (key === 'pro') return item.pro;
   return item.categories.includes(key);
+}
+
+export function matchesSearch(item: TransitionItem, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [item.title, item.subtitle, item.id, ...itemTags(item)].join(' ').toLowerCase();
+  return haystack.includes(q);
 }
 
 export function matchesSection(item: TransitionItem, section: NavSection): boolean {

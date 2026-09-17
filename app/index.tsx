@@ -2,12 +2,19 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FilterBar } from '@/src/components/FilterBar';
 import { Hero } from '@/src/components/Hero';
 import { LeftNav } from '@/src/components/LeftNav';
 import { PlaceholderCard } from '@/src/components/PlaceholderCard';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
-import { matchesSection, TRANSITIONS } from '@/src/catalog';
+import {
+  matchesFilter,
+  matchesSearch,
+  matchesSection,
+  TRANSITIONS,
+  type FilterKey,
+} from '@/src/catalog';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { layoutTransition } from '@/src/motion';
 import { SECTION_COPY, type NavSection } from '@/src/sections';
@@ -15,12 +22,22 @@ import { colors } from '@/src/theme';
 
 export default function StoreScreen() {
   const [section, setSection] = useState<NavSection>('transitions');
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [query, setQuery] = useState('');
   const { reduceMotion } = useReduceMotion();
   const { width } = useWindowDimensions();
   const compact = width < 880;
   const columns = width >= 1180 ? 3 : width >= 880 ? 2 : 1;
-  const items = useMemo(() => TRANSITIONS.filter((item) => matchesSection(item, section)), [section]);
+  const sectionItems = useMemo(
+    () => TRANSITIONS.filter((item) => matchesSection(item, section)),
+    [section],
+  );
+  const items = useMemo(
+    () => sectionItems.filter((item) => matchesFilter(item, filter) && matchesSearch(item, query)),
+    [filter, query, sectionItems],
+  );
   const empty = SECTION_COPY[section].empty;
+  const filteredOut = sectionItems.length > 0 && items.length === 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
@@ -33,6 +50,7 @@ export default function StoreScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Hero section={section} />
+          <FilterBar value={filter} onChange={setFilter} query={query} onQueryChange={setQuery} />
           <View style={styles.grid}>
             {items.map((item) => (
               <Animated.View
@@ -46,9 +64,15 @@ export default function StoreScreen() {
             {items.length === 0 ? (
               <View style={[styles.cell, { width: `${100 / Math.min(columns, 2)}%` as `${number}%` }]}>
                 <PlaceholderCard
-                  title={section === 'manual' ? 'Add a piece' : 'Empty section'}
-                  body={empty}
-                  actionLabel={section === 'manual' ? 'Manual add slot' : undefined}
+                  title={
+                    filteredOut ? 'No matches' : section === 'manual' ? 'Add a piece' : 'Empty section'
+                  }
+                  body={
+                    filteredOut
+                      ? 'No pieces match this filter or search in this section.'
+                      : empty
+                  }
+                  actionLabel={!filteredOut && section === 'manual' ? 'Manual add slot' : undefined}
                 />
               </View>
             ) : null}

@@ -55,7 +55,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'success-check': {
     motion: 'Spring overshoot (`springs.pop`) with blur and rotate.',
-    rn: 'Keep subtitle spelling exactly: Succes check with blur and rotate. SVG path via react-native-svg. Copy emits `.t-check`.',
+    rn: 'SVG path via react-native-svg. Copy emits `.t-check`.',
   },
   'avatar-group-hover': {
     motion: 'Distance-weighted lift; bouncy return via `springs.default`.',
