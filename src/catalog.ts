@@ -23,6 +23,11 @@ import { TooltipDemo } from './demos/Tooltip';
 import { TiltCardDemo } from './demos/TiltCard';
 import type { NavSection } from './sections';
 
+/**
+ * Add a piece: demo in src/demos → snippet in src/snippets.ts →
+ * LOCKS[id] in src/agentPrompts.ts → push onto TRANSITIONS with `sections`.
+ */
+
 export type FilterKey = 'all' | 'essential' | 'ai' | 'effects' | 'texts' | 'pro';
 export type Category = 'essential' | 'ai' | 'effects' | 'texts';
 

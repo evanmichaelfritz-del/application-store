@@ -95,6 +95,9 @@ export function LeftNav({
       >
         <Animated.View style={[styles.chipPill, pillStyle]} />
         {items}
+        <View style={styles.chipSlot} accessibilityLabel="Add section slot">
+          <Text style={styles.slotLabel}>+ Add</Text>
+        </View>
       </ScrollView>
     );
   }
@@ -105,6 +108,9 @@ export function LeftNav({
       <View style={styles.railStack}>
         <Animated.View style={[styles.railPill, pillStyle]} />
         {items}
+        <View style={styles.rowSlot} accessibilityLabel="Add section slot">
+          <Text style={styles.slotLabel}>+ Add</Text>
+        </View>
       </View>
     </View>
   );
@@ -190,5 +196,31 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 13,
     color: colors.chipText,
+  },
+  chipSlot: {
+    height: 36,
+    paddingHorizontal: 15,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(0, 0, 0, 0.12)',
+    zIndex: 1,
+  },
+  rowSlot: {
+    minHeight: 40,
+    marginTop: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(0, 0, 0, 0.12)',
+    justifyContent: 'center',
+  },
+  slotLabel: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: colors.textFaint,
   },
 });
