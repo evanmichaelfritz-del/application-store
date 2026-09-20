@@ -1,21 +1,146 @@
+import { useId, useState, type CSSProperties } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { WithSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
+import { Liquid } from 'liquid-gooey';
 import { Stage } from '@/src/components/Stage';
+import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import { colors } from '@/src/theme';
 
+const W = 200;
+const H = 160;
+const CX = 100;
+const CY = 90;
+const HUB = 48;
+const DOT = 36;
+const REACH = 74;
+
+const ACTIONS = [
+  { label: 'F', angle: -50, delay: 0 },
+  { label: 'I', angle: -10, delay: 40 },
+  { label: 'L', angle: 30, delay: 80 },
+  { label: 'N', angle: 70, delay: 120 },
+].map((action) => {
+  const rad = (action.angle * Math.PI) / 180;
+  return {
+    ...action,
+    x: Math.round(Math.cos(rad) * REACH),
+    y: Math.round(Math.sin(rad) * REACH),
+  };
+});
+
+const btnBase: CSSProperties = {
+  margin: 0,
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: '#fff',
+  fontFamily: 'Inter_600SemiBold, Inter, system-ui, sans-serif',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  WebkitTapHighlightColor: 'transparent',
+};
+
+/**
+ * Web showcase: liquid-gooey Morph menu (Libraries.dev).
+ * Native keeps Skia metaballs in GooeyPlusMenu.tsx → GooeySkia.
+ */
 export function GooeyPlusMenuDemo() {
+  const { reduceMotion } = useReduceMotion();
+  const [open, setOpen] = useState(false);
+  const uid = useId().replace(/:/g, '');
+  const transition = reduceMotion ? { duration: 0 } : ('bouncy' as const);
+
   return (
     <Stage>
       <View style={styles.wrap}>
-        <WithSkiaWeb
-          getComponent={() => require('./GooeySkia')}
-          fallback={null}
-          opts={{ locateFile: (file) => `/${file}` }}
-        />
+        <Liquid
+          blur={10}
+          contrast={20}
+          fill={colors.text}
+          shadow="0 4px 14px rgba(0,0,0,.16)"
+          filterPadding={56}
+          data-testid="gooey-liquid"
+          style={{
+            width: W,
+            height: H,
+            position: 'relative',
+          }}
+        >
+          {ACTIONS.map((action) => (
+            <Liquid.Item
+              key={action.label}
+              x={open ? action.x : 0}
+              y={open ? action.y : 0}
+              transition={transition}
+              delay={reduceMotion ? 0 : action.delay}
+              radius={DOT / 2}
+              style={anchorStyle(DOT)}
+            >
+              <button
+                type="button"
+                className="t-gooey-action"
+                aria-hidden={!open}
+                tabIndex={open ? 0 : -1}
+                style={{
+                  ...btnBase,
+                  width: DOT,
+                  height: DOT,
+                  borderRadius: DOT / 2,
+                  fontSize: 12,
+                  lineHeight: '12px',
+                }}
+              >
+                {action.label}
+              </button>
+            </Liquid.Item>
+          ))}
+          <Liquid.Item transition={transition} radius={HUB / 2} style={anchorStyle(HUB)}>
+            <button
+              type="button"
+              className="t-gooey-hub"
+              aria-expanded={open}
+              aria-controls={`${uid}-actions`}
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              onClick={() => setOpen((v) => !v)}
+              style={{
+                ...btnBase,
+                width: HUB,
+                height: HUB,
+                borderRadius: HUB / 2,
+                fontSize: 26,
+                lineHeight: '28px',
+                fontFamily: 'Inter_500Medium, Inter, system-ui, sans-serif',
+                fontWeight: 500,
+                transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+                transition: reduceMotion
+                  ? 'none'
+                  : 'transform 420ms cubic-bezier(0.34, 1.25, 0.64, 1)',
+              }}
+            >
+              +
+            </button>
+          </Liquid.Item>
+          <span id={`${uid}-actions`} hidden>
+            Fan actions
+          </span>
+        </Liquid>
       </View>
     </Stage>
   );
 }
 
+function anchorStyle(size: number): CSSProperties {
+  return {
+    position: 'absolute',
+    left: CX - size / 2,
+    top: CY - size / 2,
+    width: size,
+    height: size,
+  };
+}
+
 const styles = StyleSheet.create({
-  wrap: { width: 200, height: 160 },
+  wrap: { width: W, height: H },
 });

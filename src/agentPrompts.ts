@@ -40,9 +40,9 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Centered overlay, no route change. Copy emits `.t-modal`.',
   },
   'gooey-plus-menu': {
-    motion: 'Liquid split into a fan. Mid-stretch neck ≥12–20px. 350ms grow + 150ms snap (~500ms).',
-    content: '`+` expands into a fan of actions with a visible mid-stretch neck.',
-    rn: 'Skia metaball only in GooeySkia.tsx. Web: LoadSkiaWeb then WithSkiaWeb. Native: Skia blur+threshold. Copy emits `.t-gooey-action`.',
+    motion: 'Liquid split into a fan. Web: liquid-gooey Morph + bouncy spring. Native: Skia mid-stretch neck ≥12–20px (~500ms).',
+    content: '`+` expands into F / I / L / N. Touching discs melt together; labels stay crisp.',
+    rn: 'Web: `liquid-gooey` Liquid + Liquid.Item in GooeyLiquidMenu.web.tsx (no Skia). Native: Skia metaball in GooeySkia.tsx. Copy emits liquid-gooey usage + `.t-gooey-action`.',
   },
   'page-side-by-side': {
     motion: 'Forward/back page push, translateX 300ms (`tokens.page`).',

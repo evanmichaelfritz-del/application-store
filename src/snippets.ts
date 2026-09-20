@@ -144,19 +144,29 @@ export const SNIPPETS: Record<string, string> = {
   .t-modal { transition: none !important; }
 }`,
 
-  'gooey-plus-menu': `:root {
-  --gooey-open: 420ms;
-  --gooey-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
-  --gooey-fan: 52px;
-}
-/* RN approximation: overlapping discs + spring fan.
-   Live site uses an SVG goo / metaball filter — not available in RN. */
-.t-gooey-action {
-  transition: transform var(--gooey-open) var(--gooey-ease),
-    opacity 200ms ease;
+  'gooey-plus-menu': `/* Web: liquid-gooey (https://libraries.dev/gooey.html)
+   npm install liquid-gooey
+*/
+import { Liquid } from 'liquid-gooey'
+
+<Liquid blur={10} contrast={20} fill="#0d0d0d" shadow="0 4px 14px rgba(0,0,0,.16)">
+  <Liquid.Item x={open ? -48 : 0} y={open ? -57 : 0} transition="bouncy">
+    <button className="t-gooey-action">F</button>
+  </Liquid.Item>
+  <Liquid.Item x={0} y={0} transition="bouncy">
+    <button className="t-gooey-hub">+</button>
+  </Liquid.Item>
+</Liquid>
+
+/* Keep action backgrounds transparent — Liquid fill is the surface. */
+.t-gooey-action, .t-gooey-hub {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-gooey-action { transition: none !important; }
+  .t-gooey-hub { transition: none !important; }
 }`,
 
   'page-side-by-side': `:root {
