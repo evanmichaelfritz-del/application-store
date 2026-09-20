@@ -8,24 +8,17 @@ import { colors } from '@/src/theme';
 const W = 200;
 const H = 160;
 const CX = 100;
-const CY = 90;
+const CY = 96;
 const HUB = 48;
 const DOT = 36;
-const REACH = 74;
 
+/** Fan mostly up/sideways so discs stay inside the 160px stage. */
 const ACTIONS = [
-  { label: 'F', angle: -50, delay: 0 },
-  { label: 'I', angle: -10, delay: 40 },
-  { label: 'L', angle: 30, delay: 80 },
-  { label: 'N', angle: 70, delay: 120 },
-].map((action) => {
-  const rad = (action.angle * Math.PI) / 180;
-  return {
-    ...action,
-    x: Math.round(Math.cos(rad) * REACH),
-    y: Math.round(Math.sin(rad) * REACH),
-  };
-});
+  { label: 'F', x: -54, y: -34, delay: 0 },
+  { label: 'I', x: -18, y: -62, delay: 40 },
+  { label: 'L', x: 28, y: -58, delay: 80 },
+  { label: 'N', x: 56, y: -28, delay: 120 },
+];
 
 const btnBase: CSSProperties = {
   margin: 0,
@@ -56,11 +49,12 @@ export function GooeyPlusMenuDemo() {
     <Stage>
       <View style={styles.wrap}>
         <Liquid
-          blur={10}
-          contrast={20}
+          blur={12}
+          contrast={22}
           fill={colors.text}
           shadow="0 4px 14px rgba(0,0,0,.16)"
-          filterPadding={56}
+          filterPadding={64}
+          waviness={1.2}
           data-testid="gooey-liquid"
           style={{
             width: W,

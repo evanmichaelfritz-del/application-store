@@ -149,8 +149,8 @@ export const SNIPPETS: Record<string, string> = {
 */
 import { Liquid } from 'liquid-gooey'
 
-<Liquid blur={10} contrast={20} fill="#0d0d0d" shadow="0 4px 14px rgba(0,0,0,.16)">
-  <Liquid.Item x={open ? -48 : 0} y={open ? -57 : 0} transition="bouncy">
+<Liquid blur={12} contrast={22} fill="#0d0d0d" shadow="0 4px 14px rgba(0,0,0,.16)">
+  <Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy">
     <button className="t-gooey-action">F</button>
   </Liquid.Item>
   <Liquid.Item x={0} y={0} transition="bouncy">
