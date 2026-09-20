@@ -344,6 +344,36 @@ export const SNIPPETS: Record<string, string> = {
   .t-shimmer { animation: none !important; color: var(--shimmer-highlight); }
 }`,
 
+  'image-generation-loader': `/* npm install img-fx three
+ * Peer: react, react-dom, three
+ */
+import { ImageGeneration } from 'img-fx'
+
+export function Card() {
+  return (
+    <ImageGeneration
+      preset="pixels-organic"
+      theme="light"
+      cardBg="#ffffff"
+      images={['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png']}
+      autoReveal
+      revealDelayRange={[1.2, 2.4]}
+      revealHoldMs={2200}
+      borderRadius={20}
+    >
+      <div className="t-img-fx-card" style={{ width: 168, height: 168, borderRadius: 20 }} />
+    </ImageGeneration>
+  )
+}
+
+/* Presets: pixels-organic | pixels-mechanic | sweep-gradient
+ * Manual: ref.triggerReveal() / triggerHide() / triggerRegenerate()
+ */
+.t-img-fx-card { background: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  /* Pass paused / disable autoReveal in the React tree. */
+}`,
+
   'tooltip-open-close': `:root {
   --tt-in-dur: 150ms;
   --tt-out-dur: 50ms;

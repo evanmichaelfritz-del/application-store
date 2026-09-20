@@ -98,6 +98,11 @@ const LOCKS: Record<string, PromptLock> = {
     motion: 'Looping translate mask, 1.2s linear (`tokens.shimmer`).',
     rn: 'Two text layers + sliding mask. No CSS @keyframes drive the live demo. Copy emits `.t-shimmer`. AI skill.',
   },
+  'image-generation-loader': {
+    motion: 'img-fx WebGL mosaic (`pixels-organic`). Auto-reveal loop: idle 1.2–2.4s → reveal → hold 2200ms → fade 320ms. Manual Reveal toggles hold:manual / hide. Reduced motion → paused, no autoReveal.',
+    content: '168×168 card, radius 20, light theme, cardBg `#ffffff`. Image pool `/img-fx/1.png` `/img-fx/2.png` `/img-fx/3.png`. Label button `Reveal`.',
+    rn: 'Install: `npm install img-fx three` (react/react-dom peers). Web: `<ImageGeneration preset="pixels-organic" autoReveal images={[…]}>` in ImageGenerationLoader.web.tsx. Native: static Generating… fallback (no WebGL). Copy emits install + usage. Presets: pixels-organic | pixels-mechanic | sweep-gradient. Imperative: triggerReveal / triggerHide / triggerRegenerate.',
+  },
   'tooltip-open-close': {
     motion: '400ms delay in, travel + fade; out instant.',
     rn: 'Delay is a timer, not CSS. Copy emits `.t-tt`.',
