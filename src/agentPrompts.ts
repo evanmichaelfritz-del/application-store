@@ -42,7 +42,7 @@ const LOCKS: Record<string, PromptLock> = {
   'gooey-plus-menu': {
     motion: 'Liquid split into a fan. Web: liquid-gooey Morph + bouncy spring. Native: Skia mid-stretch neck ≥12–20px (~500ms).',
     content: '`+` expands into F / I / L / N. Touching discs melt together; labels stay crisp.',
-    rn: 'Web: `liquid-gooey` Liquid + Liquid.Item in GooeyLiquidMenu.web.tsx (no Skia). Native: Skia metaball in GooeySkia.tsx. Copy emits liquid-gooey usage + `.t-gooey-action`.',
+    rn: 'Web: `liquid-gooey` Liquid + Liquid.Item in GooeyPlusMenu.web.tsx (no Skia). Native: Skia metaball in GooeySkia.tsx. Copy emits liquid-gooey usage + `.t-gooey-action`.',
   },
   'page-side-by-side': {
     motion: 'Forward/back page push, translateX 300ms (`tokens.page`).',
