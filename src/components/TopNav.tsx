@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Link } from 'expo-router';
 import { colors, fonts } from '../theme';
 import { useReduceMotion } from '../context/ReduceMotionContext';
 
@@ -13,6 +14,11 @@ export function TopNav() {
       </View>
       <View style={styles.links}>
         <Text style={styles.link}>Master storefront</Text>
+        <Link href="/playground" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel="Playground">
+            <Text style={styles.linkStrong}>Playground</Text>
+          </Pressable>
+        </Link>
         <Pressable
           onPress={() => setForceReduceMotion(!forceReduceMotion)}
           style={[styles.toggle, forceReduceMotion && styles.toggleOn]}
@@ -59,6 +65,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 13,
     color: colors.textMuted,
+  },
+  linkStrong: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: colors.text,
   },
   toggle: {
     height: 30,

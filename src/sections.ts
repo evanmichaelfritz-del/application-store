@@ -42,8 +42,8 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   tools: {
     title: 'Tools',
-    subtitle: 'Store tools slot. Empty until the next ingest.',
-    empty: 'No tools in the storefront yet. This section is reserved.',
+    subtitle: 'Store tools. Use Playground (top nav) to paste closed-network HTML or AGENT_PROMPT recreations and preview them.',
+    empty: 'No tools cards yet — open Playground from the top nav to test recreations.',
   },
   manual: {
     title: 'Manual',

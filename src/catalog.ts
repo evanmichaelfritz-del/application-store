@@ -121,7 +121,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'gooey-plus-menu',
     title: 'Gooey plus menu',
-    subtitle: 'liquid-gooey Morph plus menu',
+    subtitle: 'Closed-network SVG goo plus menu',
     categories: ['effects'],
     sections: ['effects'],
     pro: true,

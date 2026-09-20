@@ -1,3 +1,5 @@
+import { GOOEY_PLUS_COPY_SNIPPET } from '@/src/closedNetwork/gooeyPlusMenu';
+
 export const SNIPPETS: Record<string, string> = {
   'card-resize': `:root {
   --resize-dur: 300ms;
@@ -144,35 +146,7 @@ export const SNIPPETS: Record<string, string> = {
   .t-modal { transition: none !important; }
 }`,
 
-  'gooey-plus-menu': `/* npm install liquid-gooey
-   Docs: https://libraries.dev/gooey.html
-*/
-import { Liquid } from 'liquid-gooey'
-
-<Liquid blur={6} contrast={18} fill="#fff" shadow="0 2px 6px rgba(0,0,0,.08)">
-  <Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy">
-    <button className="round-btn">…</button>
-  </Liquid.Item>
-  <Liquid.Item x={0} y={open ? -64 : 0} transition="bouncy" delay={40}>
-    <button className="round-btn">…</button>
-  </Liquid.Item>
-  <Liquid.Item>
-    <button className="round-btn">+</button>
-  </Liquid.Item>
-</Liquid>
-
-/* Keep button backgrounds transparent — Liquid fill is the surface. */
-.round-btn {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: #17181c;
-}
-@media (prefers-reduced-motion: reduce) {
-  .round-btn { transition: none !important; }
-}`,
+  'gooey-plus-menu': GOOEY_PLUS_COPY_SNIPPET,
 
   'page-side-by-side': `:root {
   --page-slide-dur: 250ms;
