@@ -144,29 +144,34 @@ export const SNIPPETS: Record<string, string> = {
   .t-modal { transition: none !important; }
 }`,
 
-  'gooey-plus-menu': `/* Web: liquid-gooey (https://libraries.dev/gooey.html)
-   npm install liquid-gooey
+  'gooey-plus-menu': `/* npm install liquid-gooey
+   Docs: https://libraries.dev/gooey.html
 */
 import { Liquid } from 'liquid-gooey'
 
-<Liquid blur={12} contrast={22} fill="#0d0d0d" shadow="0 4px 14px rgba(0,0,0,.16)">
+<Liquid blur={6} contrast={18} fill="#fff" shadow="0 2px 6px rgba(0,0,0,.08)">
   <Liquid.Item x={open ? -54 : 0} y={open ? -34 : 0} transition="bouncy">
-    <button className="t-gooey-action">F</button>
+    <button className="round-btn">…</button>
   </Liquid.Item>
-  <Liquid.Item x={0} y={0} transition="bouncy">
-    <button className="t-gooey-hub">+</button>
+  <Liquid.Item x={0} y={open ? -64 : 0} transition="bouncy" delay={40}>
+    <button className="round-btn">…</button>
+  </Liquid.Item>
+  <Liquid.Item>
+    <button className="round-btn">+</button>
   </Liquid.Item>
 </Liquid>
 
-/* Keep action backgrounds transparent — Liquid fill is the surface. */
-.t-gooey-action, .t-gooey-hub {
-  background: transparent;
+/* Keep button backgrounds transparent — Liquid fill is the surface. */
+.round-btn {
+  width: 40px;
+  height: 40px;
   border: 0;
-  border-radius: 999px;
-  color: #fff;
+  border-radius: 50%;
+  background: transparent;
+  color: #17181c;
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-gooey-hub { transition: none !important; }
+  .round-btn { transition: none !important; }
 }`,
 
   'page-side-by-side': `:root {
