@@ -37,13 +37,13 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   'ai-skills': {
     title: 'AI skills',
     subtitle:
-      'Agent-facing skills you can copy into a coding workspace. Shimmer text plus Thinking orbs (effects + AI skills tag).',
+      'Agent-facing skills you can copy into a coding workspace. Shimmer text, Image generation loader, plus Thinking orbs.',
     empty: 'No AI skills seeded in this section.',
   },
   tools: {
     title: 'Tools',
-    subtitle: 'Store tools slot. Empty until the next ingest.',
-    empty: 'No tools in the storefront yet. This section is reserved.',
+    subtitle: 'Store tools. Use Playground (top nav) to paste closed-network HTML or AGENT_PROMPT recreations and preview them.',
+    empty: 'No tools cards yet — open Playground from the top nav to test recreations.',
   },
   manual: {
     title: 'Manual',

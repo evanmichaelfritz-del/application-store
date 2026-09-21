@@ -1,4 +1,5 @@
 import { TRANSITIONS } from './catalog';
+import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 
 type PromptLock = {
   motion: string;
@@ -40,9 +41,9 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Centered overlay, no route change. Copy emits `.t-modal`.',
   },
   'gooey-plus-menu': {
-    motion: 'Liquid split into a fan. Mid-stretch neck ≥12–20px. 350ms grow + 150ms snap (~500ms).',
-    content: '`+` expands into a fan of actions with a visible mid-stretch neck.',
-    rn: 'Skia metaball only in GooeySkia.tsx. Web: LoadSkiaWeb then WithSkiaWeb. Native: Skia blur+threshold. Copy emits `.t-gooey-action`.',
+    motion: 'Closed-network SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms bouncy stagger 40ms; close 250ms snappy.',
+    content: '`+` hub + New file / Add image / New folder icons. White liquid surface; dark crisp icons.',
+    rn: 'Closed network: hand-rolled SVG filter (no npm). Live store web demo may use liquid-gooey; Copy code + this prompt ship a zero-dependency HTML recreation.',
   },
   'page-side-by-side': {
     motion: 'Forward/back page push, translateX 300ms (`tokens.page`).',
@@ -97,6 +98,11 @@ const LOCKS: Record<string, PromptLock> = {
     motion: 'Looping translate mask, 1.2s linear (`tokens.shimmer`).',
     rn: 'Two text layers + sliding mask. No CSS @keyframes drive the live demo. Copy emits `.t-shimmer`. AI skill.',
   },
+  'image-generation-loader': {
+    motion: 'img-fx WebGL mosaic (`pixels-organic`). Auto-reveal loop: idle 1.2–2.4s → reveal → hold 2200ms → fade 320ms. Manual Reveal toggles hold:manual / hide. Reduced motion → paused, no autoReveal.',
+    content: '168×168 card, radius 20, light theme, cardBg `#ffffff`. Image pool `/img-fx/1.png` `/img-fx/2.png` `/img-fx/3.png`. Label button `Reveal`.',
+    rn: 'Install: `npm install img-fx three` (react/react-dom peers). Web: `<ImageGeneration preset="pixels-organic" autoReveal images={[…]}>` in ImageGenerationLoader.web.tsx. Native: static Generating… fallback (no WebGL). Copy emits install + usage. Presets: pixels-organic | pixels-mechanic | sweep-gradient. Imperative: triggerReveal / triggerHide / triggerRegenerate.',
+  },
   'tooltip-open-close': {
     motion: '400ms delay in, travel + fade; out instant.',
     rn: 'Delay is a timer, not CSS. Copy emits `.t-tt`.',
@@ -128,7 +134,117 @@ const LOCKS: Record<string, PromptLock> = {
   },
 };
 
+function buildGooeyPlusPrompt(): string {
+  return `# AGENT_PROMPT — Gooey plus menu
+
+Closed-network rebuild brief. This document is the **only** source of truth.
+
+## Hard rules
+
+- Do **not** fetch external pages, docs, npm registries, CDNs, or product sites.
+- Do **not** \`npm install liquid-gooey\` or any other package for this piece.
+- Do **not** invent demos beyond this piece.
+- Output must run offline as a single HTML file (or equivalent inline HTML/CSS/JS).
+- Stack for Application Store hosting may be Expo/RN, but the **portable recreation** you produce is plain HTML + CSS + JS with an SVG goo filter.
+
+## Goal
+
+Recreate a **gooey plus menu**:
+
+- Closed: one white circular hub with a dark \`+\` icon.
+- Open: hub rotates to \`×\`; three satellite buttons fan out (New file, Add image, New folder) with dark outline icons.
+- While discs are near each other, the white surfaces **melt / bridge** like liquid.
+- Icons and labels stay **crisp** (never run the goo filter over the real UI).
+
+## Visual tokens (exact)
+
+| Token | Value |
+| --- | --- |
+| Stage background | \`#f9f9f9\` |
+| Liquid fill | \`#ffffff\` |
+| Icon / stroke color | \`#17181c\` |
+| Button size | 40×40px, \`border-radius: 50%\`, **transparent background** |
+| Group size | 200×140px |
+| Slot rest position | \`left: 80px; top: 80px\` (all four stacked) |
+| Open offsets | New file \`-54,-34\`; Add image \`0,-64\`; New folder \`54,-34\`; hub \`0,0\` |
+| Goo blur | \`6\` (feGaussianBlur stdDeviation) |
+| Goo contrast | \`18\` (feColorMatrix alpha slope) |
+| Contrast intercept | \`-8.67\` (≈ \`-(contrast/2 - 0.5)\`) |
+| Open motion | 550ms, \`cubic-bezier(0.34, 1.56, 0.64, 1)\`, stagger 40ms |
+| Close motion | 250ms, \`cubic-bezier(0.22, 1, 0.36, 1)\`, stagger 0 |
+| Plus rotate | 0° → 45° over 250ms ease-in-out when open |
+| Icon reveal | opacity 0→1 + blur 2→0; delay 120ms + i×stagger on open |
+| Shadow | \`0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05), 0 4px 42px rgba(0,0,0,.06)\` on the SVG layer |
+| Reduced motion | all transitions duration 0 / none |
+
+## Architecture (must follow)
+
+You cannot blur+contrast the real buttons — that softens icons and breaks Safari when using CSS \`filter: url(#...)\` on HTML.
+
+Use **two layers**:
+
+1. **Silhouette (behind)** — SVG with one white circle (r=20) per item, all sharing a goo filter on the SVG \`<g>\`. Drop-shadow on the SVG element.
+2. **Content (above)** — real \`<button>\`s with transparent backgrounds and crisp SVG icons. Hit targets stay interactive.
+
+Toggle open/close by applying the **same** \`translate(x,y)\` to each content slot **and** its matching SVG circle so the liquid and icons stay pixel-synced.
+
+### Goo filter (copy exactly)
+
+\`\`\`svg
+<filter id="goo" filterUnits="userSpaceOnUse" x="-80" y="-80" width="360" height="300" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+  <feColorMatrix in="blur" type="matrix" values="
+    1 0 0 0 0
+    0 1 0 0 0
+    0 0 1 0 0
+    0 0 0 18 -8.67" result="goo" />
+  <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+</filter>
+\`\`\`
+
+If pieces that should merge look separate, raise blur or reduce gap — bridging starts roughly when blur ≳ gap between discs.
+
+## Interaction
+
+- Click hub: toggle open/closed; \`aria-expanded\` + \`aria-label\` (\`Open menu\` / \`Close menu\`).
+- Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
+- Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
+
+## Deliverable
+
+Ship a **single self-contained HTML document** that matches the tokens above. No imports. No build step.
+
+## Reference implementation (closed network)
+
+Paste this into a file and open it, or load it in Application Store → Playground:
+
+\`\`\`html
+${GOOEY_PLUS_CLOSED_NETWORK_HTML}
+\`\`\`
+
+## Acceptance checklist
+
+- [ ] No npm / CDN / network required to run
+- [ ] White liquid discs with dark crisp icons
+- [ ] Visible melt necks while opening/closing
+- [ ] Offsets and timings match the table
+- [ ] Safari works (filter is on SVG content, not CSS url() on HTML)
+- [ ] Reduced-motion collapses transitions
+
+## Out of scope
+
+Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. Not Helix, not grok.me.
+`;
+}
+
+/** Full custom prompts that replace the short LOCK template. */
+const FULL_PROMPTS: Record<string, () => string> = {
+  'gooey-plus-menu': buildGooeyPlusPrompt,
+};
+
 function buildPrompt(id: string): string {
+  if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
+
   const item = TRANSITIONS.find((entry) => entry.id === id);
   const lock = LOCKS[id];
   if (!item || !lock) return '';
@@ -176,7 +292,7 @@ Baseball card: white card, border rgba(0,0,0,0.06), shadow 0 1px 3px rgba(0,0,0,
 
 Each card must support:
 1. Showcase — live demo / preview on the stage
-2. Copy code — portable CSS snippet + Copied toast
+2. Copy code — portable closed-network snippet + Copied toast
 3. AGENT_PROMPT — this prompt, revealable and copyable
 
 ## Out of scope

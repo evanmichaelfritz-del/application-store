@@ -25,6 +25,7 @@ import { BorderBeamDemo } from './demos/border-beam';
 import { GooeyDemo } from './demos/gooey';
 import { LiquidMetalDemo } from './demos/liquid-metal';
 import { ThinkingOrbsDemo } from './demos/thinking-orbs';
+import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import type { NavSection } from './sections';
 
 /**
@@ -121,7 +122,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'gooey-plus-menu',
     title: 'Gooey plus menu',
-    subtitle: 'Liquid split into a fan of actions',
+    subtitle: 'Closed-network SVG goo plus menu',
     categories: ['effects'],
     sections: ['effects'],
     pro: true,
@@ -234,6 +235,15 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['transitions', 'ai-skills'],
     pro: false,
     Demo: ShimmerTextDemo,
+  },
+  {
+    id: 'image-generation-loader',
+    title: 'Image generation loader',
+    subtitle: 'WebGL mosaic that reveals generated images',
+    categories: ['ai'],
+    sections: ['transitions', 'ai-skills'],
+    pro: true,
+    Demo: ImageGenerationLoaderDemo,
   },
   {
     id: 'tooltip-open-close',

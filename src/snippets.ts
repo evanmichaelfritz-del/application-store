@@ -1,3 +1,5 @@
+import { GOOEY_PLUS_COPY_SNIPPET } from '@/src/closedNetwork/gooeyPlusMenu';
+
 export const SNIPPETS: Record<string, string> = {
   'card-resize': `:root {
   --resize-dur: 300ms;
@@ -144,20 +146,7 @@ export const SNIPPETS: Record<string, string> = {
   .t-modal { transition: none !important; }
 }`,
 
-  'gooey-plus-menu': `:root {
-  --gooey-open: 420ms;
-  --gooey-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
-  --gooey-fan: 52px;
-}
-/* RN approximation: overlapping discs + spring fan.
-   Live site uses an SVG goo / metaball filter — not available in RN. */
-.t-gooey-action {
-  transition: transform var(--gooey-open) var(--gooey-ease),
-    opacity 200ms ease;
-}
-@media (prefers-reduced-motion: reduce) {
-  .t-gooey-action { transition: none !important; }
-}`,
+  'gooey-plus-menu': GOOEY_PLUS_COPY_SNIPPET,
 
   'page-side-by-side': `:root {
   --page-slide-dur: 250ms;
@@ -353,6 +342,36 @@ export const SNIPPETS: Record<string, string> = {
 @keyframes t-shimmer { to { background-position: -220% 0; } }
 @media (prefers-reduced-motion: reduce) {
   .t-shimmer { animation: none !important; color: var(--shimmer-highlight); }
+}`,
+
+  'image-generation-loader': `/* npm install img-fx three
+ * Peer: react, react-dom, three
+ */
+import { ImageGeneration } from 'img-fx'
+
+export function Card() {
+  return (
+    <ImageGeneration
+      preset="pixels-organic"
+      theme="light"
+      cardBg="#ffffff"
+      images={['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png']}
+      autoReveal
+      revealDelayRange={[1.2, 2.4]}
+      revealHoldMs={2200}
+      borderRadius={20}
+    >
+      <div className="t-img-fx-card" style={{ width: 168, height: 168, borderRadius: 20 }} />
+    </ImageGeneration>
+  )
+}
+
+/* Presets: pixels-organic | pixels-mechanic | sweep-gradient
+ * Manual: ref.triggerReveal() / triggerHide() / triggerRegenerate()
+ */
+.t-img-fx-card { background: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  /* Pass paused / disable autoReveal in the React tree. */
 }`,
 
   'tooltip-open-close': `:root {

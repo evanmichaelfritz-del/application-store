@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard } from '@/src/clipboard';
 import { StoreSheet } from '@/src/components/StoreSheet';
@@ -31,6 +32,7 @@ function ActionButton({
 
 export function TransitionCard({ item }: { item: TransitionItem }) {
   const { show } = useCopyToast();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showcase, setShowcase] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
@@ -99,11 +101,20 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
         subtitle={item.title}
         onClose={() => setPromptOpen(false)}
         footer={
-          <ActionButton
-            label={promptCopied ? 'Copied' : 'Copy prompt'}
-            done={promptCopied}
-            onPress={copyPrompt}
-          />
+          <View style={styles.promptFooter}>
+            <ActionButton
+              label="Open Playground"
+              onPress={() => {
+                setPromptOpen(false);
+                router.push('/playground');
+              }}
+            />
+            <ActionButton
+              label={promptCopied ? 'Copied' : 'Copy prompt'}
+              done={promptCopied}
+              onPress={copyPrompt}
+            />
+          </View>
         }
       >
         <Text selectable style={styles.prompt}>
@@ -192,4 +203,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.text,
   },
+  promptFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
 });
