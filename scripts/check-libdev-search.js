@@ -7,24 +7,25 @@ const snippets = fs.readFileSync(path.join(__dirname, '../src/snippets.ts'), 'ut
 const prompts = fs.readFileSync(path.join(__dirname, '../src/agentPrompts.ts'), 'utf8');
 
 const items = [...catalog.matchAll(
-  /id: '([^']+)',\s*title: '([^']+)',\s*subtitle: '([^']+)',\s*categories: \[([^\]]+)\],\s*sections: \[([^\]]+)\],\s*pro: (true|false)/g,
+  /id: '([^']+)',\s*title: '([^']+)',\s*subtitle: '([^']+)',\s*categories: \[([^\]]+)\],\s*tags: \[([^\]]*)\],\s*sections: \[([^\]]+)\],\s*pro: (true|false)/g,
 )].map((m) => ({
   id: m[1],
   title: m[2],
   subtitle: m[3],
   categories: m[4].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean),
-  sections: m[5].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean),
-  pro: m[6] === 'true',
+  tags: m[5].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean),
+  sections: m[6].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean),
+  pro: m[7] === 'true',
 }));
 
-function tags(item) {
+function filterTags(item) {
   return item.pro ? [...item.categories, 'pro'] : [...item.categories];
 }
 
 function matchesSearch(item, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const haystack = [item.title, item.subtitle, item.id, ...tags(item)].join(' ').toLowerCase();
+  const haystack = [item.title, item.subtitle, item.id, ...filterTags(item), ...item.tags].join(' ').toLowerCase();
   return haystack.includes(q);
 }
 
@@ -71,6 +72,16 @@ console.log(`ok transitions seed count ${transitionIds.length}`);
 if (transitionIds.length < 15) {
   console.log('FAIL transitions seed looks truncated');
   failed += 1;
+}
+
+const taggedOk = items.length === 27 && items.every((item) => item.tags.length > 0);
+console.log(`${taggedOk ? 'ok' : 'FAIL'} every catalog item has tags (${items.length})`);
+if (!taggedOk) failed += 1;
+
+for (const section of ['graphic-design', 'tools', 'manual']) {
+  const n = items.filter((item) => item.sections.includes(section)).length;
+  console.log(`${n === 0 ? 'ok' : 'FAIL'} ${section} empty (${n})`);
+  if (n !== 0) failed += 1;
 }
 
 if (failed) process.exit(1);

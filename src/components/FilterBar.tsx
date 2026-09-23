@@ -73,11 +73,11 @@ export function FilterBar({
       <TextInput
         value={query}
         onChangeText={onQueryChange}
-        placeholder="Search title, subtitle, tags"
+        placeholder="Search title, subtitle, categories, tags"
         placeholderTextColor={colors.textFaint}
         autoCorrect={false}
         autoCapitalize="none"
-        accessibilityLabel="Search pieces by title, subtitle, or tags"
+        accessibilityLabel="Search pieces by title, subtitle, id, categories, or tags"
         style={styles.search}
       />
     </View>
