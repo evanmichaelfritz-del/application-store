@@ -41,6 +41,8 @@ export type TransitionItem = {
   title: string;
   subtitle: string;
   categories: Category[];
+  /** Lowercase search slugs taken from this item's title, subtitle, id, and categories. */
+  tags?: string[];
   sections: NavSection[];
   pro: boolean;
   Demo: ComponentType;
@@ -61,6 +63,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Card resize',
     subtitle: 'Smooth card resize transition',
     categories: ['essential'],
+    tags: ['card', 'resize', 'smooth', 'transition', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: CardResizeDemo,
@@ -70,6 +73,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Number pop-in',
     subtitle: 'Digit flip with blur and stagger',
     categories: ['texts'],
+    tags: ['number', 'pop', 'digit', 'flip', 'blur', 'stagger', 'texts'],
     sections: ['transitions'],
     pro: false,
     Demo: NumberPopInDemo,
@@ -79,6 +83,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Notification badge',
     subtitle: 'Diagonal slide with spring pop-in',
     categories: ['essential'],
+    tags: ['notification', 'badge', 'diagonal', 'slide', 'spring', 'pop', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: NotificationBadgeDemo,
@@ -88,6 +93,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Text states swap',
     subtitle: 'Text swap transition with blur',
     categories: ['essential'],
+    tags: ['text', 'states', 'swap', 'transition', 'blur', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: TextStatesSwapDemo,
@@ -97,6 +103,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Menu dropdown',
     subtitle: 'Origin-aware open / close transition',
     categories: ['essential'],
+    tags: ['menu', 'dropdown', 'origin', 'aware', 'open', 'close', 'transition', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: MenuDropdownDemo,
@@ -106,6 +113,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Confetti burst',
     subtitle: 'Physics confetti lands on the button',
     categories: ['effects'],
+    tags: ['confetti', 'burst', 'physics', 'lands', 'button', 'effects'],
     sections: ['effects'],
     pro: true,
     Demo: ConfettiBurstDemo,
@@ -115,6 +123,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Modal open/close',
     subtitle: 'Modal transition with scale',
     categories: ['essential'],
+    tags: ['modal', 'open', 'close', 'transition', 'scale', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: ModalDemo,
@@ -124,6 +133,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Gooey plus menu',
     subtitle: 'Closed-network SVG goo plus menu',
     categories: ['effects'],
+    tags: ['gooey', 'plus', 'menu', 'closed', 'network', 'svg', 'goo', 'effects'],
     sections: ['effects'],
     pro: true,
     Demo: GooeyPlusMenuDemo,
@@ -133,6 +143,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Page side-by-side',
     subtitle: 'Forward / back page transition',
     categories: ['essential'],
+    tags: ['page', 'side', 'forward', 'back', 'transition', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: PageSideBySideDemo,
@@ -142,6 +153,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Icon swap',
     subtitle: 'Scale and blur icon swap',
     categories: ['essential'],
+    tags: ['icon', 'swap', 'scale', 'blur', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: IconSwapDemo,
@@ -151,6 +163,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Success check',
     subtitle: 'Success check with blur and rotate',
     categories: ['essential'],
+    tags: ['success', 'check', 'blur', 'rotate', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: SuccessCheckDemo,
@@ -160,6 +173,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Avatar group hover',
     subtitle: 'Distance-falloff lift with bouncy return',
     categories: ['effects'],
+    tags: ['avatar', 'group', 'hover', 'distance', 'falloff', 'lift', 'bouncy', 'return', 'effects'],
     sections: ['effects'],
     pro: false,
     Demo: AvatarGroupDemo,
@@ -169,6 +183,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Card stack hover',
     subtitle: 'Stack fans out with a spring on hover',
     categories: ['effects'],
+    tags: ['card', 'stack', 'hover', 'fans', 'out', 'spring', 'effects'],
     sections: ['effects'],
     pro: true,
     Demo: CardStackHoverDemo,
@@ -178,6 +193,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Error state shake',
     subtitle: 'Cubic-bezier shake on error',
     categories: ['essential'],
+    tags: ['error', 'state', 'shake', 'cubic', 'bezier', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: ErrorShakeDemo,
@@ -187,6 +203,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Input clear with dissolve',
     subtitle: 'Clear with per-word dissolve',
     categories: ['effects'],
+    tags: ['input', 'clear', 'dissolve', 'word', 'effects'],
     sections: ['effects'],
     pro: false,
     Demo: InputClearDemo,
@@ -196,6 +213,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Skeleton loader and reveal',
     subtitle: 'Pulse to content cross-fade',
     categories: ['essential'],
+    tags: ['skeleton', 'loader', 'reveal', 'pulse', 'content', 'cross', 'fade', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: SkeletonRevealDemo,
@@ -205,6 +223,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Texts reveal',
     subtitle: 'Two lines rise with offset stagger',
     categories: ['texts'],
+    tags: ['texts', 'reveal', 'two', 'lines', 'rise', 'offset', 'stagger'],
     sections: ['transitions'],
     pro: false,
     Demo: TextsRevealDemo,
@@ -214,6 +233,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Tabs sliding',
     subtitle: 'Pill indicator follows the active tab',
     categories: ['essential'],
+    tags: ['tabs', 'sliding', 'pill', 'indicator', 'follows', 'active', 'tab', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: TabsSlidingDemo,
@@ -223,6 +243,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Drag & drop with physics',
     subtitle: 'Zone morphs into the image',
     categories: ['effects'],
+    tags: ['drag', 'drop', 'physics', 'zone', 'morphs', 'image', 'effects'],
     sections: ['effects'],
     pro: true,
     Demo: DragDropDemo,
@@ -232,6 +253,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Shimmer text',
     subtitle: 'Masked gradient sweep across text',
     categories: ['texts', 'ai'],
+    tags: ['shimmer', 'text', 'masked', 'gradient', 'sweep', 'texts', 'ai'],
     sections: ['transitions', 'ai-skills'],
     pro: false,
     Demo: ShimmerTextDemo,
@@ -241,6 +263,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Image generation loader',
     subtitle: 'WebGL mosaic that reveals generated images',
     categories: ['ai'],
+    tags: ['image', 'generation', 'loader', 'webgl', 'mosaic', 'reveals', 'generated', 'images', 'ai'],
     sections: ['transitions', 'ai-skills'],
     pro: true,
     Demo: ImageGenerationLoaderDemo,
@@ -250,6 +273,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Tooltip open/close',
     subtitle: 'Delayed in, travels, instant out',
     categories: ['essential'],
+    tags: ['tooltip', 'open', 'close', 'delayed', 'travels', 'instant', 'out', 'essential'],
     sections: ['transitions'],
     pro: false,
     Demo: TooltipDemo,
@@ -259,6 +283,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: '3D tilt',
     subtitle: '3D pointer tilt with cursor glare',
     categories: ['effects'],
+    tags: ['3d', 'tilt', 'pointer', 'cursor', 'glare', 'effects'],
     sections: ['effects'],
     pro: false,
     Demo: TiltCardDemo,
@@ -268,6 +293,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Border Beam',
     subtitle: 'Animated border beam component',
     categories: ['effects'],
+    tags: ['border', 'beam', 'animated', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
     Demo: BorderBeamDemo,
@@ -277,6 +303,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Thinking orbs',
     subtitle: 'Animated thinking orb component',
     categories: ['effects', 'ai'],
+    tags: ['thinking', 'orbs', 'animated', 'orb', 'component', 'effects', 'ai'],
     sections: ['effects', 'ai-skills'],
     pro: false,
     Demo: ThinkingOrbsDemo,
@@ -286,6 +313,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Gooey',
     subtitle: 'Liquid effects for UI',
     categories: ['effects'],
+    tags: ['gooey', 'liquid', 'effects', 'ui'],
     sections: ['effects'],
     pro: false,
     Demo: GooeyDemo,
@@ -295,6 +323,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Liquid metal',
     subtitle: 'Animated liquid metal border component',
     categories: ['effects'],
+    tags: ['liquid', 'metal', 'animated', 'border', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
     Demo: LiquidMetalDemo,
@@ -314,7 +343,9 @@ export function matchesFilter(item: TransitionItem, key: FilterKey): boolean {
 export function matchesSearch(item: TransitionItem, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const haystack = [item.title, item.subtitle, item.id, ...itemTags(item)].join(' ').toLowerCase();
+  const haystack = [item.title, item.subtitle, item.id, ...itemTags(item), ...(item.tags ?? [])]
+    .join(' ')
+    .toLowerCase();
   return haystack.includes(q);
 }
 
