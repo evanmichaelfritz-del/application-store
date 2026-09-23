@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors, fonts, radii } from '@/src/theme';
 
 export function PlaceholderCard({
@@ -10,9 +10,11 @@ export function PlaceholderCard({
   body: string;
   actionLabel?: string;
 }) {
+  const { width } = useWindowDimensions();
+  const phone = width < 640;
   return (
     <View style={styles.card}>
-      <View style={styles.stage}>
+      <View style={[styles.stage, phone && styles.stagePhone]}>
         <View style={styles.plus}>
           <Text style={styles.plusText}>+</Text>
         </View>
@@ -46,7 +48,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   stage: {
-    height: 220,
+    height: 200,
     borderRadius: radii.stage,
     backgroundColor: colors.stage,
     borderWidth: 1,
@@ -56,6 +58,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
+  stagePhone: { height: 120 },
   plus: {
     width: 36,
     height: 36,
