@@ -255,7 +255,7 @@ export const TRANSITIONS: TransitionItem[] = [
     subtitle: 'Masked gradient sweep across text',
     categories: ['texts', 'ai'],
     tags: ['shimmer', 'text', 'masked', 'gradient', 'sweep', 'texts', 'ai'],
-    sections: ['transitions', 'ai-skills'],
+    sections: ['effects', 'ai-skills'],
     pro: false,
     Demo: ShimmerTextDemo,
   },
