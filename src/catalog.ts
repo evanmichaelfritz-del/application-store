@@ -25,6 +25,7 @@ import { BorderBeamDemo } from './demos/border-beam';
 import { GooeyDemo } from './demos/gooey';
 import { LiquidMetalDemo } from './demos/liquid-metal';
 import { ThinkingOrbsDemo } from './demos/thinking-orbs';
+import { ThinkingOrbsPlaygroundDemo } from './demos/thinking-orbs-playground';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import type { NavSection } from './sections';
 
@@ -307,6 +308,30 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['effects', 'ai-skills'],
     pro: false,
     Demo: ThinkingOrbsDemo,
+  },
+  {
+    id: 'thinking-orbs-playground',
+    title: 'Thinking Orbs',
+    subtitle: 'Preview types + Playground + Install',
+    categories: ['effects', 'ai'],
+    tags: [
+      'thinking',
+      'orbs',
+      'playground',
+      'preview',
+      'install',
+      'types',
+      'effects',
+      'ai',
+      'thinking-orbs',
+      'skia',
+      'reanimated',
+      'expo',
+      'motionsource',
+    ],
+    sections: ['effects', 'ai-skills'],
+    pro: false,
+    Demo: ThinkingOrbsPlaygroundDemo,
   },
   {
     id: 'gooey',

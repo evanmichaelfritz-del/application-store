@@ -1,5 +1,6 @@
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
+import { THINKING_ORBS_PLAYGROUND_AGENT_PROMPT } from './demos/thinking-orbs-playground/agentPrompt';
 
 type PromptLock = {
   motion: string;
@@ -240,6 +241,7 @@ Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. 
 /** Full custom prompts that replace the short LOCK template. */
 const FULL_PROMPTS: Record<string, () => string> = {
   'gooey-plus-menu': buildGooeyPlusPrompt,
+  'thinking-orbs-playground': () => THINKING_ORBS_PLAYGROUND_AGENT_PROMPT,
 };
 
 function buildPrompt(id: string): string {
