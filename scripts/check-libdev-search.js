@@ -63,9 +63,9 @@ for (const id of Object.values(expect)) {
 }
 
 const orbs = items.find((item) => item.id === 'thinking-orbs');
-const orbsAi = orbs && matchesFilter(orbs, 'ai') && orbs.sections.includes('ai-skills') && orbs.sections.includes('effects');
-console.log(`${orbsAi ? 'ok' : 'FAIL'} thinking-orbs AI skills tag + Effects section`);
-if (!orbsAi) failed += 1;
+const orbsEffects = orbs && matchesFilter(orbs, 'ai') && orbs.sections.includes('effects') && !orbs.sections.includes('ai-skills');
+console.log(`${orbsEffects ? 'ok' : 'FAIL'} thinking-orbs stays in Effects, not AI skills`);
+if (!orbsEffects) failed += 1;
 
 const transitionIds = items.filter((item) => item.sections.includes('transitions')).map((item) => item.id);
 console.log(`ok transitions seed count ${transitionIds.length}`);
@@ -74,11 +74,11 @@ if (transitionIds.length < 15) {
   failed += 1;
 }
 
-const taggedOk = items.length === 27 && items.every((item) => item.tags.length > 0);
+const taggedOk = items.length === 28 && items.every((item) => item.tags.length > 0);
 console.log(`${taggedOk ? 'ok' : 'FAIL'} every catalog item has tags (${items.length})`);
 if (!taggedOk) failed += 1;
 
-for (const section of ['graphic-design', 'tools', 'manual']) {
+for (const section of ['graphic-design', 'ai-skills', 'tools', 'manual']) {
   const n = items.filter((item) => item.sections.includes(section)).length;
   console.log(`${n === 0 ? 'ok' : 'FAIL'} ${section} empty (${n})`);
   if (n !== 0) failed += 1;

@@ -37,7 +37,7 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   'ai-skills': {
     title: 'AI skills',
     subtitle:
-      'Agent-facing skills you can copy into a coding workspace. Shimmer text, Image generation loader, plus Thinking orbs.',
+      'Reserved for downloadable skills. None are listed yet.',
     empty: 'No AI skills seeded in this section.',
   },
   tools: {
