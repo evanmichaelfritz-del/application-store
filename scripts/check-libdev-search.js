@@ -40,7 +40,7 @@ const expect = {
   Beam: 'border-beam',
   Gooey: 'gooey',
   Metal: 'liquid-metal',
-  'Thinking orbs': 'thinking-orbs',
+  'Thinking orbs': 'thinking-orbs-playground',
 };
 
 for (const [query, id] of Object.entries(expect)) {
@@ -62,9 +62,9 @@ for (const id of Object.values(expect)) {
   if (!hasSnippet || !hasLock) failed += 1;
 }
 
-const orbs = items.find((item) => item.id === 'thinking-orbs');
+const orbs = items.find((item) => item.id === 'thinking-orbs-playground');
 const orbsEffects = orbs && matchesFilter(orbs, 'ai') && orbs.sections.includes('effects') && !orbs.sections.includes('ai-skills');
-console.log(`${orbsEffects ? 'ok' : 'FAIL'} thinking-orbs stays in Effects, not AI skills`);
+console.log(`${orbsEffects ? 'ok' : 'FAIL'} Thinking Orbs playground stays in Effects, not AI skills`);
 if (!orbsEffects) failed += 1;
 
 const transitionIds = items.filter((item) => item.sections.includes('transitions')).map((item) => item.id);
@@ -74,7 +74,7 @@ if (transitionIds.length < 15) {
   failed += 1;
 }
 
-const taggedOk = items.length === 28 && items.every((item) => item.tags.length > 0);
+const taggedOk = items.length === 27 && items.every((item) => item.tags.length > 0);
 console.log(`${taggedOk ? 'ok' : 'FAIL'} every catalog item has tags (${items.length})`);
 if (!taggedOk) failed += 1;
 

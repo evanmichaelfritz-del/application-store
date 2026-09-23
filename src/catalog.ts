@@ -24,7 +24,6 @@ import { TiltCardDemo } from './demos/TiltCard';
 import { BorderBeamDemo } from './demos/border-beam';
 import { GooeyDemo } from './demos/gooey';
 import { LiquidMetalDemo } from './demos/liquid-metal';
-import { ThinkingOrbsDemo } from './demos/thinking-orbs';
 import { ThinkingOrbsPlaygroundDemo } from './demos/thinking-orbs-playground';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import type { NavSection } from './sections';
@@ -298,16 +297,6 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['effects'],
     pro: false,
     Demo: BorderBeamDemo,
-  },
-  {
-    id: 'thinking-orbs',
-    title: 'Thinking orbs',
-    subtitle: 'Animated thinking orb component',
-    categories: ['effects', 'ai'],
-    tags: ['thinking', 'orbs', 'animated', 'orb', 'component', 'effects', 'ai'],
-    sections: ['effects'],
-    pro: false,
-    Demo: ThinkingOrbsDemo,
   },
   {
     id: 'thinking-orbs-playground',
