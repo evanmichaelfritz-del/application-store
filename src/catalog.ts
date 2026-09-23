@@ -52,7 +52,6 @@ export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'essential', label: 'Essential' },
   { key: 'ai', label: 'AI Agents' },
-  { key: 'effects', label: 'Effects' },
   { key: 'texts', label: 'Texts' },
   { key: 'pro', label: 'Pro' },
 ];
