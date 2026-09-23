@@ -10,8 +10,12 @@ import { NAV_SECTIONS, type NavSection } from '@/src/sections';
 import { colors, fonts } from '@/src/theme';
 
 type ChipBox = { y: number; height: number; x: number; width: number };
+type RailHover = NavSection | 'add';
 
 const CHIP_H = 44;
+const NAV_ROW_HOVER = '#f1f1f1';
+const NAV_SELECTED = '#e0e0e0';
+const NAV_SELECTED_HOVER = '#d4d4d4';
 
 export function LeftNav({
   value,
@@ -26,6 +30,7 @@ export function LeftNav({
   const { width } = useWindowDimensions();
   const phone = width < 640;
   const [boxes, setBoxes] = useState<Partial<Record<NavSection, ChipBox>>>({});
+  const [railHover, setRailHover] = useState<RailHover | null>(null);
   const pillX = useSharedValue(0);
   const pillY = useSharedValue(0);
   const pillW = useSharedValue(48);
@@ -81,7 +86,22 @@ export function LeftNav({
         key={section.key}
         onPress={() => onChange(section.key)}
         onLayout={onChipLayout(section.key)}
-        style={[compact ? styles.chip : styles.row, { zIndex: 1 }]}
+        onHoverIn={
+          compact
+            ? undefined
+            : () => setRailHover((current) => (current === section.key ? current : section.key))
+        }
+        onHoverOut={
+          compact
+            ? undefined
+            : () => setRailHover((current) => (current === section.key ? null : current))
+        }
+        style={[
+          compact ? styles.chip : styles.row,
+          !compact && !active && railHover === section.key && styles.rowHover,
+          !compact && styles.pointer,
+          { zIndex: 1 },
+        ]}
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
         accessibilityLabel={section.label}
@@ -121,11 +141,18 @@ export function LeftNav({
     <View style={styles.rail} accessibilityRole="tablist">
       <Text style={styles.railEyebrow}>Store</Text>
       <View style={styles.railStack}>
-        <Animated.View style={[styles.railPill, pillStyle]} />
+        <Animated.View
+          style={[styles.railPill, railHover === value && styles.railPillHover, pillStyle]}
+        />
         {items}
-        <View style={styles.rowSlot} accessibilityLabel="Add section slot">
+        <Pressable
+          accessibilityLabel="Add section slot"
+          onHoverIn={() => setRailHover((current) => (current === 'add' ? current : 'add'))}
+          onHoverOut={() => setRailHover((current) => (current === 'add' ? null : current))}
+          style={[styles.rowSlot, railHover === 'add' && styles.rowSlotHover, styles.pointer]}
+        >
           <Text style={styles.slotLabel}>+ Add</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -157,7 +184,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderRadius: 10,
-    backgroundColor: colors.chipActive,
+    backgroundColor: NAV_SELECTED,
+  },
+  railPillHover: {
+    backgroundColor: NAV_SELECTED_HOVER,
   },
   row: {
     minHeight: 40,
@@ -167,6 +197,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  rowHover: {
+    backgroundColor: NAV_ROW_HOVER,
+  },
+  pointer: {
+    cursor: 'pointer',
   },
   rowLabel: {
     fontFamily: fonts.medium,
@@ -246,6 +282,10 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: 'rgba(0, 0, 0, 0.12)',
     justifyContent: 'center',
+  },
+  rowSlotHover: {
+    backgroundColor: NAV_ROW_HOVER,
+    borderColor: 'rgba(0, 0, 0, 0.22)',
   },
   slotLabel: {
     fontFamily: fonts.medium,
