@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radii, shadows } from '@/src/theme';
 
 export function StoreSheet({
@@ -17,11 +18,15 @@ export function StoreSheet({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const phone = width < 640;
+  const touch = width < 880;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, phone && styles.backdropPhone]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, phone && styles.sheetPhone, phone && { paddingBottom: insets.bottom }]}>
           <View style={styles.head}>
             <View style={styles.titles}>
               <Text style={styles.title}>{title}</Text>
@@ -31,7 +36,11 @@ export function StoreSheet({
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close"
-              style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
+              style={({ pressed }) => [
+                styles.close,
+                touch && styles.closeTouch,
+                pressed && styles.closePressed,
+              ]}
             >
               <Text style={styles.closeText}>Close</Text>
             </Pressable>
@@ -54,6 +63,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  backdropPhone: {
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    padding: 0,
+  },
   sheet: {
     width: '100%',
     maxWidth: 640,
@@ -64,6 +78,15 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     ...shadows.material,
     overflow: 'hidden',
+  },
+  sheetPhone: {
+    width: '100%',
+    maxWidth: '100%',
+    maxHeight: '92%',
+    borderTopLeftRadius: radii.card,
+    borderTopRightRadius: radii.card,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   head: {
     flexDirection: 'row',
@@ -100,6 +123,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeTouch: { height: 44, minHeight: 44, minWidth: 44 },
   closePressed: { backgroundColor: '#f1f1f1' },
   closeText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   body: { flexGrow: 1, flexShrink: 1 },

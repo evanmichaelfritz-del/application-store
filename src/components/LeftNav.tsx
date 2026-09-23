@@ -1,14 +1,17 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { countSection } from '@/src/catalog';
+import { EdgeFade } from '@/src/components/EdgeFade';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { springs, sprung } from '@/src/motion';
 import { NAV_SECTIONS, type NavSection } from '@/src/sections';
 import { colors, fonts } from '@/src/theme';
 
 type ChipBox = { y: number; height: number; x: number; width: number };
+
+const CHIP_H = 44;
 
 export function LeftNav({
   value,
@@ -20,6 +23,8 @@ export function LeftNav({
   compact: boolean;
 }) {
   const { reduceMotion } = useReduceMotion();
+  const { width } = useWindowDimensions();
+  const phone = width < 640;
   const [boxes, setBoxes] = useState<Partial<Record<NavSection, ChipBox>>>({});
   const pillX = useSharedValue(0);
   const pillY = useSharedValue(0);
@@ -43,7 +48,7 @@ export function LeftNav({
       ? {
           transform: [{ translateX: pillX.value }],
           width: pillW.value,
-          height: 36,
+          height: CHIP_H,
         }
       : {
           transform: [{ translateY: pillY.value }],
@@ -52,13 +57,19 @@ export function LeftNav({
   );
 
   const onChipLayout = (key: NavSection) => (e: LayoutChangeEvent) => {
-    const { x, y, width, height } = e.nativeEvent.layout;
+    const { x, y, width: layoutWidth, height } = e.nativeEvent.layout;
     setBoxes((prev) => {
       const last = prev[key];
-      if (last && last.x === x && last.y === y && last.width === width && last.height === height) {
+      if (
+        last &&
+        last.x === x &&
+        last.y === y &&
+        last.width === layoutWidth &&
+        last.height === height
+      ) {
         return prev;
       }
-      return { ...prev, [key]: { x, y, width, height } };
+      return { ...prev, [key]: { x, y, width: layoutWidth, height } };
     });
   };
 
@@ -87,18 +98,22 @@ export function LeftNav({
 
   if (compact) {
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-        accessibilityRole="tablist"
-      >
-        <Animated.View style={[styles.chipPill, pillStyle]} />
-        {items}
-        <View style={styles.chipSlot} accessibilityLabel="Add section slot">
-          <Text style={styles.slotLabel}>+ Add</Text>
-        </View>
-      </ScrollView>
+      <View style={styles.chipWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll}
+          contentContainerStyle={[styles.chipRow, phone && styles.chipRowPhone]}
+          accessibilityRole="tablist"
+        >
+          <Animated.View style={[styles.chipPill, pillStyle]} />
+          {items}
+          <View style={styles.chipSlot} accessibilityLabel="Add section slot">
+            <Text style={styles.slotLabel}>+ Add</Text>
+          </View>
+        </ScrollView>
+        <EdgeFade />
+      </View>
     );
   }
 
@@ -165,26 +180,40 @@ const styles = StyleSheet.create({
   },
   countOn: { color: colors.chipTextActive },
   labelOn: { color: colors.chipTextActive },
+  chipWrap: {
+    position: 'relative',
+    flexGrow: 0,
+    flexShrink: 0,
+    width: '100%',
+    marginBottom: 8,
+    backgroundColor: colors.bg,
+  },
+  chipScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: CHIP_H,
+    maxHeight: CHIP_H,
+  },
   chipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
     paddingHorizontal: 20,
-    marginBottom: 8,
     position: 'relative',
-    flexGrow: 1,
+    flexGrow: 0,
   },
+  chipRowPhone: { paddingHorizontal: 16 },
   chipPill: {
     position: 'absolute',
     left: 0,
     top: 0,
-    height: 36,
+    height: CHIP_H,
     borderRadius: 48,
     backgroundColor: colors.chipActive,
   },
   chip: {
-    height: 36,
-    paddingHorizontal: 15,
+    height: CHIP_H,
+    paddingHorizontal: 16,
     borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
@@ -194,12 +223,12 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.chipText,
   },
   chipSlot: {
-    height: 36,
-    paddingHorizontal: 15,
+    height: CHIP_H,
+    paddingHorizontal: 16,
     borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',

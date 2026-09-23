@@ -26,6 +26,7 @@ export default function StoreScreen() {
   const [query, setQuery] = useState('');
   const { reduceMotion } = useReduceMotion();
   const { width } = useWindowDimensions();
+  const phone = width < 640;
   const compact = width < 880;
   const columns = width >= 1180 ? 3 : width >= 880 ? 2 : 1;
   const sectionItems = useMemo(
@@ -39,11 +40,18 @@ export default function StoreScreen() {
   const empty = SECTION_COPY[section].empty;
   const filteredOut = sectionItems.length > 0 && items.length === 0;
 
+  const onSectionChange = (next: NavSection) => {
+    if (next === section) return;
+    setSection(next);
+    setFilter('all');
+    setQuery('');
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <TopNav />
       <View style={[styles.body, compact && styles.bodyStack]}>
-        <LeftNav value={section} onChange={setSection} compact={compact} />
+        <LeftNav value={section} onChange={onSectionChange} compact={compact} />
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.page}
@@ -51,7 +59,7 @@ export default function StoreScreen() {
         >
           <Hero section={section} />
           <FilterBar value={filter} onChange={setFilter} query={query} onQueryChange={setQuery} />
-          <View style={styles.grid}>
+          <View style={[styles.grid, phone && styles.gridPhone]}>
             {items.map((item) => (
               <Animated.View
                 key={item.id}
@@ -99,5 +107,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 12,
   },
+  gridPhone: { paddingHorizontal: 8 },
   cell: { padding: 8 },
 });

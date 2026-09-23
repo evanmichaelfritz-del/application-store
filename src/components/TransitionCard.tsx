@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard } from '@/src/clipboard';
@@ -13,17 +13,24 @@ function ActionButton({
   label,
   done,
   onPress,
+  style,
 }: {
   label: string;
   done?: boolean;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.action, done && styles.actionDone, pressed && styles.actionPressed]}
+      style={({ pressed }) => [
+        styles.action,
+        style,
+        done && styles.actionDone,
+        pressed && styles.actionPressed,
+      ]}
     >
       <Text style={[styles.actionText, done && styles.actionDoneText]}>{label}</Text>
     </Pressable>
@@ -33,6 +40,9 @@ function ActionButton({
 export function TransitionCard({ item }: { item: TransitionItem }) {
   const { show } = useCopyToast();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const phone = width < 640;
+  const touch = width < 880;
   const [copied, setCopied] = useState(false);
   const [showcase, setShowcase] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
@@ -70,18 +80,50 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
       </View>
       <View style={styles.meta}>
         <View style={styles.titles}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, phone && styles.titlePhone]} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={styles.subtitle} numberOfLines={phone ? 2 : 1}>
             {item.subtitle}
           </Text>
         </View>
-        <View style={styles.actions}>
-          <ActionButton label="Showcase" onPress={() => setShowcase(true)} />
-          <ActionButton label={copied ? 'Copied' : 'Copy code'} done={copied} onPress={copyCode} />
-          <ActionButton label="AGENT_PROMPT" onPress={() => setPromptOpen(true)} />
-        </View>
+        {phone ? (
+          <View style={styles.actionsPhone}>
+            <View style={styles.actionsRow}>
+              <ActionButton style={styles.actionGrow} label="Showcase" onPress={() => setShowcase(true)} />
+              <ActionButton
+                style={styles.actionGrow}
+                label={copied ? 'Copied' : 'Copy code'}
+                done={copied}
+                onPress={copyCode}
+              />
+            </View>
+            <ActionButton
+              style={styles.actionFull}
+              label="Agent prompt"
+              onPress={() => setPromptOpen(true)}
+            />
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <ActionButton
+              style={touch ? styles.actionTouch : undefined}
+              label="Showcase"
+              onPress={() => setShowcase(true)}
+            />
+            <ActionButton
+              style={touch ? styles.actionTouch : undefined}
+              label={copied ? 'Copied' : 'Copy code'}
+              done={copied}
+              onPress={copyCode}
+            />
+            <ActionButton
+              style={touch ? styles.actionTouch : undefined}
+              label="AGENT_PROMPT"
+              onPress={() => setPromptOpen(true)}
+            />
+          </View>
+        )}
       </View>
 
       <StoreSheet
@@ -103,6 +145,7 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
         footer={
           <View style={styles.promptFooter}>
             <ActionButton
+              style={touch ? styles.actionTouch : undefined}
               label="Open Playground"
               onPress={() => {
                 setPromptOpen(false);
@@ -110,6 +153,7 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
               }}
             />
             <ActionButton
+              style={touch ? styles.actionTouch : undefined}
               label={promptCopied ? 'Copied' : 'Copy prompt'}
               done={promptCopied}
               onPress={copyPrompt}
@@ -171,6 +215,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.text,
   },
+  titlePhone: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
@@ -178,6 +226,11 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
   },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actionsPhone: { gap: 8 },
+  actionsRow: { flexDirection: 'row', gap: 8 },
+  actionGrow: { flex: 1, height: 44, minWidth: 44 },
+  actionFull: { height: 44, alignSelf: 'stretch' },
+  actionTouch: { height: 44, minWidth: 44 },
   action: {
     height: 30,
     paddingHorizontal: 10,

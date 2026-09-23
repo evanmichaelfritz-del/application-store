@@ -13,7 +13,7 @@ export function Stage({
 
 const styles = StyleSheet.create({
   stage: {
-    height: 220,
+    height: 200,
     borderRadius: radii.stage,
     backgroundColor: colors.stage,
     borderWidth: 1,
