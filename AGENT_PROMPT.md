@@ -62,6 +62,6 @@ npm run web   # port 43181
 
 ## Seeded catalog
 
-Transitions section: essential + texts pieces. Effects section: effects pieces plus libraries.dev CLEAR (Border Beam, Gooey, Liquid metal, Thinking orbs). AI skills: shimmer-text and Thinking orbs. Graphic design / Tools empty. Manual is an add slot.
+Transitions section: essential + texts pieces, including Image generation loader. Effects section: effects pieces plus libraries.dev CLEAR (Border Beam, Gooey, Liquid metal), plus Shimmer text and Thinking Orbs (preview, playground, install). AI skills is empty. Graphic design / Tools empty. Manual is an add slot.
 
 Success card subtitle: **`Success check with blur and rotate`**.

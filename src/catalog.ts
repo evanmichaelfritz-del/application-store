@@ -24,7 +24,6 @@ import { TiltCardDemo } from './demos/TiltCard';
 import { BorderBeamDemo } from './demos/border-beam';
 import { GooeyDemo } from './demos/gooey';
 import { LiquidMetalDemo } from './demos/liquid-metal';
-import { ThinkingOrbsDemo } from './demos/thinking-orbs';
 import { ThinkingOrbsPlaygroundDemo } from './demos/thinking-orbs-playground';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import type { NavSection } from './sections';
@@ -255,7 +254,7 @@ export const TRANSITIONS: TransitionItem[] = [
     subtitle: 'Masked gradient sweep across text',
     categories: ['texts', 'ai'],
     tags: ['shimmer', 'text', 'masked', 'gradient', 'sweep', 'texts', 'ai'],
-    sections: ['transitions', 'ai-skills'],
+    sections: ['effects'],
     pro: false,
     Demo: ShimmerTextDemo,
   },
@@ -265,7 +264,7 @@ export const TRANSITIONS: TransitionItem[] = [
     subtitle: 'WebGL mosaic that reveals generated images',
     categories: ['ai'],
     tags: ['image', 'generation', 'loader', 'webgl', 'mosaic', 'reveals', 'generated', 'images', 'ai'],
-    sections: ['transitions', 'ai-skills'],
+    sections: ['transitions'],
     pro: true,
     Demo: ImageGenerationLoaderDemo,
   },
@@ -300,16 +299,6 @@ export const TRANSITIONS: TransitionItem[] = [
     Demo: BorderBeamDemo,
   },
   {
-    id: 'thinking-orbs',
-    title: 'Thinking orbs',
-    subtitle: 'Animated thinking orb component',
-    categories: ['effects', 'ai'],
-    tags: ['thinking', 'orbs', 'animated', 'orb', 'component', 'effects', 'ai'],
-    sections: ['effects', 'ai-skills'],
-    pro: false,
-    Demo: ThinkingOrbsDemo,
-  },
-  {
     id: 'thinking-orbs-playground',
     title: 'Thinking Orbs',
     subtitle: 'Preview types + Playground + Install',
@@ -329,7 +318,7 @@ export const TRANSITIONS: TransitionItem[] = [
       'expo',
       'motionsource',
     ],
-    sections: ['effects', 'ai-skills'],
+    sections: ['effects'],
     pro: false,
     Demo: ThinkingOrbsPlaygroundDemo,
   },
