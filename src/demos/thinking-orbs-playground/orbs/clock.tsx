@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, AppState, type AppStateStatus } from "react-native";
 import { runOnJS, useFrameCallback } from "react-native-reanimated";
 
@@ -95,6 +95,30 @@ function useHostHidden(): boolean {
 }
 
 /**
+ * Several gallery cards each mount a provider. Only one frame callback
+ * flushes the shared listener set; the rest stay idle and take over if
+ * the leader unmounts.
+ */
+let clockOwner: symbol | null = null;
+const clockWaiters = new Set<symbol>();
+const clockClaims = new Map<symbol, () => void>();
+
+function claimClock(token: symbol) {
+  if (clockOwner != null) return;
+  clockOwner = token;
+  clockClaims.get(token)?.();
+}
+
+function releaseClock(token: symbol) {
+  clockWaiters.delete(token);
+  clockClaims.delete(token);
+  if (clockOwner !== token) return;
+  clockOwner = null;
+  const next = clockWaiters.values().next().value;
+  if (next) claimClock(next);
+}
+
+/**
  * Reanimated frame callback drives every orb on the JS thread.
  * Hidden tab / background stops the loop; resume reads the wall clock again.
  * Reduced motion stops the loop; orbs paint t = 0.6 once.
@@ -110,13 +134,31 @@ export function OrbClockProvider({
   const systemReduced = useReducedMotionFlag();
   const reducedMotion = reducedMotionProp || systemReduced;
   const hidden = useHostHidden();
+  const tokenRef = useRef<symbol | null>(null);
+  if (tokenRef.current == null) tokenRef.current = Symbol("orb-clock");
   const frame = useFrameCallback(() => {
     "worklet";
     runOnJS(flushOrbFrames)();
   }, false);
 
   useEffect(() => {
-    frame.setActive(!reducedMotion && !hidden);
+    const token = tokenRef.current;
+    if (token == null) return;
+    const run = !reducedMotion && !hidden;
+    if (!run) {
+      frame.setActive(false);
+      releaseClock(token);
+      return;
+    }
+    clockClaims.set(token, () => frame.setActive(true));
+    clockWaiters.add(token);
+    if (clockOwner == null) claimClock(token);
+    else if (clockOwner === token) frame.setActive(true);
+    else frame.setActive(false);
+    return () => {
+      frame.setActive(false);
+      releaseClock(token);
+    };
   }, [frame, hidden, reducedMotion]);
 
   return (
