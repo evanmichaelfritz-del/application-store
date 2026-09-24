@@ -1,4 +1,5 @@
 import { GOOEY_PLUS_COPY_SNIPPET } from '@/src/closedNetwork/gooeyPlusMenu';
+import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 import { ORB_GALLERY_SNIPPETS } from './demos/thinking-orbs-playground/galleryCopy';
 
 export const SNIPPETS: Record<string, string> = {
@@ -395,19 +396,7 @@ export function Card() {
   .t-tt { transition: none !important; }
 }`,
 
-  'tilt-3d': `:root {
-  --tilt-perspective: 1000px;
-  --tilt-return: 1000ms;
-  --tilt-follow: 400ms;
-  --tilt-glare-opacity: 0.32;
-  --tilt-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
-.t-tilt { perspective: var(--tilt-perspective); }
-.t-tilt-card { transform-style: preserve-3d; transition: transform var(--tilt-follow) var(--tilt-ease); }
-.t-tilt-glare { pointer-events: none; mix-blend-mode: screen; }
-@media (prefers-reduced-motion: reduce) {
-  .t-tilt-card { transform: none !important; }
-}`,
+  'tilt-3d': TILT_COPY_SNIPPET,
 
   'border-beam': `:root {
   --beam-loop: 2800ms;
