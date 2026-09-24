@@ -24,7 +24,7 @@ npm run web   # port 43181
 
 - Baseball-card gallery cloned from the transitions.dev Expo recreate.
 - Left nav: Transitions / Effects / Graphic design / AI skills / Tools / Manual.
-- Each card: **Showcase** (live demo), **Copy code**, **AGENT_PROMPT** reveal.
+- Each card: **Showcase** (live demo), **Copy HTML**, **Copy CSS**, **Copy script**, **AGENT_PROMPT** reveal.
 - Deploy-ready for Vercel via Expo web export (`vercel.json` → `dist`).
 
 ---
@@ -47,14 +47,14 @@ npm run web   # port 43181
 
 **Card anatomy**
 
-- Stage (live showcase, ~220px) → title → subtitle → **Showcase** / **Copy code** / **AGENT_PROMPT**.
+- Stage (live showcase, ~220px) → title → subtitle → **Showcase** / **Copy HTML** / **Copy CSS** / **Copy script** / **AGENT_PROMPT**.
 - Pro badge on Pro demos. Same interactive demo; **no paywall**.
 
 **Motion stack** — unchanged from the transitions recreate:
 
 - RN-native: Reanimated (+ Gesture Handler).
 - Do **not** drive demos with CSS `@keyframes`.
-- Copy still *emits* a portable CSS snippet.
+- Copy HTML, Copy CSS, and Copy script emit the closed-network preview pieces. Copy script says the effect is HTML and CSS only when the preview has no script.
 - Reduced motion: `AccessibilityInfo` + in-app toggle.
 - Springs: layout/default **20 / 280**; pop **mass 0.8, damping 12**; snap **18 / 300**.
 

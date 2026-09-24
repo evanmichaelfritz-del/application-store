@@ -17,21 +17,26 @@ export const SNIPPETS: Record<string, string> = {
 
   'number-pop-in': `:root {
   --digit-dur: 500ms;
-  --digit-distance: 8px;
-  --digit-stagger: 70ms;
+  --digit-stagger: 50ms;
   --digit-blur: 2px;
-  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-tilt: 80deg;
+  --digit-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .t-digit {
   display: inline-block;
+  transform-origin: center bottom;
   animation: t-digit-in var(--digit-dur) var(--digit-ease) both;
 }
 .t-digit:nth-child(2) { animation-delay: calc(var(--digit-stagger) * 1); }
 .t-digit:nth-child(3) { animation-delay: calc(var(--digit-stagger) * 2); }
 .t-digit:nth-child(4) { animation-delay: calc(var(--digit-stagger) * 3); }
+.t-digit:nth-child(5) { animation-delay: calc(var(--digit-stagger) * 4); }
+.t-digit:nth-child(6) { animation-delay: calc(var(--digit-stagger) * 5); }
+.t-digit:nth-child(7) { animation-delay: calc(var(--digit-stagger) * 6); }
+.t-digit:nth-child(8) { animation-delay: calc(var(--digit-stagger) * 7); }
 @keyframes t-digit-in {
-  from { transform: translateY(var(--digit-distance)); opacity: 0; filter: blur(var(--digit-blur)); }
-  to { transform: translateY(0); opacity: 1; filter: blur(0); }
+  from { transform: perspective(400px) rotateX(var(--digit-tilt)); opacity: 0; filter: blur(var(--digit-blur)); }
+  to { transform: perspective(400px) rotateX(0deg); opacity: 1; filter: blur(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .t-digit { animation: none !important; }
@@ -50,21 +55,21 @@ export const SNIPPETS: Record<string, string> = {
   opacity: 0;
   transition:
     transform var(--badge-slide-dur) var(--badge-slide-ease),
-    opacity 400ms var(--badge-slide-ease);
+    opacity 180ms var(--badge-slide-ease);
 }
 .t-badge.is-on {
   transform: translate(0, 0) scale(1);
   opacity: 1;
   transition:
     transform var(--badge-pop-dur) var(--badge-pop-ease),
-    opacity 400ms var(--badge-slide-ease);
+    opacity 180ms var(--badge-slide-ease);
 }
 @media (prefers-reduced-motion: reduce) {
   .t-badge { transition: none !important; }
 }`,
 
   'text-states-swap': `:root {
-  --text-swap-dur: 150ms;
+  --text-swap-dur: 250ms;
   --text-swap-translate-y: 4px;
   --text-swap-blur: 2px;
   --text-swap-ease: ease-in-out;
@@ -90,10 +95,10 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'menu-dropdown': `:root {
-  --dropdown-open-dur: 250ms;
-  --dropdown-close-dur: 150ms;
-  --dropdown-pre-scale: 0.97;
-  --dropdown-closing-scale: 0.99;
+  --dropdown-open-dur: 180ms;
+  --dropdown-close-dur: 180ms;
+  --dropdown-pre-scale: 0.94;
+  --dropdown-closing-scale: 0.94;
   --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .t-dropdown {
@@ -127,9 +132,9 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'modal-open-close': `:root {
-  --modal-open-dur: 250ms;
-  --modal-close-dur: 150ms;
-  --modal-scale: 0.96;
+  --modal-open-dur: 200ms;
+  --modal-close-dur: 200ms;
+  --modal-scale: 0.94;
   --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .t-modal {
@@ -151,18 +156,16 @@ export const SNIPPETS: Record<string, string> = {
   'gooey-plus-menu': GOOEY_PLUS_COPY_SNIPPET,
 
   'page-side-by-side': `:root {
-  --page-slide-dur: 250ms;
-  --page-slide-distance: 8px;
-  --page-blur: 3px;
+  --page-slide-dur: 300ms;
+  --page-slide-distance: 24px;
   --page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .t-page {
   transition: transform var(--page-slide-dur) var(--page-slide-ease),
-    opacity var(--page-slide-dur) var(--page-slide-ease),
-    filter var(--page-slide-dur) var(--page-slide-ease);
+    opacity var(--page-slide-dur) var(--page-slide-ease);
 }
-.t-page.is-exit { transform: translateX(calc(var(--page-slide-distance) * -1)); opacity: 0; filter: blur(var(--page-blur)); }
-.t-page.is-enter { transform: translateX(var(--page-slide-distance)); opacity: 0; filter: blur(var(--page-blur)); }
+.t-page.is-exit { transform: translateX(calc(var(--page-slide-distance) * -1)); opacity: 0; }
+.t-page.is-enter { transform: translateX(var(--page-slide-distance)); opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .t-page { transition: none !important; }
 }`,
@@ -186,24 +189,31 @@ export const SNIPPETS: Record<string, string> = {
   'success-check': `:root {
   --check-opacity-dur: 500ms;
   --check-rotate-from: 80deg;
-  --check-y-amount: 40px;
-  --check-blur-from: 10px;
+  --check-y-amount: 28px;
+  --check-scale-from: 0.86;
+  --check-dash: 28;
+  --check-draw-delay: 80ms;
   --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
 }
-.t-check { animation: t-check-in 500ms var(--check-ease-out) both; }
+.t-check { animation: t-check-in var(--check-opacity-dur) var(--check-ease-out) both; }
+.t-check .mark {
+  stroke-dasharray: var(--check-dash);
+  stroke-dashoffset: var(--check-dash);
+  animation: t-check-draw var(--check-opacity-dur) var(--check-ease-out) var(--check-draw-delay) forwards;
+}
 @keyframes t-check-in {
-  from { opacity: 0; transform: translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)); filter: blur(var(--check-blur-from)); }
-  to { opacity: 1; transform: translateY(0) rotate(0); filter: blur(0); }
+  from { opacity: 0; transform: translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)) scale(var(--check-scale-from)); }
+  to { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
 }
+@keyframes t-check-draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .t-check { animation: none !important; }
 }`,
 
   'avatar-group-hover': `:root {
-  --avatar-lift: -4px;
+  --avatar-lift: -8px;
   --avatar-dur: 320ms;
-  --avatar-scale: 1.05;
+  --avatar-scale: 1.06;
   --avatar-falloff: 0.45;
   --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
   --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
@@ -230,19 +240,17 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'error-state-shake': `:root {
-  --shake-distance: 6px;
-  --shake-overshoot: 4px;
-  --shake-dur-a: 80ms;
-  --shake-dur-b: 60ms;
-  --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shake-distance: 7px;
+  --shake-dur: 400ms;
+  --shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
-.t-shake.is-error { animation: t-shake 280ms var(--shake-ease); }
+.t-shake.is-error { animation: t-shake var(--shake-dur) var(--shake-ease); }
 @keyframes t-shake {
   0% { transform: translateX(0); }
   20% { transform: translateX(var(--shake-distance)); }
-  40% { transform: translateX(calc(var(--shake-overshoot) * -1)); }
-  60% { transform: translateX(4px); }
-  80% { transform: translateX(-2px); }
+  40% { transform: translateX(calc(var(--shake-distance) * -1)); }
+  60% { transform: translateX(4.2px); }
+  80% { transform: translateX(-2.45px); }
   100% { transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -250,7 +258,7 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'input-clear-dissolve': `:root {
-  --clear-out-dur: 400ms;
+  --clear-out-dur: 250ms;
   --clear-out-fly: 12px;
   --clear-blur: 2px;
   --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -270,7 +278,7 @@ export const SNIPPETS: Record<string, string> = {
 
   'skeleton-reveal': `:root {
   --pulse-dur: 1000ms;
-  --reveal-dur: 400ms;
+  --reveal-dur: 250ms;
   --reveal-blur: 2px;
   --reveal-ease: ease-in-out;
 }
@@ -284,9 +292,9 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'texts-reveal': `:root {
-  --stagger-dur: 500ms;
+  --stagger-dur: 280ms;
   --stagger-distance: 12px;
-  --stagger-stagger: 40ms;
+  --stagger-stagger: 50ms;
   --stagger-blur: 3px;
   --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -395,14 +403,15 @@ export function Card() {
 }`,
 
   'tooltip-open-close': `:root {
-  --tt-in-dur: 150ms;
-  --tt-out-dur: 50ms;
+  --tt-in-dur: 180ms;
+  --tt-out-dur: 0ms;
   --tt-scale: 0.98;
-  --tt-delay: 80ms;
-  --tt-move-dur: 160ms;
+  --tt-delay: 400ms;
+  --tt-slot: 44px;
   --tt-in-ease: ease-out;
 }
 .t-tt {
+  left: var(--tt-x, 0px);
   transform: scale(var(--tt-scale));
   opacity: 0;
   transition: transform var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay),

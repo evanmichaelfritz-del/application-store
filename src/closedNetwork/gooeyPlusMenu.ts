@@ -4,7 +4,7 @@
  * Architecture mirrors liquid-gooey: SVG silhouette + goo filter under crisp DOM.
  */
 
-/** Full runnable document — Copy code, AGENT_PROMPT examples, Playground seed. */
+/** Full runnable document. Card buttons copy its body, style, and script separately. */
 export const GOOEY_PLUS_CLOSED_NETWORK_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,5 +1,6 @@
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
+import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import { ORB_GALLERY_LOCKS } from './demos/thinking-orbs-playground/galleryCopy';
 import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
@@ -15,23 +16,24 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Reanimated width/height timing. Copy emits portable CSS `.t-resize`.',
   },
   'number-pop-in': {
-    motion: 'Per-digit rotateX + blur, stagger 50ms (45–60ms OK).',
-    content: 'Digits like `6 5. 7 8`.',
-    rn: 'Reanimated per-digit flip. Copy emits `.t-digit` + `@keyframes t-digit-in`.',
+    motion: 'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values.',
+    content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. Spaces are digits in the row.',
+    rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
   },
   'notification-badge': {
-    motion: 'Diagonal slide then spring pop-in (`springs.pop`: mass 0.8, damping 12, stiffness 280).',
-    rn: 'Shared-value translate + scale. Copy emits `.t-badge`.',
+    motion: 'Off state translate(-8.2px, 12.4px) scale(0.4) opacity 0. On state springs to rest (`springs.pop`: mass 0.8, damping 12, stiffness 280). Opacity timing is 180ms.',
+    content: 'Count `1` on `#e23d2d`. Starts hidden. Click the bell toggles it.',
+    rn: 'Shared-value translate + scale. Copy CSS is `.t-badge`. Copy script toggles `.is-on`.',
   },
   'text-states-swap': {
-    motion: 'Text swap with opacity + blur ~250ms (220–280ms).',
+    motion: 'Exit up 4px with blur 2px and opacity 0 over 250ms, then enter from +4px over 250ms (`tokens.fade`, ease-in-out).',
     content: '`Transaction processing...` ↔ `Transaction completed`.',
-    rn: 'Cross-fade + blur approximation. Copy emits `.t-text-swap`.',
+    rn: 'Copy CSS is `.t-text-swap`. Copy script waits 250ms before swapping the string.',
   },
   'menu-dropdown': {
-    motion: 'Origin-aware open: scale from trigger + fade 180ms (`tokens.menu`).',
-    content: '`New file` / `Add image` / `New folder`.',
-    rn: 'Transform origin from the trigger. Copy emits `.t-dropdown`.',
+    motion: 'Origin top left. Closed scale 0.94 and opacity 0. Open and close are both 180ms (`tokens.menu`).',
+    content: 'Trigger reads `Open menu` / `Close menu`. Items: `New file` / `Add image` / `New folder`. Starts closed.',
+    rn: 'Copy CSS is `.t-dropdown`. Copy script toggles `.is-open` / `.is-closing` and the trigger label.',
   },
   'confetti-burst': {
     motion: 'Gravity-ish fall; particles settle on the Celebrate button top (~1.5s). `springs.snap` on rest.',
@@ -39,53 +41,58 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Reanimated particles, not a full physics engine. Copy emits `.t-confetti-piece` tokens.',
   },
   'modal-open-close': {
-    motion: 'Scale 0.94→1 + fade 200ms (`tokens.modal`).',
-    rn: 'Centered overlay, no route change. Copy emits `.t-modal`.',
+    motion: 'Scale 0.94→1 and fade over 200ms (`tokens.modal`). Backdrop opacity peaks at 0.28. Close uses the same 200ms.',
+    content: 'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` Starts closed.',
+    rn: 'Copy CSS is `.t-modal`. Copy script shows and hides the backdrop.',
   },
   'gooey-plus-menu': {
     motion: 'Closed-network SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms bouncy stagger 40ms; close 250ms snappy.',
     content: '`+` hub + New file / Add image / New folder icons. White liquid surface; dark crisp icons.',
-    rn: 'Closed network: hand-rolled SVG filter (no npm). Live store web demo may use liquid-gooey; Copy code + this prompt ship a zero-dependency HTML recreation.',
+    rn: 'Closed network: hand-rolled SVG filter (no npm). Live store web demo may use liquid-gooey. Copy HTML, Copy CSS, and Copy script split the zero-dependency document. None of them copies the whole file.',
   },
   'page-side-by-side': {
-    motion: 'Forward/back page push, translateX 300ms (`tokens.page`).',
-    content: 'BNB row ↔ `$10` / `$66.11 available`.',
-    rn: 'Shared-value page x. Copy emits `.t-page`.',
+    motion: 'Forward/back page push, translateX 24px over 300ms (`tokens.page`). No blur.',
+    content: 'BNB / `$66.11` ↔ `$10` / `$66.11 available`.',
+    rn: 'Copy CSS is `.t-page`. Copy script swaps the two pages after 300ms.',
   },
   'icon-swap': {
-    motion: 'Scale-blur cross-fade ~250ms.',
-    rn: 'Two icon layers. Copy emits `.t-icon`.',
+    motion: 'Scale from 0.25 and blur 2px, cross-fade 250ms, ease-in-out.',
+    content: 'Hamburger (three lines) swaps with an X. Starts on the hamburger.',
+    rn: 'Copy CSS is `.t-icon`. Copy script toggles `.is-out` on the two layers.',
   },
   'success-check': {
-    motion: 'Spring overshoot (`springs.pop`) with blur and rotate.',
-    rn: 'SVG path via react-native-svg. Copy emits `.t-check`.',
+    motion: 'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1. The check draws a 28px dash after an 80ms delay.',
+    rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
   },
   'avatar-group-hover': {
-    motion: 'Distance-weighted lift; bouncy return via `springs.default`.',
-    rn: 'Hover on web; press in/out on native. No hover-only dead end. Copy emits `.t-avatar`.',
+    motion: 'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength.',
+    content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
+    rn: 'Copy CSS sets the avatar tokens. Copy script writes the distance-weighted transform.',
   },
   'card-stack-hover': {
-    motion: 'Stack fans out with `withSpring` (damping 20, stiffness 280).',
-    rn: 'Press toggle on native; hover on web. Copy emits `.t-stack-card`.',
+    motion: 'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees.',
+    content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
+    rn: 'Copy CSS is `.t-stack-card`. Copy script toggles `.is-spread` on hover and click.',
   },
   'error-state-shake': {
-    motion: '`cubic-bezier(0.36, 0.07, 0.19, 0.97)` ±7px, 400ms (`ease.shake`, `tokens.shake`).',
-    content: '`Please enter a valid email.`',
-    rn: 'TranslateX keyframes via Reanimated. Copy emits `.t-shake`.',
+    motion: '`cubic-bezier(0.36, 0.07, 0.19, 0.97)`, 400ms, keyframes 0, +7px, −7px, +4.2px, −2.45px, 0.',
+    content: 'Input starts at `hello@`. Invalid submit shows `Please enter a valid email.` Border `#c43a31`.',
+    rn: 'Copy CSS is `.t-shake`. Copy script validates the email and replays `.is-error`.',
   },
   'input-clear-dissolve': {
-    motion: 'Clear with per-word dissolve — opacity + blur ~250ms.',
-    rn: 'Word-level shared values. Copy emits `.t-word`.',
+    motion: 'Each word leaves over 250ms, blur 2px, translateY −12px, stagger 45ms. Click again restores the words.',
+    content: '`search` `recent` `files`.',
+    rn: 'Copy CSS is `.t-word`. Copy script sets the stagger and toggles `.is-out`.',
   },
   'skeleton-reveal': {
-    motion: 'Pulse to content cross-fade ~250ms.',
+    motion: 'Skeleton pulses to opacity 0.5 over 1000ms. Content fades in over 250ms with a 2px blur.',
     content: '`Jane Cooper` / `jane.cooper@example.com`.',
-    rn: 'Skeleton pulse then fade/blur reveal. Copy emits `.t-skel` / `.t-content`.',
+    rn: 'Copy CSS is `.t-skel` / `.t-content`. Copy script reveals after 900ms and toggles on click.',
   },
   'texts-reveal': {
-    motion: 'Two lines rise with offset stagger.',
+    motion: 'Two lines rise 12px over 280ms. The second line waits 50ms.',
     content: '`Pull request opened` / `Review requested from 3 teammates`.',
-    rn: 'Staggered translateY + blur. Copy emits `.t-line`.',
+    rn: 'Copy CSS is `.t-line`. Copy script replays by rewriting the lines.',
   },
   'tabs-sliding': {
     motion: 'Pill indicator: shared-value `translateX` + `width` via `withSpring` damping 20, stiffness 280.',
@@ -105,11 +112,11 @@ const LOCKS: Record<string, PromptLock> = {
   'image-generation-loader': {
     motion: 'img-fx WebGL mosaic (`pixels-organic`). Auto-reveal loop: idle 1.2–2.4s → reveal → hold 2200ms → fade 320ms. Manual Reveal toggles hold:manual / hide. Reduced motion → paused, no autoReveal.',
     content: '168×168 card, radius 20, light theme, cardBg `#ffffff`. Image pool `/img-fx/1.png` `/img-fx/2.png` `/img-fx/3.png`. Label button `Reveal`.',
-    rn: 'Install: `npm install img-fx three` (react/react-dom peers). Web: `<ImageGeneration preset="pixels-organic" autoReveal images={[…]}>` in ImageGenerationLoader.web.tsx. Native: static Generating… fallback (no WebGL). Copy emits install + usage. Presets: pixels-organic | pixels-mechanic | sweep-gradient. Imperative: triggerReveal / triggerHide / triggerRegenerate.',
+    rn: 'The gallery stage uses img-fx when that package is installed. Copy HTML, Copy CSS, and Copy script emit the closed-network canvas mosaic below, which is the preview document. They do not emit an npm install snippet.',
   },
   'tooltip-open-close': {
     motion: '400ms delay in, travel + fade; out instant.',
-    rn: 'Delay is a timer, not CSS. Copy emits `.t-tt`.',
+    rn: 'Three triggers: Aa/Edit, ↗/Share, ···/More. The bubble travels by 44px per slot with no delay. Fade-in waits 400ms and lasts 180ms. Hide is instant. Copy CSS is `.t-tt`. Copy script sets `--tt-x`.',
   },
   'tilt-3d': {
     motion: TILT_MOTION,
@@ -223,6 +230,10 @@ If pieces that should merge look separate, raise blur or reduce gap — bridging
 - Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
 - Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
 
+## Card copy buttons
+
+Keep Showcase and AGENT_PROMPT. Replace a single Copy code button with Copy HTML, Copy CSS, and Copy script. Each button copies one piece of the reference document below (body markup, the style block, the script block). None of them copies the whole document.
+
 ## Deliverable
 
 Ship a **single self-contained HTML document** that matches the tokens above. No imports. No build step.
@@ -262,6 +273,9 @@ function buildPrompt(id: string): string {
   const lock = LOCKS[id];
   if (!item || !lock) return '';
 
+  const parts = previewDocumentParts(id);
+  const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
+
   return `# AGENT_PROMPT — ${item.title}
 
 Closed-network rebuild brief for this Application Store piece. This document is the source of truth.
@@ -269,7 +283,7 @@ Closed-network rebuild brief for this Application Store piece. This document is 
 - Do not fetch external pages, docs, or product sites.
 - Do not invent demos beyond this piece.
 - Not Helix, not grok.me, not peptide / Publish product code.
-- Stack: Expo + TypeScript + React Native. Motion is RN-native (Reanimated + Gesture Handler). Copy still emits portable CSS for paste-into-web — that snippet is not what runs the demo.
+- Stack: Expo + TypeScript + React Native for the gallery stage. The three copy buttons emit the closed-network HTML, CSS, and script that the preview document runs. Do not merge those three into one document.
 
 ## Piece
 
@@ -299,14 +313,34 @@ Reduced motion: AccessibilityInfo + in-app toggle → duration 0 / skip springs.
 
 ${lock.rn}
 
+## Copy HTML
+
+\`\`\`html
+${parts.html}
+\`\`\`
+
+## Copy CSS
+
+\`\`\`css
+${parts.css}
+\`\`\`
+
+## Copy script
+
+\`\`\`js
+${scriptText}
+\`\`\`
+
 ## Card chrome (Application Store)
 
 Baseball card: white card, border rgba(0,0,0,0.06), shadow 0 1px 3px rgba(0,0,0,0.04), radius 16. Stage #f9f9f9, radius 14, height ~220px. Page background #fdfdfd. Font Inter.
 
 Each card must support:
-1. Showcase — live demo / preview on the stage
-2. Copy code — portable closed-network snippet + Copied toast
-3. AGENT_PROMPT — this prompt, revealable and copyable
+1. Showcase — live demo on the stage
+2. Copy HTML — the markup block above, alone
+3. Copy CSS — the stylesheet block above, alone
+4. Copy script — the script block above, alone. When the preview has no script, that button copies: ${HTML_CSS_ONLY_NOTE}
+5. AGENT_PROMPT — this prompt, revealable and copyable
 
 ## Out of scope
 

@@ -38,6 +38,8 @@ export default function PlaygroundScreen() {
   const { width } = useWindowDimensions();
   const stacked = width < 960;
   const { show } = useCopyToast();
+  const [backHover, setBackHover] = useState(false);
+  const [backPressed, setBackPressed] = useState(false);
   const current = buttons.find((button) => button.key === selectedKey) ?? first;
   const parts = useMemo(() => splitPreviewDocument(code), [code]);
 
@@ -66,7 +68,23 @@ export default function PlaygroundScreen() {
       <View style={styles.bar}>
         <View style={styles.brandRow}>
           <Link href="/" asChild>
-            <Pressable accessibilityRole="link" accessibilityLabel="Back to store">
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Back to store"
+              onHoverIn={() => setBackHover(true)}
+              onHoverOut={() => {
+                setBackHover(false);
+                setBackPressed(false);
+              }}
+              onPressIn={() => setBackPressed(true)}
+              onPressOut={() => setBackPressed(false)}
+              style={StyleSheet.flatten([
+                styles.backHit,
+                styles.pointer,
+                backHover && !backPressed && styles.hoverLight,
+                backPressed && styles.pressLight,
+              ])}
+            >
               <Text style={styles.back}>← Store</Text>
             </Pressable>
           </Link>
@@ -130,7 +148,18 @@ export default function PlaygroundScreen() {
                           key={button.key}
                           testID={`preview-${button.kind}-${button.id}`}
                           onPress={() => loadPreview(button.key)}
-                          style={[styles.seed, selected && styles.seedOn]}
+                          style={(state) => {
+                            const hover = Boolean((state as { hovered?: boolean }).hovered);
+                            return [
+                              styles.seed,
+                              styles.pointer,
+                              selected && styles.seedOn,
+                              hover && !selected && styles.hoverLight,
+                              hover && selected && styles.seedOnHover,
+                              state.pressed && !selected && styles.pressLight,
+                              state.pressed && selected && styles.seedOnPressed,
+                            ];
+                          }}
                           accessibilityRole="button"
                           accessibilityLabel={`${GROUP_LABEL[kind]} preview: ${button.label}`}
                           accessibilityState={{ selected }}
@@ -183,7 +212,18 @@ function ModeChip({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.chip, active && styles.chipOn]}
+      style={(state) => {
+        const hover = Boolean((state as { hovered?: boolean }).hovered);
+        return [
+          styles.chip,
+          styles.pointer,
+          active && styles.chipOn,
+          hover && !active && styles.hoverLight,
+          hover && active && styles.darkHover,
+          state.pressed && !active && styles.pressLight,
+          state.pressed && active && styles.darkPressed,
+        ];
+      }}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
     >
@@ -207,11 +247,18 @@ function Action({
     <Pressable
       testID={testID}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        primary && styles.actionPrimary,
-        pressed && styles.actionPressed,
-      ]}
+      style={(state) => {
+        const hover = Boolean((state as { hovered?: boolean }).hovered);
+        return [
+          styles.action,
+          styles.pointer,
+          primary && styles.actionPrimary,
+          hover && !primary && styles.hoverLight,
+          hover && primary && styles.darkHover,
+          state.pressed && !primary && styles.pressLight,
+          state.pressed && primary && styles.darkPressed,
+        ];
+      }}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
@@ -230,6 +277,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  pointer: { cursor: 'pointer' },
+  hoverLight: { backgroundColor: '#d9d9e2', borderColor: 'rgba(0,0,0,0.35)' },
+  pressLight: { backgroundColor: '#b7b7c2', borderColor: 'rgba(0,0,0,0.5)' },
+  darkHover: { backgroundColor: '#4a4a4a', borderColor: '#bdbdbd' },
+  darkPressed: { backgroundColor: '#000000', borderColor: '#ffffff' },
+  backHit: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   back: { fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted },
   brand: {
     fontFamily: fonts.semibold,
@@ -286,7 +339,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionPrimary: { backgroundColor: colors.text, borderColor: colors.text },
-  actionPressed: { opacity: 0.88 },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionTextPrimary: { color: colors.proFg },
   sourceScroll: { flex: 1 },
@@ -310,6 +362,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   seedOn: { backgroundColor: colors.chipActive, borderColor: colors.chipActive },
+  seedOnHover: { backgroundColor: '#c8c8d4', borderColor: 'rgba(0,0,0,0.45)' },
+  seedOnPressed: { backgroundColor: '#a9a9b6', borderColor: 'rgba(0,0,0,0.6)' },
   seedText: { fontFamily: fonts.medium, fontSize: 12, color: colors.chipText },
   seedTextOn: { color: colors.chipTextActive },
   editor: {
