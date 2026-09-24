@@ -11,7 +11,7 @@ export const NAV_SECTIONS: { key: NavSection; label: string; hint: string }[] = 
   { key: 'effects', label: 'Effects', hint: 'Confetti, beam, gooey, metal, orbs' },
   { key: 'graphic-design', label: 'Graphic design', hint: 'Empty add slot' },
   { key: 'ai-skills', label: 'AI skills', hint: 'Agent-facing pieces' },
-  { key: 'tools', label: 'Tools', hint: 'Empty until next ingest' },
+  { key: 'tools', label: 'Tools', hint: 'Symmetry grid' },
   { key: 'manual', label: 'Manual', hint: 'Hand-authored add slot' },
 ];
 
@@ -42,8 +42,8 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   tools: {
     title: 'Tools',
-    subtitle: 'Store tools. Use Playground (top nav) to paste closed-network HTML or AGENT_PROMPT recreations and preview them.',
-    empty: 'No tools cards yet — open Playground from the top nav to test recreations.',
+    subtitle: 'Preview tools. Symmetry grid draws purple alignment guides over a sample row.',
+    empty: 'No tools yet.',
   },
   manual: {
     title: 'Manual',

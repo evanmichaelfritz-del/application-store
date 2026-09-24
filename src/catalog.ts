@@ -37,6 +37,7 @@ import {
 } from './demos/thinking-orbs-playground/galleryCards';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
+import { SymmetryGridDemo } from './demos/symmetry-grid';
 import type { NavSection } from './sections';
 
 /**
@@ -439,6 +440,16 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['graphic-design'],
     pro: false,
     Demo: AbrarOverviewDemo,
+  },
+  {
+    id: 'symmetry-grid',
+    title: 'Symmetry grid',
+    subtitle: 'Toggle purple alignment guides on a sample row',
+    categories: [],
+    tags: ['symmetry', 'grid', 'alignment', 'guides', 'tools', 'preview'],
+    sections: ['tools'],
+    pro: false,
+    Demo: SymmetryGridDemo,
   },
 ];
 
