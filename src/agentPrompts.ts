@@ -1,6 +1,7 @@
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
-import { THINKING_ORBS_PLAYGROUND_AGENT_PROMPT } from './demos/thinking-orbs-playground/agentPrompt';
+import { ORB_GALLERY_LOCKS } from './demos/thinking-orbs-playground/galleryCopy';
+import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
 type PromptLock = {
   motion: string;
@@ -109,9 +110,9 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Delay is a timer, not CSS. Copy emits `.t-tt`.',
   },
   'tilt-3d': {
-    motion: '`Gesture.Pan` rotateX/Y + glare follow. Soft white disc tracks the pointer.',
-    content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`.',
-    rn: 'Web mouse move without setPointerCapture. No hover-only dead end. Copy emits `.t-tilt`.',
+    motion: TILT_MOTION,
+    content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
+    rn: TILT_RN,
   },
   'border-beam': {
     motion: 'Skia beam dots walk a rounded-rect perimeter. Chat loop 2800ms; Search bottom-stroke loop 5200ms, dim 0.55. Tail 18. Reduced motion freezes at 0.12 / 0.4.',
@@ -133,6 +134,15 @@ const LOCKS: Record<string, PromptLock> = {
     content: 'Auto pill + circular send `↑`. Metal colors `#5CE1FF #FF4ECD #FFD166 #7CFFB2 #7AA2FF`.',
     rn: 'Skia RoundedRect stroke + SweepGradient. Copy emits `.t-metal`.',
   },
+  'orb-solving': ORB_GALLERY_LOCKS.solving,
+  'orb-thinking': ORB_GALLERY_LOCKS.thinking,
+  'orb-agent-listening': ORB_GALLERY_LOCKS['agent-listening'],
+  'orb-searching': ORB_GALLERY_LOCKS.searching,
+  'orb-agent-planning': ORB_GALLERY_LOCKS['agent-planning'],
+  'orb-agent-thinking': ORB_GALLERY_LOCKS['agent-thinking'],
+  'orb-working': ORB_GALLERY_LOCKS.working,
+  'orb-agent-shaping': ORB_GALLERY_LOCKS['agent-shaping'],
+  'orb-state-picker': ORB_GALLERY_LOCKS['state-picker'],
 };
 
 function buildGooeyPlusPrompt(): string {
@@ -241,7 +251,6 @@ Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. 
 /** Full custom prompts that replace the short LOCK template. */
 const FULL_PROMPTS: Record<string, () => string> = {
   'gooey-plus-menu': buildGooeyPlusPrompt,
-  'thinking-orbs-playground': () => THINKING_ORBS_PLAYGROUND_AGENT_PROMPT,
 };
 
 function buildPrompt(id: string): string {
