@@ -97,8 +97,10 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Not a full physics engine. Copy emits `.t-drop`.',
   },
   'shimmer-text': {
-    motion: 'Looping translate mask, 1.2s linear (`tokens.shimmer`).',
-    rn: 'Two text layers + sliding mask. No CSS @keyframes drive the live demo. Copy emits `.t-shimmer`. AI skill.',
+    motion:
+      'Masked highlight sweeps the entire string left to right in 1200ms linear (`tokens.shimmer`), then loops. The peak crosses every glyph in the phrase, including the end of "reply". Reduced motion holds the solid highlight color.',
+    content: '`Generating reply`.',
+    rn: 'Base line plus a duplicate highlight line. Measure the full string width and lay the highlight line out at that width (nowrap, flex-shrink 0). The ~72px window only clips that line and translates from -window to the measured width; the inner line counter-translates so the visible slice is that part of the phrase. A window-sized text box wraps to "Gene" and the sweep never reaches the rest of the phrase. Copy emits `.t-shimmer`: inline-block, fit-content, background-size 300%, no-repeat, background-position 100% → 0% over 1200ms so the 50% peak travels the whole line.',
   },
   'image-generation-loader': {
     motion: 'img-fx WebGL mosaic (`pixels-organic`). Auto-reveal loop: idle 1.2–2.4s → reveal → hold 2200ms → fade 320ms. Manual Reveal toggles hold:manual / hide. Reduced motion → paused, no autoReveal.',
