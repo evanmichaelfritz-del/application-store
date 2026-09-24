@@ -1,6 +1,6 @@
 # Application Store
 
-Evan Fritz’s master storefront — Expo (React Native + TypeScript) baseball-card gallery. Live showcase, **Copy code**, and **AGENT_PROMPT** on every seeded piece. Not Helix. Not grok.me. Not a transitions.dev recreate.
+Evan Fritz’s master storefront — Expo (React Native + TypeScript) baseball-card gallery. Live showcase, **Copy HTML**, **Copy CSS**, **Copy script**, and **AGENT_PROMPT** on every seeded piece. Not Helix. Not grok.me. Not a transitions.dev recreate.
 
 Adapted from the public transitions.dev Expo gallery (`evanmichaelfritz-del/transitions-dev-expo`). Same card chrome, stages, springs, and Inter / `#fdfdfd` language.
 
@@ -18,7 +18,7 @@ Public repo: [evanmichaelfritz-del/application-store](https://github.com/evanmic
 | Manual | Hand-authored add slot |
 | + Add | Extra section slot in the rail |
 
-Each seeded card: **live stage → Showcase → Copy code → AGENT_PROMPT**.
+Each seeded card: **live stage → Showcase → Copy HTML → Copy CSS → Copy script → AGENT_PROMPT**.
 
 ## Add a piece
 
@@ -93,7 +93,7 @@ npx serve dist
 - `react-native-svg`
 - `@shopify/react-native-skia` (Gooey metaball; CanvasKit on web)
 - Inter via `@expo-google-fonts/inter`
-- `expo-clipboard` for Copy code / Copy prompt
+- `expo-clipboard` for Copy HTML / Copy CSS / Copy script / Copy prompt
 
 Motion is RN-native (`src/motion.ts`). Copy still emits portable CSS for paste-into-web.
 

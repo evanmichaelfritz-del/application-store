@@ -3,34 +3,52 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp,
 import { useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard } from '@/src/clipboard';
+import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import type { TransitionItem } from '../catalog';
-import { SNIPPETS } from '../snippets';
 import { colors, fonts, radii, shadows } from '../theme';
+
+type CopyKind = 'html' | 'css' | 'script';
+
+const COPY_LABEL: Record<CopyKind, string> = {
+  html: 'Copy HTML',
+  css: 'Copy CSS',
+  script: 'Copy script',
+};
 
 function ActionButton({
   label,
   done,
   onPress,
   style,
+  testID,
 }: {
   label: string;
   done?: boolean;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      testID={testID}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        style,
-        done && styles.actionDone,
-        pressed && styles.actionPressed,
-      ]}
+      style={(state) => {
+        const hover = Boolean((state as { hovered?: boolean }).hovered);
+        return [
+          styles.action,
+          styles.pointer,
+          style,
+          done && styles.actionDone,
+          hover && !done && styles.actionHover,
+          hover && done && styles.actionDoneHover,
+          state.pressed && !done && styles.actionPressed,
+          state.pressed && done && styles.actionDonePressed,
+        ];
+      }}
     >
       <Text style={[styles.actionText, done && styles.actionDoneText]}>{label}</Text>
     </Pressable>
@@ -43,20 +61,30 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
   const { width } = useWindowDimensions();
   const phone = width < 640;
   const touch = width < 880;
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<CopyKind | null>(null);
   const [showcase, setShowcase] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const copyCode = () => {
-    setCopied(true);
+  const copyPart = (kind: CopyKind) => {
+    setCopied(kind);
     show();
     if (hideBtn.current) clearTimeout(hideBtn.current);
-    hideBtn.current = setTimeout(() => setCopied(false), 1400);
-    const text = SNIPPETS[item.id] ?? '';
+    hideBtn.current = setTimeout(() => setCopied(null), 1400);
+    const text = copyTextFor(item.id, kind);
     setTimeout(() => writeClipboard(text), 0);
   };
+
+  const copyButton = (kind: CopyKind, style?: StyleProp<ViewStyle>) => (
+    <ActionButton
+      style={style}
+      label={copied === kind ? 'Copied' : COPY_LABEL[kind]}
+      done={copied === kind}
+      onPress={() => copyPart(kind)}
+      testID={`copy-${kind}-${item.id}`}
+    />
+  );
 
   const copyPrompt = () => {
     setPromptCopied(true);
@@ -91,12 +119,11 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
           <View style={styles.actionsPhone}>
             <View style={styles.actionsRow}>
               <ActionButton style={styles.actionGrow} label="Showcase" onPress={() => setShowcase(true)} />
-              <ActionButton
-                style={styles.actionGrow}
-                label={copied ? 'Copied' : 'Copy code'}
-                done={copied}
-                onPress={copyCode}
-              />
+              {copyButton('html', styles.actionGrow)}
+            </View>
+            <View style={styles.actionsRow}>
+              {copyButton('css', styles.actionGrow)}
+              {copyButton('script', styles.actionGrow)}
             </View>
             <ActionButton
               style={styles.actionFull}
@@ -111,12 +138,9 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
               label="Showcase"
               onPress={() => setShowcase(true)}
             />
-            <ActionButton
-              style={touch ? styles.actionTouch : undefined}
-              label={copied ? 'Copied' : 'Copy code'}
-              done={copied}
-              onPress={copyCode}
-            />
+            {copyButton('html', touch ? styles.actionTouch : undefined)}
+            {copyButton('css', touch ? styles.actionTouch : undefined)}
+            {copyButton('script', touch ? styles.actionTouch : undefined)}
             <ActionButton
               style={touch ? styles.actionTouch : undefined}
               label="AGENT_PROMPT"
@@ -231,6 +255,7 @@ const styles = StyleSheet.create({
   actionGrow: { flex: 1, height: 44, minWidth: 44 },
   actionFull: { height: 44, alignSelf: 'stretch' },
   actionTouch: { height: 44, minWidth: 44 },
+  pointer: { cursor: 'pointer' },
   action: {
     height: 30,
     paddingHorizontal: 10,
@@ -242,7 +267,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 6,
   },
-  actionPressed: { backgroundColor: '#f1f1f1' },
+  actionHover: { backgroundColor: '#d9d9e2', borderColor: 'rgba(0,0,0,0.35)' },
+  actionPressed: { backgroundColor: '#b7b7c2', borderColor: 'rgba(0,0,0,0.5)' },
+  actionDoneHover: { backgroundColor: '#4a4a4a', borderColor: '#bdbdbd' },
+  actionDonePressed: { backgroundColor: '#000000', borderColor: '#ffffff' },
   actionDone: { backgroundColor: colors.text, borderColor: colors.text },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionDoneText: { color: colors.proFg },

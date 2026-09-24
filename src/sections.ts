@@ -19,7 +19,7 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   transitions: {
     title: 'Transitions',
     subtitle:
-      'Essential UI transitions for web apps. Preview the live stage, copy the portable CSS, or reveal the AGENT_PROMPT for your coding agent.',
+      'Essential UI transitions for web apps. Preview the live stage, copy HTML, CSS, and script separately, or reveal the AGENT_PROMPT for your coding agent.',
     empty: 'No transition pieces in this slice.',
   },
   effects: {

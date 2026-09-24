@@ -1,5 +1,5 @@
 /**
- * Shared 3D-tilt spec for the live demo, Copy code, and AGENT_PROMPT.
+ * Shared 3D-tilt spec for the live demo, the three copy buttons, and AGENT_PROMPT.
  * Pointer position is always in the untransformed hit box — never offsetX/offsetY.
  */
 
@@ -26,7 +26,7 @@ export const TILT_GLARE_IMAGE = `radial-gradient(${TILT.glareRadius}px circle at
 
 export const TILT_MOTION = `Pointer-driven 3D tilt that eases toward the cursor. Do not write rotateX/Y on each pointer event (that snaps). Exponential follow, time constant ${TILT.followMs}ms: rotateX = (0.5 - ny) * ${TILT.maxRx}deg, rotateY = (nx - 0.5) * ${TILT.maxRy}deg, perspective ${TILT.perspective}. On leave, ease back to rest with time constant ${TILT.returnMs}ms. A soft radial glare (screen blend, ${TILT.glareRadius * 2}px disc, stops ${TILT_GLARE_STOPS}) sits on the pointer: snap the highlight onto the cursor when the pointer enters, then ease it with time constant ${TILT.glareMs}ms so it stays near the pointer while the tilt eases. Measure x/y on the untransformed hit box (clientX/Y minus getBoundingClientRect). Never offsetX/offsetY — those are relative to the text node under the cursor and jump across Credit, VISA, John Smith, and the card number.`;
 
-export const TILT_RN = `Web hover is onMouseMove/onMouseLeave on a non-transformed hit target. Do not use Gesture.Hover (it calls setPointerCapture with no active pointer). Pan is the press/native path only — on web it must not spring the card back to rest on pointer-up while the cursor is still inside the card. Ease on the UI thread with useFrameCallback. Do not restart withTiming/withSpring on every mousemove. Reduced motion: identity transform, glare opacity 0. Showcase renders this same demo. Copy emits a closed-network .t-tilt HTML document with these constants — not a CSS-only sheet with a 400ms transform transition and a disc that does not track the pointer.`;
+export const TILT_RN = `Web hover is onMouseMove/onMouseLeave on a non-transformed hit target. Do not use Gesture.Hover (it calls setPointerCapture with no active pointer). Pan is the press/native path only — on web it must not spring the card back to rest on pointer-up while the cursor is still inside the card. Ease on the UI thread with useFrameCallback. Do not restart withTiming/withSpring on every mousemove. Reduced motion: identity transform, glare opacity 0. Showcase renders this same demo. Copy HTML, Copy CSS, and Copy script split the closed-network .t-tilt document that uses these constants. Do not ship a CSS-only sheet with a 400ms transform transition and a disc that does not track the pointer.`;
 
 export const TILT_COPY_SNIPPET = `<!DOCTYPE html>
 <html lang="en">

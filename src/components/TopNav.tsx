@@ -13,6 +13,8 @@ export function TopNav() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [playgroundHover, setPlaygroundHover] = useState(false);
+  const [playgroundPressed, setPlaygroundPressed] = useState(false);
 
   useEffect(() => {
     if (!phone) setMenuOpen(false);
@@ -55,7 +57,15 @@ export function TopNav() {
                   setMenuOpen(false);
                   router.push('/playground');
                 }}
-                style={styles.menuItem}
+                style={(state) => {
+                  const hover = Boolean((state as { hovered?: boolean }).hovered);
+                  return [
+                    styles.menuItem,
+                    styles.pointer,
+                    hover && styles.menuItemHover,
+                    state.pressed && styles.menuItemPressed,
+                  ];
+                }}
                 accessibilityRole="link"
                 accessibilityLabel="Playground"
               >
@@ -63,7 +73,18 @@ export function TopNav() {
               </Pressable>
               <Pressable
                 onPress={() => setForceReduceMotion(!forceReduceMotion)}
-                style={[styles.menuItem, forceReduceMotion && styles.menuItemOn]}
+                style={(state) => {
+                  const hover = Boolean((state as { hovered?: boolean }).hovered);
+                  return [
+                    styles.menuItem,
+                    styles.pointer,
+                    forceReduceMotion && styles.menuItemOn,
+                    hover && !forceReduceMotion && styles.menuItemHover,
+                    hover && forceReduceMotion && styles.menuItemOnHover,
+                    state.pressed && !forceReduceMotion && styles.menuItemPressed,
+                    state.pressed && forceReduceMotion && styles.menuItemOnPressed,
+                  ];
+                }}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: forceReduceMotion }}
                 accessibilityLabel="Reduce Motion"
@@ -99,14 +120,39 @@ export function TopNav() {
           <Pressable
             accessibilityRole="link"
             accessibilityLabel="Playground"
-            style={touch ? styles.linkHit : undefined}
+            onHoverIn={() => setPlaygroundHover(true)}
+            onHoverOut={() => {
+              setPlaygroundHover(false);
+              setPlaygroundPressed(false);
+            }}
+            onPressIn={() => setPlaygroundPressed(true)}
+            onPressOut={() => setPlaygroundPressed(false)}
+            style={StyleSheet.flatten([
+              styles.linkPad,
+              styles.pointer,
+              touch && styles.linkHit,
+              playgroundHover && !playgroundPressed && styles.linkHover,
+              playgroundPressed && styles.linkPressed,
+            ])}
           >
             <Text style={styles.linkStrong}>Playground</Text>
           </Pressable>
         </Link>
         <Pressable
           onPress={() => setForceReduceMotion(!forceReduceMotion)}
-          style={[styles.toggle, touch && styles.toggleTouch, forceReduceMotion && styles.toggleOn]}
+          style={(state) => {
+            const hover = Boolean((state as { hovered?: boolean }).hovered);
+            return [
+              styles.toggle,
+              styles.pointer,
+              touch && styles.toggleTouch,
+              forceReduceMotion && styles.toggleOn,
+              hover && !forceReduceMotion && styles.toggleHover,
+              hover && forceReduceMotion && styles.toggleOnHover,
+              state.pressed && !forceReduceMotion && styles.togglePressed,
+              state.pressed && forceReduceMotion && styles.toggleOnPressed,
+            ];
+          }}
           accessibilityRole="switch"
           accessibilityState={{ checked: forceReduceMotion }}
           accessibilityLabel="Reduce Motion"
@@ -165,11 +211,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
   },
+  pointer: { cursor: 'pointer' },
+  linkPad: {
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
   linkHit: {
     minHeight: 44,
     minWidth: 44,
     justifyContent: 'center',
   },
+  linkHover: { backgroundColor: '#d9d9e2' },
+  linkPressed: { backgroundColor: '#b7b7c2' },
   toggle: {
     height: 30,
     paddingHorizontal: 12,
@@ -181,6 +235,10 @@ const styles = StyleSheet.create({
   },
   toggleTouch: { height: 44, minWidth: 44 },
   toggleOn: { backgroundColor: colors.text, borderColor: colors.text },
+  toggleHover: { backgroundColor: '#d9d9e2', borderColor: 'rgba(0,0,0,0.35)' },
+  togglePressed: { backgroundColor: '#b7b7c2', borderColor: 'rgba(0,0,0,0.5)' },
+  toggleOnHover: { backgroundColor: '#4a4a4a', borderColor: '#bdbdbd' },
+  toggleOnPressed: { backgroundColor: '#000000', borderColor: '#ffffff' },
   toggleText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   toggleTextOn: { color: colors.proFg },
   menuBtn: {
@@ -228,6 +286,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.copyBg,
   },
   menuItemOn: { backgroundColor: colors.text, borderColor: colors.text },
+  menuItemHover: { backgroundColor: '#d9d9e2', borderColor: 'rgba(0,0,0,0.35)' },
+  menuItemPressed: { backgroundColor: '#b7b7c2', borderColor: 'rgba(0,0,0,0.5)' },
+  menuItemOnHover: { backgroundColor: '#4a4a4a', borderColor: '#bdbdbd' },
+  menuItemOnPressed: { backgroundColor: '#000000', borderColor: '#ffffff' },
   menuItemText: { fontFamily: fonts.medium, fontSize: 14, color: colors.text },
   menuItemTextOn: { color: colors.proFg },
 });

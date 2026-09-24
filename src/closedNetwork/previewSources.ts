@@ -29,7 +29,7 @@ export type PlaygroundPreviewButton = {
 };
 
 type Source = {
-  html: string;
+  html?: string;
   extraCss?: string;
   script?: string;
   /** Canonical document. Used for Gooey plus menu so the editor stays the real file. */
@@ -81,7 +81,7 @@ const ORB_PREVIEW_CSS = `.pill, .chip {
 .controls button:disabled { opacity: .38; cursor: not-allowed; }
 canvas { display: block; }`;
 
-/** Closed-network canvas for one split orb card. Copy code stays the React snippet, not this stylesheet. */
+/** Closed-network canvas for one split orb card. Copy HTML, CSS, and script use this document, not the React install snippet. */
 function orbPreviewScript(picker: boolean): string {
   return `(function () {
   var card = document.getElementById('orb-card');
@@ -296,17 +296,26 @@ const SOURCES: Record<string, Source> = {
   },
   'number-pop-in': {
     html: `<div class="col">
-  <div class="digits" id="digits" aria-label="65.78">
-    <span class="t-digit">6</span><span class="t-digit">5</span><span class="t-digit">.</span><span class="t-digit">7</span><span class="t-digit">8</span>
-  </div>
+  <div class="digits" id="digits" aria-label="6 5. 7 8"></div>
   <button class="trigger" type="button" id="replay">Replay</button>
 </div>`,
-    extraCss: `.digits { font-size: 42px; font-weight: 600; letter-spacing: 0.04em; }`,
+    extraCss: `.digits { font-size: 42px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: flex-end; }
+.t-digit.gap { width: 6px; }`,
     script: `(function () {
   var root = document.getElementById('digits');
+  var sets = ['6 5. 7 8', '1 4. 0 2', '9 3. 6 1'];
+  var i = 0;
+  function render() {
+    root.setAttribute('aria-label', sets[i]);
+    root.innerHTML = sets[i].split('').map(function (ch) {
+      if (ch === ' ') return '<span class="t-digit gap">&nbsp;</span>';
+      return '<span class="t-digit">' + ch + '</span>';
+    }).join('');
+  }
+  render();
   document.getElementById('replay').addEventListener('click', function () {
-    var html = root.innerHTML;
-    root.innerHTML = html;
+    i = (i + 1) % sets.length;
+    render();
   });
 })();`,
   },
@@ -315,16 +324,16 @@ const SOURCES: Record<string, Source> = {
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.7">
     <path d="M6 9a6 6 0 1 1 12 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 0 0 4 0"/>
   </svg>
-  <span class="t-badge is-on" id="badge">3</span>
+  <span class="t-badge" id="badge">1</span>
 </button>`,
     extraCss: `.bell {
   position: relative; width: 48px; height: 48px; border-radius: 12px;
   border: 1px solid rgba(0,0,0,.08); background: #fff; cursor: pointer;
 }
 .t-badge {
-  position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px;
-  padding: 0 4px; border-radius: 99px; background: #e11d48; color: #fff;
-  font-size: 10px; display: grid; place-items: center;
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
+  padding: 0 4px; border-radius: 9px; background: #e23d2d; color: #fff;
+  font-size: 10px; font-weight: 600; display: grid; place-items: center;
 }`,
     script: `(function () {
   var badge = document.getElementById('badge');
@@ -353,14 +362,14 @@ const SOURCES: Record<string, Source> = {
       el.classList.add('is-enter-start');
       void el.offsetWidth;
       el.classList.remove('is-enter-start');
-    }, reduce ? 0 : 150);
+    }, reduce ? 0 : 250);
   });
 })();`,
   },
   'menu-dropdown': {
     html: `<div class="menu">
-  <button class="trigger" type="button" id="menu-btn" aria-expanded="true">Menu</button>
-  <div class="t-dropdown is-open" id="menu">
+  <button class="trigger" type="button" id="menu-btn" aria-expanded="false">Open menu</button>
+  <div class="t-dropdown" id="menu">
     <button type="button">New file</button>
     <button type="button">Add image</button>
     <button type="button">New folder</button>
@@ -380,29 +389,30 @@ const SOURCES: Record<string, Source> = {
     script: `(function () {
   var menu = document.getElementById('menu');
   var btn = document.getElementById('menu-btn');
-  var open = true;
+  var open = false;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   btn.addEventListener('click', function () {
     if (open) {
       menu.classList.remove('is-open');
       menu.classList.add('is-closing');
-      setTimeout(function () { menu.classList.remove('is-closing'); }, reduce ? 0 : 150);
+      setTimeout(function () { menu.classList.remove('is-closing'); }, reduce ? 0 : 180);
     } else {
       menu.classList.remove('is-closing');
       menu.classList.add('is-open');
     }
     open = !open;
+    btn.textContent = open ? 'Close menu' : 'Open menu';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 })();`,
   },
   'modal-open-close': {
     html: `<div class="col">
-  <button class="trigger" type="button" id="open">Open modal</button>
-  <div class="backdrop" id="backdrop">
-    <div class="t-modal panel is-open" id="modal" role="dialog" aria-label="Modal">
-      <strong>Modal</strong>
-      <p>Scale and fade.</p>
+  <button class="trigger" type="button" id="open">Toggle modal</button>
+  <div class="backdrop" id="backdrop" hidden>
+    <div class="t-modal panel" id="modal" role="dialog" aria-label="New project">
+      <strong>New project</strong>
+      <p>Scale from 0.94 with a 200ms fade.</p>
       <button class="trigger" type="button" id="close">Close</button>
     </div>
   </div>
@@ -417,7 +427,7 @@ const SOURCES: Record<string, Source> = {
     script: `(function () {
   var backdrop = document.getElementById('backdrop');
   var modal = document.getElementById('modal');
-  var open = true;
+  var open = false;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   function paint(next) {
     open = next;
@@ -431,7 +441,7 @@ const SOURCES: Record<string, Source> = {
       setTimeout(function () {
         modal.classList.remove('is-closing');
         if (!open) backdrop.hidden = true;
-      }, reduce ? 0 : 150);
+      }, reduce ? 0 : 200);
     }
   }
   document.getElementById('open').addEventListener('click', function () { paint(true); });
@@ -453,7 +463,7 @@ const SOURCES: Record<string, Source> = {
     script: `(function () {
   var page = document.getElementById('page');
   var pages = [
-    ['BNB', '0.42 BNB'],
+    ['BNB', '$66.11'],
     ['$10', '$66.11 available']
   ];
   var i = 0;
@@ -472,7 +482,7 @@ const SOURCES: Record<string, Source> = {
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { page.classList.remove('is-enter'); });
       });
-    }, reduce ? 0 : 250);
+    }, reduce ? 0 : 300);
   });
 })();`,
   },
@@ -480,10 +490,10 @@ const SOURCES: Record<string, Source> = {
     html: `<div class="col">
   <div class="icon-slot" id="slot">
     <span class="t-icon" id="icon-a" aria-hidden="true">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </span>
     <span class="t-icon is-out" id="icon-b" aria-hidden="true">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </span>
   </div>
   <button class="trigger" type="button" id="swap">Swap icon</button>
@@ -501,9 +511,9 @@ const SOURCES: Record<string, Source> = {
   },
   'success-check': {
     html: `<div class="col">
-  <svg class="t-check" id="check" width="72" height="72" viewBox="0 0 72 72" aria-label="Success">
-    <circle cx="36" cy="36" r="32" fill="#e9f9ef"/>
-    <path d="M22 37l10 10 18-20" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <svg class="t-check" id="check" width="36" height="36" viewBox="0 0 36 36" aria-label="Success">
+    <circle cx="18" cy="18" r="16" fill="#1f8a4c"/>
+    <path class="mark" d="M11 18.5 L16 23.5 L25 13.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <button class="trigger" type="button" id="replay">Replay</button>
 </div>`,
@@ -519,17 +529,26 @@ const SOURCES: Record<string, Source> = {
   'error-state-shake': {
     html: `<div class="col">
   <label class="field">
-    <input class="t-shake" id="email" value="not-an-email" aria-label="Email" />
-    <span class="msg">Please enter a valid email.</span>
+    <input class="t-shake" id="email" value="hello@" aria-label="Email" />
+    <span class="msg" id="msg" hidden>Please enter a valid email.</span>
   </label>
-  <button class="trigger" type="button" id="validate">Shake</button>
+  <button class="trigger" type="button" id="validate">Submit</button>
 </div>`,
-    extraCss: `.field { display: flex; flex-direction: column; gap: 6px; width: 240px; }
-.t-shake { height: 36px; border-radius: 8px; border: 1px solid #e11d48; padding: 0 10px; font: 500 14px Inter, system-ui, sans-serif; }
-.msg { color: #e11d48; font-size: 12px; }`,
+    extraCss: `.field { display: flex; flex-direction: column; gap: 6px; width: 220px; }
+.t-shake { height: 38px; border-radius: 10px; border: 1px solid rgba(0,0,0,.1); padding: 0 10px; font: 400 13px Inter, system-ui, sans-serif; }
+.t-shake.is-error { border-color: #c43a31; }
+.msg { color: #c43a31; font-size: 11px; }`,
     script: `(function () {
   var input = document.getElementById('email');
+  var msg = document.getElementById('msg');
   document.getElementById('validate').addEventListener('click', function () {
+    var valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.value);
+    if (valid) {
+      input.classList.remove('is-error');
+      msg.hidden = true;
+      return;
+    }
+    msg.hidden = false;
     input.classList.remove('is-error');
     void input.offsetWidth;
     input.classList.add('is-error');
@@ -629,19 +648,31 @@ const SOURCES: Record<string, Source> = {
   },
   'tooltip-open-close': {
     html: `<div class="tip-wrap">
-  <button class="trigger" type="button" id="host">Save</button>
-  <div class="tip-anchor"><div class="t-tt is-on" id="tip">Saved to library</div></div>
+  <div class="t-tt" id="tip">Edit</div>
+  <div class="tip-row">
+    <button type="button" data-tip="Edit" data-slot="0">Aa</button>
+    <button type="button" data-tip="Share" data-slot="1">↗</button>
+    <button type="button" data-tip="More" data-slot="2">···</button>
+  </div>
 </div>`,
-    extraCss: `.tip-wrap { position: relative; margin-top: 28px; }
-.tip-anchor { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); }
+    extraCss: `.tip-wrap { position: relative; padding-top: 40px; }
 .t-tt {
-  background: #17181c; color: #fff; border-radius: 6px; padding: 6px 8px;
-  font-size: 12px; white-space: nowrap;
+  position: absolute; top: 0; height: 28px; padding: 0 8px;
+  border-radius: 8px; background: #fff; color: #2f2f2f; font-size: 12px; font-weight: 500;
+  display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); white-space: nowrap;
+}
+.tip-row { display: flex; gap: 8px; }
+.tip-row button {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(0,0,0,.06);
+  background: #fff; cursor: pointer; font: 500 13px Inter, system-ui, sans-serif;
 }`,
     script: `(function () {
   var tip = document.getElementById('tip');
-  var host = document.getElementById('host');
-  function show() {
+  var row = document.querySelector('.tip-row');
+  function show(button) {
+    var slot = Number(button.getAttribute('data-slot')) || 0;
+    tip.textContent = button.getAttribute('data-tip') || '';
+    tip.style.setProperty('--tt-x', (slot * 44) + 'px');
     tip.classList.remove('is-off');
     tip.classList.add('is-on');
   }
@@ -649,10 +680,12 @@ const SOURCES: Record<string, Source> = {
     tip.classList.remove('is-on');
     tip.classList.add('is-off');
   }
-  host.addEventListener('mouseenter', show);
-  host.addEventListener('focus', show);
-  host.addEventListener('mouseleave', hide);
-  host.addEventListener('blur', hide);
+  [].slice.call(row.querySelectorAll('button')).forEach(function (button) {
+    button.addEventListener('mouseenter', function () { show(button); });
+    button.addEventListener('focus', function () { show(button); });
+    button.addEventListener('mouseleave', hide);
+    button.addEventListener('blur', hide);
+  });
 })();`,
   },
   'image-generation-loader': {
@@ -800,53 +833,55 @@ canvas { display: block; width: 168px; height: 168px; }`,
   },
   'avatar-group-hover': {
     html: `<div class="t-avatars" id="avatars">
-  <span class="t-avatar" style="background:#7c2bff">A</span>
-  <span class="t-avatar" style="background:#e11d48">B</span>
-  <span class="t-avatar" style="background:#ea580c">C</span>
-  <span class="t-avatar" style="background:#0f766e">D</span>
-  <span class="t-avatar" style="background:#17181c">E</span>
+  <span class="t-avatar" style="background:#d9b8a2">JC</span>
+  <span class="t-avatar" style="background:#b7c7d9">AK</span>
+  <span class="t-avatar" style="background:#d4c4a8">MR</span>
+  <span class="t-avatar" style="background:#c5b3d6">SL</span>
+  <span class="t-avatar" style="background:#a8c5b8">TW</span>
 </div>`,
-    extraCss: `.t-avatars { display: flex; padding: 12px 12px 12px 22px; }
+    extraCss: `.t-avatars { display: flex; align-items: center; }
 .t-avatar {
-  width: 36px; height: 36px; margin-left: -10px; border-radius: 50%;
+  width: 40px; height: 40px; margin-left: -10px; border-radius: 50%;
   border: 2px solid #fff; display: grid; place-items: center;
-  color: #fff; font-size: 12px; font-weight: 600;
+  color: #2a2118; font-size: 11px; font-weight: 500;
 }
-.t-avatar.is-near { transform: translateY(calc(var(--avatar-lift) * var(--avatar-falloff))) scale(1.02); }`,
+.t-avatar:first-child { margin-left: 0; }`,
     script: `(function () {
   var root = document.getElementById('avatars');
   var avatars = [].slice.call(root.querySelectorAll('.t-avatar'));
-  function clear() {
-    avatars.forEach(function (el) { el.classList.remove('is-hot', 'is-near'); });
+  function cssNum(name, fallback) {
+    var n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function place(hot) {
+    var lift = cssNum('--avatar-lift', -8);
+    var falloff = cssNum('--avatar-falloff', 0.45);
+    var peak = cssNum('--avatar-scale', 1.06);
+    avatars.forEach(function (el, j) {
+      var strength = hot == null ? 0 : Math.max(0, 1 - Math.abs(hot - j) * falloff);
+      el.style.transform = 'translateY(' + (lift * strength) + 'px) scale(' + (1 + (peak - 1) * strength) + ')';
+      el.style.zIndex = strength > 0.9 ? '3' : '1';
+    });
   }
   avatars.forEach(function (el, i) {
-    el.addEventListener('mouseenter', function () {
-      avatars.forEach(function (other, j) {
-        var dist = Math.abs(i - j);
-        other.classList.toggle('is-hot', dist === 0);
-        other.classList.toggle('is-near', dist === 1);
-      });
-    });
+    el.addEventListener('mouseenter', function () { place(i); });
+    el.addEventListener('mouseleave', function () { place(null); });
   });
-  root.addEventListener('mouseleave', clear);
+  place(null);
 })();`,
   },
   'card-stack-hover': {
-    html: `<div class="t-stack is-spread" id="stack">
-  <div class="t-stack-card"></div>
-  <div class="t-stack-card"></div>
-  <div class="t-stack-card"><strong>Notes</strong><span>Spring fan</span></div>
+    html: `<div class="t-stack" id="stack">
+  <div class="t-stack-card">Card 1</div>
+  <div class="t-stack-card">Card 2</div>
+  <div class="t-stack-card">Card 3</div>
 </div>`,
-    extraCss: `.t-stack { position: relative; width: 200px; height: 140px; cursor: pointer; }
+    extraCss: `.t-stack { position: relative; width: 180px; height: 120px; cursor: pointer; }
 .t-stack-card {
-  position: absolute; left: 28px; right: 28px; top: 22px; bottom: 18px;
-  border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.08);
-  padding: 12px;
-}
-.t-stack .t-stack-card:nth-child(1) { background: #ececec; transform: translate(-6px, 6px) rotate(-3deg); }
-.t-stack .t-stack-card:nth-child(2) { background: #f7f7f7; }
-.t-stack .t-stack-card:nth-child(3) { display: flex; flex-direction: column; gap: 4px; }
-.t-stack-card span { color: #6c6c6c; font-size: 12px; }`,
+  position: absolute; left: 35px; top: 23px; width: 110px; height: 74px;
+  border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  display: grid; place-items: center; font-size: 13px; font-weight: 500;
+}`,
     script: `(function () {
   var stack = document.getElementById('stack');
   stack.addEventListener('mouseenter', function () { stack.classList.add('is-spread'); });
@@ -1171,6 +1206,32 @@ export function splitPreviewDocument(doc: string): { html: string; css: string; 
   return { html, css, script };
 }
 
+/** Clipboard note when the preview document has no script. */
+export const HTML_CSS_ONLY_NOTE = 'This effect is HTML and CSS only.';
+
+export type PreviewParts = { html: string; css: string; script: string };
+
+/** HTML, CSS, and script that compose the document the preview iframe runs. */
+export function previewDocumentParts(id: string): PreviewParts {
+  const source = SOURCES[id];
+  if (!source) throw new Error(`Missing preview source for ${id}`);
+  const parts = source.document
+    ? splitPreviewDocument(source.document)
+    : {
+        html: (source.html ?? '').trim(),
+        css: fullCss(id, source.extraCss, source.snippet !== false),
+        script: (source.script ?? '').trim(),
+      };
+  if (!parts.html || !parts.css) throw new Error(`Incomplete preview for ${id}`);
+  return parts;
+}
+
+export function copyTextFor(id: string, kind: 'html' | 'css' | 'script'): string {
+  const parts = previewDocumentParts(id);
+  if (kind === 'script' && !parts.script) return HTML_CSS_ONLY_NOTE;
+  return parts[kind];
+}
+
 function fullCss(id: string, extra: string | undefined, useSnippet: boolean): string {
   const motion = useSnippet ? (SNIPPETS[id] ?? '') : '';
   return [BASE_CSS, motion.trim(), (extra ?? '').trim()].filter(Boolean).join('\n\n');
@@ -1193,13 +1254,7 @@ export function playgroundPreviewButtons(): PlaygroundPreviewButton[] {
       continue;
     }
 
-    const parts = source.document
-      ? splitPreviewDocument(source.document)
-      : {
-          html: source.html.trim(),
-          css: fullCss(item.id, source.extraCss, source.snippet !== false),
-          script: (source.script ?? '').trim(),
-        };
+    const parts = previewDocumentParts(item.id);
     const code = source.document ?? composePreviewDocument(item.title, parts.html, parts.css, parts.script);
     if (!parts.html || !parts.css) {
       missing.push(item.id);
