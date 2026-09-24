@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Influencer Overview</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #F4F4F5; color: #111111; }
+body {
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+button { font: inherit; color: inherit; }
+.shell {
+  width: 1440px;
+  min-height: 900px;
+  display: flex;
+  align-items: stretch;
+  background: #F4F4F5;
+}
+.sidebar {
+  width: 240px;
+  background: #F4F4F5;
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.main {
+  flex: 1;
+  margin: 8px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #EAEAEC;
+  padding: 10px 16px;
+  min-width: 0;
+}
+.icon { display: block; flex-shrink: 0; }
+.tap { cursor: pointer; }
+.tap:active { background: #E5E7EB; }
+.grow { flex: 1; }
+.switcher-row { display: flex; align-items: center; gap: 4px; }
+.switcher {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  border-radius: 8px; padding: 4px; background: transparent; border: 0; text-align: left;
+}
+.mark {
+  width: 32px; height: 32px; border-radius: 8px; background: #3B82F6;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.glyph { width: 14px; height: 10px; border-radius: 3px; background: #fff; }
+.strong { font-weight: 600; font-size: 13px; line-height: 16px; }
+.sub { font-size: 12px; line-height: 16px; color: #6B7280; }
+.icon-hit {
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: #374151;
+}
+.panel-icon {
+  width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid #374151;
+  overflow: hidden; display: flex;
+}
+.panel-bar { width: 5px; background: #374151; opacity: 0.35; }
+.search {
+  margin-top: 8px; height: 36px; border-radius: 8px; background: #E5E7EB;
+  display: flex; align-items: center; gap: 8px; padding: 0 10px; color: #9CA3AF;
+  font-size: 13px;
+}
+.search:active { background: #D1D5DB; }
+.key {
+  width: 20px; height: 20px; border-radius: 5px; background: #fff;
+  border: 1px solid #EDEDEF; display: grid; place-items: center;
+  color: #6B7280; font-size: 12px; font-weight: 500; margin-left: auto;
+}
+.section {
+  margin: 14px 0 4px; padding: 0 8px; font-size: 12px; font-weight: 500; color: #9CA3AF;
+}
+.rule { height: 1px; margin: 8px 8px 2px; background: #E5E7EB; }
+.group-head {
+  margin-top: 4px; height: 28px; border-radius: 8px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  color: #9CA3AF; font-size: 12px; font-weight: 500;
+}
+.nav {
+  height: 32px; border-radius: 8px; padding: 0 8px; display: flex; align-items: center; gap: 8px;
+  color: #374151;
+}
+.nav-label { font-size: 13px; font-weight: 500; }
+.nav.is-on {
+  background: #FFFFFF;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.06);
+  color: #111111;
+}
+.nav.is-on .nav-label { font-weight: 600; }
+.nav.is-on:active { background: #E5E7EB; }
+.badge {
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #1E3A8A;
+  color: #fff; font-size: 11px; font-weight: 600; display: grid; place-items: center;
+}
+.trailing { font-size: 12px; color: #9CA3AF; }
+.setup {
+  background: #fff; border-radius: 12px; border: 1px solid #EDEDEF;
+  overflow: hidden; margin-bottom: 8px; box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.04);
+}
+.setup-art { height: 96px; position: relative; display: grid; place-items: center; }
+.setup-art svg.sky { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ga {
+  position: relative; width: 36px; height: 36px; border-radius: 18px; background: #fff;
+  display: grid; place-items: center;
+}
+.ga-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+.ga-bar { width: 4px; border-radius: 1px; background: #E9A566; }
+.connect {
+  position: absolute; bottom: 8px; height: 26px; padding: 0 12px; border-radius: 999px;
+  background: #111111; color: #fff; font-size: 12px; font-weight: 600;
+  display: grid; place-items: center; border: 0;
+}
+.connect:active, .pill-black:active { opacity: 0.85; background: #111111; }
+.setup-body { padding: 10px 12px 12px; }
+.setup-title { font-size: 14px; font-weight: 600; }
+.setup-copy { margin-top: 2px; font-size: 12px; color: #6B7280; }
+.setup-row { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+.setup-progress { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #374151; }
+.setup-actions { display: flex; align-items: center; gap: 8px; }
+.skip { padding: 4px 6px; border-radius: 6px; font-size: 12px; font-weight: 500; color: #6B7280; }
+.next {
+  height: 26px; padding: 0 12px; border-radius: 999px; background: #111111; color: #fff;
+  font-size: 12px; font-weight: 600; display: grid; place-items: center;
+}
+.profile {
+  margin-top: 4px; border-radius: 8px; padding: 6px 4px; display: flex; align-items: center; gap: 8px;
+  color: #9CA3AF;
+}
+.avatar { width: 32px; height: 32px; border-radius: 16px; background: #E5E7EB; object-fit: cover; }
+.head { height: 36px; display: flex; align-items: center; justify-content: space-between; }
+.head-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.head-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid #EDEDEF;
+  background: #fff; display: grid; place-items: center; color: #374151;
+}
+.filters { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.date {
+  height: 32px; border-radius: 8px; border: 1px solid #EDEDEF; background: #fff;
+  padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #374151;
+  font-size: 13px; font-weight: 500;
+}
+.segment { display: flex; align-items: center; background: #F3F4F6; border-radius: 8px; padding: 2px; gap: 2px; }
+.chip {
+  height: 28px; border-radius: 8px; padding: 0 10px; display: flex; align-items: center; gap: 6px;
+  color: #374151; font-size: 13px; font-weight: 500; border: 1px solid transparent;
+}
+.chip.is-on {
+  background: #fff; border-color: #EDEDEF; color: #111111; font-weight: 600;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+}
+.chip:active { background: #E5E7EB; }
+.chip.is-on:active { background: #F3F4F6; }
+.dot { width: 6px; height: 6px; border-radius: 3px; background: #EF4444; }
+.row { margin-top: 10px; display: flex; gap: 12px; align-items: stretch; }
+.card {
+  background: #fff; border-radius: 12px; border: 1px solid #EDEDEF;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.04);
+}
+.action { flex: 1; padding: 12px; min-width: 0; }
+.action-head { display: flex; align-items: center; gap: 8px; color: #374151; font-size: 13px; font-weight: 500; }
+.tile { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.action-body { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 28px; }
+.unit { font-size: 12px; color: #6B7280; margin-left: 6px; }
+.note { margin-top: 2px; font-size: 12px; color: #6B7280; }
+.pill-black, .pill-outline {
+  height: 30px; padding: 0 12px; border-radius: 999px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 500; flex-shrink: 0; border: 0;
+}
+.pill-black { background: #111111; color: #fff; }
+.pill-outline { background: #fff; color: #111111; border: 1px solid #EDEDEF; }
+.section-label { margin-top: 10px; font-size: 14px; font-weight: 600; }
+.kpi { flex: 1; overflow: hidden; min-width: 0; }
+.kpi-head {
+  height: 34px; background: #F6F6F7; border-bottom: 1px solid #EDEDEF;
+  padding: 0 12px; display: flex; align-items: center; gap: 6px; color: #374151;
+  font-size: 13px; font-weight: 500;
+}
+.kpi-body { padding: 8px 12px 10px; }
+.delta { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.delta-lead { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.delta-lead.flat { font-weight: 500; }
+.mark { width: 12px; height: 12px; border-radius: 6px; display: grid; place-items: center; color: #fff; }
+.base { font-size: 12px; color: #6B7280; }
+.chart { padding: 12px; min-width: 0; }
+.chart.wide { flex: 55; }
+.chart.narrow { flex: 45; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; color: #6B7280; font-size: 13px; font-weight: 500; }
+.link { border-radius: 6px; padding: 2px 4px; }
+.values { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; }
+.hex-wrap { width: 100%; display: flex; justify-content: center; }
+.hex-wrap svg { width: 75%; height: auto; display: block; }
+.legend { margin-top: 4px; background: #F9FAFB; border-radius: 10px; overflow: hidden; }
+.legend-row {
+  min-height: 28px; padding: 0 10px; display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500;
+}
+.legend-row + .legend-row { border-top: 1px solid #EDEDEF; }
+.swatch { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+.pct { height: 18px; padding: 0 6px; border-radius: 6px; background: #F3F4F6; font-size: 11px; font-weight: 600; color: #374151; display: grid; place-items: center; }
+.amt { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dir { width: 16px; height: 16px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.revenue { margin-top: 8px; }
+.revenue-row { display: flex; align-items: stretch; }
+.y-labels {
+  width: 40px; display: flex; flex-direction: column; justify-content: space-between;
+  text-align: right; color: #9CA3AF; font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.plot { flex: 1; min-width: 0; }
+.plot svg { width: 100%; height: auto; display: block; }
+.x-labels { position: relative; height: 16px; margin-left: 40px; margin-top: 6px; }
+.xtick {
+  position: absolute; top: 0; width: 44px; margin-left: -22px; text-align: center;
+  color: #9CA3AF; font-size: 11px; font-weight: 500;
+}
+.table { margin-top: 4px; overflow: hidden; }
+.thead, .trow {
+  display: flex; align-items: center; padding: 0 14px;
+}
+.thead {
+  height: 36px; background: #F9FAFB; border-bottom: 1px solid #EDEDEF;
+  color: #9CA3AF; font-size: 12px; font-weight: 500;
+}
+.trow { min-height: 56px; padding-top: 8px; padding-bottom: 8px; background: #fff; }
+.trow + .trow { border-top: 1px solid #EDEDEF; }
+.c1 { flex: 1.5; } .c2 { flex: 1.3; } .c3 { flex: 0.8; } .c4 { flex: 1; } .c5 { flex: 0.8; }
+.campaign { display: flex; align-items: center; gap: 10px; padding-right: 8px; min-width: 0; }
+.letter { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.cname { font-size: 13px; font-weight: 600; }
+.status { display: flex; align-items: center; gap: 6px; margin-top: 1px; font-size: 12px; color: #6B7280; }
+.sdot { width: 6px; height: 6px; border-radius: 3px; }
+.cell-main { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.cell-note { font-size: 12px; color: #6B7280; }
+.muted { color: #9CA3AF; }
+.bar { margin-top: 4px; width: 88px; height: 4px; border-radius: 2px; background: #E5E7EB; overflow: hidden; }
+.bar > span { display: block; height: 4px; border-radius: 2px; }
+.up { color: #15803D; font-size: 12px; font-weight: 600; }
+.spacer { flex-grow: 1; min-height: 12px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="switcher-row">
+      <div class="switcher tap" role="button" aria-label="Creator, Brand workspace">
+        <span class="mark"><span class="glyph"></span></span>
+        <span><span class="strong">Creator</span><br/><span class="sub">Brand workspace</span></span>
+      </div>
+      <div class="icon-hit tap" role="button" aria-label="Collapse sidebar"><span class="panel-icon"><span class="panel-bar"></span></span></div>
+    </div>
+    <div class="search tap" role="button" aria-label="Search"><svg class="icon" width="15" height="15" viewBox="0 0 512 512" aria-hidden="true"><path d="M221.09 64a157.09 157.09 0 10157.09 157.09A157.1 157.1 0 00221.09 64z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M338.29 338.29L448 448"/></svg><span>Search</span><span class="key">/</span></div>
+    <div class="section">Essentials</div>
+    <div class="nav tap is-on" role="button" aria-label="Overview">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><rect x="48" y="48" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="288" y="48" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="48" y="288" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="288" y="288" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">Overview</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="nav tap" role="button" aria-label="Messages">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M87.49 380c1.19-4.38-1.44-10.47-3.95-14.86a44.86 44.86 0 00-2.54-3.8 199.81 199.81 0 01-33-110C47.65 139.09 140.73 48 255.83 48 356.21 48 440 117.54 459.58 209.85a199 199 0 014.42 41.64c0 112.41-89.49 204.93-204.59 204.93-18.3 0-43-4.6-56.47-8.37s-26.92-8.77-30.39-10.11a31.09 31.09 0 00-11.12-2.07 30.71 30.71 0 00-12.09 2.43l-67.83 24.48a16 16 0 01-4.67 1.22 9.6 9.6 0 01-9.57-9.74 15.85 15.85 0 01.6-3.29z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/></svg>
+  <span class="nav-label">Messages</span>
+  <span class="badge">3</span>
+  <span class="grow"></span>
+  
+</div>
+    <div class="nav tap" role="button" aria-label="AI agent">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M259.92 262.91L216.4 149.77a9 9 0 00-16.8 0l-43.52 113.14a9 9 0 01-5.17 5.17L37.77 311.6a9 9 0 000 16.8l113.14 43.52a9 9 0 015.17 5.17l43.52 113.14a9 9 0 0016.8 0l43.52-113.14a9 9 0 015.17-5.17l113.14-43.52a9 9 0 000-16.8l-113.14-43.52a9 9 0 01-5.17-5.17zM108 68L88 16 68 68 16 88l52 20 20 52 20-52 52-20-52-20zM426.67 117.33L400 48l-26.67 69.33L304 144l69.33 26.67L400 240l26.67-69.33L496 144l-69.33-26.67z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">AI agent</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="rule"></div>
+    <div class="group-head tap" id="work-header" role="button" aria-label="Work"><span>Work</span><span id="work-chevron"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 328l144-144 144 144"/></svg></span></div>
+    <div id="work-items">
+      <div class="nav tap" role="button" aria-label="Discover">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192 192-86 192-192z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M350.67 150.93l-117.2 46.88a64 64 0 00-35.66 35.66l-46.88 117.2a8 8 0 0010.4 10.4l117.2-46.88a64 64 0 0035.66-35.66l46.88-117.2a8 8 0 00-10.4-10.4zM256 280a24 24 0 1124-24 24 24 0 01-24 24z"/></svg>
+  <span class="nav-label">Discover</span>
+  
+  <span class="grow"></span>
+  
+</div>
+      <div class="nav tap" role="button" aria-label="Campaigns">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M407.94 52.22S321.3 160 240 160H80a16 16 0 00-16 16v96a16 16 0 0016 16h160c81.3 0 167.94 108.23 167.94 108.23 6.06 8 24.06 2.52 24.06-9.83V62c0-12.31-17-18.82-24.06-9.78zM64 256s-16-6-16-32 16-32 16-32M448 246s16-4.33 16-22-16-22-16-22M256 160v128M112 160v128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M144 288v168a8 8 0 008 8h53a16 16 0 0015.29-20.73C211.91 416.39 192 386.08 192 336h16a16 16 0 0016-16v-16a16 16 0 00-16-16h-16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">Campaigns</span>
+  
+  <span class="grow"></span>
+  
+</div>
+      <div class="nav tap" role="button" aria-label="Matching">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M402 168c-2.93 40.67-33.1 72-66 72s-63.12-31.32-66-72c-3-42.31 26.37-72 66-72s69 30.46 66 72z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M336 304c-65.17 0-127.84 32.37-143.54 95.41-2.08 8.34 3.15 16.59 11.72 16.59h263.65c8.57 0 13.77-8.25 11.72-16.59C463.85 335.36 401.18 304 336 304z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M200 185.94c-2.34 32.48-26.72 58.06-53 58.06s-50.7-25.57-53-58.06C91.61 152.15 115.34 128 147 128s55.39 24.77 53 57.94z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M206 306c-18.05-8.27-37.93-11.45-59-11.45-52 0-102.1 25.85-114.65 76.2-1.65 6.66 2.53 13.25 9.37 13.25H154" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/></svg>
+  <span class="nav-label">Matching</span>
+  
+  <span class="grow"></span>
+  
+</div>
+      <div class="nav tap" role="button" aria-label="Outreach">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M53.12 199.94l400-151.39a8 8 0 0110.33 10.33l-151.39 400a8 8 0 01-15-.34l-67.4-166.09a16 16 0 00-10.11-10.11L53.46 215a8 8 0 01-.34-15.06zM460 52L227 285" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">Outreach</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    </div>
+    <div class="rule"></div>
+    <div class="group-head"><span>Measure</span><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 328l144-144 144 144"/></svg></div>
+    <div class="nav tap" role="button" aria-label="Performances">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M32 32v432a16 16 0 0016 16h432" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="96" y="224" width="80" height="192" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="240" y="176" width="80" height="240" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="383.64" y="112" width="80" height="304" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">Performances</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="rule"></div>
+    <div class="group-head"><span>Account</span><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 328l144-144 144 144"/></svg></div>
+    <div class="nav tap" role="button" aria-label="Creators">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M344 144c-3.92 52.87-44 96-88 96s-84.15-43.12-88-96c-4-55 35-96 88-96s92 42 88 96z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M256 304c-87 0-175.3 48-191.64 138.6C62.39 453.52 68.57 464 80 464h352c11.44 0 17.62-10.48 15.65-21.4C431.3 352 343 304 256 304z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/></svg>
+  <span class="nav-label">Creators</span>
+  
+  <span class="grow"></span>
+  <span class="trailing">49</span>
+</div>
+    <div class="nav tap" role="button" aria-label="Brand settings">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M368 128h80M64 128h240M368 384h80M64 384h240M208 256h240M64 256h80"/><circle cx="336" cy="128" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><circle cx="176" cy="256" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><circle cx="336" cy="384" r="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+  <span class="nav-label">Brand settings</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="spacer"></div>
+    <div class="setup">
+      <div class="setup-art">
+        <svg class="sky" viewBox="0 0 216 96" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="setupSky" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#F8D2A8"/>
+              <stop offset="0.48" stop-color="#F6E6D4"/>
+              <stop offset="1" stop-color="#D5E4F6"/>
+            </linearGradient>
+          </defs>
+          <rect width="216" height="96" fill="url(#setupSky)"/>
+          <ellipse cx="54" cy="38" rx="36" ry="14" fill="#FFFFFF" opacity="0.78"/>
+          <ellipse cx="78" cy="34" rx="22" ry="12" fill="#FFFFFF" opacity="0.55"/>
+          <ellipse cx="158" cy="42" rx="30" ry="13" fill="#FFFFFF" opacity="0.7"/>
+          <ellipse cx="132" cy="30" rx="16" ry="8" fill="#FFFFFF" opacity="0.45"/>
+        </svg>
+        <div class="ga"><div class="ga-bars"><span class="ga-bar" style="height:8px"></span><span class="ga-bar" style="height:14px"></span><span class="ga-bar" style="height:11px"></span></div></div>
+        <div class="connect tap pill-black" role="button" aria-label="Connect">Connect</div>
+      </div>
+      <div class="setup-body">
+        <div class="setup-title">Finish setup</div>
+        <div class="setup-copy">Connect Google Analytics for web conversions.</div>
+        <div class="setup-row">
+          <div class="setup-progress">
+            <svg width="16" height="16" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" stroke="#E5E7EB" stroke-width="2" fill="none"/>
+              <circle cx="8" cy="8" r="7" stroke="#111111" stroke-width="2" fill="none" stroke-dasharray="21.991148575128552 21.991148575128552" stroke-linecap="round" transform="rotate(-90 8 8)"/>
+            </svg>
+            <span>2 of 4</span>
+          </div>
+          <div class="setup-actions">
+            <div class="skip tap" role="button" aria-label="Skip">Skip</div>
+            <div class="next tap pill-black" role="button" aria-label="Next">Next</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nav tap" role="button" aria-label="Appearance">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M256 48v48M256 416v48M403.08 108.92l-33.94 33.94M142.86 369.14l-33.94 33.94M464 256h-48M96 256H48M403.08 403.08l-33.94-33.94M142.86 142.86l-33.94-33.94"/><circle cx="256" cy="256" r="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/></svg>
+  <span class="nav-label">Appearance</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="nav tap" role="button" aria-label="Help & support">
+  <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 80a176 176 0 10176 176A176 176 0 00256 80z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M200 202.29s.84-17.5 19.57-32.57C230.68 160.77 244 158.18 256 158c10.93-.14 20.69 1.67 26.53 4.45 10 4.76 29.47 16.38 29.47 41.09 0 26-17 37.81-36.37 50.8S251 281.43 251 296" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="28"/><circle cx="250" cy="348" r="20"/></svg>
+  <span class="nav-label">Help & support</span>
+  
+  <span class="grow"></span>
+  
+</div>
+    <div class="profile tap" role="button" aria-label="Maria Bell, Plan and billing">
+      <img class="avatar" alt="" src="data:image/png;base64,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"/>
+      <span class="grow"><span class="strong">Maria Bell</span><br/><span class="sub">Plan &amp; billing</span></span>
+      <svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="48"/><circle cx="256" cy="416" r="48"/><circle cx="256" cy="96" r="48"/></svg>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="head">
+      <div class="head-title"><svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><rect x="48" y="48" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="288" y="48" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="48" y="288" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><rect x="288" y="288" width="176" height="176" rx="20" ry="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg><span>Overview</span></div>
+      <div class="head-actions">
+        <div class="icon-btn tap" role="button" aria-label="Refresh"><svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M320 146s24.36-12-64-12a160 160 0 10160 160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 58l80 80-80 80"/></svg></div>
+        <div class="icon-btn tap" role="button" aria-label="Share"><svg class="icon" width="16" height="16" viewBox="0 0 512 512" aria-hidden="true"><path d="M336 192h40a40 40 0 0140 40v192a40 40 0 01-40 40H136a40 40 0 01-40-40V232a40 40 0 0140-40h40M336 128l-80-80-80 80M256 321V48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg></div>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="date tap" role="button" aria-label="Last 30 days"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><rect fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" x="48" y="80" width="416" height="384" rx="48"/><circle cx="296" cy="232" r="24"/><circle cx="376" cy="232" r="24"/><circle cx="296" cy="312" r="24"/><circle cx="376" cy="312" r="24"/><circle cx="136" cy="312" r="24"/><circle cx="216" cy="312" r="24"/><circle cx="136" cy="392" r="24"/><circle cx="216" cy="392" r="24"/><circle cx="296" cy="392" r="24"/><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" stroke-linecap="round" d="M128 48v32M384 48v32"/><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" d="M464 160H48"/></svg><span>Last 30 days</span></div>
+      <div class="segment">
+        <div class="chip tap is-on" role="button" data-filter="all" aria-label="All campaigns">All campaigns</div>
+        <div class="chip tap" role="button" data-filter="active" aria-label="Active">Active</div>
+        <div class="chip tap" role="button" data-filter="needs" aria-label="Needs action">Needs action<span class="dot"></span></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="card action">
+        <div class="action-head"><span class="tile" style="background:#3B6FD6"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><rect x="48" y="144" width="416" height="288" rx="48" ry="48" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32"/><path d="M411.36 144v-30A50 50 0 00352 64.9L88.64 109.85A50 50 0 0048 159v49" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32"/><path d="M368 320a32 32 0 1132-32 32 32 0 01-32 32z"/></svg></span><span>Available to spend</span></div>
+        <div class="action-body"><div style="flex:1"><div class="value">$14.00</div><div class="note">Covers 0 of 22 pending approvals.</div></div><div class="pill-black tap" role="button" aria-label="Add funds">Add funds</div></div>
+      </div>
+      <div class="card action">
+        <div class="action-head"><span class="tile" style="background:#E39B4A"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><rect x="48" y="80" width="416" height="352" rx="48" ry="48" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32"/><circle cx="336" cy="176" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M304 335.79l-90.66-90.49a32 32 0 00-43.87-1.3L48 352M224 432l123.34-123.34a32 32 0 0143.11-2L464 368" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg></span><span>Content awaiting approval</span></div>
+        <div class="action-body"><div style="flex:1"><div><span class="value">07</span><span class="unit">assets</span></div><div class="note">2 are due to post today</div></div><div class="pill-outline tap" role="button" aria-label="Open queue">Open queue</div></div>
+      </div>
+      <div class="card action">
+        <div class="action-head"><span class="tile" style="background:#2A9D8F"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path d="M402 168c-2.93 40.67-33.1 72-66 72s-63.12-31.32-66-72c-3-42.31 26.37-72 66-72s69 30.46 66 72z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M336 304c-65.17 0-127.84 32.37-143.54 95.41-2.08 8.34 3.15 16.59 11.72 16.59h263.65c8.57 0 13.77-8.25 11.72-16.59C463.85 335.36 401.18 304 336 304z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M200 185.94c-2.34 32.48-26.72 58.06-53 58.06s-50.7-25.57-53-58.06C91.61 152.15 115.34 128 147 128s55.39 24.77 53 57.94z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M206 306c-18.05-8.27-37.93-11.45-59-11.45-52 0-102.1 25.85-114.65 76.2-1.65 6.66 2.53 13.25 9.37 13.25H154" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/></svg></span><span>Applications to review</span></div>
+        <div class="action-body"><div style="flex:1"><div><span class="value">22</span><span class="unit">creators</span></div><div class="note">4 have waited more than 3 days</div></div><div class="pill-outline tap" role="button" aria-label="Open queue">Open queue</div></div>
+      </div>
+    </div>
+    <div class="section-label">Performance</div>
+    <div class="row">
+      <div class="card kpi">
+    <div class="kpi-head"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M352 144h112v112"/><path d="M48 368l121.37-121.37a32 32 0 0145.26 0l50.74 50.74a32 32 0 0045.26 0L448 160" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg><span>Attributed revenue</span></div>
+    <div class="kpi-body">
+      <div class="value">$18,420</div>
+      <div class="delta"><span class="delta-lead" style="color:#15803D"><span class="mark" style="background:#16A34A"><svg class="icon" width="8" height="8" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 244l144-144 144 144M256 120v292"/></svg></span>+34%</span></div>
+    </div>
+  </div>
+      <div class="card kpi">
+    <div class="kpi-head"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M304 48l112 112-112 112M398.87 160H96M208 464L96 352l112-112M114 352h302"/></svg><span>Return on spend</span></div>
+    <div class="kpi-body">
+      <div class="value">2.7×</div>
+      <div class="delta"><span class="delta-lead" style="color:#DC2626"><span class="mark" style="background:#DC2626"><svg class="icon" width="8" height="8" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 268l144 144 144-144M256 392V100"/></svg></span>−0.4</span><span class="base">vs 3.1×</span></div>
+    </div>
+  </div>
+      <div class="card kpi">
+    <div class="kpi-head"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256.02" r="32"/><path d="M184.25 192.25a96 96 0 000 127.52M327.77 319.77a96 96 0 000-127.52M133.28 141.28a168 168 0 000 229.44M378.72 370.72a168 168 0 000-229.44M435 416a240.34 240.34 0 000-320M77 96a240.34 240.34 0 000 320" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg><span>Live posts</span></div>
+    <div class="kpi-body">
+      <div class="value">59</div>
+      <div class="delta"><span class="delta-lead" style="color:#15803D"><span class="mark" style="background:#16A34A"><svg class="icon" width="8" height="8" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 244l144-144 144 144M256 120v292"/></svg></span>+1</span><span class="base">vs 58</span></div>
+    </div>
+  </div>
+      <div class="card kpi">
+    <div class="kpi-head"><svg class="icon" width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><path d="M435.25 48h-122.9a14.46 14.46 0 00-10.2 4.2L56.45 297.9a28.85 28.85 0 000 40.7l117 117a28.85 28.85 0 0040.7 0L459.75 210a14.46 14.46 0 004.2-10.2v-123a28.66 28.66 0 00-28.7-28.8z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path d="M384 160a32 32 0 1132-32 32 32 0 01-32 32z"/></svg><span>Cost per post</span></div>
+    <div class="kpi-body">
+      <div class="value">$142</div>
+      <div class="delta"><span class="delta-lead flat" style="color:#9CA3AF"><span class="mark" style="background:#6B7280"><svg class="icon" width="8" height="8" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M400 256H112"/></svg></span>No change</span></div>
+    </div>
+  </div>
+    </div>
+    <div class="row">
+      <div class="card chart wide">
+        <div class="chart-head"><span>Attributed revenue</span><span class="link tap" role="button" aria-label="View full report">View full report →</span></div>
+        <div class="value">$6,750</div>
+        <div class="hex-wrap"><svg viewBox="0 0 377.07041555161976 277" preserveAspectRatio="xMidYMid meet" aria-label="Campaign hex cluster"><path d="M148.56 0.80L156.53 5.40L156.53 14.60L148.56 19.20L140.60 14.60L140.60 5.40ZM165.88 0.80L173.85 5.40L173.85 14.60L165.88 19.20L157.92 14.60L157.92 5.40ZM183.21 0.80L191.17 5.40L191.17 14.60L183.21 19.20L175.24 14.60L175.24 5.40ZM200.53 0.80L208.49 5.40L208.49 14.60L200.53 19.20L192.56 14.60L192.56 5.40ZM217.85 0.80L225.81 5.40L225.81 14.60L217.85 19.20L209.88 14.60L209.88 5.40ZM235.17 0.80L243.13 5.40L243.13 14.60L235.17 19.20L227.20 14.60L227.20 5.40ZM122.58 15.80L130.55 20.40L130.55 29.60L122.58 34.20L114.62 29.60L114.62 20.40ZM139.90 15.80L147.87 20.40L147.87 29.60L139.90 34.20L131.94 29.60L131.94 20.40ZM157.22 15.80L165.19 20.40L165.19 29.60L157.22 34.20L149.26 29.60L149.26 20.40ZM174.54 15.80L182.51 20.40L182.51 29.60L174.54 34.20L166.58 29.60L166.58 20.40ZM191.87 15.80L199.83 20.40L199.83 29.60L191.87 34.20L183.90 29.60L183.90 20.40ZM209.19 15.80L217.15 20.40L217.15 29.60L209.19 34.20L201.22 29.60L201.22 20.40ZM226.51 15.80L234.47 20.40L234.47 29.60L226.51 34.20L218.54 29.60L218.54 20.40ZM243.83 15.80L251.79 20.40L251.79 29.60L243.83 34.20L235.86 29.60L235.86 20.40ZM261.15 15.80L269.11 20.40L269.11 29.60L261.15 34.20L253.18 29.60L253.18 20.40ZM278.47 15.80L286.44 20.40L286.44 29.60L278.47 34.20L270.50 29.60L270.50 20.40ZM79.28 30.80L87.25 35.40L87.25 44.60L79.28 49.20L71.31 44.60L71.31 35.40ZM96.60 30.80L104.57 35.40L104.57 44.60L96.60 49.20L88.64 44.60L88.64 35.40ZM113.92 30.80L121.89 35.40L121.89 44.60L113.92 49.20L105.96 44.60L105.96 35.40ZM131.24 30.80L139.21 35.40L139.21 44.60L131.24 49.20L123.28 44.60L123.28 35.40ZM148.56 30.80L156.53 35.40L156.53 44.60L148.56 49.20L140.60 44.60L140.60 35.40ZM235.17 30.80L243.13 35.40L243.13 44.60L235.17 49.20L227.20 44.60L227.20 35.40ZM252.49 30.80L260.45 35.40L260.45 44.60L252.49 49.20L244.52 44.60L244.52 35.40ZM269.81 30.80L277.78 35.40L277.78 44.60L269.81 49.20L261.84 44.60L261.84 35.40ZM287.13 30.80L295.10 35.40L295.10 44.60L287.13 49.20L279.16 44.60L279.16 35.40ZM304.45 30.80L312.42 35.40L312.42 44.60L304.45 49.20L296.48 44.60L296.48 35.40ZM70.62 45.80L78.59 50.40L78.59 59.60L70.62 64.20L62.65 59.60L62.65 50.40ZM87.94 45.80L95.91 50.40L95.91 59.60L87.94 64.20L79.97 59.60L79.97 50.40ZM105.26 45.80L113.23 50.40L113.23 59.60L105.26 64.20L97.30 59.60L97.30 50.40ZM122.58 45.80L130.55 50.40L130.55 59.60L122.58 64.20L114.62 59.60L114.62 50.40ZM278.47 45.80L286.44 50.40L286.44 59.60L278.47 64.20L270.50 59.60L270.50 50.40ZM295.79 45.80L303.76 50.40L303.76 59.60L295.79 64.20L287.82 59.60L287.82 50.40ZM313.11 45.80L321.08 50.40L321.08 59.60L313.11 64.20L305.14 59.60L305.14 50.40ZM330.43 45.80L338.40 50.40L338.40 59.60L330.43 64.20L322.46 59.60L322.46 50.40ZM44.64 60.80L52.61 65.40L52.61 74.60L44.64 79.20L36.67 74.60L36.67 65.40ZM61.96 60.80L69.93 65.40L69.93 74.60L61.96 79.20L53.99 74.60L53.99 65.40ZM79.28 60.80L87.25 65.40L87.25 74.60L79.28 79.20L71.31 74.60L71.31 65.40ZM304.45 60.80L312.42 65.40L312.42 74.60L304.45 79.20L296.48 74.60L296.48 65.40ZM321.77 60.80L329.74 65.40L329.74 74.60L321.77 79.20L313.80 74.60L313.80 65.40ZM339.09 60.80L347.06 65.40L347.06 74.60L339.09 79.20L331.12 74.60L331.12 65.40ZM35.98 75.80L43.95 80.40L43.95 89.60L35.98 94.20L28.01 89.60L28.01 80.40ZM53.30 75.80L61.27 80.40L61.27 89.60L53.30 94.20L45.33 89.60L45.33 80.40ZM70.62 75.80L78.59 80.40L78.59 89.60L70.62 94.20L62.65 89.60L62.65 80.40ZM330.43 75.80L338.40 80.40L338.40 89.60L330.43 94.20L322.46 89.60L322.46 80.40ZM347.75 75.80L355.72 80.40L355.72 89.60L347.75 94.20L339.78 89.60L339.78 80.40ZM27.32 90.80L35.29 95.40L35.29 104.60L27.32 109.20L19.35 104.60L19.35 95.40ZM44.64 90.80L52.61 95.40L52.61 104.60L44.64 109.20L36.67 104.60L36.67 95.40ZM321.77 90.80L329.74 95.40L329.74 104.60L321.77 109.20L313.80 104.60L313.80 95.40ZM339.09 90.80L347.06 95.40L347.06 104.60L339.09 109.20L331.12 104.60L331.12 95.40ZM356.41 90.80L364.38 95.40L364.38 104.60L356.41 109.20L348.44 104.60L348.44 95.40ZM35.98 105.80L43.95 110.40L43.95 119.60L35.98 124.20L28.01 119.60L28.01 110.40ZM53.30 105.80L61.27 110.40L61.27 119.60L53.30 124.20L45.33 119.60L45.33 110.40ZM347.75 105.80L355.72 110.40L355.72 119.60L347.75 124.20L339.78 119.60L339.78 110.40ZM365.07 105.80L373.04 110.40L373.04 119.60L365.07 124.20L357.10 119.60L357.10 110.40ZM44.64 120.80L52.61 125.40L52.61 134.60L44.64 139.20L36.67 134.60L36.67 125.40ZM61.96 120.80L69.93 125.40L69.93 134.60L61.96 139.20L53.99 134.60L53.99 125.40ZM339.09 120.80L347.06 125.40L347.06 134.60L339.09 139.20L331.12 134.60L331.12 125.40ZM356.41 120.80L364.38 125.40L364.38 134.60L356.41 139.20L348.44 134.60L348.44 125.40ZM53.30 135.80L61.27 140.40L61.27 149.60L53.30 154.20L45.33 149.60L45.33 140.40ZM70.62 135.80L78.59 140.40L78.59 149.60L70.62 154.20L62.65 149.60L62.65 140.40ZM191.87 135.80L199.83 140.40L199.83 149.60L191.87 154.20L183.90 149.60L183.90 140.40ZM330.43 135.80L338.40 140.40L338.40 149.60L330.43 154.20L322.46 149.60L322.46 140.40ZM347.75 135.80L355.72 140.40L355.72 149.60L347.75 154.20L339.78 149.60L339.78 140.40ZM44.64 150.80L52.61 155.40L52.61 164.60L44.64 169.20L36.67 164.60L36.67 155.40ZM61.96 150.80L69.93 155.40L69.93 164.60L61.96 169.20L53.99 164.60L53.99 155.40ZM321.77 150.80L329.74 155.40L329.74 164.60L321.77 169.20L313.80 164.60L313.80 155.40ZM339.09 150.80L347.06 155.40L347.06 164.60L339.09 169.20L331.12 164.60L331.12 155.40ZM53.30 165.80L61.27 170.40L61.27 179.60L53.30 184.20L45.33 179.60L45.33 170.40ZM70.62 165.80L78.59 170.40L78.59 179.60L70.62 184.20L62.65 179.60L62.65 170.40ZM330.43 165.80L338.40 170.40L338.40 179.60L330.43 184.20L322.46 179.60L322.46 170.40ZM347.75 165.80L355.72 170.40L355.72 179.60L347.75 184.20L339.78 179.60L339.78 170.40ZM61.96 180.80L69.93 185.40L69.93 194.60L61.96 199.20L53.99 194.60L53.99 185.40ZM79.28 180.80L87.25 185.40L87.25 194.60L79.28 199.20L71.31 194.60L71.31 185.40ZM321.77 180.80L329.74 185.40L329.74 194.60L321.77 199.20L313.80 194.60L313.80 185.40ZM339.09 180.80L347.06 185.40L347.06 194.60L339.09 199.20L331.12 194.60L331.12 185.40ZM70.62 195.80L78.59 200.40L78.59 209.60L70.62 214.20L62.65 209.60L62.65 200.40ZM87.94 195.80L95.91 200.40L95.91 209.60L87.94 214.20L79.97 209.60L79.97 200.40ZM105.26 195.80L113.23 200.40L113.23 209.60L105.26 214.20L97.30 209.60L97.30 200.40ZM330.43 195.80L338.40 200.40L338.40 209.60L330.43 214.20L322.46 209.60L322.46 200.40ZM347.75 195.80L355.72 200.40L355.72 209.60L347.75 214.20L339.78 209.60L339.78 200.40ZM79.28 210.80L87.25 215.40L87.25 224.60L79.28 229.20L71.31 224.60L71.31 215.40ZM96.60 210.80L104.57 215.40L104.57 224.60L96.60 229.20L88.64 224.60L88.64 215.40ZM113.92 210.80L121.89 215.40L121.89 224.60L113.92 229.20L105.96 224.60L105.96 215.40ZM287.13 210.80L295.10 215.40L295.10 224.60L287.13 229.20L279.16 224.60L279.16 215.40ZM304.45 210.80L312.42 215.40L312.42 224.60L304.45 229.20L296.48 224.60L296.48 215.40ZM321.77 210.80L329.74 215.40L329.74 224.60L321.77 229.20L313.80 224.60L313.80 215.40ZM339.09 210.80L347.06 215.40L347.06 224.60L339.09 229.20L331.12 224.60L331.12 215.40ZM105.26 225.80L113.23 230.40L113.23 239.60L105.26 244.20L97.30 239.60L97.30 230.40ZM122.58 225.80L130.55 230.40L130.55 239.60L122.58 244.20L114.62 239.60L114.62 230.40ZM139.90 225.80L147.87 230.40L147.87 239.60L139.90 244.20L131.94 239.60L131.94 230.40ZM261.15 225.80L269.11 230.40L269.11 239.60L261.15 244.20L253.18 239.60L253.18 230.40ZM278.47 225.80L286.44 230.40L286.44 239.60L278.47 244.20L270.50 239.60L270.50 230.40ZM295.79 225.80L303.76 230.40L303.76 239.60L295.79 244.20L287.82 239.60L287.82 230.40ZM313.11 225.80L321.08 230.40L321.08 239.60L313.11 244.20L305.14 239.60L305.14 230.40ZM330.43 225.80L338.40 230.40L338.40 239.60L330.43 244.20L322.46 239.60L322.46 230.40ZM113.92 240.80L121.89 245.40L121.89 254.60L113.92 259.20L105.96 254.60L105.96 245.40ZM131.24 240.80L139.21 245.40L139.21 254.60L131.24 259.20L123.28 254.60L123.28 245.40ZM148.56 240.80L156.53 245.40L156.53 254.60L148.56 259.20L140.60 254.60L140.60 245.40ZM165.88 240.80L173.85 245.40L173.85 254.60L165.88 259.20L157.92 254.60L157.92 245.40ZM183.21 240.80L191.17 245.40L191.17 254.60L183.21 259.20L175.24 254.60L175.24 245.40ZM200.53 240.80L208.49 245.40L208.49 254.60L200.53 259.20L192.56 254.60L192.56 245.40ZM217.85 240.80L225.81 245.40L225.81 254.60L217.85 259.20L209.88 254.60L209.88 245.40ZM235.17 240.80L243.13 245.40L243.13 254.60L235.17 259.20L227.20 254.60L227.20 245.40ZM252.49 240.80L260.45 245.40L260.45 254.60L252.49 259.20L244.52 254.60L244.52 245.40ZM269.81 240.80L277.78 245.40L277.78 254.60L269.81 259.20L261.84 254.60L261.84 245.40ZM287.13 240.80L295.10 245.40L295.10 254.60L287.13 259.20L279.16 254.60L279.16 245.40ZM139.90 255.80L147.87 260.40L147.87 269.60L139.90 274.20L131.94 269.60L131.94 260.40ZM157.22 255.80L165.19 260.40L165.19 269.60L157.22 274.20L149.26 269.60L149.26 260.40ZM174.54 255.80L182.51 260.40L182.51 269.60L174.54 274.20L166.58 269.60L166.58 260.40ZM191.87 255.80L199.83 260.40L199.83 269.60L191.87 274.20L183.90 269.60L183.90 260.40ZM209.19 255.80L217.15 260.40L217.15 269.60L209.19 274.20L201.22 269.60L201.22 260.40ZM226.51 255.80L234.47 260.40L234.47 269.60L226.51 274.20L218.54 269.60L218.54 260.40ZM243.83 255.80L251.79 260.40L251.79 269.60L243.83 274.20L235.86 269.60L235.86 260.40ZM261.15 255.80L269.11 260.40L269.11 269.60L261.15 274.20L253.18 269.60L253.18 260.40Z" fill="#E5E7EB"/><path d="M165.88 30.80L173.85 35.40L173.85 44.60L165.88 49.20L157.92 44.60L157.92 35.40ZM183.21 30.80L191.17 35.40L191.17 44.60L183.21 49.20L175.24 44.60L175.24 35.40ZM200.53 30.80L208.49 35.40L208.49 44.60L200.53 49.20L192.56 44.60L192.56 35.40ZM217.85 30.80L225.81 35.40L225.81 44.60L217.85 49.20L209.88 44.60L209.88 35.40ZM139.90 45.80L147.87 50.40L147.87 59.60L139.90 64.20L131.94 59.60L131.94 50.40ZM157.22 45.80L165.19 50.40L165.19 59.60L157.22 64.20L149.26 59.60L149.26 50.40ZM174.54 45.80L182.51 50.40L182.51 59.60L174.54 64.20L166.58 59.60L166.58 50.40ZM191.87 45.80L199.83 50.40L199.83 59.60L191.87 64.20L183.90 59.60L183.90 50.40ZM209.19 45.80L217.15 50.40L217.15 59.60L209.19 64.20L201.22 59.60L201.22 50.40ZM226.51 45.80L234.47 50.40L234.47 59.60L226.51 64.20L218.54 59.60L218.54 50.40ZM243.83 45.80L251.79 50.40L251.79 59.60L243.83 64.20L235.86 59.60L235.86 50.40ZM261.15 45.80L269.11 50.40L269.11 59.60L261.15 64.20L253.18 59.60L253.18 50.40ZM96.60 60.80L104.57 65.40L104.57 74.60L96.60 79.20L88.64 74.60L88.64 65.40ZM113.92 60.80L121.89 65.40L121.89 74.60L113.92 79.20L105.96 74.60L105.96 65.40ZM131.24 60.80L139.21 65.40L139.21 74.60L131.24 79.20L123.28 74.60L123.28 65.40ZM148.56 60.80L156.53 65.40L156.53 74.60L148.56 79.20L140.60 74.60L140.60 65.40ZM165.88 60.80L173.85 65.40L173.85 74.60L165.88 79.20L157.92 74.60L157.92 65.40ZM183.21 60.80L191.17 65.40L191.17 74.60L183.21 79.20L175.24 74.60L175.24 65.40ZM269.81 60.80L277.78 65.40L277.78 74.60L269.81 79.20L261.84 74.60L261.84 65.40ZM87.94 75.80L95.91 80.40L95.91 89.60L87.94 94.20L79.97 89.60L79.97 80.40ZM105.26 75.80L113.23 80.40L113.23 89.60L105.26 94.20L97.30 89.60L97.30 80.40ZM122.58 75.80L130.55 80.40L130.55 89.60L122.58 94.20L114.62 89.60L114.62 80.40ZM139.90 75.80L147.87 80.40L147.87 89.60L139.90 94.20L131.94 89.60L131.94 80.40ZM157.22 75.80L165.19 80.40L165.19 89.60L157.22 94.20L149.26 89.60L149.26 80.40ZM174.54 75.80L182.51 80.40L182.51 89.60L174.54 94.20L166.58 89.60L166.58 80.40ZM191.87 75.80L199.83 80.40L199.83 89.60L191.87 94.20L183.90 89.60L183.90 80.40ZM295.79 75.80L303.76 80.40L303.76 89.60L295.79 94.20L287.82 89.60L287.82 80.40ZM313.11 75.80L321.08 80.40L321.08 89.60L313.11 94.20L305.14 89.60L305.14 80.40ZM61.96 90.80L69.93 95.40L69.93 104.60L61.96 109.20L53.99 104.60L53.99 95.40ZM79.28 90.80L87.25 95.40L87.25 104.60L79.28 109.20L71.31 104.60L71.31 95.40ZM96.60 90.80L104.57 95.40L104.57 104.60L96.60 109.20L88.64 104.60L88.64 95.40ZM113.92 90.80L121.89 95.40L121.89 104.60L113.92 109.20L105.96 104.60L105.96 95.40ZM131.24 90.80L139.21 95.40L139.21 104.60L131.24 109.20L123.28 104.60L123.28 95.40ZM287.13 90.80L295.10 95.40L295.10 104.60L287.13 109.20L279.16 104.60L279.16 95.40ZM70.62 105.80L78.59 110.40L78.59 119.60L70.62 124.20L62.65 119.60L62.65 110.40ZM87.94 105.80L95.91 110.40L95.91 119.60L87.94 124.20L79.97 119.60L79.97 110.40ZM105.26 105.80L113.23 110.40L113.23 119.60L105.26 124.20L97.30 119.60L97.30 110.40ZM122.58 105.80L130.55 110.40L130.55 119.60L122.58 124.20L114.62 119.60L114.62 110.40ZM313.11 105.80L321.08 110.40L321.08 119.60L313.11 124.20L305.14 119.60L305.14 110.40ZM330.43 105.80L338.40 110.40L338.40 119.60L330.43 124.20L322.46 119.60L322.46 110.40ZM79.28 120.80L87.25 125.40L87.25 134.60L79.28 139.20L71.31 134.60L71.31 125.40ZM96.60 120.80L104.57 125.40L104.57 134.60L96.60 139.20L88.64 134.60L88.64 125.40ZM113.92 120.80L121.89 125.40L121.89 134.60L113.92 139.20L105.96 134.60L105.96 125.40ZM304.45 120.80L312.42 125.40L312.42 134.60L304.45 139.20L296.48 134.60L296.48 125.40ZM321.77 120.80L329.74 125.40L329.74 134.60L321.77 139.20L313.80 134.60L313.80 125.40ZM87.94 135.80L95.91 140.40L95.91 149.60L87.94 154.20L79.97 149.60L79.97 140.40ZM105.26 135.80L113.23 140.40L113.23 149.60L105.26 154.20L97.30 149.60L97.30 140.40ZM122.58 135.80L130.55 140.40L130.55 149.60L122.58 154.20L114.62 149.60L114.62 140.40ZM313.11 135.80L321.08 140.40L321.08 149.60L313.11 154.20L305.14 149.60L305.14 140.40ZM79.28 150.80L87.25 155.40L87.25 164.60L79.28 169.20L71.31 164.60L71.31 155.40ZM96.60 150.80L104.57 155.40L104.57 164.60L96.60 169.20L88.64 164.60L88.64 155.40ZM287.13 150.80L295.10 155.40L295.10 164.60L287.13 169.20L279.16 164.60L279.16 155.40ZM304.45 150.80L312.42 155.40L312.42 164.60L304.45 169.20L296.48 164.60L296.48 155.40ZM87.94 165.80L95.91 170.40L95.91 179.60L87.94 184.20L79.97 179.60L79.97 170.40ZM105.26 165.80L113.23 170.40L113.23 179.60L105.26 184.20L97.30 179.60L97.30 170.40ZM122.58 165.80L130.55 170.40L130.55 179.60L122.58 184.20L114.62 179.60L114.62 170.40ZM139.90 165.80L147.87 170.40L147.87 179.60L139.90 184.20L131.94 179.60L131.94 170.40ZM278.47 165.80L286.44 170.40L286.44 179.60L278.47 184.20L270.50 179.60L270.50 170.40ZM295.79 165.80L303.76 170.40L303.76 179.60L295.79 184.20L287.82 179.60L287.82 170.40ZM313.11 165.80L321.08 170.40L321.08 179.60L313.11 184.20L305.14 179.60L305.14 170.40ZM96.60 180.80L104.57 185.40L104.57 194.60L96.60 199.20L88.64 194.60L88.64 185.40ZM113.92 180.80L121.89 185.40L121.89 194.60L113.92 199.20L105.96 194.60L105.96 185.40ZM131.24 180.80L139.21 185.40L139.21 194.60L131.24 199.20L123.28 194.60L123.28 185.40ZM148.56 180.80L156.53 185.40L156.53 194.60L148.56 199.20L140.60 194.60L140.60 185.40ZM165.88 180.80L173.85 185.40L173.85 194.60L165.88 199.20L157.92 194.60L157.92 185.40ZM183.21 180.80L191.17 185.40L191.17 194.60L183.21 199.20L175.24 194.60L175.24 185.40ZM200.53 180.80L208.49 185.40L208.49 194.60L200.53 199.20L192.56 194.60L192.56 185.40ZM252.49 180.80L260.45 185.40L260.45 194.60L252.49 199.20L244.52 194.60L244.52 185.40ZM269.81 180.80L277.78 185.40L277.78 194.60L269.81 199.20L261.84 194.60L261.84 185.40ZM287.13 180.80L295.10 185.40L295.10 194.60L287.13 199.20L279.16 194.60L279.16 185.40ZM304.45 180.80L312.42 185.40L312.42 194.60L304.45 199.20L296.48 194.60L296.48 185.40ZM122.58 195.80L130.55 200.40L130.55 209.60L122.58 214.20L114.62 209.60L114.62 200.40ZM139.90 195.80L147.87 200.40L147.87 209.60L139.90 214.20L131.94 209.60L131.94 200.40ZM157.22 195.80L165.19 200.40L165.19 209.60L157.22 214.20L149.26 209.60L149.26 200.40ZM174.54 195.80L182.51 200.40L182.51 209.60L174.54 214.20L166.58 209.60L166.58 200.40ZM191.87 195.80L199.83 200.40L199.83 209.60L191.87 214.20L183.90 209.60L183.90 200.40ZM209.19 195.80L217.15 200.40L217.15 209.60L209.19 214.20L201.22 209.60L201.22 200.40ZM226.51 195.80L234.47 200.40L234.47 209.60L226.51 214.20L218.54 209.60L218.54 200.40ZM243.83 195.80L251.79 200.40L251.79 209.60L243.83 214.20L235.86 209.60L235.86 200.40ZM261.15 195.80L269.11 200.40L269.11 209.60L261.15 214.20L253.18 209.60L253.18 200.40ZM278.47 195.80L286.44 200.40L286.44 209.60L278.47 214.20L270.50 209.60L270.50 200.40ZM295.79 195.80L303.76 200.40L303.76 209.60L295.79 214.20L287.82 209.60L287.82 200.40ZM313.11 195.80L321.08 200.40L321.08 209.60L313.11 214.20L305.14 209.60L305.14 200.40ZM131.24 210.80L139.21 215.40L139.21 224.60L131.24 229.20L123.28 224.60L123.28 215.40ZM148.56 210.80L156.53 215.40L156.53 224.60L148.56 229.20L140.60 224.60L140.60 215.40ZM165.88 210.80L173.85 215.40L173.85 224.60L165.88 229.20L157.92 224.60L157.92 215.40ZM183.21 210.80L191.17 215.40L191.17 224.60L183.21 229.20L175.24 224.60L175.24 215.40ZM200.53 210.80L208.49 215.40L208.49 224.60L200.53 229.20L192.56 224.60L192.56 215.40ZM217.85 210.80L225.81 215.40L225.81 224.60L217.85 229.20L209.88 224.60L209.88 215.40ZM235.17 210.80L243.13 215.40L243.13 224.60L235.17 229.20L227.20 224.60L227.20 215.40ZM269.81 210.80L277.78 215.40L277.78 224.60L269.81 229.20L261.84 224.60L261.84 215.40ZM157.22 225.80L165.19 230.40L165.19 239.60L157.22 244.20L149.26 239.60L149.26 230.40ZM174.54 225.80L182.51 230.40L182.51 239.60L174.54 244.20L166.58 239.60L166.58 230.40ZM191.87 225.80L199.83 230.40L199.83 239.60L191.87 244.20L183.90 239.60L183.90 230.40ZM209.19 225.80L217.15 230.40L217.15 239.60L209.19 244.20L201.22 239.60L201.22 230.40ZM226.51 225.80L234.47 230.40L234.47 239.60L226.51 244.20L218.54 239.60L218.54 230.40ZM243.83 225.80L251.79 230.40L251.79 239.60L243.83 244.20L235.86 239.60L235.86 230.40Z" fill="#2F5DA8"/><path d="M200.53 60.80L208.49 65.40L208.49 74.60L200.53 79.20L192.56 74.60L192.56 65.40ZM235.17 60.80L243.13 65.40L243.13 74.60L235.17 79.20L227.20 74.60L227.20 65.40ZM252.49 60.80L260.45 65.40L260.45 74.60L252.49 79.20L244.52 74.60L244.52 65.40ZM287.13 60.80L295.10 65.40L295.10 74.60L287.13 79.20L279.16 74.60L279.16 65.40ZM209.19 75.80L217.15 80.40L217.15 89.60L209.19 94.20L201.22 89.60L201.22 80.40ZM226.51 75.80L234.47 80.40L234.47 89.60L226.51 94.20L218.54 89.60L218.54 80.40ZM243.83 75.80L251.79 80.40L251.79 89.60L243.83 94.20L235.86 89.60L235.86 80.40ZM261.15 75.80L269.11 80.40L269.11 89.60L261.15 94.20L253.18 89.60L253.18 80.40ZM278.47 75.80L286.44 80.40L286.44 89.60L278.47 94.20L270.50 89.60L270.50 80.40ZM217.85 90.80L225.81 95.40L225.81 104.60L217.85 109.20L209.88 104.60L209.88 95.40ZM235.17 90.80L243.13 95.40L243.13 104.60L235.17 109.20L227.20 104.60L227.20 95.40ZM252.49 90.80L260.45 95.40L260.45 104.60L252.49 109.20L244.52 104.60L244.52 95.40ZM269.81 90.80L277.78 95.40L277.78 104.60L269.81 109.20L261.84 104.60L261.84 95.40ZM304.45 90.80L312.42 95.40L312.42 104.60L304.45 109.20L296.48 104.60L296.48 95.40ZM174.54 105.80L182.51 110.40L182.51 119.60L174.54 124.20L166.58 119.60L166.58 110.40ZM261.15 105.80L269.11 110.40L269.11 119.60L261.15 124.20L253.18 119.60L253.18 110.40ZM278.47 105.80L286.44 110.40L286.44 119.60L278.47 124.20L270.50 119.60L270.50 110.40ZM295.79 105.80L303.76 110.40L303.76 119.60L295.79 124.20L287.82 119.60L287.82 110.40ZM252.49 120.80L260.45 125.40L260.45 134.60L252.49 139.20L244.52 134.60L244.52 125.40ZM269.81 120.80L277.78 125.40L277.78 134.60L269.81 139.20L261.84 134.60L261.84 125.40ZM287.13 120.80L295.10 125.40L295.10 134.60L287.13 139.20L279.16 134.60L279.16 125.40ZM261.15 135.80L269.11 140.40L269.11 149.60L261.15 154.20L253.18 149.60L253.18 140.40ZM278.47 135.80L286.44 140.40L286.44 149.60L278.47 154.20L270.50 149.60L270.50 140.40ZM295.79 135.80L303.76 140.40L303.76 149.60L295.79 154.20L287.82 149.60L287.82 140.40ZM252.49 150.80L260.45 155.40L260.45 164.60L252.49 169.20L244.52 164.60L244.52 155.40ZM269.81 150.80L277.78 155.40L277.78 164.60L269.81 169.20L261.84 164.60L261.84 155.40ZM243.83 165.80L251.79 170.40L251.79 179.60L243.83 184.20L235.86 179.60L235.86 170.40ZM261.15 165.80L269.11 170.40L269.11 179.60L261.15 184.20L253.18 179.60L253.18 170.40ZM252.49 210.80L260.45 215.40L260.45 224.60L252.49 229.20L244.52 224.60L244.52 215.40Z" fill="#E9A566"/><path d="M148.56 90.80L156.53 95.40L156.53 104.60L148.56 109.20L140.60 104.60L140.60 95.40ZM165.88 90.80L173.85 95.40L173.85 104.60L165.88 109.20L157.92 104.60L157.92 95.40ZM183.21 90.80L191.17 95.40L191.17 104.60L183.21 109.20L175.24 104.60L175.24 95.40ZM139.90 105.80L147.87 110.40L147.87 119.60L139.90 124.20L131.94 119.60L131.94 110.40ZM157.22 105.80L165.19 110.40L165.19 119.60L157.22 124.20L149.26 119.60L149.26 110.40ZM131.24 120.80L139.21 125.40L139.21 134.60L131.24 139.20L123.28 134.60L123.28 125.40ZM148.56 120.80L156.53 125.40L156.53 134.60L148.56 139.20L140.60 134.60L140.60 125.40ZM139.90 135.80L147.87 140.40L147.87 149.60L139.90 154.20L131.94 149.60L131.94 140.40ZM157.22 135.80L165.19 140.40L165.19 149.60L157.22 154.20L149.26 149.60L149.26 140.40ZM174.54 135.80L182.51 140.40L182.51 149.60L174.54 154.20L166.58 149.60L166.58 140.40ZM113.92 150.80L121.89 155.40L121.89 164.60L113.92 169.20L105.96 164.60L105.96 155.40ZM131.24 150.80L139.21 155.40L139.21 164.60L131.24 169.20L123.28 164.60L123.28 155.40ZM148.56 150.80L156.53 155.40L156.53 164.60L148.56 169.20L140.60 164.60L140.60 155.40ZM217.85 150.80L225.81 155.40L225.81 164.60L217.85 169.20L209.88 164.60L209.88 155.40ZM235.17 150.80L243.13 155.40L243.13 164.60L235.17 169.20L227.20 164.60L227.20 155.40ZM157.22 165.80L165.19 170.40L165.19 179.60L157.22 184.20L149.26 179.60L149.26 170.40ZM174.54 165.80L182.51 170.40L182.51 179.60L174.54 184.20L166.58 179.60L166.58 170.40ZM191.87 165.80L199.83 170.40L199.83 179.60L191.87 184.20L183.90 179.60L183.90 170.40ZM226.51 165.80L234.47 170.40L234.47 179.60L226.51 184.20L218.54 179.60L218.54 170.40ZM217.85 180.80L225.81 185.40L225.81 194.60L217.85 199.20L209.88 194.60L209.88 185.40ZM235.17 180.80L243.13 185.40L243.13 194.60L235.17 199.20L227.20 194.60L227.20 185.40Z" fill="#2A9D8F"/><path d="M217.85 60.80L225.81 65.40L225.81 74.60L217.85 79.20L209.88 74.60L209.88 65.40ZM200.53 90.80L208.49 95.40L208.49 104.60L200.53 109.20L192.56 104.60L192.56 95.40ZM191.87 105.80L199.83 110.40L199.83 119.60L191.87 124.20L183.90 119.60L183.90 110.40ZM209.19 105.80L217.15 110.40L217.15 119.60L209.19 124.20L201.22 119.60L201.22 110.40ZM226.51 105.80L234.47 110.40L234.47 119.60L226.51 124.20L218.54 119.60L218.54 110.40ZM243.83 105.80L251.79 110.40L251.79 119.60L243.83 124.20L235.86 119.60L235.86 110.40ZM165.88 120.80L173.85 125.40L173.85 134.60L165.88 139.20L157.92 134.60L157.92 125.40ZM183.21 120.80L191.17 125.40L191.17 134.60L183.21 139.20L175.24 134.60L175.24 125.40ZM200.53 120.80L208.49 125.40L208.49 134.60L200.53 139.20L192.56 134.60L192.56 125.40ZM217.85 120.80L225.81 125.40L225.81 134.60L217.85 139.20L209.88 134.60L209.88 125.40ZM235.17 120.80L243.13 125.40L243.13 134.60L235.17 139.20L227.20 134.60L227.20 125.40ZM209.19 135.80L217.15 140.40L217.15 149.60L209.19 154.20L201.22 149.60L201.22 140.40ZM226.51 135.80L234.47 140.40L234.47 149.60L226.51 154.20L218.54 149.60L218.54 140.40ZM243.83 135.80L251.79 140.40L251.79 149.60L243.83 154.20L235.86 149.60L235.86 140.40ZM165.88 150.80L173.85 155.40L173.85 164.60L165.88 169.20L157.92 164.60L157.92 155.40ZM183.21 150.80L191.17 155.40L191.17 164.60L183.21 169.20L175.24 164.60L175.24 155.40ZM200.53 150.80L208.49 155.40L208.49 164.60L200.53 169.20L192.56 164.60L192.56 155.40ZM209.19 165.80L217.15 170.40L217.15 179.60L209.19 184.20L201.22 179.60L201.22 170.40Z" fill="#8B7FE0"/></svg></div>
+        <div class="legend">
+          <div class="legend-row"><span class="swatch" style="background:#2F5DA8"></span><span>Stir in strength</span><span class="pct">51%</span><span class="amt">$3,420</span><span class="dir" style="background:#16A34A"><svg class="icon" width="10" height="10" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 244l144-144 144 144M256 120v292"/></svg></span></div>
+          <div class="legend-row"><span class="swatch" style="background:#E9A566"></span><span>Healthier every day</span><span class="pct">28%</span><span class="amt">$1,880</span><span class="dir" style="background:#16A34A"><svg class="icon" width="10" height="10" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 244l144-144 144 144M256 120v292"/></svg></span></div>
+          <div class="legend-row"><span class="swatch" style="background:#2A9D8F"></span><span>Iron boost Q3</span><span class="pct">12%</span><span class="amt">$840</span><span class="dir" style="background:#DC2626"><svg class="icon" width="10" height="10" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 268l144 144 144-144M256 392V100"/></svg></span></div>
+          <div class="legend-row"><span class="swatch" style="background:#8B7FE0"></span><span>Ambassador program</span><span class="amt">$610</span><span class="dir" style="background:#16A34A"><svg class="icon" width="10" height="10" viewBox="0 0 512 512" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 244l144-144 144 144M256 120v292"/></svg></span></div>
+        </div>
+      </div>
+      <div class="card chart narrow">
+        <div style="color:#6B7280;font-size:13px;font-weight:500">Revenue over time</div>
+        <div class="values"><span class="value">$18,420</span><span class="unit">$614 avg/day</span></div>
+        <div class="revenue">
+          <div class="revenue-row">
+            <div class="y-labels"><span>$1000</span><span>$750</span><span>$500</span><span>$250</span><span>$0</span></div>
+            <div class="plot">
+              <svg viewBox="0 0 225 200" preserveAspectRatio="xMidYMid meet" aria-label="Revenue over time">
+                <defs>
+                  <pattern id="revenueDotGrid" x="0" y="0" width="5" height="5" patternUnits="userSpaceOnUse">
+                    <circle cx="2.5" cy="2.5" r="1.15" fill="#D5D5DC"/>
+                  </pattern>
+                </defs>
+                <rect width="225" height="200" fill="url(#revenueDotGrid)"/>
+                <path d="M0.5 195.5h4v4h-4ZM0.5 190.5h4v4h-4ZM0.5 185.5h4v4h-4ZM0.5 180.5h4v4h-4ZM0.5 175.5h4v4h-4ZM0.5 170.5h4v4h-4ZM0.5 165.5h4v4h-4ZM0.5 160.5h4v4h-4ZM0.5 155.5h4v4h-4ZM5.5 195.5h4v4h-4ZM5.5 190.5h4v4h-4ZM5.5 185.5h4v4h-4ZM5.5 180.5h4v4h-4ZM5.5 175.5h4v4h-4ZM5.5 170.5h4v4h-4ZM5.5 165.5h4v4h-4ZM5.5 160.5h4v4h-4ZM5.5 155.5h4v4h-4ZM10.5 195.5h4v4h-4ZM10.5 190.5h4v4h-4ZM10.5 185.5h4v4h-4ZM10.5 180.5h4v4h-4ZM10.5 175.5h4v4h-4ZM10.5 170.5h4v4h-4ZM10.5 165.5h4v4h-4ZM10.5 160.5h4v4h-4ZM15.5 195.5h4v4h-4ZM15.5 190.5h4v4h-4ZM15.5 185.5h4v4h-4ZM15.5 180.5h4v4h-4ZM15.5 175.5h4v4h-4ZM15.5 170.5h4v4h-4ZM15.5 165.5h4v4h-4ZM15.5 160.5h4v4h-4ZM15.5 155.5h4v4h-4ZM15.5 150.5h4v4h-4ZM20.5 195.5h4v4h-4ZM20.5 190.5h4v4h-4ZM20.5 185.5h4v4h-4ZM20.5 180.5h4v4h-4ZM20.5 175.5h4v4h-4ZM20.5 170.5h4v4h-4ZM20.5 165.5h4v4h-4ZM20.5 160.5h4v4h-4ZM20.5 155.5h4v4h-4ZM20.5 150.5h4v4h-4ZM25.5 195.5h4v4h-4ZM25.5 190.5h4v4h-4ZM25.5 185.5h4v4h-4ZM25.5 180.5h4v4h-4ZM25.5 175.5h4v4h-4ZM25.5 170.5h4v4h-4ZM25.5 165.5h4v4h-4ZM25.5 160.5h4v4h-4ZM25.5 155.5h4v4h-4ZM25.5 150.5h4v4h-4ZM30.5 195.5h4v4h-4ZM30.5 190.5h4v4h-4ZM30.5 185.5h4v4h-4ZM30.5 180.5h4v4h-4ZM30.5 175.5h4v4h-4ZM30.5 170.5h4v4h-4ZM30.5 165.5h4v4h-4ZM30.5 160.5h4v4h-4ZM30.5 155.5h4v4h-4ZM35.5 195.5h4v4h-4ZM35.5 190.5h4v4h-4ZM35.5 185.5h4v4h-4ZM35.5 180.5h4v4h-4ZM35.5 175.5h4v4h-4ZM35.5 170.5h4v4h-4ZM35.5 165.5h4v4h-4ZM35.5 160.5h4v4h-4ZM35.5 155.5h4v4h-4ZM40.5 195.5h4v4h-4ZM40.5 190.5h4v4h-4ZM40.5 185.5h4v4h-4ZM40.5 180.5h4v4h-4ZM40.5 175.5h4v4h-4ZM40.5 170.5h4v4h-4ZM40.5 165.5h4v4h-4ZM40.5 160.5h4v4h-4ZM40.5 155.5h4v4h-4ZM40.5 150.5h4v4h-4ZM45.5 195.5h4v4h-4ZM45.5 190.5h4v4h-4ZM45.5 185.5h4v4h-4ZM45.5 180.5h4v4h-4ZM45.5 175.5h4v4h-4ZM45.5 170.5h4v4h-4ZM45.5 165.5h4v4h-4ZM45.5 160.5h4v4h-4ZM45.5 155.5h4v4h-4ZM45.5 150.5h4v4h-4ZM45.5 145.5h4v4h-4ZM50.5 195.5h4v4h-4ZM50.5 190.5h4v4h-4ZM50.5 185.5h4v4h-4ZM50.5 180.5h4v4h-4ZM50.5 175.5h4v4h-4ZM50.5 170.5h4v4h-4ZM50.5 165.5h4v4h-4ZM50.5 160.5h4v4h-4ZM50.5 155.5h4v4h-4ZM50.5 150.5h4v4h-4ZM50.5 145.5h4v4h-4ZM50.5 140.5h4v4h-4ZM55.5 195.5h4v4h-4ZM55.5 190.5h4v4h-4ZM55.5 185.5h4v4h-4ZM55.5 180.5h4v4h-4ZM55.5 175.5h4v4h-4ZM55.5 170.5h4v4h-4ZM55.5 165.5h4v4h-4ZM55.5 160.5h4v4h-4ZM55.5 155.5h4v4h-4ZM55.5 150.5h4v4h-4ZM55.5 145.5h4v4h-4ZM55.5 140.5h4v4h-4ZM55.5 135.5h4v4h-4ZM60.5 195.5h4v4h-4ZM60.5 190.5h4v4h-4ZM60.5 185.5h4v4h-4ZM60.5 180.5h4v4h-4ZM60.5 175.5h4v4h-4ZM60.5 170.5h4v4h-4ZM60.5 165.5h4v4h-4ZM60.5 160.5h4v4h-4ZM60.5 155.5h4v4h-4ZM60.5 150.5h4v4h-4ZM60.5 145.5h4v4h-4ZM60.5 140.5h4v4h-4ZM65.5 195.5h4v4h-4ZM65.5 190.5h4v4h-4ZM65.5 185.5h4v4h-4ZM65.5 180.5h4v4h-4ZM65.5 175.5h4v4h-4ZM65.5 170.5h4v4h-4ZM65.5 165.5h4v4h-4ZM65.5 160.5h4v4h-4ZM65.5 155.5h4v4h-4ZM65.5 150.5h4v4h-4ZM65.5 145.5h4v4h-4ZM65.5 140.5h4v4h-4ZM65.5 135.5h4v4h-4ZM65.5 130.5h4v4h-4ZM70.5 195.5h4v4h-4ZM70.5 190.5h4v4h-4ZM70.5 185.5h4v4h-4ZM70.5 180.5h4v4h-4ZM70.5 175.5h4v4h-4ZM70.5 170.5h4v4h-4ZM70.5 165.5h4v4h-4ZM70.5 160.5h4v4h-4ZM70.5 155.5h4v4h-4ZM70.5 150.5h4v4h-4ZM70.5 145.5h4v4h-4ZM70.5 140.5h4v4h-4ZM75.5 195.5h4v4h-4ZM75.5 190.5h4v4h-4ZM75.5 185.5h4v4h-4ZM75.5 180.5h4v4h-4ZM75.5 175.5h4v4h-4ZM75.5 170.5h4v4h-4ZM75.5 165.5h4v4h-4ZM75.5 160.5h4v4h-4ZM75.5 155.5h4v4h-4ZM75.5 150.5h4v4h-4ZM75.5 145.5h4v4h-4ZM75.5 140.5h4v4h-4ZM75.5 135.5h4v4h-4ZM75.5 130.5h4v4h-4ZM80.5 195.5h4v4h-4ZM80.5 190.5h4v4h-4ZM80.5 185.5h4v4h-4ZM80.5 180.5h4v4h-4ZM80.5 175.5h4v4h-4ZM80.5 170.5h4v4h-4ZM80.5 165.5h4v4h-4ZM80.5 160.5h4v4h-4ZM80.5 155.5h4v4h-4ZM80.5 150.5h4v4h-4ZM80.5 145.5h4v4h-4ZM80.5 140.5h4v4h-4ZM85.5 195.5h4v4h-4ZM85.5 190.5h4v4h-4ZM85.5 185.5h4v4h-4ZM85.5 180.5h4v4h-4ZM85.5 175.5h4v4h-4ZM85.5 170.5h4v4h-4ZM85.5 165.5h4v4h-4ZM85.5 160.5h4v4h-4ZM85.5 155.5h4v4h-4ZM85.5 150.5h4v4h-4ZM85.5 145.5h4v4h-4ZM85.5 140.5h4v4h-4ZM85.5 135.5h4v4h-4ZM85.5 130.5h4v4h-4ZM85.5 125.5h4v4h-4ZM90.5 195.5h4v4h-4ZM90.5 190.5h4v4h-4ZM90.5 185.5h4v4h-4ZM90.5 180.5h4v4h-4ZM90.5 175.5h4v4h-4ZM90.5 170.5h4v4h-4ZM90.5 165.5h4v4h-4ZM90.5 160.5h4v4h-4ZM90.5 155.5h4v4h-4ZM90.5 150.5h4v4h-4ZM90.5 145.5h4v4h-4ZM90.5 140.5h4v4h-4ZM90.5 135.5h4v4h-4ZM90.5 130.5h4v4h-4ZM90.5 125.5h4v4h-4ZM90.5 120.5h4v4h-4ZM95.5 195.5h4v4h-4ZM95.5 190.5h4v4h-4ZM95.5 185.5h4v4h-4ZM95.5 180.5h4v4h-4ZM95.5 175.5h4v4h-4ZM95.5 170.5h4v4h-4ZM95.5 165.5h4v4h-4ZM95.5 160.5h4v4h-4ZM95.5 155.5h4v4h-4ZM95.5 150.5h4v4h-4ZM95.5 145.5h4v4h-4ZM95.5 140.5h4v4h-4ZM95.5 135.5h4v4h-4ZM95.5 130.5h4v4h-4ZM95.5 125.5h4v4h-4ZM95.5 120.5h4v4h-4ZM100.5 195.5h4v4h-4ZM100.5 190.5h4v4h-4ZM100.5 185.5h4v4h-4ZM100.5 180.5h4v4h-4ZM100.5 175.5h4v4h-4ZM100.5 170.5h4v4h-4ZM100.5 165.5h4v4h-4ZM100.5 160.5h4v4h-4ZM100.5 155.5h4v4h-4ZM100.5 150.5h4v4h-4ZM100.5 145.5h4v4h-4ZM100.5 140.5h4v4h-4ZM100.5 135.5h4v4h-4ZM100.5 130.5h4v4h-4ZM105.5 195.5h4v4h-4ZM105.5 190.5h4v4h-4ZM105.5 185.5h4v4h-4ZM105.5 180.5h4v4h-4ZM105.5 175.5h4v4h-4ZM105.5 170.5h4v4h-4ZM105.5 165.5h4v4h-4ZM105.5 160.5h4v4h-4ZM105.5 155.5h4v4h-4ZM105.5 150.5h4v4h-4ZM105.5 145.5h4v4h-4ZM105.5 140.5h4v4h-4ZM105.5 135.5h4v4h-4ZM105.5 130.5h4v4h-4ZM105.5 125.5h4v4h-4ZM105.5 120.5h4v4h-4ZM105.5 115.5h4v4h-4ZM110.5 195.5h4v4h-4ZM110.5 190.5h4v4h-4ZM110.5 185.5h4v4h-4ZM110.5 180.5h4v4h-4ZM110.5 175.5h4v4h-4ZM110.5 170.5h4v4h-4ZM110.5 165.5h4v4h-4ZM110.5 160.5h4v4h-4ZM110.5 155.5h4v4h-4ZM110.5 150.5h4v4h-4ZM110.5 145.5h4v4h-4ZM110.5 140.5h4v4h-4ZM110.5 135.5h4v4h-4ZM110.5 130.5h4v4h-4ZM110.5 125.5h4v4h-4ZM115.5 195.5h4v4h-4ZM115.5 190.5h4v4h-4ZM115.5 185.5h4v4h-4ZM115.5 180.5h4v4h-4ZM115.5 175.5h4v4h-4ZM115.5 170.5h4v4h-4ZM115.5 165.5h4v4h-4ZM115.5 160.5h4v4h-4ZM115.5 155.5h4v4h-4ZM115.5 150.5h4v4h-4ZM115.5 145.5h4v4h-4ZM115.5 140.5h4v4h-4ZM115.5 135.5h4v4h-4ZM115.5 130.5h4v4h-4ZM115.5 125.5h4v4h-4ZM115.5 120.5h4v4h-4ZM115.5 115.5h4v4h-4ZM115.5 110.5h4v4h-4ZM120.5 195.5h4v4h-4ZM120.5 190.5h4v4h-4ZM120.5 185.5h4v4h-4ZM120.5 180.5h4v4h-4ZM120.5 175.5h4v4h-4ZM120.5 170.5h4v4h-4ZM120.5 165.5h4v4h-4ZM120.5 160.5h4v4h-4ZM120.5 155.5h4v4h-4ZM120.5 150.5h4v4h-4ZM120.5 145.5h4v4h-4ZM120.5 140.5h4v4h-4ZM120.5 135.5h4v4h-4ZM120.5 130.5h4v4h-4ZM120.5 125.5h4v4h-4ZM120.5 120.5h4v4h-4ZM120.5 115.5h4v4h-4ZM120.5 110.5h4v4h-4ZM125.5 195.5h4v4h-4ZM125.5 190.5h4v4h-4ZM125.5 185.5h4v4h-4ZM125.5 180.5h4v4h-4ZM125.5 175.5h4v4h-4ZM125.5 170.5h4v4h-4ZM125.5 165.5h4v4h-4ZM125.5 160.5h4v4h-4ZM125.5 155.5h4v4h-4ZM125.5 150.5h4v4h-4ZM125.5 145.5h4v4h-4ZM125.5 140.5h4v4h-4ZM125.5 135.5h4v4h-4ZM125.5 130.5h4v4h-4ZM125.5 125.5h4v4h-4ZM130.5 195.5h4v4h-4ZM130.5 190.5h4v4h-4ZM130.5 185.5h4v4h-4ZM130.5 180.5h4v4h-4ZM130.5 175.5h4v4h-4ZM130.5 170.5h4v4h-4ZM130.5 165.5h4v4h-4ZM130.5 160.5h4v4h-4ZM130.5 155.5h4v4h-4ZM130.5 150.5h4v4h-4ZM130.5 145.5h4v4h-4ZM130.5 140.5h4v4h-4ZM130.5 135.5h4v4h-4ZM130.5 130.5h4v4h-4ZM130.5 125.5h4v4h-4ZM130.5 120.5h4v4h-4ZM130.5 115.5h4v4h-4ZM130.5 110.5h4v4h-4ZM135.5 195.5h4v4h-4ZM135.5 190.5h4v4h-4ZM135.5 185.5h4v4h-4ZM135.5 180.5h4v4h-4ZM135.5 175.5h4v4h-4ZM135.5 170.5h4v4h-4ZM135.5 165.5h4v4h-4ZM135.5 160.5h4v4h-4ZM135.5 155.5h4v4h-4ZM135.5 150.5h4v4h-4ZM135.5 145.5h4v4h-4ZM135.5 140.5h4v4h-4ZM135.5 135.5h4v4h-4ZM135.5 130.5h4v4h-4ZM135.5 125.5h4v4h-4ZM135.5 120.5h4v4h-4ZM135.5 115.5h4v4h-4ZM135.5 110.5h4v4h-4ZM135.5 105.5h4v4h-4ZM140.5 195.5h4v4h-4ZM140.5 190.5h4v4h-4ZM140.5 185.5h4v4h-4ZM140.5 180.5h4v4h-4ZM140.5 175.5h4v4h-4ZM140.5 170.5h4v4h-4ZM140.5 165.5h4v4h-4ZM140.5 160.5h4v4h-4ZM140.5 155.5h4v4h-4ZM140.5 150.5h4v4h-4ZM140.5 145.5h4v4h-4ZM140.5 140.5h4v4h-4ZM140.5 135.5h4v4h-4ZM140.5 130.5h4v4h-4ZM140.5 125.5h4v4h-4ZM140.5 120.5h4v4h-4ZM140.5 115.5h4v4h-4ZM140.5 110.5h4v4h-4ZM140.5 105.5h4v4h-4ZM140.5 100.5h4v4h-4ZM145.5 195.5h4v4h-4ZM145.5 190.5h4v4h-4ZM145.5 185.5h4v4h-4ZM145.5 180.5h4v4h-4ZM145.5 175.5h4v4h-4ZM145.5 170.5h4v4h-4ZM145.5 165.5h4v4h-4ZM145.5 160.5h4v4h-4ZM145.5 155.5h4v4h-4ZM145.5 150.5h4v4h-4ZM145.5 145.5h4v4h-4ZM145.5 140.5h4v4h-4ZM145.5 135.5h4v4h-4ZM145.5 130.5h4v4h-4ZM145.5 125.5h4v4h-4ZM145.5 120.5h4v4h-4ZM145.5 115.5h4v4h-4ZM145.5 110.5h4v4h-4ZM145.5 105.5h4v4h-4ZM145.5 100.5h4v4h-4ZM150.5 195.5h4v4h-4ZM150.5 190.5h4v4h-4ZM150.5 185.5h4v4h-4ZM150.5 180.5h4v4h-4ZM150.5 175.5h4v4h-4ZM150.5 170.5h4v4h-4ZM150.5 165.5h4v4h-4ZM150.5 160.5h4v4h-4ZM150.5 155.5h4v4h-4ZM150.5 150.5h4v4h-4ZM150.5 145.5h4v4h-4ZM150.5 140.5h4v4h-4ZM150.5 135.5h4v4h-4ZM150.5 130.5h4v4h-4ZM150.5 125.5h4v4h-4ZM150.5 120.5h4v4h-4ZM150.5 115.5h4v4h-4ZM155.5 195.5h4v4h-4ZM155.5 190.5h4v4h-4ZM155.5 185.5h4v4h-4ZM155.5 180.5h4v4h-4ZM155.5 175.5h4v4h-4ZM155.5 170.5h4v4h-4ZM155.5 165.5h4v4h-4ZM155.5 160.5h4v4h-4ZM155.5 155.5h4v4h-4ZM155.5 150.5h4v4h-4ZM155.5 145.5h4v4h-4ZM155.5 140.5h4v4h-4ZM155.5 135.5h4v4h-4ZM155.5 130.5h4v4h-4ZM155.5 125.5h4v4h-4ZM155.5 120.5h4v4h-4ZM155.5 115.5h4v4h-4ZM155.5 110.5h4v4h-4ZM160.5 195.5h4v4h-4ZM160.5 190.5h4v4h-4ZM160.5 185.5h4v4h-4ZM160.5 180.5h4v4h-4ZM160.5 175.5h4v4h-4ZM160.5 170.5h4v4h-4ZM160.5 165.5h4v4h-4ZM160.5 160.5h4v4h-4ZM160.5 155.5h4v4h-4ZM160.5 150.5h4v4h-4ZM160.5 145.5h4v4h-4ZM160.5 140.5h4v4h-4ZM160.5 135.5h4v4h-4ZM160.5 130.5h4v4h-4ZM160.5 125.5h4v4h-4ZM160.5 120.5h4v4h-4ZM160.5 115.5h4v4h-4ZM160.5 110.5h4v4h-4ZM160.5 105.5h4v4h-4ZM165.5 195.5h4v4h-4ZM165.5 190.5h4v4h-4ZM165.5 185.5h4v4h-4ZM165.5 180.5h4v4h-4ZM165.5 175.5h4v4h-4ZM165.5 170.5h4v4h-4ZM165.5 165.5h4v4h-4ZM165.5 160.5h4v4h-4ZM165.5 155.5h4v4h-4ZM165.5 150.5h4v4h-4ZM165.5 145.5h4v4h-4ZM165.5 140.5h4v4h-4ZM165.5 135.5h4v4h-4ZM165.5 130.5h4v4h-4ZM165.5 125.5h4v4h-4ZM165.5 120.5h4v4h-4ZM165.5 115.5h4v4h-4ZM165.5 110.5h4v4h-4ZM165.5 105.5h4v4h-4ZM170.5 195.5h4v4h-4ZM170.5 190.5h4v4h-4ZM170.5 185.5h4v4h-4ZM170.5 180.5h4v4h-4ZM170.5 175.5h4v4h-4ZM170.5 170.5h4v4h-4ZM170.5 165.5h4v4h-4ZM170.5 160.5h4v4h-4ZM170.5 155.5h4v4h-4ZM170.5 150.5h4v4h-4ZM170.5 145.5h4v4h-4ZM170.5 140.5h4v4h-4ZM170.5 135.5h4v4h-4ZM170.5 130.5h4v4h-4ZM170.5 125.5h4v4h-4ZM170.5 120.5h4v4h-4ZM170.5 115.5h4v4h-4ZM170.5 110.5h4v4h-4ZM170.5 105.5h4v4h-4ZM170.5 100.5h4v4h-4ZM170.5 95.5h4v4h-4ZM170.5 90.5h4v4h-4ZM175.5 195.5h4v4h-4ZM175.5 190.5h4v4h-4ZM175.5 185.5h4v4h-4ZM175.5 180.5h4v4h-4ZM175.5 175.5h4v4h-4ZM175.5 170.5h4v4h-4ZM175.5 165.5h4v4h-4ZM175.5 160.5h4v4h-4ZM175.5 155.5h4v4h-4ZM175.5 150.5h4v4h-4ZM175.5 145.5h4v4h-4ZM175.5 140.5h4v4h-4ZM175.5 135.5h4v4h-4ZM175.5 130.5h4v4h-4ZM175.5 125.5h4v4h-4ZM175.5 120.5h4v4h-4ZM175.5 115.5h4v4h-4ZM175.5 110.5h4v4h-4ZM175.5 105.5h4v4h-4ZM175.5 100.5h4v4h-4ZM180.5 195.5h4v4h-4ZM180.5 190.5h4v4h-4ZM180.5 185.5h4v4h-4ZM180.5 180.5h4v4h-4ZM180.5 175.5h4v4h-4ZM180.5 170.5h4v4h-4ZM180.5 165.5h4v4h-4ZM180.5 160.5h4v4h-4ZM180.5 155.5h4v4h-4ZM180.5 150.5h4v4h-4ZM180.5 145.5h4v4h-4ZM180.5 140.5h4v4h-4ZM180.5 135.5h4v4h-4ZM180.5 130.5h4v4h-4ZM180.5 125.5h4v4h-4ZM180.5 120.5h4v4h-4ZM180.5 115.5h4v4h-4ZM180.5 110.5h4v4h-4ZM180.5 105.5h4v4h-4ZM180.5 100.5h4v4h-4ZM180.5 95.5h4v4h-4ZM180.5 90.5h4v4h-4ZM180.5 85.5h4v4h-4ZM185.5 195.5h4v4h-4ZM185.5 190.5h4v4h-4ZM185.5 185.5h4v4h-4ZM185.5 180.5h4v4h-4ZM185.5 175.5h4v4h-4ZM185.5 170.5h4v4h-4ZM185.5 165.5h4v4h-4ZM185.5 160.5h4v4h-4ZM185.5 155.5h4v4h-4ZM185.5 150.5h4v4h-4ZM185.5 145.5h4v4h-4ZM185.5 140.5h4v4h-4ZM185.5 135.5h4v4h-4ZM185.5 130.5h4v4h-4ZM185.5 125.5h4v4h-4ZM185.5 120.5h4v4h-4ZM185.5 115.5h4v4h-4ZM185.5 110.5h4v4h-4ZM185.5 105.5h4v4h-4ZM185.5 100.5h4v4h-4ZM185.5 95.5h4v4h-4ZM185.5 90.5h4v4h-4ZM185.5 85.5h4v4h-4ZM185.5 80.5h4v4h-4ZM190.5 195.5h4v4h-4ZM190.5 190.5h4v4h-4ZM190.5 185.5h4v4h-4ZM190.5 180.5h4v4h-4ZM190.5 175.5h4v4h-4ZM190.5 170.5h4v4h-4ZM190.5 165.5h4v4h-4ZM190.5 160.5h4v4h-4ZM190.5 155.5h4v4h-4ZM190.5 150.5h4v4h-4ZM190.5 145.5h4v4h-4ZM190.5 140.5h4v4h-4ZM190.5 135.5h4v4h-4ZM190.5 130.5h4v4h-4ZM190.5 125.5h4v4h-4ZM190.5 120.5h4v4h-4ZM190.5 115.5h4v4h-4ZM190.5 110.5h4v4h-4ZM190.5 105.5h4v4h-4ZM190.5 100.5h4v4h-4ZM190.5 95.5h4v4h-4ZM190.5 90.5h4v4h-4ZM190.5 85.5h4v4h-4ZM190.5 80.5h4v4h-4ZM195.5 195.5h4v4h-4ZM195.5 190.5h4v4h-4ZM195.5 185.5h4v4h-4ZM195.5 180.5h4v4h-4ZM195.5 175.5h4v4h-4ZM195.5 170.5h4v4h-4ZM195.5 165.5h4v4h-4ZM195.5 160.5h4v4h-4ZM195.5 155.5h4v4h-4ZM195.5 150.5h4v4h-4ZM195.5 145.5h4v4h-4ZM195.5 140.5h4v4h-4ZM195.5 135.5h4v4h-4ZM195.5 130.5h4v4h-4ZM195.5 125.5h4v4h-4ZM195.5 120.5h4v4h-4ZM195.5 115.5h4v4h-4ZM195.5 110.5h4v4h-4ZM195.5 105.5h4v4h-4ZM195.5 100.5h4v4h-4ZM195.5 95.5h4v4h-4ZM195.5 90.5h4v4h-4ZM195.5 85.5h4v4h-4ZM200.5 195.5h4v4h-4ZM200.5 190.5h4v4h-4ZM200.5 185.5h4v4h-4ZM200.5 180.5h4v4h-4ZM200.5 175.5h4v4h-4ZM200.5 170.5h4v4h-4ZM200.5 165.5h4v4h-4ZM200.5 160.5h4v4h-4ZM200.5 155.5h4v4h-4ZM200.5 150.5h4v4h-4ZM200.5 145.5h4v4h-4ZM200.5 140.5h4v4h-4ZM200.5 135.5h4v4h-4ZM200.5 130.5h4v4h-4ZM200.5 125.5h4v4h-4ZM200.5 120.5h4v4h-4ZM200.5 115.5h4v4h-4ZM200.5 110.5h4v4h-4ZM200.5 105.5h4v4h-4ZM200.5 100.5h4v4h-4ZM200.5 95.5h4v4h-4ZM200.5 90.5h4v4h-4ZM200.5 85.5h4v4h-4ZM200.5 80.5h4v4h-4ZM200.5 75.5h4v4h-4ZM205.5 195.5h4v4h-4ZM205.5 190.5h4v4h-4ZM205.5 185.5h4v4h-4ZM205.5 180.5h4v4h-4ZM205.5 175.5h4v4h-4ZM205.5 170.5h4v4h-4ZM205.5 165.5h4v4h-4ZM205.5 160.5h4v4h-4ZM205.5 155.5h4v4h-4ZM205.5 150.5h4v4h-4ZM205.5 145.5h4v4h-4ZM205.5 140.5h4v4h-4ZM205.5 135.5h4v4h-4ZM205.5 130.5h4v4h-4ZM205.5 125.5h4v4h-4ZM205.5 120.5h4v4h-4ZM205.5 115.5h4v4h-4ZM205.5 110.5h4v4h-4ZM205.5 105.5h4v4h-4ZM205.5 100.5h4v4h-4ZM205.5 95.5h4v4h-4ZM205.5 90.5h4v4h-4ZM205.5 85.5h4v4h-4ZM205.5 80.5h4v4h-4ZM205.5 75.5h4v4h-4ZM205.5 70.5h4v4h-4ZM210.5 195.5h4v4h-4ZM210.5 190.5h4v4h-4ZM210.5 185.5h4v4h-4ZM210.5 180.5h4v4h-4ZM210.5 175.5h4v4h-4ZM210.5 170.5h4v4h-4ZM210.5 165.5h4v4h-4ZM210.5 160.5h4v4h-4ZM210.5 155.5h4v4h-4ZM210.5 150.5h4v4h-4ZM210.5 145.5h4v4h-4ZM210.5 140.5h4v4h-4ZM210.5 135.5h4v4h-4ZM210.5 130.5h4v4h-4ZM210.5 125.5h4v4h-4ZM210.5 120.5h4v4h-4ZM210.5 115.5h4v4h-4ZM210.5 110.5h4v4h-4ZM210.5 105.5h4v4h-4ZM210.5 100.5h4v4h-4ZM210.5 95.5h4v4h-4ZM210.5 90.5h4v4h-4ZM210.5 85.5h4v4h-4ZM210.5 80.5h4v4h-4ZM210.5 75.5h4v4h-4ZM210.5 70.5h4v4h-4ZM215.5 195.5h4v4h-4ZM215.5 190.5h4v4h-4ZM215.5 185.5h4v4h-4ZM215.5 180.5h4v4h-4ZM215.5 175.5h4v4h-4ZM215.5 170.5h4v4h-4ZM215.5 165.5h4v4h-4ZM215.5 160.5h4v4h-4ZM215.5 155.5h4v4h-4ZM215.5 150.5h4v4h-4ZM215.5 145.5h4v4h-4ZM215.5 140.5h4v4h-4ZM215.5 135.5h4v4h-4ZM215.5 130.5h4v4h-4ZM215.5 125.5h4v4h-4ZM215.5 120.5h4v4h-4ZM215.5 115.5h4v4h-4ZM215.5 110.5h4v4h-4ZM215.5 105.5h4v4h-4ZM215.5 100.5h4v4h-4ZM215.5 95.5h4v4h-4ZM215.5 90.5h4v4h-4ZM215.5 85.5h4v4h-4ZM215.5 80.5h4v4h-4ZM220.5 195.5h4v4h-4ZM220.5 190.5h4v4h-4ZM220.5 185.5h4v4h-4ZM220.5 180.5h4v4h-4ZM220.5 175.5h4v4h-4ZM220.5 170.5h4v4h-4ZM220.5 165.5h4v4h-4ZM220.5 160.5h4v4h-4ZM220.5 155.5h4v4h-4ZM220.5 150.5h4v4h-4ZM220.5 145.5h4v4h-4ZM220.5 140.5h4v4h-4ZM220.5 135.5h4v4h-4ZM220.5 130.5h4v4h-4ZM220.5 125.5h4v4h-4ZM220.5 120.5h4v4h-4ZM220.5 115.5h4v4h-4ZM220.5 110.5h4v4h-4ZM220.5 105.5h4v4h-4ZM220.5 100.5h4v4h-4ZM220.5 95.5h4v4h-4ZM220.5 90.5h4v4h-4ZM220.5 85.5h4v4h-4ZM220.5 80.5h4v4h-4Z" fill="#E9A566"/>
+              </svg>
+            </div>
+          </div>
+          <div class="x-labels">
+            <span class="xtick" style="left:1.1111111111111112%">Jun 6</span><span class="xtick" style="left:83.33333333333334%">Jul 13</span><span class="xtick" style="left:98.88888888888889%">Jul 20</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section-label">Campaigns that need you</div>
+    <div class="card table">
+      <div class="thead"><span class="c1">Campaign</span><span class="c2">Waiting on you</span><span class="c3">Live posts</span><span class="c4">Budget used</span><span class="c5">Revenue</span></div>
+      <div class="trow tap" role="button" aria-label="Stir in strength">
+    <div class="c1 campaign"><span class="letter" style="background:#2A9D8F">S</span><span><span class="cname">Stir in strength</span><span class="status"><span class="sdot" style="background:#16A34A"></span>Active · day 41</span></span></div>
+    <div class="c2"><div class="cell-main">22 creators</div><div class="cell-note">4 waiting over 5 days</div></div>
+    <div class="c3"><div class="cell-main">40</div><div class="cell-note">12 this week</div></div>
+    <div class="c4"><div class="cell-main">96% used</div><div class="bar"><span style="width:96%;background:#E9A566"></span></div></div>
+    <div class="c5"><div class="cell-main" style="font-weight:600">$12,180</div><div class="up">+18%</div></div>
+  </div>
+      <div class="trow tap" role="button" aria-label="Healthier every day">
+    <div class="c1 campaign"><span class="letter" style="background:#F27A86">H</span><span><span class="cname">Healthier every day</span><span class="status"><span class="sdot" style="background:#16A34A"></span>Active · day 189</span></span></div>
+    <div class="c2"><div class="cell-main">4 creators</div><div class="cell-note">all within 48h target</div></div>
+    <div class="c3"><div class="cell-main">10</div><div class="cell-note">3 this week</div></div>
+    <div class="c4"><div class="cell-main">31% used</div><div class="bar"><span style="width:31%;background:#16A34A"></span></div></div>
+    <div class="c5"><div class="cell-main" style="font-weight:600">$4,120</div><div class="up">+6%</div></div>
+  </div>
+      <div class="trow tap" role="button" aria-label="Iron boost Q3">
+    <div class="c1 campaign"><span class="letter" style="background:#8B7FE0">I</span><span><span class="cname">Iron boost Q3</span><span class="status"><span class="sdot" style="background:#E08A3C"></span>Stalled</span></span></div>
+    <div class="c2"><div class="cell-main muted">—</div></div>
+    <div class="c3"><div class="cell-main muted">—</div></div>
+    <div class="c4"><div class="cell-main muted">—</div></div>
+    <div class="c5"><div class="cell-main" style="font-weight:600;color:#9CA3AF">—</div></div>
+  </div>
+    </div>
+  </main>
+</div>
+<script>
+(function () {
+  var header = document.getElementById('work-header');
+  var items = document.getElementById('work-items');
+  var chevron = document.getElementById('work-chevron');
+  var open = true;
+  var up = "<svg class=\"icon\" width=\"14\" height=\"14\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"48\" d=\"M112 328l144-144 144 144\"/></svg>";
+  var down = "<svg class=\"icon\" width=\"14\" height=\"14\" viewBox=\"0 0 512 512\" aria-hidden=\"true\"><path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"48\" d=\"M112 184l144 144 144-144\"/></svg>";
+  header.addEventListener('click', function () {
+    open = !open;
+    items.hidden = !open;
+    chevron.innerHTML = open ? up : down;
+  });
+  var chips = [].slice.call(document.querySelectorAll('[data-filter]'));
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (other) {
+        other.classList.toggle('is-on', other === chip);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

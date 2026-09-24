@@ -36,6 +36,7 @@ import {
   WorkingOrbDemo,
 } from './demos/thinking-orbs-playground/galleryCards';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
+import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import type { NavSection } from './sections';
 
 /**
@@ -416,6 +417,28 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['effects'],
     pro: false,
     Demo: LiquidMetalDemo,
+  },
+  {
+    id: 'abrar-overview',
+    title: 'Influencer Overview',
+    subtitle: 'Creator-marketing dashboard: sidebar + Overview',
+    categories: [],
+    tags: [
+      'abrar',
+      'abrarinpixels',
+      'dashboard',
+      'overview',
+      'influencer',
+      'creator-marketing',
+      'sidebar',
+      'kpi',
+      'light-mode',
+      'static',
+      'react-native-svg',
+    ],
+    sections: ['graphic-design'],
+    pro: false,
+    Demo: AbrarOverviewDemo,
   },
 ];
 

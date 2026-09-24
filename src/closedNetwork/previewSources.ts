@@ -3,6 +3,7 @@
  * Each transition and effect gets markup, the CSS that drives it, and
  * script when the motion cannot run from CSS alone.
  */
+import abrarOverviewDocument from '@/src/demos/abrar-overview/closed-network.html';
 import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
@@ -1147,6 +1148,10 @@ canvas { display: block; width: 168px; height: 168px; }`,
   drag.addEventListener('pointercancel', end);
   place();
 })();`,
+  },
+  'abrar-overview': {
+    document: abrarOverviewDocument,
+    snippet: false,
   },
   'liquid-metal': {
     html: `<div class="metal-row">
