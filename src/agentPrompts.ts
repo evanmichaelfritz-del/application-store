@@ -1,6 +1,7 @@
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { THINKING_ORBS_PLAYGROUND_AGENT_PROMPT } from './demos/thinking-orbs-playground/agentPrompt';
+import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
 type PromptLock = {
   motion: string;
@@ -109,9 +110,9 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Delay is a timer, not CSS. Copy emits `.t-tt`.',
   },
   'tilt-3d': {
-    motion: '`Gesture.Pan` rotateX/Y + glare follow. Soft white disc tracks the pointer.',
-    content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`.',
-    rn: 'Web mouse move without setPointerCapture. No hover-only dead end. Copy emits `.t-tilt`.',
+    motion: TILT_MOTION,
+    content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
+    rn: TILT_RN,
   },
   'border-beam': {
     motion: 'Skia beam dots walk a rounded-rect perimeter. Chat loop 2800ms; Search bottom-stroke loop 5200ms, dim 0.55. Tail 18. Reduced motion freezes at 0.12 / 0.4.',
