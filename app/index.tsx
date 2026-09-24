@@ -50,13 +50,18 @@ export default function StoreScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <TopNav />
-      <View style={[styles.body, compact && styles.bodyStack]}>
-        <LeftNav value={section} onChange={onSectionChange} compact={compact} />
+      <View style={styles.body}>
+        {compact ? null : (
+          <LeftNav value={section} onChange={onSectionChange} compact={false} />
+        )}
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.page}
           showsVerticalScrollIndicator={false}
         >
+          {compact ? (
+            <LeftNav value={section} onChange={onSectionChange} compact />
+          ) : null}
           <Hero section={section} />
           <FilterBar value={filter} onChange={setFilter} query={query} onQueryChange={setQuery} />
           <View style={[styles.grid, phone && styles.gridPhone]}>
@@ -94,7 +99,6 @@ export default function StoreScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg, overflow: 'visible' },
   body: { flex: 1, flexDirection: 'row' },
-  bodyStack: { flexDirection: 'column' },
   scroll: { flex: 1 },
   page: {
     maxWidth: 1120,
