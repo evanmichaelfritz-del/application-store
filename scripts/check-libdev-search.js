@@ -40,8 +40,19 @@ const expect = {
   Beam: 'border-beam',
   Gooey: 'gooey',
   Metal: 'liquid-metal',
-  'Thinking orbs': 'thinking-orbs-playground',
 };
+
+const splitOrbIds = [
+  'orb-solving',
+  'orb-thinking',
+  'orb-agent-listening',
+  'orb-searching',
+  'orb-agent-planning',
+  'orb-agent-thinking',
+  'orb-working',
+  'orb-agent-shaping',
+  'orb-state-picker',
+];
 
 for (const [query, id] of Object.entries(expect)) {
   const hits = items.filter((item) => matchesSearch(item, query)).map((item) => item.id);
@@ -62,10 +73,30 @@ for (const id of Object.values(expect)) {
   if (!hasSnippet || !hasLock) failed += 1;
 }
 
-const orbs = items.find((item) => item.id === 'thinking-orbs-playground');
-const orbsEffects = orbs && matchesFilter(orbs, 'ai') && orbs.sections.includes('effects') && !orbs.sections.includes('ai-skills');
-console.log(`${orbsEffects ? 'ok' : 'FAIL'} Thinking Orbs playground stays in Effects, not AI skills`);
-if (!orbsEffects) failed += 1;
+const thinkingHits = items.filter((item) => matchesSearch(item, 'Thinking orbs')).map((item) => item.id);
+const splitFound = splitOrbIds.every((id) => thinkingHits.includes(id));
+console.log(`${splitFound ? 'ok' : 'FAIL'} search "Thinking orbs" → ${thinkingHits.join(', ') || '(none)'}`);
+if (!splitFound) failed += 1;
+
+for (const id of splitOrbIds) {
+  const item = items.find((entry) => entry.id === id);
+  const placed = item
+    && matchesFilter(item, 'effects')
+    && item.sections.includes('effects')
+    && !item.sections.includes('ai-skills');
+  console.log(`${placed ? 'ok' : 'FAIL'} ${id} stays in Effects, not AI skills`);
+  if (!placed) failed += 1;
+  const hasSnippet = snippets.includes(`'${id}'`);
+  const hasLock = prompts.includes(`'${id}'`);
+  console.log(`${hasSnippet ? 'ok' : 'FAIL'} snippet ${id}`);
+  console.log(`${hasLock ? 'ok' : 'FAIL'} AGENT_PROMPT lock ${id}`);
+  if (!hasSnippet || !hasLock) failed += 1;
+}
+
+const bundled = items.find((item) => item.id === 'thinking-orbs-playground' || item.id === 'thinking-orbs');
+const oldCard = items.find((item) => item.subtitle === 'Animated thinking orb component');
+console.log(`${!bundled && !oldCard ? 'ok' : 'FAIL'} combined and removed Thinking orbs cards stay gone`);
+if (bundled || oldCard) failed += 1;
 
 const transitionIds = items.filter((item) => item.sections.includes('transitions')).map((item) => item.id);
 console.log(`ok transitions seed count ${transitionIds.length}`);
@@ -74,7 +105,7 @@ if (transitionIds.length < 15) {
   failed += 1;
 }
 
-const taggedOk = items.length === 27 && items.every((item) => item.tags.length > 0);
+const taggedOk = items.length === 35 && items.every((item) => item.tags.length > 0);
 console.log(`${taggedOk ? 'ok' : 'FAIL'} every catalog item has tags (${items.length})`);
 if (!taggedOk) failed += 1;
 

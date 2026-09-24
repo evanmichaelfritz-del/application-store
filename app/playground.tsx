@@ -11,32 +11,43 @@ import {
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaygroundPreview } from '@/src/components/PlaygroundPreview';
-import { playgroundSeeds } from '@/src/closedNetwork/seeds';
+import {
+  playgroundPreviewButtons,
+  splitPreviewDocument,
+  type PreviewKind,
+} from '@/src/closedNetwork/previewSources';
 import { writeClipboard } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { colors, fonts, radii, shadows } from '@/src/theme';
 
 type Mode = 'code' | 'prompt';
 
+const GROUP_LABEL: Record<PreviewKind, string> = {
+  transitions: 'Transitions',
+  effects: 'Effects',
+};
+
 export default function PlaygroundScreen() {
-  const seeds = useMemo(() => playgroundSeeds(), []);
-  const first = seeds[0];
+  const buttons = useMemo(() => playgroundPreviewButtons(), []);
+  const first = buttons.find((button) => button.id === 'gooey-plus-menu') ?? buttons[0];
   const [mode, setMode] = useState<Mode>('code');
-  const [code, setCode] = useState(first?.html ?? '');
+  const [code, setCode] = useState(first?.code ?? '');
   const [prompt, setPrompt] = useState(first?.prompt ?? '');
-  const [previewHtml, setPreviewHtml] = useState(first?.html ?? '');
-  const [seedId, setSeedId] = useState(first?.id ?? '');
+  const [previewHtml, setPreviewHtml] = useState(first?.code ?? '');
+  const [selectedKey, setSelectedKey] = useState(first?.key ?? '');
   const { width } = useWindowDimensions();
   const stacked = width < 960;
   const { show } = useCopyToast();
+  const current = buttons.find((button) => button.key === selectedKey) ?? first;
+  const parts = useMemo(() => splitPreviewDocument(code), [code]);
 
-  const loadSeed = (id: string) => {
-    const seed = seeds.find((s) => s.id === id);
-    if (!seed) return;
-    setSeedId(id);
-    setCode(seed.html);
-    setPrompt(seed.prompt);
-    setPreviewHtml(seed.html);
+  const loadPreview = (key: string) => {
+    const button = buttons.find((item) => item.key === key);
+    if (!button) return;
+    setSelectedKey(key);
+    setCode(button.code);
+    setPrompt(button.prompt);
+    setPreviewHtml(button.code);
     setMode('code');
   };
 
@@ -45,8 +56,8 @@ export default function PlaygroundScreen() {
     setMode('code');
   };
 
-  const copyActive = () => {
-    writeClipboard(mode === 'code' ? code : prompt);
+  const copyPart = (text: string) => {
+    writeClipboard(text);
     show();
   };
 
@@ -73,54 +84,84 @@ export default function PlaygroundScreen() {
             </View>
             <View style={styles.toolbarActions}>
               {mode === 'code' ? (
-                <Action label="Run preview" primary onPress={runPreview} />
+                <Action label="Run preview" primary onPress={runPreview} testID="run-preview" />
               ) : (
                 <Action
                   label="Load recreation"
                   primary
                   onPress={() => {
-                    const seed = seeds.find((s) => s.id === seedId) ?? first;
-                    if (!seed) return;
-                    setCode(seed.html);
-                    setPreviewHtml(seed.html);
+                    if (!current) return;
+                    setCode(current.code);
+                    setPreviewHtml(current.code);
                     setMode('code');
                   }}
                 />
               )}
-              <Action label="Copy" onPress={copyActive} />
+              {mode === 'code' ? (
+                <>
+                  <Action label="Copy HTML" onPress={() => copyPart(parts.html)} testID="copy-html" />
+                  <Action label="Copy CSS" onPress={() => copyPart(parts.css)} testID="copy-css" />
+                  {parts.script ? (
+                    <Action label="Copy script" onPress={() => copyPart(parts.script)} testID="copy-script" />
+                  ) : null}
+                </>
+              ) : (
+                <Action label="Copy prompt" onPress={() => copyPart(prompt)} testID="copy-prompt" />
+              )}
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seeds}>
-            {seeds.map((seed) => (
-              <Pressable
-                key={seed.id}
-                onPress={() => loadSeed(seed.id)}
-                style={[styles.seed, seedId === seed.id && styles.seedOn]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: seedId === seed.id }}
-              >
-                <Text style={[styles.seedText, seedId === seed.id && styles.seedTextOn]}>{seed.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          <ScrollView
+            testID="playground-source-scroll"
+            style={styles.sourceScroll}
+            contentContainerStyle={styles.sourceScrollContent}
+          >
+            {(['transitions', 'effects'] as const).map((kind) => {
+              const group = buttons.filter((button) => button.kind === kind);
+              if (!group.length) return null;
+              return (
+                <View key={kind} style={styles.group}>
+                  <Text style={styles.groupLabel}>{GROUP_LABEL[kind]}</Text>
+                  <View style={styles.seedWrap}>
+                    {group.map((button) => {
+                      const selected = selectedKey === button.key;
+                      return (
+                        <Pressable
+                          key={button.key}
+                          testID={`preview-${button.kind}-${button.id}`}
+                          onPress={() => loadPreview(button.key)}
+                          style={[styles.seed, selected && styles.seedOn]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${GROUP_LABEL[kind]} preview: ${button.label}`}
+                          accessibilityState={{ selected }}
+                        >
+                          <Text style={[styles.seedText, selected && styles.seedTextOn]}>{button.label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
 
-          <TextInput
-            style={styles.editor}
-            multiline
-            value={mode === 'code' ? code : prompt}
-            onChangeText={mode === 'code' ? setCode : setPrompt}
-            textAlignVertical="top"
-            autoCorrect={false}
-            autoCapitalize="none"
-            spellCheck={false}
-            accessibilityLabel={mode === 'code' ? 'HTML code editor' : 'Agent prompt editor'}
-          />
+            <TextInput
+              testID="playground-html-editor"
+              style={styles.editor}
+              multiline
+              value={mode === 'code' ? code : prompt}
+              onChangeText={mode === 'code' ? setCode : setPrompt}
+              textAlignVertical="top"
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              accessibilityLabel={mode === 'code' ? 'HTML code editor' : 'Agent prompt editor'}
+            />
+          </ScrollView>
         </View>
 
         <View style={[styles.pane, styles.previewPane, stacked && styles.paneStack]}>
           <View style={styles.previewHead}>
-            <Text style={styles.previewTitle}>Preview</Text>
+            <Text style={styles.previewTitle}>{current?.label ?? 'Preview'}</Text>
             <Text style={styles.previewSub}>iframe · sandboxed scripts</Text>
           </View>
           <PlaygroundPreview html={previewHtml} />
@@ -155,13 +196,16 @@ function Action({
   label,
   onPress,
   primary,
+  testID,
 }: {
   label: string;
   onPress: () => void;
   primary?: boolean;
+  testID?: string;
 }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => [
         styles.action,
@@ -169,6 +213,7 @@ function Action({
         pressed && styles.actionPressed,
       ]}
       accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <Text style={[styles.actionText, primary && styles.actionTextPrimary]}>{label}</Text>
     </Pressable>
@@ -244,7 +289,17 @@ const styles = StyleSheet.create({
   actionPressed: { opacity: 0.88 },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionTextPrimary: { color: colors.proFg },
-  seeds: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  sourceScroll: { flex: 1 },
+  sourceScrollContent: { paddingBottom: 16 },
+  group: { paddingHorizontal: 12, paddingTop: 12, gap: 8 },
+  groupLabel: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textFaint,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  seedWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   seed: {
     height: 28,
     paddingHorizontal: 10,
@@ -258,13 +313,13 @@ const styles = StyleSheet.create({
   seedText: { fontFamily: fonts.medium, fontSize: 12, color: colors.chipText },
   seedTextOn: { color: colors.chipTextActive },
   editor: {
-    flex: 1,
+    marginTop: 12,
+    minHeight: 520,
     padding: 14,
-    fontFamily: fonts.regular,
+    fontFamily: 'monospace',
     fontSize: 12,
     lineHeight: 18,
     color: colors.text,
-    minHeight: 280,
   },
   previewHead: { gap: 2 },
   previewTitle: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },

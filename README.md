@@ -11,7 +11,7 @@ Public repo: [evanmichaelfritz-del/application-store](https://github.com/evanmic
 | Section | Contents |
 | --- | --- |
 | Transitions | Essential + text pieces from the transitions catalog |
-| Effects | Confetti, gooey plus menu, stacks, tilt, Border Beam, Gooey, Liquid metal, Thinking orbs |
+| Effects | Confetti, gooey plus menu, stacks, tilt, Border Beam, Gooey, Liquid metal, one card per Thinking Orb, plus the orb state picker |
 | Graphic design | Empty add slot (CLEAR pieces live under Effects) |
 | AI skills | Empty — reserved for downloadable skills |
 | Tools | Empty add slot |

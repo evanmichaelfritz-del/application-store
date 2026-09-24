@@ -1,32 +1,6 @@
 import { GOOEY_PLUS_COPY_SNIPPET } from '@/src/closedNetwork/gooeyPlusMenu';
-import {
-  INSTALL_NATIVE_INSTALL,
-  INSTALL_NATIVE_NOTE,
-  INSTALL_NATIVE_USAGE,
-  INSTALL_REACT_INSTALL,
-  INSTALL_REACT_USAGE,
-  INSTALL_SWIFT_INSTALL,
-  INSTALL_SWIFT_USAGE,
-} from './demos/thinking-orbs-playground/content/copy';
-
-const THINKING_ORBS_PLAYGROUND_SNIPPET = [
-  'React',
-  INSTALL_REACT_INSTALL,
-  '',
-  INSTALL_REACT_USAGE,
-  '',
-  'React Native',
-  INSTALL_NATIVE_INSTALL,
-  '',
-  INSTALL_NATIVE_NOTE,
-  '',
-  INSTALL_NATIVE_USAGE,
-  '',
-  'Swift UI',
-  INSTALL_SWIFT_INSTALL,
-  '',
-  INSTALL_SWIFT_USAGE,
-].join('\n');
+import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
+import { ORB_GALLERY_SNIPPETS } from './demos/thinking-orbs-playground/galleryCopy';
 
 export const SNIPPETS: Record<string, string> = {
   'card-resize': `:root {
@@ -440,19 +414,7 @@ export function Card() {
   .t-tt { transition: none !important; }
 }`,
 
-  'tilt-3d': `:root {
-  --tilt-perspective: 1000px;
-  --tilt-return: 1000ms;
-  --tilt-follow: 400ms;
-  --tilt-glare-opacity: 0.32;
-  --tilt-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
-.t-tilt { perspective: var(--tilt-perspective); }
-.t-tilt-card { transform-style: preserve-3d; transition: transform var(--tilt-follow) var(--tilt-ease); }
-.t-tilt-glare { pointer-events: none; mix-blend-mode: screen; }
-@media (prefers-reduced-motion: reduce) {
-  .t-tilt-card { transform: none !important; }
-}`,
+  'tilt-3d': TILT_COPY_SNIPPET,
 
   'border-beam': `:root {
   --beam-loop: 2800ms;
@@ -468,7 +430,15 @@ export function Card() {
   .t-beam { animation: none !important; }
 }`,
 
-  'thinking-orbs-playground': THINKING_ORBS_PLAYGROUND_SNIPPET,
+  'orb-solving': ORB_GALLERY_SNIPPETS.solving,
+  'orb-thinking': ORB_GALLERY_SNIPPETS.thinking,
+  'orb-agent-listening': ORB_GALLERY_SNIPPETS['agent-listening'],
+  'orb-searching': ORB_GALLERY_SNIPPETS.searching,
+  'orb-agent-planning': ORB_GALLERY_SNIPPETS['agent-planning'],
+  'orb-agent-thinking': ORB_GALLERY_SNIPPETS['agent-thinking'],
+  'orb-working': ORB_GALLERY_SNIPPETS.working,
+  'orb-agent-shaping': ORB_GALLERY_SNIPPETS['agent-shaping'],
+  'orb-state-picker': ORB_GALLERY_SNIPPETS['state-picker'],
 
   'thinking-orbs': `:root {
   --orb-spin: 9000ms;
