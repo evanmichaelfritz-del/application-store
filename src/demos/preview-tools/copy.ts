@@ -5,28 +5,29 @@ const controlHtml = SAMPLE_CONTROLS.map(
     `    <div class="pt-ctrl pt-${control.kind}" data-guide data-note="${control.id}" data-label="${control.label}">${control.label}</div>`,
 ).join('\n');
 
-export const PREVIEW_TOOLS_HTML = `<div class="pt-field is-guides" id="pt-field" data-active="guides">
-  <div class="pt-modes" role="tablist">
-    <button class="pt-mode is-on" type="button" data-mode="guides" aria-pressed="true">Guides</button>
-    <button class="pt-mode" type="button" data-mode="draw" aria-pressed="false">Draw</button>
-    <button class="pt-mode" type="button" data-mode="note" aria-pressed="false">Note</button>
-  </div>
+export const PREVIEW_TOOLS_HTML = `<div class="pt-field" id="pt-field">
   <div class="pt-row" id="pt-row">
 ${controlHtml}
   </div>
   <canvas class="pt-draw" id="pt-draw"></canvas>
   <svg class="pt-guides" id="pt-guides" aria-hidden="true"></svg>
-  <div class="pt-ink" role="toolbar">
-    <button class="pt-ink-btn is-on" type="button" data-ink="pen" aria-pressed="true">Pen</button>
-    <button class="pt-ink-btn" type="button" data-ink="marker" aria-pressed="false">Marker</button>
-    <button class="pt-ink-btn" type="button" data-ink="eraser" aria-pressed="false">Eraser</button>
+  <div class="pt-dock">
+    <button class="pt-toggle" type="button" id="pt-toggle" aria-expanded="false" aria-label="Open tools">+</button>
+    <div class="pt-panel">
+      <div class="pt-tools">
+        <button class="pt-chip is-on" type="button" id="pt-guides-btn" aria-pressed="true">Guides</button>
+        <button class="pt-chip is-on" type="button" data-ink="pen" aria-pressed="true">Pen</button>
+        <button class="pt-chip" type="button" data-ink="marker" aria-pressed="false">Marker</button>
+        <button class="pt-chip" type="button" data-ink="eraser" aria-pressed="false">Eraser</button>
+      </div>
+      <form class="pt-note" id="pt-note">
+        <span class="pt-target" id="pt-target">Click a control</span>
+        <input class="pt-input" id="pt-input" type="text" placeholder="Note for the agent" />
+        <button class="pt-chip" type="submit">Add</button>
+        <button class="pt-chip" id="pt-copy" type="button">Copy</button>
+      </form>
+    </div>
   </div>
-  <form class="pt-note" id="pt-note">
-    <span class="pt-target" id="pt-target">Click a control</span>
-    <input class="pt-input" id="pt-input" type="text" placeholder="Note for the agent" />
-    <button class="pt-add" type="submit">Add</button>
-    <button class="pt-copy" id="pt-copy" type="button">Copy</button>
-  </form>
 </div>`;
 
 export const PREVIEW_TOOLS_CSS = `.pt-field {
@@ -37,11 +38,35 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   align-items: center;
   justify-content: center;
 }
-.pt-modes, .pt-ink, .pt-note { position: absolute; z-index: 6; display: flex; align-items: center; gap: 6px; }
-.pt-modes { top: 8px; left: 0; right: 0; justify-content: center; }
-.pt-ink, .pt-note { display: none; bottom: 8px; left: 8px; right: 8px; justify-content: center; }
-.pt-field.is-draw .pt-ink, .pt-field.is-note .pt-note { display: flex; }
-.pt-mode, .pt-ink-btn, .pt-add, .pt-copy {
+.pt-dock {
+  position: absolute;
+  z-index: 6;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pt-field.is-open .pt-dock { left: 8px; right: 8px; bottom: 8px; transform: none; }
+.pt-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+  color: #17181c;
+  font: 500 18px/1 Inter, system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(23,24,28,.12);
+  cursor: pointer;
+}
+.pt-field.is-open .pt-toggle { background: #17181c; color: #fff; border-color: #17181c; }
+.pt-panel { display: none; width: 100%; gap: 4px; }
+.pt-field.is-open .pt-panel { display: flex; flex-direction: column; }
+.pt-tools, .pt-note { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.pt-note { background: rgba(249,249,249,.92); border-radius: 10px; padding: 4px; }
+.pt-chip {
   appearance: none;
   height: 26px;
   padding: 0 8px;
@@ -52,8 +77,8 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   font: 500 12px/1 Inter, system-ui, sans-serif;
   cursor: pointer;
 }
-.pt-mode.is-on, .pt-ink-btn.is-on { background: #17181c; color: #fff; border-color: #17181c; }
-.pt-row { display: flex; align-items: center; gap: 8px; z-index: 1; }
+.pt-chip.is-on { background: #17181c; color: #fff; border-color: #17181c; }
+.pt-row { display: flex; align-items: center; gap: 8px; z-index: 5; }
 .pt-ctrl {
   position: relative;
   display: grid;
@@ -89,13 +114,13 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 4;
+  z-index: 3;
   pointer-events: none;
   touch-action: none;
 }
-.pt-field.is-draw .pt-draw { pointer-events: auto; }
+.pt-field.is-open .pt-draw { pointer-events: auto; }
 .pt-guides { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; display: none; }
-.pt-field.is-guides .pt-guides { display: block; }
+.pt-field.is-open.is-guides .pt-guides { display: block; }
 .pt-target { font: 500 11px/1 Inter, system-ui, sans-serif; color: #6c6c6c; max-width: 72px; overflow: hidden; white-space: nowrap; }
 .pt-input {
   flex: 1;
@@ -106,7 +131,7 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   padding: 0 8px;
   font: 500 12px/1 Inter, system-ui, sans-serif;
 }
-.pt-note { background: rgba(249,249,249,.92); border-radius: 10px; padding: 4px; }`;
+`;
 
 export const PREVIEW_TOOLS_SCRIPT = `(function () {
   var field = document.getElementById('pt-field');
@@ -116,7 +141,10 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   var targetEl = document.getElementById('pt-target');
   var copyBtn = document.getElementById('pt-copy');
   var ctx = canvas.getContext('2d');
-  var mode = 'guides';
+  var toggle = document.getElementById('pt-toggle');
+  var guidesBtn = document.getElementById('pt-guides-btn');
+  var open = false;
+  var guidesOn = true;
   var ink = 'pen';
   var strokes = [];
   var draft = null;
@@ -179,17 +207,20 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     var rect = canvas.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
-  function setMode(next) {
-    mode = next;
-    field.classList.remove('is-guides', 'is-draw', 'is-note');
-    field.classList.add('is-' + next);
-    field.setAttribute('data-active', next);
-    var buttons = field.querySelectorAll('[data-mode]');
-    for (var i = 0; i < buttons.length; i++) {
-      var on = buttons[i].getAttribute('data-mode') === next;
-      buttons[i].classList.toggle('is-on', on);
-      buttons[i].setAttribute('aria-pressed', on ? 'true' : 'false');
-    }
+  function setOpen(next) {
+    open = next;
+    field.classList.toggle('is-open', open);
+    field.classList.toggle('is-guides', open && guidesOn);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close tools' : 'Open tools');
+    toggle.textContent = open ? '×' : '+';
+    paintGuides();
+  }
+  function setGuides(next) {
+    guidesOn = next;
+    field.classList.toggle('is-guides', open && guidesOn);
+    guidesBtn.classList.toggle('is-on', guidesOn);
+    guidesBtn.setAttribute('aria-pressed', guidesOn ? 'true' : 'false');
     paintGuides();
   }
   function setInk(next) {
@@ -229,7 +260,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   }
   function paintGuides() {
     while (guides.firstChild) guides.removeChild(guides.firstChild);
-    if (mode !== 'guides') return;
+    if (!open || !guidesOn) return;
     var list = frames();
     var seenH = {};
     var seenV = {};
@@ -289,14 +320,13 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     input.focus();
   }
 
-  field.querySelectorAll('[data-mode]').forEach(function (button) {
-    button.addEventListener('click', function () { setMode(button.getAttribute('data-mode')); });
-  });
+  toggle.addEventListener('click', function () { setOpen(!open); });
+  guidesBtn.addEventListener('click', function () { setGuides(!guidesOn); });
   field.querySelectorAll('[data-ink]').forEach(function (button) {
     button.addEventListener('click', function () { setInk(button.getAttribute('data-ink')); });
   });
   canvas.addEventListener('pointerdown', function (event) {
-    if (mode !== 'draw') return;
+    if (!open) return;
     canvas.setPointerCapture(event.pointerId);
     draft = { tool: ink, points: [point(event)] };
   });
@@ -315,7 +345,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   canvas.addEventListener('pointercancel', endStroke);
   field.querySelectorAll('[data-note]').forEach(function (node) {
     node.addEventListener('click', function () {
-      if (mode !== 'note') return;
+      if (!open) return;
       pick(node);
     });
   });

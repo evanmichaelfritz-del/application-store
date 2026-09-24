@@ -11,14 +11,6 @@ export const SAMPLE_CONTROLS = [
 
 export type SampleControl = (typeof SAMPLE_CONTROLS)[number];
 
-export const TOOL_MODES = [
-  { id: 'guides', label: 'Guides' },
-  { id: 'draw', label: 'Draw' },
-  { id: 'note', label: 'Note' },
-] as const;
-
-export type ToolMode = (typeof TOOL_MODES)[number]['id'];
-
 export const INK_TOOLS = [
   { id: 'pen', label: 'Pen' },
   { id: 'marker', label: 'Marker' },

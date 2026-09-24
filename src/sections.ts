@@ -42,7 +42,7 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   tools: {
     title: 'Tools',
-    subtitle: 'One preview tool. Switch guides, drawing, and notes for an agent.',
+    subtitle: 'One preview tool. A button opens guides, drawing, and notes.',
     empty: 'No tools yet.',
   },
   manual: {

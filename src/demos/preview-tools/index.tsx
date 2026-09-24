@@ -7,7 +7,6 @@ import {
   GUIDE,
   INK_TOOLS,
   SAMPLE_CONTROLS,
-  TOOL_MODES,
   agentNotesMarkdown,
   guideMarks,
   noteSelector,
@@ -16,11 +15,11 @@ import {
   type Frame,
   type InkStroke,
   type InkTool,
-  type ToolMode,
 } from './model';
 
 export function PreviewToolsDemo() {
-  const [mode, setMode] = useState<ToolMode>('guides');
+  const [open, setOpen] = useState(false);
+  const [guidesOn, setGuidesOn] = useState(true);
   const [ink, setInk] = useState<InkTool>('pen');
   const [row, setRow] = useState<Frame | null>(null);
   const [locals, setLocals] = useState<Partial<Record<string, Frame>>>({});
@@ -32,11 +31,11 @@ export function PreviewToolsDemo() {
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fieldRef = useRef<View | null>(null);
-  const modeRef = useRef(mode);
+  const openRef = useRef(open);
   const inkRef = useRef(ink);
   const strokesRef = useRef(strokes);
   const draftRef = useRef(draft);
-  modeRef.current = mode;
+  openRef.current = open;
   inkRef.current = ink;
   strokesRef.current = strokes;
   draftRef.current = draft;
@@ -84,8 +83,8 @@ export function PreviewToolsDemo() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.style.setProperty('pointer-events', mode === 'draw' ? 'auto' : 'none', 'important');
-  }, [mode]);
+    canvas.style.setProperty('pointer-events', open ? 'auto' : 'none', 'important');
+  }, [open]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -95,7 +94,7 @@ export function PreviewToolsDemo() {
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
     const down = (event: PointerEvent) => {
-      if (modeRef.current !== 'draw') return;
+      if (!openRef.current) return;
       try {
         canvas.setPointerCapture(event.pointerId);
       } catch {
@@ -163,23 +162,6 @@ export function PreviewToolsDemo() {
   return (
     <Stage>
       <View ref={fieldRef} style={styles.field}>
-        <View style={styles.modes}>
-          {TOOL_MODES.map((item) => {
-            const on = mode === item.id;
-            return (
-              <Pressable
-                key={item.id}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-                testID={`preview-tools-mode-${item.id}`}
-                onPress={() => setMode(item.id)}
-                style={[styles.chip, on && styles.chipOn]}
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
         <View
           style={styles.row}
           onLayout={(event) => {
@@ -189,7 +171,7 @@ export function PreviewToolsDemo() {
         >
           {SAMPLE_CONTROLS.map((control) => {
             const count = notes.filter((note) => note.selector === noteSelector(control.id)).length;
-            const picked = mode === 'note' && targetId === control.id;
+            const picked = open && targetId === control.id;
             return (
               <View
                 key={control.id}
@@ -208,7 +190,7 @@ export function PreviewToolsDemo() {
                   accessibilityLabel={control.label}
                   testID={`preview-tools-control-${control.id}`}
                   onPress={() => {
-                    if (mode !== 'note') return;
+                    if (!open) return;
                     setTargetId(control.id);
                   }}
                   style={styles.hit}
@@ -229,53 +211,74 @@ export function PreviewToolsDemo() {
             width: '100%',
             height: '100%',
             zIndex: 4,
-            pointerEvents: mode === 'draw' ? 'auto' : 'none',
+            pointerEvents: open ? 'auto' : 'none',
             touchAction: 'none',
           },
         })}
-        {mode === 'guides' && frames.length === SAMPLE_CONTROLS.length ? (
+        {open && guidesOn && frames.length === SAMPLE_CONTROLS.length ? (
           <GuideOverlay frames={frames} />
         ) : null}
-        {mode === 'draw' ? (
-          <View style={styles.ink}>
-            {INK_TOOLS.map((item) => {
-              const on = ink === item.id;
-              return (
+        <View style={[styles.dock, open && styles.dockOpen]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            accessibilityLabel={open ? 'Close tools' : 'Open tools'}
+            testID="preview-tools-toggle"
+            onPress={() => setOpen((value) => !value)}
+            style={[styles.toggle, open && styles.toggleOn]}
+          >
+            <Text style={[styles.toggleText, open && styles.toggleTextOn]}>{open ? '×' : '+'}</Text>
+          </Pressable>
+          {open ? (
+            <View style={styles.panel}>
+              <View style={styles.tools}>
                 <Pressable
-                  key={item.id}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  testID={`preview-tools-ink-${item.id}`}
-                  onPress={() => setInk(item.id)}
-                  style={[styles.chip, on && styles.chipOn]}
+                  accessibilityState={{ selected: guidesOn }}
+                  testID="preview-tools-guides"
+                  onPress={() => setGuidesOn((value) => !value)}
+                  style={[styles.chip, guidesOn && styles.chipOn]}
                 >
-                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.label}</Text>
+                  <Text style={[styles.chipText, guidesOn && styles.chipTextOn]}>Guides</Text>
                 </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-        {mode === 'note' ? (
-          <View style={styles.noteBar}>
-            <Text style={styles.target} numberOfLines={1}>
-              {SAMPLE_CONTROLS.find((item) => item.id === targetId)?.label ?? 'Click a control'}
-            </Text>
-            <TextInput
-              value={comment}
-              onChangeText={setComment}
-              placeholder="Note for the agent"
-              testID="preview-tools-note-input"
-              style={styles.input}
-              onSubmitEditing={addNote}
-            />
-            <Pressable accessibilityRole="button" testID="preview-tools-note-add" onPress={addNote} style={styles.chip}>
-              <Text style={styles.chipText}>Add</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" testID="preview-tools-note-copy" onPress={copyNotes} style={styles.chip}>
-              <Text style={styles.chipText}>{copied ? 'Copied' : 'Copy'}</Text>
-            </Pressable>
-          </View>
-        ) : null}
+                {INK_TOOLS.map((item) => {
+                  const on = ink === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      testID={`preview-tools-ink-${item.id}`}
+                      onPress={() => setInk(item.id)}
+                      style={[styles.chip, on && styles.chipOn]}
+                    >
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View style={styles.noteBar}>
+                <Text style={styles.target} numberOfLines={1}>
+                  {SAMPLE_CONTROLS.find((item) => item.id === targetId)?.label ?? 'Click a control'}
+                </Text>
+                <TextInput
+                  value={comment}
+                  onChangeText={setComment}
+                  placeholder="Note for the agent"
+                  testID="preview-tools-note-input"
+                  style={styles.input}
+                  onSubmitEditing={addNote}
+                />
+                <Pressable accessibilityRole="button" testID="preview-tools-note-add" onPress={addNote} style={styles.chip}>
+                  <Text style={styles.chipText}>Add</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" testID="preview-tools-note-copy" onPress={copyNotes} style={styles.chip}>
+                  <Text style={styles.chipText}>{copied ? 'Copied' : 'Copy'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+        </View>
       </View>
     </Stage>
   );
@@ -320,26 +323,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modes: {
+  dock: {
     position: 'absolute',
-    top: 8,
-    left: 0,
-    right: 0,
     zIndex: 6,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    bottom: 12,
+    alignSelf: 'center',
   },
-  ink: {
-    position: 'absolute',
-    bottom: 8,
+  dockOpen: {
     left: 8,
     right: 8,
-    zIndex: 6,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    bottom: 8,
+    alignSelf: 'auto',
   },
+  toggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    boxShadow: '0 4px 16px rgba(23,24,28,0.12)',
+    cursor: 'pointer',
+  },
+  toggleOn: { backgroundColor: '#17181c', borderColor: '#17181c' },
+  toggleText: { fontFamily: fonts.medium, fontSize: 18, lineHeight: 20, color: '#17181c' },
+  toggleTextOn: { color: '#fff' },
+  panel: { marginTop: 6, gap: 4 },
+  tools: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 4 },
   noteBar: {
     position: 'absolute',
     bottom: 8,
@@ -367,7 +380,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: '#17181c', borderColor: '#17181c' },
   chipText: { fontFamily: fonts.medium, fontSize: 12, color: '#17181c' },
   chipTextOn: { color: '#fff' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 5 },
   hit: { alignItems: 'center', justifyContent: 'center' },
   ctrl: {
     position: 'relative',
