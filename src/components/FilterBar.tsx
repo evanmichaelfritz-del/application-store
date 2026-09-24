@@ -15,9 +15,12 @@ import { FILTERS, type FilterKey } from '@/src/catalog';
 import { EdgeFade } from '@/src/components/EdgeFade';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { springs, sprung } from '@/src/motion';
-import { colors, fonts } from '@/src/theme';
+import { colors, fonts, shadows } from '@/src/theme';
 
 type ChipBox = { x: number; width: number };
+
+/** Inset and track colors match the Tabs sliding demo. */
+const TRACK_PAD = 3;
 
 export function FilterBar({
   value,
@@ -34,7 +37,8 @@ export function FilterBar({
   const { width } = useWindowDimensions();
   const phone = width < 640;
   const touch = width < 880;
-  const chipH = touch ? 44 : 36;
+  const chipH = touch ? 44 : 30;
+  const trackH = chipH + TRACK_PAD * 2;
   const [boxes, setBoxes] = useState<Partial<Record<FilterKey, ChipBox>>>({});
   const [searchFocused, setSearchFocused] = useState(false);
   const pillX = useSharedValue(0);
@@ -67,26 +71,31 @@ export function FilterBar({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={[styles.rowScroll, { height: chipH, maxHeight: chipH }]}
+          style={[styles.rowScroll, { height: trackH, maxHeight: trackH }]}
           contentContainerStyle={[styles.row, phone && styles.rowPhone]}
           accessibilityRole="tablist"
         >
-          <Animated.View style={[styles.pill, { height: chipH }, pillStyle]} />
-          {FILTERS.map((filter) => {
-            const active = filter.key === value;
-            return (
-              <Pressable
-                key={filter.key}
-                onPress={() => onChange(filter.key)}
-                onLayout={onChipLayout(filter.key)}
-                style={[styles.chip, { height: chipH, zIndex: 1 }]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.label, active && styles.labelOn]}>{filter.label}</Text>
-              </Pressable>
-            );
-          })}
+          <View style={styles.track}>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.pill, { height: chipH, top: TRACK_PAD }, pillStyle]}
+            />
+            {FILTERS.map((filter) => {
+              const active = filter.key === value;
+              return (
+                <Pressable
+                  key={filter.key}
+                  onPress={() => onChange(filter.key)}
+                  onLayout={onChipLayout(filter.key)}
+                  style={[styles.chip, { height: chipH }]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.label, active && styles.labelOn]}>{filter.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </ScrollView>
         {touch ? <EdgeFade /> : null}
       </View>
@@ -127,36 +136,38 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
     paddingHorizontal: 20,
-    position: 'relative',
     flexGrow: 0,
   },
   rowPhone: { paddingHorizontal: 16 },
+  track: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 999,
+    padding: TRACK_PAD,
+    position: 'relative',
+  },
   pill: {
     position: 'absolute',
     left: 0,
-    top: 0,
-    height: 36,
-    borderRadius: 48,
-    backgroundColor: colors.chipActive,
+    borderRadius: 999,
+    backgroundColor: '#fff',
+    ...shadows.card,
   },
   chip: {
-    height: 36,
     paddingHorizontal: 15,
-    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    zIndex: 1,
   },
   label: {
     fontFamily: fonts.medium,
     fontSize: 13,
-    color: colors.chipText,
+    color: 'rgba(15,15,15,0.8)',
   },
-  labelOn: { color: colors.chipTextActive },
+  labelOn: { color: '#0f0f0f' },
   search: {
     marginHorizontal: 20,
     height: 40,
