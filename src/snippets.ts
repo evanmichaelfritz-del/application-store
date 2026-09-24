@@ -355,21 +355,39 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'shimmer-text': `:root {
-  --shimmer-dur: 2000ms;
+  --shimmer-dur: 1200ms;
   --shimmer-base: #7c7c7c;
   --shimmer-highlight: #0d0d0d;
 }
 .t-shimmer {
-  background: linear-gradient(90deg, var(--shimmer-base) 0%, var(--shimmer-highlight) 45%, var(--shimmer-base) 90%);
-  background-size: 220% 100%;
+  display: inline-block;
+  width: fit-content;
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 42%,
+    var(--shimmer-highlight) 50%,
+    var(--shimmer-base) 58%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
   animation: t-shimmer var(--shimmer-dur) linear infinite;
 }
-@keyframes t-shimmer { to { background-position: -220% 0; } }
+@keyframes t-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .t-shimmer { animation: none !important; color: var(--shimmer-highlight); }
+  .t-shimmer {
+    animation: none !important;
+    color: var(--shimmer-highlight);
+    -webkit-text-fill-color: var(--shimmer-highlight);
+  }
 }`,
 
   'image-generation-loader': `/* npm install img-fx three
