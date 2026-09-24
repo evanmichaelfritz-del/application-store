@@ -11,7 +11,7 @@ export const NAV_SECTIONS: { key: NavSection; label: string; hint: string }[] = 
   { key: 'effects', label: 'Effects', hint: 'Confetti, beam, gooey, metal, orbs' },
   { key: 'graphic-design', label: 'Graphic design', hint: 'Empty add slot' },
   { key: 'ai-skills', label: 'AI skills', hint: 'Agent-facing pieces' },
-  { key: 'tools', label: 'Tools', hint: 'Symmetry grid' },
+  { key: 'tools', label: 'Tools', hint: 'Preview tools' },
   { key: 'manual', label: 'Manual', hint: 'Hand-authored add slot' },
 ];
 
@@ -42,7 +42,7 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   tools: {
     title: 'Tools',
-    subtitle: 'Preview tools. Symmetry grid draws purple alignment guides over a sample row.',
+    subtitle: 'One preview tool. Switch guides, drawing, and notes for an agent.',
     empty: 'No tools yet.',
   },
   manual: {

@@ -153,12 +153,12 @@ const LOCKS: Record<string, PromptLock> = {
   'orb-working': ORB_GALLERY_LOCKS.working,
   'orb-agent-shaping': ORB_GALLERY_LOCKS['agent-shaping'],
   'orb-state-picker': ORB_GALLERY_LOCKS['state-picker'],
-  'symmetry-grid': {
+  'preview-tools': {
     motion:
-      'No motion. The Guides button toggles a purple overlay. Off draws nothing. On draws a 1px #9B5CFF box around each sample control, a full-width horizontal line at that control top, center, and bottom, and a full-height vertical line at its left, center, and right.',
+      'One switch with Guides, Draw, and Note. Guides draws a 1px #9B5CFF box around each sample control, a full-width horizontal line at that control top, center, and bottom, and a full-height vertical line at its left, center, and right. Draw keeps ink on a transparent canvas. Pen strokes thin as the pointer moves faster. Marker holds a 14px translucent yellow width. Eraser removes area with destination-out, not whole strokes. Note stores a comment, selector, and box, then Copy writes that markdown.',
     content:
-      'Center-aligned sample row: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The Guides button sits above the row and is not boxed.',
-    rn: 'Measure each data-guide control against the stage and derive the lines from those frames. Copy HTML is the sample row. Copy CSS is the stage, controls, and #9B5CFF strokes. Copy script toggles the overlay and paints the lines. Do not draw an even column grid.',
+      'Center-aligned sample row: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The mode switch sits on top. Pen, Marker, and Eraser sit on the bottom in Draw. The note field sits on the bottom in Note.',
+    rn: 'Copy HTML, Copy CSS, and Copy script are this combined preview. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card for each mode.',
   },
 };
 

@@ -37,7 +37,7 @@ import {
 } from './demos/thinking-orbs-playground/galleryCards';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
-import { SymmetryGridDemo } from './demos/symmetry-grid';
+import { PreviewToolsDemo } from './demos/preview-tools';
 import type { NavSection } from './sections';
 
 /**
@@ -442,14 +442,14 @@ export const TRANSITIONS: TransitionItem[] = [
     Demo: AbrarOverviewDemo,
   },
   {
-    id: 'symmetry-grid',
-    title: 'Symmetry grid',
-    subtitle: 'Toggle purple alignment guides on a sample row',
+    id: 'preview-tools',
+    title: 'Preview tools',
+    subtitle: 'Guides, drawing, and notes for an agent',
     categories: [],
-    tags: ['symmetry', 'grid', 'alignment', 'guides', 'tools', 'preview'],
+    tags: ['symmetry', 'grid', 'guides', 'draw', 'drawesome', 'note', 'agentation', 'tools', 'preview'],
     sections: ['tools'],
     pro: false,
-    Demo: SymmetryGridDemo,
+    Demo: PreviewToolsDemo,
   },
 ];
 
