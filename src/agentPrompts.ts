@@ -1,3 +1,4 @@
+import abrarOverviewPrompt from './demos/abrar-overview/AGENT_PROMPT.md';
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
@@ -264,6 +265,7 @@ Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. 
 /** Full custom prompts that replace the short LOCK template. */
 const FULL_PROMPTS: Record<string, () => string> = {
   'gooey-plus-menu': buildGooeyPlusPrompt,
+  'abrar-overview': () => abrarOverviewPrompt,
 };
 
 function buildPrompt(id: string): string {
