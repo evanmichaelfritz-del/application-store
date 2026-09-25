@@ -69,7 +69,10 @@ export default function StoreScreen() {
               <Animated.View
                 key={item.id}
                 layout={layoutTransition(reduceMotion)}
-                style={[styles.cell, { width: `${100 / columns}%` as `${number}%` }]}
+                style={[
+                  styles.cell,
+                  { width: (item.fullRow ? '100%' : `${100 / columns}%`) as `${number}%` },
+                ]}
               >
                 <TransitionCard item={item} />
               </Animated.View>
