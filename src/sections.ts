@@ -42,7 +42,7 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   tools: {
     title: 'Tools',
-    subtitle: 'One preview. A pen tray opens alignment, pens, and notes.',
+    subtitle: 'Drawesome on the preview. Agentation and grid lines toggle in the pill.',
     empty: 'No tools yet.',
   },
   manual: {

@@ -13,8 +13,8 @@ function iconInk(id: string): string {
 }
 
 const penHtml = INSTRUMENTS.map((item) => {
-  const on = item.id === 'pen' ? ' is-on' : '';
-  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pen' ? 'true' : 'false'}">${toolIconSvg(item.id, iconInk(item.id))}</button>`;
+  const on = item.id === 'pencil' ? ' is-on' : '';
+  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pencil' ? 'true' : 'false'}">${toolIconSvg(item.id, iconInk(item.id))}</button>`;
 }).join('');
 
 function tickStroke(color: string): string {
@@ -31,18 +31,23 @@ const swatchHtml = SWATCHES.map((color) => {
   return `<button class="pt-swatch${on ? ' is-on' : ''}" type="button" data-color="${color}" aria-label="${color}" style="background:${color}">${tick}</button>`;
 }).join('');
 
-const peekSvg = toolIconSvg('pen', '#111111', 42);
+const peekSvg = toolIconSvg('pencil', '#111111', 42);
+const elementSvg = `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.1 1.8 3.5 12.4 6.6 9.2 11.2 8.7 Z" fill="currentColor"/></svg>`;
+const boxSvg = `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`;
+const noteToolsHtml = `<button class="pt-round pt-note-tool is-on" type="button" data-note-tool="element" aria-label="Element" aria-pressed="true">${elementSvg}</button><button class="pt-round pt-note-tool" type="button" data-note-tool="box" aria-label="Box" aria-pressed="false">${boxSvg}</button>`;
 const glyphs = Object.fromEntries(INSTRUMENTS.map((item) => [item.id, toolIconSvg(item.id, iconInk(item.id), 42)]));
 
 const alignSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="8.3" width="16" height="1.4" fill="currentColor"/></svg>`;
 const noteSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill="currentColor"/></svg>`;
 
-export const PREVIEW_TOOLS_HTML = `<div class="pt-field" id="pt-field">
+export const PREVIEW_TOOLS_HTML = `<div class="pt-field is-open" id="pt-field">
   <div class="pt-row" id="pt-row">
 ${controlHtml}
   </div>
   <canvas class="pt-draw" id="pt-draw"></canvas>
   <svg class="pt-guides" id="pt-guides" aria-hidden="true"></svg>
+  <div class="pt-box" id="pt-box"></div>
+  <div class="pt-marks" id="pt-marks"></div>
   <div class="pt-note" id="pt-note">
     <p class="pt-note-label" id="pt-note-label"></p>
     <p class="pt-note-selector" id="pt-note-selector"></p>
@@ -55,11 +60,11 @@ ${controlHtml}
   <div class="pt-morph" id="pt-morph">
     <button class="pt-peek" type="button" id="pt-toggle" aria-expanded="false" aria-label="Open tools">${peekSvg}</button>
     <div class="pt-tray" id="pt-tray">
-      <div class="pt-slots" id="pt-slots" data-face="instruments">${penHtml}${swatchHtml}</div>
+      <div class="pt-slots" id="pt-slots" data-face="instruments">${penHtml}${swatchHtml}${noteToolsHtml}</div>
       <span class="pt-rule"></span>
       <button class="pt-wheel" id="pt-color" type="button" aria-label="Color"><span id="pt-color-dot" style="background:#111111"></span></button>
-      <button class="pt-round is-on" id="pt-guides-btn" type="button" aria-label="Alignment" aria-pressed="true">${alignSvg}</button>
-      <button class="pt-round" id="pt-annotate" type="button" aria-label="Annotate" aria-pressed="false">${noteSvg}</button>
+      <button class="pt-round" id="pt-guides-btn" type="button" aria-label="Grid lines" aria-pressed="false">${alignSvg}</button>
+      <button class="pt-round" id="pt-annotate" type="button" aria-label="Agentation" aria-pressed="false">${noteSvg}</button>
       <span class="pt-rule"></span>
       <button class="pt-round" id="pt-close" type="button" aria-label="Close tools">${COLLAPSE_SVG}</button>
     </div>
@@ -93,7 +98,7 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 .pt-icon, .pt-send { width: 32px; }
 .pt-pill, .pt-short { padding: 0 12px; }
 .pt-send { background: #17181c; color: #fff; border-color: #17181c; }
-.pt-field.is-annotate .pt-ctrl:hover,
+.pt-field.is-element .pt-ctrl:hover,
 .pt-ctrl.is-picked { outline: 2px solid #17181c; outline-offset: 3px; }
 .pt-badge {
   position: absolute;
@@ -118,6 +123,28 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   touch-action: none;
 }
 .pt-guides { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+.pt-marks { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.pt-box, .pt-region {
+  position: absolute;
+  border: 1px solid #111;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.pt-box { display: none; z-index: 5; }
+.pt-box.is-on { display: block; }
+.pt-region-num {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #111;
+  color: #fff;
+  font: 600 9px/14px Inter, system-ui, sans-serif;
+  text-align: center;
+}
 .pt-note {
   display: none;
   position: absolute;
@@ -205,10 +232,18 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 }
 .pt-pen svg { display: block; margin: 0 auto; }
 .pt-pen.is-on { transform: translateY(-12px); filter: drop-shadow(0 4px 6px rgba(0,0,0,.18)); }
-.pt-slots[data-face="instruments"] .pt-swatch { display: none; }
-.pt-slots[data-face="palette"] .pt-pen { display: none; }
-.pt-slots[data-face="palette"] { align-items: center; height: auto; gap: 5px; }
-.pt-field.is-open .pt-morph:has(.pt-slots[data-face="palette"]) { align-items: center; }
+.pt-slots[data-face="instruments"] .pt-swatch,
+.pt-slots[data-face="instruments"] .pt-note-tool,
+.pt-slots[data-face="palette"] .pt-note-tool { display: none; }
+.pt-slots[data-face="palette"] .pt-pen,
+.pt-slots[data-face="annotate"] .pt-pen,
+.pt-slots[data-face="annotate"] .pt-swatch { display: none; }
+.pt-slots[data-face="palette"],
+.pt-slots[data-face="annotate"] { align-items: center; height: auto; gap: 4px; }
+.pt-field.is-open .pt-morph:has(.pt-slots[data-face="palette"]),
+.pt-field.is-open .pt-morph:has(.pt-slots[data-face="annotate"]) { align-items: center; }
+.pt-field.is-annotate .pt-wheel { display: none; }
+.pt-note-tool.is-on { background: rgba(0,0,0,.055); color: #111; }
 .pt-swatch {
   width: 26px;
   height: 26px;
@@ -249,6 +284,8 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 #pt-annotate.is-on { color: #111111; }
 #pt-annotate.is-on svg rect { fill: currentColor; }
 #pt-guides-btn.is-on { color: ${GUIDE}; }
+.pt-field.is-open:not(.is-annotate) .pt-draw,
+.pt-field.is-box .pt-draw { pointer-events: auto; cursor: crosshair; }
 `;
 
 export const PREVIEW_TOOLS_SCRIPT = `(function () {
@@ -269,17 +306,24 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   var colorDot = document.getElementById('pt-color-dot');
   var closeBtn = document.getElementById('pt-close');
   var slots = document.getElementById('pt-slots');
-  var open = false;
-  var guidesOn = true;
+  var morph = document.getElementById('pt-morph');
+  var boxEl = document.getElementById('pt-box');
+  var marks = document.getElementById('pt-marks');
+  var open = true;
+  var guidesOn = false;
   var annotate = false;
+  var noteTool = 'element';
   var face = 'instruments';
-  var pen = 'pen';
+  var pen = 'pencil';
   var color = '#111111';
   var strokes = [];
   var draft = null;
+  var boxDrag = null;
+  var region = null;
   var notes = [];
   var target = null;
   var guide = '${GUIDE}';
+  var noteGlyph = ${JSON.stringify(noteSvg)};
   var glyphs = ${JSON.stringify(glyphs)};
   var specs = {
     pencil: { size: 1, thinning: 0.5, mode: 'graphite' },
@@ -388,9 +432,22 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
   function syncPointer() {
-    var on = open && !annotate ? 'auto' : 'none';
+    var draw = open && !annotate;
+    var box = open && annotate && noteTool === 'box';
+    var on = draw || box ? 'auto' : 'none';
     canvas.style.setProperty('pointer-events', on, 'important');
-    canvas.style.cursor = open && !annotate ? 'crosshair' : 'default';
+    canvas.style.cursor = draw || box ? 'crosshair' : 'default';
+  }
+  function fitBar() {
+    if (!open) {
+      morph.style.transform = '';
+      return;
+    }
+    morph.style.transform = 'translateX(-50%) scale(1)';
+    var max = field.clientWidth - 24;
+    var width = morph.scrollWidth;
+    var scale = width > max && max > 0 ? max / width : 1;
+    morph.style.transform = 'translateX(-50%) scale(' + scale + ')';
   }
   function recolor() {
     var nodes = field.querySelectorAll('.pt-ink');
@@ -398,35 +455,47 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     colorDot.style.background = color;
   }
   function syncPeek() {
-    toggle.innerHTML = glyphs[pen];
+    toggle.innerHTML = annotate ? noteGlyph : glyphs[pen];
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     recolor();
   }
+  function syncNoteTools() {
+    var buttons = field.querySelectorAll('[data-note-tool]');
+    for (var i = 0; i < buttons.length; i++) {
+      var on = buttons[i].getAttribute('data-note-tool') === noteTool;
+      buttons[i].classList.toggle('is-on', on);
+      buttons[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  }
+  function syncMode() {
+    field.classList.toggle('is-open', open);
+    field.classList.toggle('is-annotate', open && annotate);
+    field.classList.toggle('is-element', open && annotate && noteTool === 'element');
+    field.classList.toggle('is-box', open && annotate && noteTool === 'box');
+    field.classList.toggle('is-guides', guidesOn);
+    slots.setAttribute('data-face', annotate ? 'annotate' : face);
+    annotateBtn.classList.toggle('is-on', annotate);
+    annotateBtn.setAttribute('aria-pressed', annotate ? 'true' : 'false');
+    guidesBtn.classList.toggle('is-on', guidesOn);
+    guidesBtn.setAttribute('aria-pressed', guidesOn ? 'true' : 'false');
+    colorBtn.classList.toggle('is-on', !annotate && face === 'palette');
+    syncNoteTools();
+    syncPeek();
+    syncPointer();
+    paintGuides();
+    fitBar();
+  }
   function hideNote() {
     target = null;
+    region = null;
     noteEl.classList.remove('is-on');
     var nodes = field.querySelectorAll('[data-note]');
     for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove('is-picked');
   }
   function setOpen(next) {
     open = next;
-    field.classList.toggle('is-open', open);
-    if (open) {
-      annotate = false;
-      face = 'instruments';
-      slots.setAttribute('data-face', face);
-      colorBtn.classList.remove('is-on');
-      annotateBtn.classList.remove('is-on');
-      annotateBtn.setAttribute('aria-pressed', 'false');
-      hideNote();
-    } else {
-      hideNote();
-    }
-    field.classList.toggle('is-annotate', open && annotate);
-    field.classList.toggle('is-guides', open && guidesOn);
-    syncPeek();
-    syncPointer();
-    paintGuides();
+    if (!next) hideNote();
+    syncMode();
   }
   function frames() {
     var origin = field.getBoundingClientRect();
@@ -456,7 +525,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   }
   function paintGuides() {
     while (guides.firstChild) guides.removeChild(guides.firstChild);
-    if (!open || !guidesOn) return;
+    if (!guidesOn) return;
     var list = frames();
     if (!list.length) return;
     var top = list[0].y;
@@ -513,7 +582,40 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
       badge.textContent = String(count);
     }
   }
+  function placeNote(box) {
+    var width = 220;
+    var left = Math.max(8, Math.min(box.x + box.width / 2 - width / 2, field.clientWidth - width - 8));
+    var top = box.y - 158;
+    if (top < 8) top = box.y + box.height + 8;
+    noteEl.style.left = left + 'px';
+    noteEl.style.top = top + 'px';
+  }
+  function paintRegions() {
+    marks.innerHTML = '';
+    notes.forEach(function (note, index) {
+      if (note.selector !== 'region') return;
+      var el = document.createElement('div');
+      el.className = 'pt-region';
+      el.style.left = note.box.x + 'px';
+      el.style.top = note.box.y + 'px';
+      el.style.width = note.box.width + 'px';
+      el.style.height = note.box.height + 'px';
+      var num = document.createElement('span');
+      num.className = 'pt-region-num';
+      num.textContent = String(index + 1);
+      el.appendChild(num);
+      marks.appendChild(el);
+    });
+  }
+  function showBox(box) {
+    boxEl.style.left = box.x + 'px';
+    boxEl.style.top = box.y + 'px';
+    boxEl.style.width = box.width + 'px';
+    boxEl.style.height = box.height + 'px';
+    boxEl.classList.add('is-on');
+  }
   function showNote(node) {
+    region = null;
     target = node;
     var id = node.getAttribute('data-note');
     var list = frames();
@@ -525,19 +627,19 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     selectorEl.textContent = '[data-note="' + id + '"]';
     noteEl.classList.add('is-on');
     input.value = '';
-    if (box) {
-      var width = 220;
-      var left = Math.max(8, Math.min(box.x + box.width / 2 - width / 2, field.clientWidth - width - 8));
-      var top = box.y - 158;
-      if (top < 8) top = box.y + box.height + 8;
-      noteEl.style.left = left + 'px';
-      noteEl.style.top = top + 'px';
-    }
+    if (box) placeNote(box);
     input.focus();
   }
   function commitDraft() {
     var comment = input.value.trim();
-    if (!target || !comment) return;
+    if (!comment) return;
+    if (region) {
+      notes.push({ id: 'region', label: 'Box', selector: 'region', comment: comment, box: region });
+      input.value = '';
+      paintRegions();
+      return;
+    }
+    if (!target) return;
     var id = target.getAttribute('data-note');
     var box = frames().filter(function (frame) { return frame.id === id; })[0] || { x: 0, y: 0, width: 0, height: 0 };
     notes.push({
@@ -554,11 +656,6 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     pen = next;
     annotate = false;
     face = 'instruments';
-    slots.setAttribute('data-face', face);
-    colorBtn.classList.remove('is-on');
-    annotateBtn.classList.remove('is-on');
-    annotateBtn.setAttribute('aria-pressed', 'false');
-    field.classList.remove('is-annotate');
     hideNote();
     var buttons = field.querySelectorAll('[data-pen]');
     for (var i = 0; i < buttons.length; i++) {
@@ -566,8 +663,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
       buttons[i].classList.toggle('is-on', on);
       buttons[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    syncPeek();
-    syncPointer();
+    syncMode();
   }
 
   toggle.addEventListener('click', function (event) {
@@ -580,35 +676,28 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   });
   guidesBtn.addEventListener('click', function () {
     guidesOn = !guidesOn;
-    guidesBtn.classList.toggle('is-on', guidesOn);
-    guidesBtn.setAttribute('aria-pressed', guidesOn ? 'true' : 'false');
-    field.classList.toggle('is-guides', open && guidesOn);
-    paintGuides();
+    syncMode();
   });
   annotateBtn.addEventListener('click', function () {
     annotate = !annotate;
+    noteTool = 'element';
     face = 'instruments';
-    slots.setAttribute('data-face', face);
-    colorBtn.classList.remove('is-on');
-    annotateBtn.classList.toggle('is-on', annotate);
-    annotateBtn.setAttribute('aria-pressed', annotate ? 'true' : 'false');
-    field.classList.toggle('is-annotate', open && annotate);
-    if (!annotate) {
-      hideNote();
-      selectPen(pen);
-    }
-    syncPointer();
+    hideNote();
+    syncMode();
   });
   colorBtn.addEventListener('click', function () {
+    if (annotate) return;
     face = face === 'palette' ? 'instruments' : 'palette';
-    slots.setAttribute('data-face', face);
-    colorBtn.classList.toggle('is-on', face === 'palette');
-    annotate = false;
-    annotateBtn.classList.remove('is-on');
-    annotateBtn.setAttribute('aria-pressed', 'false');
-    field.classList.remove('is-annotate');
     hideNote();
-    syncPointer();
+    syncMode();
+  });
+  field.querySelectorAll('[data-note-tool]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      if (!annotate) return;
+      noteTool = button.getAttribute('data-note-tool');
+      hideNote();
+      syncMode();
+    });
   });
   field.querySelectorAll('[data-pen]').forEach(function (button) {
     button.addEventListener('click', function () { selectPen(button.getAttribute('data-pen')); });
@@ -616,25 +705,61 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   field.querySelectorAll('[data-color]').forEach(function (button) {
     button.addEventListener('click', function () {
       color = button.getAttribute('data-color');
-      recolor();
       face = 'instruments';
-      slots.setAttribute('data-face', face);
-      colorBtn.classList.remove('is-on');
+      syncMode();
       var swatches = field.querySelectorAll('[data-color]');
       for (var i = 0; i < swatches.length; i++) swatches[i].classList.toggle('is-on', swatches[i] === button);
     });
   });
+  function rectBetween(x0, y0, x1, y1) {
+    return {
+      x: Math.round(Math.min(x0, x1)),
+      y: Math.round(Math.min(y0, y1)),
+      width: Math.round(Math.abs(x1 - x0)),
+      height: Math.round(Math.abs(y1 - y0))
+    };
+  }
   canvas.addEventListener('pointerdown', function (event) {
-    if (!open || annotate) return;
+    if (!open) return;
+    var p = point(event);
+    if (annotate && noteTool === 'box') {
+      if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
+      boxDrag = { x0: p.x, y0: p.y, box: { x: p.x, y: p.y, width: 0, height: 0 } };
+      showBox(boxDrag.box);
+      return;
+    }
+    if (annotate) return;
     if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
-    draft = { pen: pen, color: color, points: [point(event)] };
+    draft = { pen: pen, color: color, points: [p] };
   });
   canvas.addEventListener('pointermove', function (event) {
+    if (boxDrag) {
+      var p = point(event);
+      boxDrag.box = rectBetween(boxDrag.x0, boxDrag.y0, p.x, p.y);
+      showBox(boxDrag.box);
+      return;
+    }
     if (!draft) return;
     draft.points.push(point(event));
     paint();
   });
   function endStroke() {
+    if (boxDrag) {
+      var box = boxDrag.box;
+      boxDrag = null;
+      boxEl.classList.remove('is-on');
+      if (box.width > 6 && box.height > 6) {
+        region = box;
+        target = null;
+        labelEl.textContent = 'Box';
+        selectorEl.textContent = 'region';
+        noteEl.classList.add('is-on');
+        input.value = '';
+        placeNote(box);
+        input.focus();
+      }
+      return;
+    }
     if (!draft) return;
     if (draft.points.length > 1) strokes.push(draft);
     draft = null;
@@ -644,7 +769,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   canvas.addEventListener('pointercancel', endStroke);
   field.querySelectorAll('[data-note]').forEach(function (node) {
     node.addEventListener('click', function () {
-      if (!open || !annotate) return;
+      if (!open || !annotate || noteTool !== 'element') return;
       showNote(node);
     });
   });
@@ -657,8 +782,8 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     copyBtn.textContent = 'Copied';
     setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1200);
   });
-  window.addEventListener('resize', resize);
-  if (window.ResizeObserver) new ResizeObserver(resize).observe(field);
+  window.addEventListener('resize', function () { resize(); fitBar(); });
+  if (window.ResizeObserver) new ResizeObserver(function () { resize(); fitBar(); }).observe(field);
   resize();
-  syncPointer();
+  syncMode();
 })();`;

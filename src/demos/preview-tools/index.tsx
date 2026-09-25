@@ -17,7 +17,9 @@ import {
   paintStrokes,
   pickColor,
   pickControl,
+  pickNoteTool,
   pickPen,
+  setDraftBox,
   setDraftText,
   toggleAnnotate,
   toggleFace,
@@ -41,10 +43,13 @@ export function PreviewToolsDemo() {
   const [notes, setNotes] = useState<AgentNote[]>([]);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [liveBox, setLiveBox] = useState<Frame | null>(null);
+  const [barScale, setBarScale] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chromeRef = useRef(chrome);
   const strokesRef = useRef(strokes);
   const draftRef = useRef(draft);
+  const boxDragRef = useRef<{ x0: number; y0: number; box: Frame } | null>(null);
   chromeRef.current = chrome;
   strokesRef.current = strokes;
   draftRef.current = draft;
@@ -59,6 +64,7 @@ export function PreviewToolsDemo() {
   const framesRef = useRef(frames);
   framesRef.current = frames;
   const drawing = chrome.open && chrome.hand === 'draw';
+  const boxing = chrome.open && chrome.hand === 'annotate' && chrome.noteTool === 'box';
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -92,8 +98,9 @@ export function PreviewToolsDemo() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.style.setProperty('pointer-events', drawing ? 'auto' : 'none', 'important');
-  }, [drawing]);
+    canvas.style.setProperty('pointer-events', drawing || boxing ? 'auto' : 'none', 'important');
+    canvas.style.cursor = drawing || boxing ? 'crosshair' : 'default';
+  }, [drawing, boxing]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -104,20 +111,47 @@ export function PreviewToolsDemo() {
     };
     const down = (event: PointerEvent) => {
       const current = chromeRef.current;
-      if (!current.open || current.hand !== 'draw') return;
+      if (!current.open) return;
+      const point = localPoint(event);
+      if (current.hand === 'annotate' && current.noteTool === 'box') {
+        if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
+        const box = { x: point.x, y: point.y, width: 0, height: 0 };
+        boxDragRef.current = { x0: point.x, y0: point.y, box };
+        setLiveBox(box);
+        return;
+      }
+      if (current.hand !== 'draw') return;
       if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
-      const next = { pen: current.pen, color: current.color, points: [localPoint(event)] };
+      const next = { pen: current.pen, color: current.color, points: [point] };
       draftRef.current = next;
       setDraft(next);
     };
     const move = (event: PointerEvent) => {
+      const point = localPoint(event);
+      const drag = boxDragRef.current;
+      if (drag) {
+        const box = rectBetween(drag.x0, drag.y0, point.x, point.y);
+        drag.box = box;
+        setLiveBox(box);
+        return;
+      }
       const current = draftRef.current;
       if (!current) return;
-      const next = { pen: current.pen, color: current.color, points: [...current.points, localPoint(event)] };
+      const next = { pen: current.pen, color: current.color, points: [...current.points, point] };
       draftRef.current = next;
       setDraft(next);
     };
     const up = () => {
+      const drag = boxDragRef.current;
+      if (drag) {
+        boxDragRef.current = null;
+        setLiveBox(null);
+        if (drag.box.width > 6 && drag.box.height > 6) {
+          const box = drag.box;
+          setChrome((current) => setDraftBox(current, box));
+        }
+        return;
+      }
       const current = draftRef.current;
       if (!current) return;
       draftRef.current = null;
@@ -153,7 +187,14 @@ export function PreviewToolsDemo() {
 
   const commitDraft = (source: AgentNote[]) => {
     const text = chrome.draftText.trim();
-    if (!text || !draftControl || !draftFrame) return source;
+    if (!text) return source;
+    if (chrome.draftBox) {
+      return [
+        ...source,
+        { label: 'Box', selector: 'region', comment: text, box: chrome.draftBox },
+      ];
+    }
+    if (!draftControl || !draftFrame) return source;
     return [
       ...source,
       {
@@ -185,10 +226,18 @@ export function PreviewToolsDemo() {
     setTimeout(() => setCopied(false), 1200);
   };
 
-  const showGuides = chrome.open && chrome.guides && frames.length === SAMPLE_CONTROLS.length;
-  const showNote = chrome.open && chrome.hand === 'annotate' && draftControl && draftFrame;
+  const showGuides = chrome.guides && frames.length === SAMPLE_CONTROLS.length;
+  const noteFrame = chrome.draftBox ?? draftFrame ?? null;
+  const showNote = chrome.open && chrome.hand === 'annotate' && noteFrame && (chrome.draftBox || draftControl);
   const showHover =
-    chrome.open && chrome.hand === 'annotate' && hoverControl && hoverFrame && hoverId !== chrome.draftId;
+    chrome.open &&
+    chrome.hand === 'annotate' &&
+    chrome.noteTool === 'element' &&
+    hoverControl &&
+    hoverFrame &&
+    hoverId !== chrome.draftId;
+  const noteLabel = chrome.draftBox ? 'Box' : draftControl?.label;
+  const noteSelectorText = chrome.draftBox ? 'region' : draftControl ? noteSelector(draftControl.id) : '';
 
   return (
     <Stage style={{ height: STAGE_HEIGHT }}>
@@ -255,18 +304,35 @@ export function PreviewToolsDemo() {
           },
         })}
         {showGuides ? <GuideOverlay frames={frames.map(({ x, y, width, height }) => ({ x, y, width, height }))} /> : null}
+        {notes.map((note, index) =>
+          note.selector === 'region' ? (
+            <View
+              key={`region-${index}`}
+              pointerEvents="none"
+              style={[styles.region, { left: note.box.x, top: note.box.y, width: note.box.width, height: note.box.height }]}
+            >
+              <Text style={styles.regionNum}>{index + 1}</Text>
+            </View>
+          ) : null,
+        )}
+        {liveBox ? (
+          <View
+            pointerEvents="none"
+            style={[styles.region, { left: liveBox.x, top: liveBox.y, width: liveBox.width, height: liveBox.height }]}
+          />
+        ) : null}
         {showHover && hoverFrame && hoverControl ? (
           <View pointerEvents="none" style={[styles.hoverName, { left: hoverFrame.x, top: hoverFrame.y - 22 }]}>
             <Text style={styles.hoverText}>{hoverControl.label}</Text>
           </View>
         ) : null}
-        {showNote && draftFrame && draftControl ? (
+        {showNote && noteFrame ? (
           <View
             testID="preview-tools-note"
-            style={[styles.note, notePosition(draftFrame, fieldBox.width)]}
+            style={[styles.note, notePosition(noteFrame, fieldBox.width)]}
           >
-            <Text style={styles.noteLabel}>{draftControl.label}</Text>
-            <Text style={styles.noteSelector}>{noteSelector(draftControl.id)}</Text>
+            <Text style={styles.noteLabel}>{noteLabel}</Text>
+            <Text style={styles.noteSelector}>{noteSelectorText}</Text>
             <TextInput
               value={chrome.draftText}
               onChangeText={(value) => setChrome((current) => setDraftText(current, value))}
@@ -286,11 +352,48 @@ export function PreviewToolsDemo() {
             </View>
           </View>
         ) : null}
-        <View style={[styles.morph, !chrome.open && styles.morphClosed, chrome.open && chrome.face === 'palette' && styles.morphPalette]}>
+        <View
+          onLayout={(event) => {
+            if (!chrome.open) return;
+            const width = event.nativeEvent.layout.width;
+            const max = fieldBox.width - 24;
+            const next = max > 0 && width > max ? max / width : 1;
+            setBarScale((prev) => (Math.abs(prev - next) < 0.01 ? prev : next));
+          }}
+          style={[
+            styles.morph,
+            !chrome.open && styles.morphClosed,
+            chrome.open && chrome.face === 'palette' && chrome.hand === 'draw' && styles.morphPalette,
+            chrome.open && barScale !== 1 && { transform: [{ scale: barScale }] },
+          ]}
+        >
           {chrome.open ? (
             <>
-              <View style={[styles.slots, chrome.face === 'palette' && styles.slotsCenter]}>
-                {chrome.face === 'palette'
+              <View style={[styles.slots, (chrome.face === 'palette' || chrome.hand === 'annotate') && styles.slotsCenter]}>
+                {chrome.hand === 'annotate' ? (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Element"
+                      accessibilityState={{ selected: chrome.noteTool === 'element' }}
+                      testID="preview-tools-element"
+                      onPress={() => setChrome((current) => pickNoteTool(current, 'element'))}
+                      style={[styles.round, chrome.noteTool === 'element' && styles.roundOn]}
+                    >
+                      <ElementIcon />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Box"
+                      accessibilityState={{ selected: chrome.noteTool === 'box' }}
+                      testID="preview-tools-box"
+                      onPress={() => setChrome((current) => pickNoteTool(current, 'box'))}
+                      style={[styles.round, chrome.noteTool === 'box' && styles.roundOn]}
+                    >
+                      <BoxIcon />
+                    </Pressable>
+                  </>
+                ) : chrome.face === 'palette'
                   ? SWATCHES.map((color) => {
                       const on = chrome.color === color;
                       return (
@@ -326,19 +429,21 @@ export function PreviewToolsDemo() {
                     })}
               </View>
               <View style={styles.rule} />
+              {chrome.hand === 'draw' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Color"
+                  accessibilityState={{ selected: chrome.face === 'palette' }}
+                  testID="preview-tools-color"
+                  onPress={() => setChrome(toggleFace)}
+                  style={styles.wheel}
+                >
+                  <View style={[styles.wheelInk, { backgroundColor: chrome.color }]} />
+                </Pressable>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Color"
-                accessibilityState={{ selected: chrome.face === 'palette' }}
-                testID="preview-tools-color"
-                onPress={() => setChrome(toggleFace)}
-                style={styles.wheel}
-              >
-                <View style={[styles.wheelInk, { backgroundColor: chrome.color }]} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Alignment"
+                accessibilityLabel="Grid lines"
                 accessibilityState={{ selected: chrome.guides }}
                 testID="preview-tools-guides"
                 onPress={() => setChrome(toggleGuides)}
@@ -348,7 +453,7 @@ export function PreviewToolsDemo() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Annotate"
+                accessibilityLabel="Agentation"
                 accessibilityState={{ selected: chrome.hand === 'annotate' }}
                 testID="preview-tools-annotate"
                 onPress={() => setChrome(toggleAnnotate)}
@@ -377,7 +482,11 @@ export function PreviewToolsDemo() {
               onPress={() => setChrome(toggleOpen)}
               style={styles.peekHit}
             >
-              <ToolGlyph id={held.id} color={held.id === 'highlighter' ? '#fff01f' : chrome.color} width={42} />
+              {chrome.hand === 'annotate' ? (
+                <NoteIcon on />
+              ) : (
+                <ToolGlyph id={held.id} color={held.id === 'highlighter' ? '#fff01f' : held.id === 'eraser' ? '#c9806f' : chrome.color} width={42} />
+              )}
             </Pressable>
           )}
         </View>
@@ -452,6 +561,31 @@ function NoteIcon({ on }: { on: boolean }) {
       <Path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill={color} />
     </Svg>
   );
+}
+
+function ElementIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 16 16">
+      <Path d="M3.1 1.8 3.5 12.4 6.6 9.2 11.2 8.7 Z" fill="#111111" />
+    </Svg>
+  );
+}
+
+function BoxIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 16 16">
+      <Rect x={2.5} y={2.5} width={11} height={11} rx={1.5} stroke="#111111" strokeWidth={1.4} fill="none" />
+    </Svg>
+  );
+}
+
+function rectBetween(x0: number, y0: number, x1: number, y1: number): Frame {
+  return {
+    x: Math.round(Math.min(x0, x1)),
+    y: Math.round(Math.min(y0, y1)),
+    width: Math.round(Math.abs(x1 - x0)),
+    height: Math.round(Math.abs(y1 - y0)),
+  };
 }
 
 function notePosition(frame: Frame, fieldWidth: number) {
@@ -598,6 +732,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
+  },
+  roundOn: { backgroundColor: 'rgba(0,0,0,0.055)' },
+  region: {
+    position: 'absolute',
+    zIndex: 5,
+    borderWidth: 1,
+    borderColor: '#111111',
+  },
+  regionNum: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#111111',
+    color: '#fff',
+    fontFamily: fonts.semibold,
+    fontSize: 9,
+    lineHeight: 14,
+    textAlign: 'center',
+    overflow: 'hidden',
+    paddingHorizontal: 3,
   },
   hoverName: {
     position: 'absolute',

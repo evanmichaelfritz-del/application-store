@@ -24,44 +24,50 @@ export const INSTRUMENTS = [
 
 export type PenId = (typeof INSTRUMENTS)[number]['id'];
 
+export type NoteTool = 'element' | 'box';
+
 export type Chrome = {
   open: boolean;
   face: 'instruments' | 'palette';
   hand: 'draw' | 'annotate';
+  noteTool: NoteTool;
   guides: boolean;
   pen: PenId;
   color: string;
   draftId: string | null;
   draftText: string;
+  draftBox: Frame | null;
 };
 
 export const INITIAL_CHROME: Chrome = {
-  open: false,
+  open: true,
   face: 'instruments',
   hand: 'draw',
-  guides: true,
-  pen: 'pen',
+  noteTool: 'element',
+  guides: false,
+  pen: 'pencil',
   color: '#111111',
   draftId: null,
   draftText: '',
+  draftBox: null,
 };
 
 export function toggleOpen(chrome: Chrome): Chrome {
   if (chrome.open) {
-    return { ...chrome, open: false, face: 'instruments', draftId: null, draftText: '' };
+    return { ...chrome, open: false, face: 'instruments', draftId: null, draftText: '', draftBox: null };
   }
-  return { ...chrome, open: true, face: 'instruments', hand: 'draw', draftId: null, draftText: '' };
+  return { ...chrome, open: true };
 }
 
 export function pickPen(chrome: Chrome, pen: PenId): Chrome {
   if (!chrome.open) return chrome;
-  return { ...chrome, pen, face: 'instruments', hand: 'draw', draftId: null, draftText: '' };
+  return { ...chrome, pen, face: 'instruments', hand: 'draw', draftId: null, draftText: '', draftBox: null };
 }
 
 export function toggleFace(chrome: Chrome): Chrome {
-  if (!chrome.open) return chrome;
+  if (!chrome.open || chrome.hand !== 'draw') return chrome;
   const face = chrome.face === 'palette' ? 'instruments' : 'palette';
-  return { ...chrome, face, hand: 'draw', draftId: null, draftText: '' };
+  return { ...chrome, face, draftId: null, draftText: '', draftBox: null };
 }
 
 export function pickColor(chrome: Chrome, color: string): Chrome {
@@ -81,15 +87,27 @@ export function toggleAnnotate(chrome: Chrome): Chrome {
     ...chrome,
     hand: annotate ? 'annotate' : 'draw',
     face: 'instruments',
-    draftId: annotate ? chrome.draftId : null,
-    draftText: annotate ? chrome.draftText : '',
+    noteTool: 'element',
+    draftId: null,
+    draftText: '',
+    draftBox: null,
   };
 }
 
+export function pickNoteTool(chrome: Chrome, noteTool: NoteTool): Chrome {
+  if (!chrome.open || chrome.hand !== 'annotate' || chrome.noteTool === noteTool) return chrome;
+  return { ...chrome, noteTool, draftId: null, draftText: '', draftBox: null };
+}
+
 export function pickControl(chrome: Chrome, id: string): Chrome {
-  if (!chrome.open || chrome.hand !== 'annotate') return chrome;
-  if (chrome.draftId === id) return chrome;
-  return { ...chrome, draftId: id, draftText: '' };
+  if (!chrome.open || chrome.hand !== 'annotate' || chrome.noteTool !== 'element') return chrome;
+  if (chrome.draftId === id && !chrome.draftBox) return chrome;
+  return { ...chrome, draftId: id, draftText: '', draftBox: null };
+}
+
+export function setDraftBox(chrome: Chrome, draftBox: Frame): Chrome {
+  if (!chrome.open || chrome.hand !== 'annotate' || chrome.noteTool !== 'box') return chrome;
+  return { ...chrome, draftId: 'region', draftText: '', draftBox };
 }
 
 export function setDraftText(chrome: Chrome, draftText: string): Chrome {
