@@ -1,25 +1,41 @@
-import { CHEVRON_SVG, GUIDE, INSTRUMENTS, SAMPLE_CONTROLS, STAGE_HEIGHT, SWATCHES, marksSvg } from './model';
+import { GUIDE, INSTRUMENTS, SAMPLE_CONTROLS, STAGE_HEIGHT, SWATCHES } from './model';
+import { COLLAPSE_SVG, toolIconSvg } from './toolIcon';
 
 const controlHtml = SAMPLE_CONTROLS.map(
   (control) =>
     `    <div class="pt-ctrl pt-${control.kind}" data-guide data-note="${control.id}" data-label="${control.label}">${control.label}</div>`,
 ).join('\n');
 
+function iconInk(id: string): string {
+  if (id === 'highlighter') return '#fff01f';
+  if (id === 'eraser') return '#c9806f';
+  return '#111111';
+}
+
 const penHtml = INSTRUMENTS.map((item) => {
   const on = item.id === 'pen' ? ' is-on' : '';
-  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pen' ? 'true' : 'false'}">${marksSvg(item.marks, 26, 44)}</button>`;
+  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pen' ? 'true' : 'false'}">${toolIconSvg(item.id, iconInk(item.id))}</button>`;
 }).join('');
 
-const swatchHtml = SWATCHES.map(
-  (color) =>
-    `<button class="pt-swatch${color === '#17181c' ? ' is-on' : ''}" type="button" data-color="${color}" aria-label="${color}" style="background:${color}"></button>`,
-).join('');
+function tickStroke(color: string): string {
+  const value = Number.parseInt(color.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return (red * 299 + green * 587 + blue * 114) / 1000 > 170 ? '#111111' : '#ffffff';
+}
 
-const penSvg = marksSvg(INSTRUMENTS[1].marks, 26, 44);
-const glyphs = Object.fromEntries(INSTRUMENTS.map((item) => [item.id, marksSvg(item.marks, 26, 44)]));
+const swatchHtml = SWATCHES.map((color) => {
+  const on = color === '#111111';
+  const tick = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="${tickStroke(color)}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.6 8.4 6.7 11.5 12.4 5.2"/></svg>`;
+  return `<button class="pt-swatch${on ? ' is-on' : ''}" type="button" data-color="${color}" aria-label="${color}" style="background:${color}">${tick}</button>`;
+}).join('');
+
+const peekSvg = toolIconSvg('pen', '#111111', 42);
+const glyphs = Object.fromEntries(INSTRUMENTS.map((item) => [item.id, toolIconSvg(item.id, iconInk(item.id), 42)]));
 
 const alignSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="8.3" width="16" height="1.4" fill="currentColor"/></svg>`;
-const noteSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="14" height="10" rx="2" fill="none" stroke="#17181c" stroke-width="1.4"/><path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill="#17181c"/></svg>`;
+const noteSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill="currentColor"/></svg>`;
 
 export const PREVIEW_TOOLS_HTML = `<div class="pt-field" id="pt-field">
   <div class="pt-row" id="pt-row">
@@ -36,14 +52,17 @@ ${controlHtml}
       <button class="pt-add" id="pt-note-add" type="button">Add</button>
     </div>
   </div>
-  <div class="pt-dock">
-    <div class="pt-bar" id="pt-bar">
+  <div class="pt-morph" id="pt-morph">
+    <button class="pt-peek" type="button" id="pt-toggle" aria-expanded="false" aria-label="Open tools">${peekSvg}</button>
+    <div class="pt-tray" id="pt-tray">
       <div class="pt-slots" id="pt-slots" data-face="instruments">${penHtml}${swatchHtml}</div>
-      <button class="pt-color" id="pt-color" type="button" aria-label="Color"><span id="pt-color-dot" style="background:#17181c"></span></button>
-      <button class="pt-tool is-on" id="pt-guides-btn" type="button" aria-label="Alignment" aria-pressed="true">${alignSvg}</button>
-      <button class="pt-tool" id="pt-annotate" type="button" aria-label="Annotate" aria-pressed="false">${noteSvg}</button>
+      <span class="pt-rule"></span>
+      <button class="pt-wheel" id="pt-color" type="button" aria-label="Color"><span id="pt-color-dot" style="background:#111111"></span></button>
+      <button class="pt-round is-on" id="pt-guides-btn" type="button" aria-label="Alignment" aria-pressed="true">${alignSvg}</button>
+      <button class="pt-round" id="pt-annotate" type="button" aria-label="Annotate" aria-pressed="false">${noteSvg}</button>
+      <span class="pt-rule"></span>
+      <button class="pt-round" id="pt-close" type="button" aria-label="Close tools">${COLLAPSE_SVG}</button>
     </div>
-    <button class="pt-disc" type="button" id="pt-toggle" aria-expanded="false" aria-label="Open tools">${penSvg}</button>
   </div>
 </div>`;
 
@@ -133,93 +152,103 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 }
 .pt-add { padding: 0 12px; border: 0; background: #17181c; color: #fff; }
 .pt-copy { padding: 0 10px; border: 1px solid rgba(0,0,0,.1); background: #fff; color: #17181c; }
-.pt-dock {
+.pt-morph {
   position: absolute;
   z-index: 8;
-  bottom: 14px;
+  bottom: 18px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(0.667);
+  transform-origin: center center;
+  height: 84px;
+  width: 84px;
+  border-radius: 42px;
+  overflow: hidden;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 6px;
-  width: calc(100% - 16px);
+  background: linear-gradient(180deg, #fbfaf9, #f1efec);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 0 0 .5px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05), 0 5px 12px rgba(0,0,0,.09), 0 9px 20px rgba(0,0,0,.06);
+  transition: width 520ms cubic-bezier(0.22, 0.9, 0.16, 1), border-radius 440ms cubic-bezier(0.22, 0.9, 0.16, 1), transform 540ms cubic-bezier(0.22, 0.9, 0.16, 1);
 }
-.pt-bar {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 64px;
-  max-width: calc(100% - 54px);
-  padding: 4px 6px;
-  background: #fff;
-  border-radius: 18px;
-  border: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 10px 28px rgba(23,24,28,.16);
+.pt-field.is-open .pt-morph {
+  width: max-content;
+  max-width: calc(100% - 24px);
+  height: 84px;
+  border-radius: 42px;
+  align-items: flex-end;
+  padding: 0 32px;
+  gap: 8px;
+  transform: translateX(-50%) scale(1);
 }
-.pt-field.is-open .pt-bar { display: flex; }
-.pt-slots { display: flex; align-items: flex-end; gap: 1px; }
+.pt-peek {
+  border: 0;
+  background: none;
+  padding: 7px 0 0;
+  cursor: pointer;
+  line-height: 0;
+}
+.pt-field.is-open .pt-peek { display: none; }
+.pt-tray { display: none; align-items: flex-end; gap: 8px; height: 100%; }
+.pt-field.is-open .pt-tray { display: flex; }
+.pt-slots { display: flex; align-items: flex-end; gap: 2px; height: 100%; }
+.pt-rule { width: 1px; height: 22px; align-self: center; background: rgba(0,0,0,.1); flex: none; }
 .pt-pen {
-  width: 36px;
-  height: 52px;
+  width: 34px;
   border: 0;
   padding: 0;
+  margin-bottom: -20px;
   background: transparent;
-  border-radius: 8px;
-  display: grid;
-  place-items: end center;
+  transform: translateY(6px);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.12));
   cursor: pointer;
+  line-height: 0;
 }
-.pt-pen.is-on { background: #ececee; }
+.pt-pen svg { display: block; margin: 0 auto; }
+.pt-pen.is-on { transform: translateY(-12px); filter: drop-shadow(0 4px 6px rgba(0,0,0,.18)); }
 .pt-slots[data-face="instruments"] .pt-swatch { display: none; }
 .pt-slots[data-face="palette"] .pt-pen { display: none; }
+.pt-slots[data-face="palette"] { align-items: center; height: auto; gap: 5px; }
+.pt-field.is-open .pt-morph:has(.pt-slots[data-face="palette"]) { align-items: center; }
 .pt-swatch {
-  width: 16px;
-  height: 16px;
-  margin: 0 2px 10px;
+  width: 26px;
+  height: 26px;
   border-radius: 8px;
   border: 1px solid rgba(0,0,0,.12);
   padding: 0;
+  display: grid;
+  place-items: center;
   cursor: pointer;
 }
-.pt-swatch.is-on { outline: 2px solid #17181c; outline-offset: 2px; }
-.pt-color, .pt-tool {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+.pt-swatch svg { opacity: 0; }
+.pt-swatch.is-on { transform: scale(1.08) translateY(-1px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 3px 8px rgba(0,0,0,.24); }
+.pt-swatch.is-on svg { opacity: 1; }
+.pt-wheel, .pt-round {
   border: 0;
   background: transparent;
+  color: #8a8a8e;
   display: grid;
   place-items: center;
   cursor: pointer;
   padding: 0;
-  color: #17181c;
+  align-self: center;
 }
-.pt-color { border-radius: 14px; border: 1px solid rgba(0,0,0,.08); background: #fff; }
-.pt-color span {
-  width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  display: block;
-  border: 1px solid rgba(0,0,0,.15);
+.pt-round { width: 36px; height: 36px; border-radius: 18px; }
+.pt-wheel {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: conic-gradient(#ff383c, #ff8d28, #ffcc00, #34c759, #00c3d0, #0088ff, #6155f5, #d6336c, #ff383c);
+  box-shadow: 0 0 0 .5px rgba(0,0,0,.12), inset 0 0 0 1px rgba(255,255,255,.5);
 }
-.pt-tool.is-on, .pt-color.is-on { background: #ececee; }
+.pt-wheel span {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #fbfaf9, 0 0 0 3.5px rgba(0,0,0,.1);
+}
+#pt-annotate.is-on { color: #111111; }
+#pt-annotate.is-on svg rect { fill: currentColor; }
 #pt-guides-btn.is-on { color: ${GUIDE}; }
-.pt-disc {
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
-  border: 1px solid rgba(0,0,0,.06);
-  background: #fff;
-  box-shadow: 0 10px 28px rgba(23,24,28,.16);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  padding: 0;
-  flex: 0 0 auto;
-}
 `;
 
 export const PREVIEW_TOOLS_SCRIPT = `(function () {
@@ -238,25 +267,31 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   var annotateBtn = document.getElementById('pt-annotate');
   var colorBtn = document.getElementById('pt-color');
   var colorDot = document.getElementById('pt-color-dot');
+  var closeBtn = document.getElementById('pt-close');
   var slots = document.getElementById('pt-slots');
   var open = false;
   var guidesOn = true;
   var annotate = false;
   var face = 'instruments';
   var pen = 'pen';
-  var color = '#17181c';
+  var color = '#111111';
   var strokes = [];
   var draft = null;
   var notes = [];
   var target = null;
   var guide = '${GUIDE}';
   var glyphs = ${JSON.stringify(glyphs)};
-  var chevron = ${JSON.stringify(CHEVRON_SVG)};
+  var specs = {
+    pencil: { size: 1, thinning: 0.5, mode: 'graphite' },
+    pen: { size: 6, thinning: 0.5, mode: 'ink' },
+    fineliner: { size: 2, thinning: 0, mode: 'ink' },
+    marker: { size: 18, thinning: 0.12, mode: 'ink' },
+    highlighter: { size: 28, thinning: 0, flat: true, mode: 'highlight' },
+    brush: { size: 14, thinning: 0.42, taper: 16, mode: 'ink' },
+    fountain: { size: 8, thinning: 0.1, nibAngle: 45, nibContrast: 0.85, mode: 'ink' },
+    eraser: { size: 28, thinning: 0, mode: 'erase' }
+  };
 
-  function hexAlpha(hex, alpha) {
-    var value = parseInt(hex.slice(1), 16);
-    return 'rgba(' + ((value >> 16) & 255) + ', ' + ((value >> 8) & 255) + ', ' + (value & 255) + ', ' + alpha + ')';
-  }
   function resize() {
     var w = field.clientWidth;
     var h = field.clientHeight;
@@ -265,59 +300,81 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     paint();
     paintGuides();
   }
+  function fillRing(ring) {
+    ctx.beginPath();
+    ctx.moveTo(ring[0][0], ring[0][1]);
+    for (var i = 1; i < ring.length; i++) ctx.lineTo(ring[i][0], ring[i][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function disc(cx, cy, radius) {
+    var ring = [];
+    for (var i = 0; i < 12; i++) {
+      var angle = (i / 12) * Math.PI * 2;
+      ring.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+    }
+    return ring;
+  }
   function paintStroke(stroke) {
     var points = stroke.points;
     if (points.length < 2) return;
+    var spec = specs[stroke.pen];
+    var nib = spec.size / 2;
+    var radii = [];
+    var lengths = [];
+    var pressure = 0.7;
+    var i;
+    for (i = 1; i < points.length; i++) {
+      var prev = points[i - 1];
+      var next = points[i];
+      var dist = Math.hypot(next.x - prev.x, next.y - prev.y) || 1;
+      lengths.push(dist);
+      pressure += (1 - Math.min(1, dist / 26) - pressure) * 0.45;
+      var radius = nib * (1 - spec.thinning + spec.thinning * pressure);
+      if (spec.nibContrast) {
+        var angle = Math.atan2(next.y - prev.y, next.x - prev.x) - (spec.nibAngle * Math.PI) / 180;
+        radius *= 1 - spec.nibContrast * (1 - Math.abs(Math.sin(angle)));
+      }
+      radii.push(Math.max(0.35, radius));
+    }
+    if (spec.taper) {
+      var walked = 0;
+      for (i = lengths.length - 1; i >= 0; i--) {
+        walked += lengths[i];
+        var along = Math.min(1, walked / spec.taper);
+        radii[i] *= 0.1 + 0.9 * Math.pow(along, 0.55);
+      }
+    }
     ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    if (stroke.pen === 'eraser' || stroke.pen === 'highlighter' || stroke.pen === 'fineliner') {
-      if (stroke.pen === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-        ctx.lineWidth = 20;
-      } else if (stroke.pen === 'highlighter') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = hexAlpha(stroke.color, 0.38);
-        ctx.lineWidth = 16;
-      } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = 1.35;
-      }
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (var i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-      ctx.stroke();
+    if (spec.mode === 'erase') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = '#000';
+    } else if (spec.mode === 'highlight') {
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = '#fff01f';
+    } else if (spec.mode === 'graphite') {
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#3a3a3a';
     } else {
-      ctx.globalCompositeOperation = 'source-over';
-      for (var j = 1; j < points.length; j++) {
-        var prev = points[j - 1];
-        var next = points[j];
-        var dx = next.x - prev.x;
-        var dy = next.y - prev.y;
-        var dist = Math.hypot(dx, dy) || 1;
-        if (stroke.pen === 'fountain') {
-          ctx.strokeStyle = stroke.color;
-          ctx.lineWidth = 0.6 + (Math.max(0, dy) / dist) * 5.5;
-        } else if (stroke.pen === 'brush') {
-          var brushSpeed = Math.min(1, dist / 22);
-          ctx.strokeStyle = hexAlpha(stroke.color, 0.85);
-          ctx.lineWidth = Math.max(1.8, 9 * (1 - brushSpeed * 0.78));
-        } else if (stroke.pen === 'pencil') {
-          var pencilSpeed = Math.min(1, dist / 24);
-          ctx.strokeStyle = '#4a4a4a';
-          ctx.lineWidth = Math.max(0.45, 2.2 * (1 - pencilSpeed * 0.75));
-        } else {
-          var penSpeed = Math.min(1, dist / 28);
-          ctx.strokeStyle = stroke.color;
-          ctx.lineWidth = Math.max(0.7, 3.4 * (1 - penSpeed * 0.72));
-        }
-        ctx.beginPath();
-        ctx.moveTo(prev.x, prev.y);
-        ctx.lineTo(next.x, next.y);
-        ctx.stroke();
-      }
+      ctx.fillStyle = stroke.color;
+    }
+    for (i = 1; i < points.length; i++) {
+      var a = points[i - 1];
+      var b = points[i];
+      var dx = b.x - a.x;
+      var dy = b.y - a.y;
+      var len = Math.hypot(dx, dy) || 1;
+      var nx = -dy / len;
+      var ny = dx / len;
+      var r0 = radii[i - 1];
+      var r1 = radii[Math.min(i, radii.length - 1)];
+      fillRing([[a.x + nx * r0, a.y + ny * r0], [b.x + nx * r1, b.y + ny * r1], [b.x - nx * r1, b.y - ny * r1], [a.x - nx * r0, a.y - ny * r0]]);
+      if (!spec.flat) fillRing(disc(a.x, a.y, r0));
+    }
+    if (!spec.flat) {
+      var last = points[points.length - 1];
+      fillRing(disc(last.x, last.y, radii[radii.length - 1]));
     }
     ctx.restore();
   }
@@ -335,10 +392,15 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     canvas.style.setProperty('pointer-events', on, 'important');
     canvas.style.cursor = open && !annotate ? 'crosshair' : 'default';
   }
-  function syncDisc() {
-    toggle.innerHTML = open ? chevron : glyphs[pen];
+  function recolor() {
+    var nodes = field.querySelectorAll('.pt-ink');
+    for (var i = 0; i < nodes.length; i++) nodes[i].setAttribute('fill', color);
+    colorDot.style.background = color;
+  }
+  function syncPeek() {
+    toggle.innerHTML = glyphs[pen];
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.setAttribute('aria-label', open ? 'Close tools' : 'Open tools');
+    recolor();
   }
   function hideNote() {
     target = null;
@@ -362,7 +424,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     }
     field.classList.toggle('is-annotate', open && annotate);
     field.classList.toggle('is-guides', open && guidesOn);
-    syncDisc();
+    syncPeek();
     syncPointer();
     paintGuides();
   }
@@ -504,13 +566,17 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
       buttons[i].classList.toggle('is-on', on);
       buttons[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
-    syncDisc();
+    syncPeek();
     syncPointer();
   }
 
   toggle.addEventListener('click', function (event) {
     event.stopPropagation();
-    setOpen(!open);
+    setOpen(true);
+  });
+  closeBtn.addEventListener('click', function (event) {
+    event.stopPropagation();
+    setOpen(false);
   });
   guidesBtn.addEventListener('click', function () {
     guidesOn = !guidesOn;
@@ -527,13 +593,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     annotateBtn.classList.toggle('is-on', annotate);
     annotateBtn.setAttribute('aria-pressed', annotate ? 'true' : 'false');
     field.classList.toggle('is-annotate', open && annotate);
-    if (annotate) {
-      var buttons = field.querySelectorAll('[data-pen]');
-      for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('is-on');
-        buttons[i].setAttribute('aria-pressed', 'false');
-      }
-    } else {
+    if (!annotate) {
       hideNote();
       selectPen(pen);
     }
@@ -556,7 +616,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   field.querySelectorAll('[data-color]').forEach(function (button) {
     button.addEventListener('click', function () {
       color = button.getAttribute('data-color');
-      colorDot.style.background = color;
+      recolor();
       face = 'instruments';
       slots.setAttribute('data-face', face);
       colorBtn.classList.remove('is-on');

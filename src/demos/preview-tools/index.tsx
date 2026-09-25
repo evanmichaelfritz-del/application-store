@@ -1,6 +1,6 @@
 import { createElement, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { Stage } from '@/src/components/Stage';
 import { writeClipboard } from '@/src/clipboard';
 import { fonts } from '@/src/theme';
@@ -27,8 +27,9 @@ import {
   type Chrome,
   type Frame,
   type InkStroke,
-  type Mark,
+  type PenId,
 } from './model';
+import { COLLAPSE_SVG, toolIconSvg } from './toolIcon';
 
 export function PreviewToolsDemo() {
   const [chrome, setChrome] = useState<Chrome>(INITIAL_CHROME);
@@ -285,10 +286,10 @@ export function PreviewToolsDemo() {
             </View>
           </View>
         ) : null}
-        <View style={styles.dock} pointerEvents="box-none">
+        <View style={[styles.morph, !chrome.open && styles.morphClosed, chrome.open && chrome.face === 'palette' && styles.morphPalette]}>
           {chrome.open ? (
-            <View style={styles.bar}>
-              <View style={styles.slots}>
+            <>
+              <View style={[styles.slots, chrome.face === 'palette' && styles.slotsCenter]}>
                 {chrome.face === 'palette'
                   ? SWATCHES.map((color) => {
                       const on = chrome.color === color;
@@ -301,11 +302,14 @@ export function PreviewToolsDemo() {
                           testID={`preview-tools-swatch-${color.slice(1)}`}
                           onPress={() => setChrome((current) => pickColor(current, color))}
                           style={[styles.swatch, { backgroundColor: color }, on && styles.swatchOn]}
-                        />
+                        >
+                          {on ? <SwatchTick color={color} /> : null}
+                        </Pressable>
                       );
                     })
                   : INSTRUMENTS.map((item) => {
-                      const on = chrome.pen === item.id && chrome.hand === 'draw';
+                      const on = chrome.pen === item.id;
+                      const ink = item.id === 'highlighter' ? '#fff01f' : item.id === 'eraser' ? '#c9806f' : chrome.color;
                       return (
                         <Pressable
                           key={item.id}
@@ -316,20 +320,21 @@ export function PreviewToolsDemo() {
                           onPress={() => setChrome((current) => pickPen(current, item.id))}
                           style={[styles.instrument, on && styles.instrumentOn]}
                         >
-                          <Marks marks={item.marks} />
+                          <ToolGlyph id={item.id} color={ink} />
                         </Pressable>
                       );
                     })}
               </View>
+              <View style={styles.rule} />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Color"
                 accessibilityState={{ selected: chrome.face === 'palette' }}
                 testID="preview-tools-color"
                 onPress={() => setChrome(toggleFace)}
-                style={[styles.colorWell, chrome.face === 'palette' && styles.toolOn]}
+                style={styles.wheel}
               >
-                <View style={[styles.colorDot, { backgroundColor: chrome.color }]} />
+                <View style={[styles.wheelInk, { backgroundColor: chrome.color }]} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -337,7 +342,7 @@ export function PreviewToolsDemo() {
                 accessibilityState={{ selected: chrome.guides }}
                 testID="preview-tools-guides"
                 onPress={() => setChrome(toggleGuides)}
-                style={[styles.tool, chrome.guides && styles.toolOn]}
+                style={styles.round}
               >
                 <AlignIcon on={chrome.guides} />
               </Pressable>
@@ -347,22 +352,34 @@ export function PreviewToolsDemo() {
                 accessibilityState={{ selected: chrome.hand === 'annotate' }}
                 testID="preview-tools-annotate"
                 onPress={() => setChrome(toggleAnnotate)}
-                style={[styles.tool, chrome.hand === 'annotate' && styles.toolOn]}
+                style={styles.round}
               >
                 <NoteIcon on={chrome.hand === 'annotate'} />
               </Pressable>
-            </View>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: chrome.open }}
-            accessibilityLabel={chrome.open ? 'Close tools' : 'Open tools'}
-            testID="preview-tools-toggle"
-            onPress={() => setChrome(toggleOpen)}
-            style={styles.disc}
-          >
-            {chrome.open ? <ChevronIcon /> : <Marks marks={held.marks} />}
-          </Pressable>
+              <View style={styles.rule} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: true }}
+                accessibilityLabel="Close tools"
+                testID="preview-tools-toggle"
+                onPress={() => setChrome(toggleOpen)}
+                style={styles.round}
+              >
+                <CollapseMark />
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: false }}
+              accessibilityLabel="Open tools"
+              testID="preview-tools-toggle"
+              onPress={() => setChrome(toggleOpen)}
+              style={styles.peekHit}
+            >
+              <ToolGlyph id={held.id} color={held.id === 'highlighter' ? '#fff01f' : chrome.color} width={42} />
+            </Pressable>
+          )}
         </View>
       </View>
     </Stage>
@@ -389,44 +406,36 @@ function GuideOverlay({ frames }: { frames: Frame[] }) {
   );
 }
 
-function Marks({ marks }: { marks: readonly Mark[] }) {
+function ToolGlyph({ id, color, width = 30 }: { id: PenId; color: string; width?: number }) {
+  const height = (width / 30) * 88;
+  return createElement('span', {
+    style: { display: 'block', width, height, lineHeight: 0, pointerEvents: 'none' },
+    dangerouslySetInnerHTML: { __html: toolIconSvg(id, color, width) },
+  });
+}
+
+function SwatchTick({ color }: { color: string }) {
+  const value = Number.parseInt(color.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const stroke = (red * 299 + green * 587 + blue * 114) / 1000 > 170 ? '#111111' : '#ffffff';
   return (
-    <Svg width={26} height={44} viewBox="0 0 24 40">
-      {marks.map((mark, index) => {
-        if (mark.t === 'r') {
-          return (
-            <Rect
-              key={index}
-              x={mark.x}
-              y={mark.y}
-              width={mark.w}
-              height={mark.h}
-              rx={mark.rx ?? 0}
-              fill={mark.fill ?? 'none'}
-              stroke={mark.stroke}
-              strokeWidth={mark.sw}
-            />
-          );
-        }
-        if (mark.t === 'c') return <Circle key={index} cx={mark.cx} cy={mark.cy} r={mark.r} fill={mark.fill} />;
-        return (
-          <Path
-            key={index}
-            d={mark.d}
-            fill={mark.fill ?? 'none'}
-            stroke={mark.stroke}
-            strokeWidth={mark.sw}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        );
-      })}
+    <Svg width={16} height={16} viewBox="0 0 16 16">
+      <Path d="M3.6 8.4 6.7 11.5 12.4 5.2" stroke={stroke} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
+function CollapseMark() {
+  return createElement('span', {
+    style: { width: 16, height: 16, pointerEvents: 'none' },
+    dangerouslySetInnerHTML: { __html: COLLAPSE_SVG },
+  });
+}
+
 function AlignIcon({ on }: { on: boolean }) {
-  const color = on ? GUIDE : '#17181c';
+  const color = on ? GUIDE : '#8a8a8e';
   return (
     <Svg width={16} height={16} viewBox="0 0 18 18">
       <Rect x={2.5} y={2.5} width={13} height={13} rx={2} stroke={color} strokeWidth={1.4} fill="none" />
@@ -436,18 +445,11 @@ function AlignIcon({ on }: { on: boolean }) {
 }
 
 function NoteIcon({ on }: { on: boolean }) {
+  const color = on ? '#111111' : '#8a8a8e';
   return (
     <Svg width={16} height={16} viewBox="0 0 18 18">
-      <Rect x={2} y={2} width={14} height={10} rx={2} fill={on ? '#17181c' : 'none'} stroke="#17181c" strokeWidth={1.4} />
-      <Path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill="#17181c" />
-    </Svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24">
-      <Path d="M6 9 L12 15 L18 9" stroke="#17181c" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Rect x={2} y={2} width={14} height={10} rx={2} fill={on ? '#111111' : 'none'} stroke={color} strokeWidth={1.4} />
+      <Path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill={color} />
     </Svg>
   );
 }
@@ -515,95 +517,87 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 3,
   },
-  dock: {
+  morph: {
     position: 'absolute',
     zIndex: 8,
-    bottom: 14,
+    bottom: 18,
     alignSelf: 'center',
-    width: '96%',
+    height: 84,
+    maxWidth: '96%',
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingLeft: 32,
+    paddingRight: 32,
+    borderRadius: 42,
+    overflow: 'hidden',
+    backgroundImage: 'linear-gradient(180deg, #fbfaf9 0%, #f1efec 100%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 0.5px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05), 0 5px 12px rgba(0,0,0,0.09), 0 9px 20px rgba(0,0,0,0.06)',
   },
-  bar: {
-    flexDirection: 'row',
+  morphClosed: {
+    width: 84,
+    height: 84,
+    paddingLeft: 0,
+    paddingRight: 0,
+    gap: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 4,
-    minHeight: 64,
-    maxWidth: '100%',
-    flexShrink: 1,
-    paddingVertical: 4,
-    paddingLeft: 6,
-    paddingRight: 6,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    boxShadow: '0 10px 28px rgba(23,24,28,0.16)',
+    justifyContent: 'flex-start',
+    transform: [{ scale: 0.667 }],
   },
-  slots: { flexDirection: 'row', alignItems: 'flex-end', gap: 1, flexShrink: 1 },
+  morphPalette: { alignItems: 'center' },
+  peekHit: { width: 84, height: 84, alignItems: 'center', paddingTop: 7, cursor: 'pointer' },
+  slots: { height: 84, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  slotsCenter: { height: 36, alignItems: 'center', gap: 5 },
+  rule: { width: 1, height: 22, alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.1)', marginHorizontal: 2 },
   instrument: {
-    width: 36,
-    height: 52,
+    width: 34,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    borderRadius: 10,
+    marginBottom: -20,
+    transform: [{ translateY: 6 }],
+    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.12))',
     cursor: 'pointer',
   },
-  instrumentOn: { backgroundColor: '#ececee' },
+  instrumentOn: {
+    transform: [{ translateY: -12 }],
+    filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
+  },
   swatch: {
-    width: 16,
-    height: 16,
+    width: 26,
+    height: 26,
     borderRadius: 8,
-    marginHorizontal: 2,
-    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.12)',
     cursor: 'pointer',
   },
-  swatchOn: { outlineWidth: 2, outlineColor: '#17181c', outlineStyle: 'solid', outlineOffset: 2 },
-  colorWell: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  swatchOn: { transform: [{ scale: 1.08 }, { translateY: -1 }] },
+  wheel: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#fff',
+    backgroundImage: 'conic-gradient(#ff383c, #ff8d28, #ffcc00, #34c759, #00c3d0, #0088ff, #6155f5, #d6336c, #ff383c)',
+    boxShadow: '0 0 0 0.5px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.5)',
     cursor: 'pointer',
   },
-  colorDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
+  wheelInk: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    boxShadow: '0 0 0 3px #fbfaf9, 0 0 0 3.5px rgba(0,0,0,0.1)',
   },
-  tool: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+  round: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-  },
-  toolOn: { backgroundColor: '#ececee' },
-  disc: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    boxShadow: '0 10px 28px rgba(23,24,28,0.16)',
-    cursor: 'pointer',
-    flexShrink: 0,
   },
   hoverName: {
     position: 'absolute',

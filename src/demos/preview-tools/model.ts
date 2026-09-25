@@ -9,79 +9,17 @@ export const SAMPLE_CONTROLS = [
   { id: 'send', label: '↑', kind: 'send' },
 ] as const;
 
-export const SWATCHES = ['#17181c', '#e5484d', '#f5a524', '#3b82f6', '#9B5CFF', '#12a150'] as const;
-
-export type Mark =
-  | { t: 'r'; x: number; y: number; w: number; h: number; rx?: number; fill?: string; stroke?: string; sw?: number }
-  | { t: 'p'; d: string; fill?: string; stroke?: string; sw?: number }
-  | { t: 'c'; cx: number; cy: number; r: number; fill: string };
+export const SWATCHES = ['#111111', '#ff383c', '#ff8d28', '#ffcc00', '#34c759', '#0088ff', '#6155f5'] as const;
 
 export const INSTRUMENTS = [
-  {
-    id: 'pencil',
-    label: 'Pencil',
-    marks: [
-      { t: 'r', x: 8, y: 1, w: 8, h: 6, rx: 1.5, fill: '#f3a0b2' },
-      { t: 'r', x: 8, y: 7, w: 8, h: 3, fill: '#d5d5d8' },
-      { t: 'r', x: 7, y: 10, w: 10, h: 16, rx: 1, fill: '#f0c14b' },
-      { t: 'p', d: 'M7 26 L17 26 L12 34 Z', fill: '#e2b15a' },
-      { t: 'p', d: 'M10.2 31.5 L13.8 31.5 L12 38 Z', fill: '#2c2c2c' },
-    ],
-  },
-  {
-    id: 'pen',
-    label: 'Pen',
-    marks: [
-      { t: 'r', x: 9, y: 2, w: 6, h: 16, rx: 2, fill: '#1c1d22' },
-      { t: 'r', x: 8.5, y: 17, w: 7, h: 4, rx: 1, fill: '#c8c8cc' },
-      { t: 'p', d: 'M9 21 L15 21 L12 36 Z', fill: '#1c1d22' },
-      { t: 'c', cx: 12, cy: 36.6, r: 1.15, fill: '#1c1d22' },
-    ],
-  },
-  {
-    id: 'brush',
-    label: 'Brush',
-    marks: [
-      { t: 'r', x: 10, y: 1, w: 4, h: 15, rx: 1, fill: '#8a5a32' },
-      { t: 'r', x: 8, y: 15, w: 8, h: 4, fill: '#c8c8cc' },
-      { t: 'p', d: 'M8 19 C8 19 5 28 12 38 C19 28 16 19 16 19 Z', fill: '#242424' },
-    ],
-  },
-  {
-    id: 'fineliner',
-    label: 'Fineliner',
-    marks: [
-      { t: 'r', x: 10.5, y: 2, w: 3, h: 22, rx: 1, fill: '#202228' },
-      { t: 'p', d: 'M10.5 24 L13.5 24 L12 38 Z', fill: '#202228' },
-    ],
-  },
-  {
-    id: 'highlighter',
-    label: 'Highlighter',
-    marks: [
-      { t: 'r', x: 6, y: 3, w: 12, h: 7, rx: 2, fill: '#f6d34d' },
-      { t: 'r', x: 7, y: 10, w: 10, h: 14, rx: 1, fill: '#ffe56a' },
-      { t: 'p', d: 'M7 24 L17 24 L17 33 L7 28 Z', fill: '#f0c83a' },
-    ],
-  },
-  {
-    id: 'fountain',
-    label: 'Fountain',
-    marks: [
-      { t: 'r', x: 9, y: 2, w: 6, h: 15, rx: 3, fill: '#1a2744' },
-      { t: 'r', x: 8, y: 16, w: 8, h: 3, fill: '#d4b483' },
-      { t: 'p', d: 'M8 19 L16 19 L13.2 28 L12 37 L10.8 28 Z', fill: '#e4e7ee' },
-      { t: 'r', x: 11.4, y: 22, w: 1.2, h: 11, fill: '#8b93a7' },
-    ],
-  },
-  {
-    id: 'eraser',
-    label: 'Eraser',
-    marks: [
-      { t: 'r', x: 4, y: 14, w: 16, h: 12, rx: 3, fill: '#f3a0b2' },
-      { t: 'r', x: 4, y: 14, w: 6, h: 12, rx: 3, fill: '#ececef' },
-    ],
-  },
+  { id: 'pencil', label: 'Pencil' },
+  { id: 'pen', label: 'Pen' },
+  { id: 'fineliner', label: 'Fineliner' },
+  { id: 'marker', label: 'Marker' },
+  { id: 'highlighter', label: 'Highlighter' },
+  { id: 'brush', label: 'Brush' },
+  { id: 'fountain', label: 'Fountain' },
+  { id: 'eraser', label: 'Eraser' },
 ] as const;
 
 export type PenId = (typeof INSTRUMENTS)[number]['id'];
@@ -103,7 +41,7 @@ export const INITIAL_CHROME: Chrome = {
   hand: 'draw',
   guides: true,
   pen: 'pen',
-  color: '#17181c',
+  color: '#111111',
   draftId: null,
   draftText: '',
 };
@@ -217,34 +155,29 @@ export function agentNotesMarkdown(notes: AgentNote[]): string {
     .join('\n\n');
 }
 
-export function marksSvg(marks: readonly Mark[], width = 20, height = 34): string {
-  const body = marks
-    .map((mark) => {
-      if (mark.t === 'r') {
-        const fill = mark.fill ?? 'none';
-        const stroke = mark.stroke ? ` stroke="${mark.stroke}" stroke-width="${mark.sw ?? 1}"` : '';
-        return `<rect x="${mark.x}" y="${mark.y}" width="${mark.w}" height="${mark.h}" rx="${mark.rx ?? 0}" fill="${fill}"${stroke}/>`;
-      }
-      if (mark.t === 'c') return `<circle cx="${mark.cx}" cy="${mark.cy}" r="${mark.r}" fill="${mark.fill}"/>`;
-      const fill = mark.fill ?? 'none';
-      const stroke = mark.stroke ? ` stroke="${mark.stroke}" stroke-width="${mark.sw ?? 1}"` : '';
-      return `<path d="${mark.d}" fill="${fill}"${stroke}/>`;
-    })
-    .join('');
-  return `<svg viewBox="0 0 24 40" width="${width}" height="${height}" aria-hidden="true">${body}</svg>`;
-}
-
-export const CHEVRON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9 L12 15 L18 9" fill="none" stroke="#17181c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
 export const STAGE_HEIGHT = 520;
 
-function hexAlpha(hex: string, alpha: number): string {
-  const value = Number.parseInt(hex.slice(1), 16);
-  const red = (value >> 16) & 255;
-  const green = (value >> 8) & 255;
-  const blue = value & 255;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
+const DRAW: Record<
+  PenId,
+  {
+    size: number;
+    thinning: number;
+    nibAngle?: number;
+    nibContrast?: number;
+    flat?: boolean;
+    taper?: number;
+    mode: 'ink' | 'graphite' | 'highlight' | 'erase';
+  }
+> = {
+  pencil: { size: 1, thinning: 0.5, mode: 'graphite' },
+  pen: { size: 6, thinning: 0.5, mode: 'ink' },
+  fineliner: { size: 2, thinning: 0, mode: 'ink' },
+  marker: { size: 18, thinning: 0.12, mode: 'ink' },
+  highlighter: { size: 28, thinning: 0, flat: true, mode: 'highlight' },
+  brush: { size: 14, thinning: 0.42, taper: 16, mode: 'ink' },
+  fountain: { size: 8, thinning: 0.1, nibAngle: 45, nibContrast: 0.85, mode: 'ink' },
+  eraser: { size: 28, thinning: 0, mode: 'erase' },
+};
 
 export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: InkStroke[]) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -254,56 +187,93 @@ export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: InkStroke[]
 function paintStroke(ctx: CanvasRenderingContext2D, stroke: InkStroke) {
   const points = stroke.points;
   if (points.length < 2) return;
+  const spec = DRAW[stroke.pen];
   ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (stroke.pen === 'eraser' || stroke.pen === 'highlighter' || stroke.pen === 'fineliner') {
-    if (stroke.pen === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.strokeStyle = 'rgba(0,0,0,1)';
-      ctx.lineWidth = 20;
-    } else if (stroke.pen === 'highlighter') {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = hexAlpha(stroke.color, 0.38);
-      ctx.lineWidth = 16;
-    } else {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = 1.35;
-    }
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i].x, points[i].y);
-    ctx.stroke();
+  if (spec.mode === 'erase') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+  } else if (spec.mode === 'highlight') {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = '#fff01f';
+  } else if (spec.mode === 'graphite') {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#3a3a3a';
   } else {
-    ctx.globalCompositeOperation = 'source-over';
-    for (let i = 1; i < points.length; i += 1) {
-      const prev = points[i - 1];
-      const next = points[i];
-      const dx = next.x - prev.x;
-      const dy = next.y - prev.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      if (stroke.pen === 'fountain') {
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = 0.6 + (Math.max(0, dy) / dist) * 5.5;
-      } else if (stroke.pen === 'brush') {
-        const speed = Math.min(1, dist / 22);
-        ctx.strokeStyle = hexAlpha(stroke.color, 0.85);
-        ctx.lineWidth = Math.max(1.8, 9 * (1 - speed * 0.78));
-      } else if (stroke.pen === 'pencil') {
-        const speed = Math.min(1, dist / 24);
-        ctx.strokeStyle = '#4a4a4a';
-        ctx.lineWidth = Math.max(0.45, 2.2 * (1 - speed * 0.75));
-      } else {
-        const speed = Math.min(1, dist / 28);
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = Math.max(0.7, 3.4 * (1 - speed * 0.72));
-      }
-      ctx.beginPath();
-      ctx.moveTo(prev.x, prev.y);
-      ctx.lineTo(next.x, next.y);
-      ctx.stroke();
+    ctx.fillStyle = stroke.color;
+  }
+  for (const ring of strokeRings(points, spec)) fillRing(ctx, ring);
+  ctx.restore();
+}
+
+function strokeRings(
+  points: Point[],
+  spec: { size: number; thinning: number; nibAngle?: number; nibContrast?: number; flat?: boolean; taper?: number },
+): number[][][] {
+  const nib = spec.size / 2;
+  const radii: number[] = [];
+  const lengths: number[] = [];
+  let pressure = 0.7;
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1];
+    const next = points[i];
+    const dist = Math.hypot(next.x - prev.x, next.y - prev.y) || 1;
+    lengths.push(dist);
+    pressure += (1 - Math.min(1, dist / 26) - pressure) * 0.45;
+    let radius = nib * (1 - spec.thinning + spec.thinning * pressure);
+    if (spec.nibContrast) {
+      const angle = Math.atan2(next.y - prev.y, next.x - prev.x) - ((spec.nibAngle ?? 0) * Math.PI) / 180;
+      radius *= 1 - spec.nibContrast * (1 - Math.abs(Math.sin(angle)));
+    }
+    radii.push(Math.max(0.35, radius));
+  }
+  if (spec.taper) {
+    let walked = 0;
+    for (let i = lengths.length - 1; i >= 0; i -= 1) {
+      walked += lengths[i];
+      const along = Math.min(1, walked / spec.taper);
+      radii[i] *= 0.1 + 0.9 * Math.pow(along, 0.55);
     }
   }
-  ctx.restore();
+  const rings: number[][][] = [];
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1];
+    const next = points[i];
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const r0 = radii[i - 1];
+    const r1 = radii[Math.min(i, radii.length - 1)];
+    rings.push([
+      [prev.x + nx * r0, prev.y + ny * r0],
+      [next.x + nx * r1, next.y + ny * r1],
+      [next.x - nx * r1, next.y - ny * r1],
+      [prev.x - nx * r0, prev.y - ny * r0],
+    ]);
+    if (!spec.flat) rings.push(disc(prev.x, prev.y, r0));
+  }
+  if (!spec.flat) {
+    const last = points[points.length - 1];
+    rings.push(disc(last.x, last.y, radii[radii.length - 1]));
+  }
+  return rings;
+}
+
+function disc(cx: number, cy: number, radius: number): number[][] {
+  const ring: number[][] = [];
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (i / 12) * Math.PI * 2;
+    ring.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+  }
+  return ring;
+}
+
+function fillRing(ctx: CanvasRenderingContext2D, ring: number[][]) {
+  ctx.beginPath();
+  ctx.moveTo(ring[0][0], ring[0][1]);
+  for (let i = 1; i < ring.length; i += 1) ctx.lineTo(ring[i][0], ring[i][1]);
+  ctx.closePath();
+  ctx.fill();
 }
