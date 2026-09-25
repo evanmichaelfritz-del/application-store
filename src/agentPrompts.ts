@@ -155,10 +155,10 @@ const LOCKS: Record<string, PromptLock> = {
   'orb-state-picker': ORB_GALLERY_LOCKS['state-picker'],
   'preview-tools': {
     motion:
-      'One round button opens and closes. Closed shows only that button. Open reveals Guides, Pen, Marker, Eraser, and the note field. Guides draws a 1px #9B5CFF box around each sample control, a full-width horizontal line at that control top, center, and bottom, and a full-height vertical line at its left, center, and right. Pen strokes thin as the pointer moves faster. Marker holds a 14px translucent yellow width. Eraser removes area with destination-out, not whole strokes. A note stores a comment, selector, and box, then Copy writes that markdown.',
+      'A 48px white disc opens and closes the tray. Closed, the disc shows the pen in hand. Open, that disc sits at the end of a white instrument bar with pencil, pen, brush, fineliner, highlighter, fountain, and eraser glyphs. The color well swaps the glyphs for swatches. Pencil, pen, and brush thin as the pointer speeds up. Fineliner holds 1.35px. Highlighter holds 16px at 0.38 alpha. Fountain thickens on downward strokes. Eraser removes area with destination-out. Alignment draws 1px #9B5CFF boxes, full-width lines at each control top, center, and bottom, and vertical lines across the row. Annotate lets a click on a control open a note card on that control. Copy writes markdown with label, selector, note, and box.',
     content:
-      'Center-aligned sample row: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The round button sits at the bottom. Inner tools stay hidden until it opens.',
-    rn: 'Copy HTML, Copy CSS, and Copy script are this combined preview. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card for each mode.',
+      'The stage is 460px tall. The sample row is centered: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The tray sits at the bottom. Guides and the note card stay hidden until the disc opens.',
+    rn: 'Copy HTML, Copy CSS, and Copy script are this same tray. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card. Do not render text chips labeled Pen, Marker, or Eraser.',
   },
 };
 

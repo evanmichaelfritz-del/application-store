@@ -444,7 +444,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'preview-tools',
     title: 'Preview tools',
-    subtitle: 'One button opens guides, drawing, and notes',
+    subtitle: 'A drawing disc opens alignment, pens, and notes',
     categories: [],
     tags: ['symmetry', 'grid', 'guides', 'draw', 'drawesome', 'note', 'agentation', 'tools', 'preview'],
     sections: ['tools'],
