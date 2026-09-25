@@ -9,6 +9,7 @@ import { TRANSITIONS } from '@/src/catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import type { NavSection } from '@/src/sections';
 import { SNIPPETS } from '@/src/snippets';
+import { PREVIEW_TOOLS_CSS, PREVIEW_TOOLS_HTML, PREVIEW_TOOLS_SCRIPT } from '@/src/demos/preview-tools/copy';
 import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 
 export type PreviewKind = 'transitions' | 'effects';
@@ -1177,6 +1178,12 @@ canvas { display: block; width: 168px; height: 168px; }`,
 @media (prefers-reduced-motion: reduce) {
   .t-metal::before { animation: none !important; }
 }`,
+  },
+  'preview-tools': {
+    snippet: false,
+    html: PREVIEW_TOOLS_HTML,
+    extraCss: PREVIEW_TOOLS_CSS,
+    script: PREVIEW_TOOLS_SCRIPT,
   },
 };
 

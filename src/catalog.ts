@@ -37,6 +37,7 @@ import {
 } from './demos/thinking-orbs-playground/galleryCards';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
+import { PreviewToolsDemo } from './demos/preview-tools';
 import type { NavSection } from './sections';
 
 /**
@@ -439,6 +440,16 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['graphic-design'],
     pro: false,
     Demo: AbrarOverviewDemo,
+  },
+  {
+    id: 'preview-tools',
+    title: 'Preview tools',
+    subtitle: 'One button opens guides, drawing, and notes',
+    categories: [],
+    tags: ['symmetry', 'grid', 'guides', 'draw', 'drawesome', 'note', 'agentation', 'tools', 'preview'],
+    sections: ['tools'],
+    pro: false,
+    Demo: PreviewToolsDemo,
   },
 ];
 

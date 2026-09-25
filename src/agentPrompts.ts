@@ -153,6 +153,13 @@ const LOCKS: Record<string, PromptLock> = {
   'orb-working': ORB_GALLERY_LOCKS.working,
   'orb-agent-shaping': ORB_GALLERY_LOCKS['agent-shaping'],
   'orb-state-picker': ORB_GALLERY_LOCKS['state-picker'],
+  'preview-tools': {
+    motion:
+      'One round button opens and closes. Closed shows only that button. Open reveals Guides, Pen, Marker, Eraser, and the note field. Guides draws a 1px #9B5CFF box around each sample control, a full-width horizontal line at that control top, center, and bottom, and a full-height vertical line at its left, center, and right. Pen strokes thin as the pointer moves faster. Marker holds a 14px translucent yellow width. Eraser removes area with destination-out, not whole strokes. A note stores a comment, selector, and box, then Copy writes that markdown.',
+    content:
+      'Center-aligned sample row: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The round button sits at the bottom. Inner tools stay hidden until it opens.',
+    rn: 'Copy HTML, Copy CSS, and Copy script are this combined preview. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card for each mode.',
+  },
 };
 
 function buildGooeyPlusPrompt(): string {
