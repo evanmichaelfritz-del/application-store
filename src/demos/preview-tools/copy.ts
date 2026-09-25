@@ -7,7 +7,7 @@ const controlHtml = SAMPLE_CONTROLS.map(
 
 const penHtml = INSTRUMENTS.map((item) => {
   const on = item.id === 'pen' ? ' is-on' : '';
-  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pen' ? 'true' : 'false'}">${marksSvg(item.marks, 18, 30)}</button>`;
+  return `<button class="pt-pen${on}" type="button" data-pen="${item.id}" aria-label="${item.label}" aria-pressed="${item.id === 'pen' ? 'true' : 'false'}">${marksSvg(item.marks, 26, 44)}</button>`;
 }).join('');
 
 const swatchHtml = SWATCHES.map(
@@ -15,8 +15,8 @@ const swatchHtml = SWATCHES.map(
     `<button class="pt-swatch${color === '#17181c' ? ' is-on' : ''}" type="button" data-color="${color}" aria-label="${color}" style="background:${color}"></button>`,
 ).join('');
 
-const penSvg = marksSvg(INSTRUMENTS[1].marks, 18, 30);
-const glyphs = Object.fromEntries(INSTRUMENTS.map((item) => [item.id, marksSvg(item.marks, 18, 30)]));
+const penSvg = marksSvg(INSTRUMENTS[1].marks, 26, 44);
+const glyphs = Object.fromEntries(INSTRUMENTS.map((item) => [item.id, marksSvg(item.marks, 26, 44)]));
 
 const alignSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="8.3" width="16" height="1.4" fill="currentColor"/></svg>`;
 const noteSvg = `<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="14" height="10" rx="2" fill="none" stroke="#17181c" stroke-width="1.4"/><path d="M6 12.2 L9 12.2 L6.6 15.2 Z" fill="#17181c"/></svg>`;
@@ -151,7 +151,7 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
-  min-height: 52px;
+  min-height: 64px;
   max-width: calc(100% - 54px);
   padding: 4px 6px;
   background: #fff;
@@ -162,8 +162,8 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 .pt-field.is-open .pt-bar { display: flex; }
 .pt-slots { display: flex; align-items: flex-end; gap: 1px; }
 .pt-pen {
-  width: 24px;
-  height: 40px;
+  width: 36px;
+  height: 52px;
   border: 0;
   padding: 0;
   background: transparent;
@@ -208,9 +208,9 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
 .pt-tool.is-on, .pt-color.is-on { background: #ececee; }
 #pt-guides-btn.is-on { color: ${GUIDE}; }
 .pt-disc {
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
   border: 1px solid rgba(0,0,0,.06);
   background: #fff;
   box-shadow: 0 10px 28px rgba(23,24,28,.16);
@@ -566,7 +566,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   });
   canvas.addEventListener('pointerdown', function (event) {
     if (!open || annotate) return;
-    try { canvas.setPointerCapture(event.pointerId); } catch (err) {}
+    if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
     draft = { pen: pen, color: color, points: [point(event)] };
   });
   canvas.addEventListener('pointermove', function (event) {

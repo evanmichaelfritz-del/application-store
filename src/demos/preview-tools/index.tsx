@@ -104,11 +104,7 @@ export function PreviewToolsDemo() {
     const down = (event: PointerEvent) => {
       const current = chromeRef.current;
       if (!current.open || current.hand !== 'draw') return;
-      try {
-        canvas.setPointerCapture(event.pointerId);
-      } catch {
-        /* Untrusted pointer events cannot be captured. */
-      }
+      if (event.isTrusted) canvas.setPointerCapture(event.pointerId);
       const next = { pen: current.pen, color: current.color, points: [localPoint(event)] };
       draftRef.current = next;
       setDraft(next);
@@ -395,7 +391,7 @@ function GuideOverlay({ frames }: { frames: Frame[] }) {
 
 function Marks({ marks }: { marks: readonly Mark[] }) {
   return (
-    <Svg width={18} height={30} viewBox="0 0 24 40">
+    <Svg width={26} height={44} viewBox="0 0 24 40">
       {marks.map((mark, index) => {
         if (mark.t === 'r') {
           return (
@@ -536,7 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexWrap: 'wrap',
     gap: 4,
-    minHeight: 52,
+    minHeight: 64,
     maxWidth: '100%',
     flexShrink: 1,
     paddingVertical: 4,
@@ -550,11 +546,11 @@ const styles = StyleSheet.create({
   },
   slots: { flexDirection: 'row', alignItems: 'flex-end', gap: 1, flexShrink: 1 },
   instrument: {
-    width: 24,
-    height: 40,
+    width: 36,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    borderRadius: 8,
+    borderRadius: 10,
     cursor: 'pointer',
   },
   instrumentOn: { backgroundColor: '#ececee' },
@@ -597,9 +593,9 @@ const styles = StyleSheet.create({
   },
   toolOn: { backgroundColor: '#ececee' },
   disc: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',

@@ -236,7 +236,7 @@ export function marksSvg(marks: readonly Mark[], width = 20, height = 34): strin
 
 export const CHEVRON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9 L12 15 L18 9" fill="none" stroke="#17181c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-export const STAGE_HEIGHT = 460;
+export const STAGE_HEIGHT = 520;
 
 function hexAlpha(hex: string, alpha: number): string {
   const value = Number.parseInt(hex.slice(1), 16);
