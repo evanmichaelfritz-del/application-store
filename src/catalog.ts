@@ -391,16 +391,6 @@ export const TRANSITIONS: TransitionItem[] = [
     Demo: AgentShapingOrbDemo,
   },
   {
-    id: 'orb-state-picker',
-    title: 'Orb state picker',
-    subtitle: 'Pick Working, Searching, Solving, Listening, and other states',
-    categories: ['effects', 'ai'],
-    tags: ['thinking', 'orbs', 'state', 'picker', 'playground', 'working', 'searching', 'solving', 'listening', 'effects', 'ai'],
-    sections: ['effects'],
-    pro: false,
-    Demo: OrbStatePickerDemo,
-  },
-  {
     id: 'gooey',
     title: 'Gooey',
     subtitle: 'Liquid effects for UI',
@@ -452,6 +442,16 @@ export const TRANSITIONS: TransitionItem[] = [
     fullRow: true,
     pro: false,
     Demo: PreviewToolsDemo,
+  },
+  {
+    id: 'orb-state-picker',
+    title: 'Orb state picker',
+    subtitle: 'Pick Working, Searching, Solving, Listening, and other states',
+    categories: ['effects', 'ai'],
+    tags: ['thinking', 'orbs', 'state', 'picker', 'playground', 'working', 'searching', 'solving', 'listening', 'effects', 'ai', 'tool'],
+    sections: ['tools'],
+    pro: false,
+    Demo: OrbStatePickerDemo,
   },
 ];
 
