@@ -4,6 +4,12 @@ const upstream = require('@expo/metro-config/build/babel-transformer');
 const RAW_SUFFIXES = [
   '/src/demos/abrar-overview/AGENT_PROMPT.md',
   '/src/demos/abrar-overview/closed-network.html',
+  '/src/demos/yogesh-thinking-orbs/copy/view.md',
+  '/src/demos/yogesh-thinking-orbs/copy/style.md',
+  '/src/demos/yogesh-thinking-orbs/copy/engine.md',
+  '/src/demos/yogesh-orb-creator/copy/view.md',
+  '/src/demos/yogesh-orb-creator/copy/style.md',
+  '/src/demos/yogesh-orb-creator/copy/engine.md',
 ];
 
 function transform(args) {

@@ -38,6 +38,8 @@ import {
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
+import { YogeshOrbCreatorDemo } from './demos/yogesh-orb-creator';
+import { YogeshThinkingOrbsDemo } from './demos/yogesh-thinking-orbs';
 import type { NavSection } from './sections';
 
 /**
@@ -119,6 +121,29 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['transitions'],
     pro: false,
     Demo: MenuDropdownDemo,
+  },
+  {
+    id: 'yogesh-thinking-orbs',
+    title: 'Thinking Orbs',
+    subtitle: "Yogesh's orb landing + playground tuner",
+    categories: ['effects', 'ai'],
+    tags: [
+      'yogesh',
+      'yogesharc',
+      'thinking-orbs',
+      'orbs',
+      'skia',
+      'playground',
+      'landing',
+      'agent-states',
+      'shimmer',
+      'color-picker',
+      'react-native-skia',
+    ],
+    sections: ['effects'],
+    fullRow: true,
+    pro: false,
+    Demo: YogeshThinkingOrbsDemo,
   },
   {
     id: 'confetti-burst',
@@ -452,6 +477,28 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['tools'],
     pro: false,
     Demo: OrbStatePickerDemo,
+  },
+  {
+    id: 'yogesh-orb-creator',
+    title: 'Orb Creator',
+    subtitle: "Yogesh's orb tuner: pick, tweak, copy",
+    categories: ['effects', 'ai'],
+    tags: [
+      'yogesh',
+      'yogesharc',
+      'orb-creator',
+      'playground',
+      'tuner',
+      'color-picker',
+      'oklch',
+      'thinking-orbs',
+      'skia',
+      'tool',
+    ],
+    sections: ['tools'],
+    fullRow: true,
+    pro: false,
+    Demo: YogeshOrbCreatorDemo,
   },
 ];
 

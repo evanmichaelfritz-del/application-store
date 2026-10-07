@@ -5,7 +5,7 @@
   "buildCommand": "npx setup-skia-web public && npx expo export --platform web",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!canvaskit\\.wasm).*)", "destination": "/index.html" }
+    { "source": "/((?!canvaskit\\.wasm|prompts/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
