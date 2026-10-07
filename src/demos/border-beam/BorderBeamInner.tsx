@@ -6,6 +6,7 @@ import type { DemoProps } from '@/src/libdev/tokens';
 import { libdevColors as colors } from '@/src/libdev/tokens';
 import { useLatchedLayout } from '@/src/libdev/useLatchedLayout';
 import { useLoopProgress } from '@/src/libdev/useLoopProgress';
+import { useSkiaRuntime } from '@/src/skia/liveBudget';
 
 import { BorderBeamStroke } from './BorderBeamStroke';
 
@@ -13,6 +14,7 @@ const BEAM = ['#ff4d9a', '#c026d3', '#a855f7', '#fb7c3a'];
 const SEARCH = ['#ff8ab8', '#ff5aa5', '#e879f9'];
 
 export default function BorderBeamInner({ reducedMotion, clockRunning }: DemoProps) {
+  const { mount } = useSkiaRuntime();
   const beam = useLoopProgress(2800, reducedMotion, 0.12, clockRunning);
   const search = useLoopProgress(5200, reducedMotion, 0.4, clockRunning);
   const chat = useLatchedLayout({ w: 0, h: 56 });
@@ -21,7 +23,7 @@ export default function BorderBeamInner({ reducedMotion, clockRunning }: DemoPro
   return (
     <View style={[styles.root, { pointerEvents: 'none' }]}>
       <View collapsable={false} style={styles.chat} onLayout={chat.onLayout}>
-        {chat.ready ? (
+        {chat.ready && mount ? (
           <Canvas collapsable={false} style={styles.canvasFill}>
             <BorderBeamStroke
               progress={beam}
@@ -38,7 +40,7 @@ export default function BorderBeamInner({ reducedMotion, clockRunning }: DemoPro
       </View>
 
       <View collapsable={false} style={styles.search} onLayout={pill.onLayout}>
-        {pill.ready ? (
+        {pill.ready && mount ? (
           <Canvas collapsable={false} style={styles.canvasFill}>
             <BorderBeamStroke
               progress={search}

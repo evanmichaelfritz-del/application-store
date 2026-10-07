@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, AppState, type AppStateStatus } from "react-native";
 import { runOnJS, useFrameCallback } from "react-native-reanimated";
+import { useSkiaRuntime } from "@/src/skia/liveBudget";
 
 const listeners = new Set<() => void>();
 
@@ -133,7 +134,8 @@ export function OrbClockProvider({
 }) {
   const systemReduced = useReducedMotionFlag();
   const reducedMotion = reducedMotionProp || systemReduced;
-  const hidden = useHostHidden();
+  const runtime = useSkiaRuntime();
+  const hidden = useHostHidden() || !runtime.running;
   const tokenRef = useRef<symbol | null>(null);
   if (tokenRef.current == null) tokenRef.current = Symbol("orb-clock");
   const frame = useFrameCallback(() => {

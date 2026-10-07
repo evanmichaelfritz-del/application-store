@@ -8,6 +8,7 @@ import {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useSkiaRuntime } from '@/src/skia/liveBudget';
 
 /**
  * Loop clock. When `running` is 0 the animation is cancelled in place —
@@ -19,7 +20,9 @@ export function useLoopProgress(
   frozen = 0.18,
   running?: { value: number },
 ) {
+  const runtime = useSkiaRuntime();
   const progress = useSharedValue(reducedMotion ? frozen : 0);
+  const gate = useSharedValue(runtime.running ? 1 : 0);
 
   const start = useCallback(() => {
     cancelAnimation(progress);
@@ -36,9 +39,17 @@ export function useLoopProgress(
   }, [progress]);
 
   useEffect(() => {
+    gate.value = runtime.running ? 1 : 0;
+  }, [gate, runtime.running]);
+
+  useEffect(() => {
     if (reducedMotion) {
       stop();
       progress.value = frozen;
+      return;
+    }
+    if (!runtime.running) {
+      stop();
       return;
     }
     if (running && running.value === 0) {
@@ -48,17 +59,17 @@ export function useLoopProgress(
     }
     start();
     return stop;
-  }, [frozen, progress, reducedMotion, running, start, stop]);
+  }, [frozen, progress, reducedMotion, running, runtime.running, start, stop]);
 
   useAnimatedReaction(
     () => (running ? running.value : 1),
     (run, prev) => {
-      if (reducedMotion) return;
+      if (reducedMotion || !gate.value) return;
       if (prev === undefined || run === prev) return;
       if (!run) runOnJS(stop)();
       else runOnJS(start)();
     },
-    [reducedMotion, running, start, stop],
+    [gate, reducedMotion, running, start, stop],
   );
 
   return progress;

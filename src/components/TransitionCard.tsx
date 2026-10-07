@@ -9,6 +9,7 @@ import {
 import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
+import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import type { TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
@@ -126,7 +127,7 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
   return (
     <View style={styles.card}>
       <View style={styles.stageWrap}>
-        <item.Demo />
+        {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
         <View style={styles.live}>
           <Text style={styles.liveText}>Showcase</Text>
         </View>
@@ -187,7 +188,7 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
         onClose={() => setShowcase(false)}
       >
         <View style={styles.showcaseStage}>
-          <item.Demo />
+          {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
         </View>
       </StoreSheet>
 

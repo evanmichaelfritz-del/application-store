@@ -1,9 +1,10 @@
-import { Component, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Component, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
 import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import { getImgFxShaderReady, subscribeImgFxReady } from '@/src/shims/imgFxGate';
 import { colors } from '@/src/theme';
 
 const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
@@ -28,18 +29,60 @@ class WebGlGate extends Component<{ children: ReactNode; fallback: ReactNode }, 
   }
 }
 
+function hostElement(node: View | null): HTMLElement | null {
+  if (typeof HTMLElement !== 'undefined' && node instanceof HTMLElement) return node;
+  return null;
+}
+
 /**
  * Web showcase: img-fx ImageGeneration loader
  * (`npm install img-fx three`).
+ *
+ * The shader stays unmounted until the card enters the viewport, then links on
+ * the GPU before the first draw. Offscreen and hidden tabs pause it in place.
  */
 export function ImageGenerationLoaderDemo() {
   const { reduceMotion } = useReduceMotion();
   const ref = useRef<ImageGenerationHandle>(null);
-  const [mounted, setMounted] = useState(false);
+  const hostRef = useRef<View>(null);
+  const canObserve = typeof IntersectionObserver === 'function';
+  const [seen, setSeen] = useState(!canObserve);
+  const [inView, setInView] = useState(!canObserve);
+  const [tabHidden, setTabHidden] = useState(false);
+  const [revealLatched, setRevealLatched] = useState(false);
+  const shaderReady = useSyncExternalStore(subscribeImgFxReady, getImgFxShaderReady, () => false);
 
   useEffect(() => {
-    setMounted(true);
+    if (!canObserve) return;
+    const el = hostElement(hostRef.current);
+    if (!el) {
+      setSeen(true);
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.some((entry) => entry.isIntersecting);
+        setInView(hit);
+        if (hit) setSeen(true);
+      },
+      { root: null, rootMargin: '0px', threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [canObserve]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onVis = () => setTabHidden(document.visibilityState === 'hidden');
+    onVis();
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
+
+  useEffect(() => {
+    if (!reduceMotion && shaderReady && inView && !tabHidden) setRevealLatched(true);
+  }, [inView, reduceMotion, shaderReady, tabHidden]);
 
   const fallback = (
     <div
@@ -57,19 +100,25 @@ export function ImageGenerationLoaderDemo() {
     </div>
   );
 
+  // Pause without toggling autoReveal: img-fx's autoReveal effect calls stop(),
+  // which clears a reveal that's already on screen. The latch keeps that effect
+  // stable once the shader has actually started in view.
+  const paused = reduceMotion || !inView || tabHidden || !shaderReady;
+  const autoReveal = revealLatched;
+
   return (
     <Stage>
-      <View style={styles.wrap} collapsable={false}>
+      <View ref={hostRef} style={styles.wrap} collapsable={false}>
         <WebGlGate fallback={fallback}>
-          {mounted ? (
+          {seen ? (
             <ImageGeneration
               ref={ref}
               preset="pixels-organic"
               theme="light"
               cardBg={colors.card}
               images={IMAGES}
-              autoReveal={!reduceMotion}
-              paused={reduceMotion}
+              autoReveal={autoReveal}
+              paused={paused}
               revealDelayRange={[1.2, 2.4]}
               revealHoldMs={2200}
               revealFadeOutMs={320}
