@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Stage } from '@/src/components/Stage';
+import { Showcase } from './Showcase';
 import { ThemeProvider } from './theme/theme';
-import { Tuner } from './Tuner';
 
-/**
- * Gallery host for the ported playground tuner. The stage grows to the tuner
- * and does not clip the select menus.
- */
+/** One live orb plus the state list and Size. The stage grows to that host. */
 export function YogeshThinkingOrbsDemo() {
-  const [height, setHeight] = useState(640);
+  const [height, setHeight] = useState(520);
 
   return (
     <Stage
@@ -30,7 +27,7 @@ export function YogeshThinkingOrbsDemo() {
         }}
       >
         <ThemeProvider>
-          <Tuner />
+          <Showcase />
         </ThemeProvider>
       </View>
     </Stage>

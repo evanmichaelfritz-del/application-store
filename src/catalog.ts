@@ -125,7 +125,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'yogesh-thinking-orbs',
     title: 'Thinking Orbs',
-    subtitle: "Yogesh's orb landing + playground tuner",
+    subtitle: "Yogesh's thinking orbs: animated agent states",
     categories: ['effects', 'ai'],
     tags: [
       'yogesh',
