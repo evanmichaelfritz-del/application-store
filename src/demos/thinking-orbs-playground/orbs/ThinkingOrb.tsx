@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { View } from "react-native";
+import { useSkiaRuntime } from "@/src/skia/liveBudget";
 import { Canvas, PaintStyle, Picture, Skia, type SkCanvas, type SkPaint, type SkPicture } from "@shopify/react-native-skia";
 import { MODE_FRAMES, resolvePreset } from "./engine";
 import {
@@ -133,6 +135,8 @@ export function ThinkingOrb({
   active = true,
 }: ThinkingOrbProps) {
   const reducedMotion = useReducedMotion();
+  const runtime = useSkiaRuntime();
+  const playing = active && runtime.running;
   // Do NOT memoize resolveMotionsource() into effect deps — fresh object each
   // render → Maximum update depth (setPicture ↔ effect re-fire).
   const size = motionsource
@@ -198,14 +202,16 @@ export function ThinkingOrb({
 
     paintNow();
     const unsubscribe =
-      reducedMotion || paused || !active ? null : subscribeOrbFrame(paintNow);
+      reducedMotion || paused || !playing ? null : subscribeOrbFrame(paintNow);
 
     return () => {
       alive = false;
       unsubscribe?.();
       paint.dispose();
     };
-  }, [active, dark, motionsource, paused, reducedMotion, resolvedState, size, speed]);
+  }, [active, dark, motionsource, paused, playing, reducedMotion, resolvedState, size, speed]);
+
+  if (!runtime.mount) return <View style={{ width: size, height: size }} />;
 
   return (
     <Canvas style={{ width: size, height: size, pointerEvents: "none" }}>

@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 import { CardResizeDemo } from './demos/CardResize';
 import { NumberPopInDemo } from './demos/NumberPopIn';
 import { NotificationBadgeDemo } from './demos/NotificationBadge';
@@ -21,26 +21,59 @@ import { DragDropDemo } from './demos/DragDrop';
 import { ShimmerTextDemo } from './demos/ShimmerText';
 import { TooltipDemo } from './demos/Tooltip';
 import { TiltCardDemo } from './demos/TiltCard';
-import { BorderBeamDemo } from './demos/border-beam';
 import { GooeyDemo } from './demos/gooey';
-import { LiquidMetalDemo } from './demos/liquid-metal';
-import {
-  AgentListeningOrbDemo,
-  AgentPlanningOrbDemo,
-  AgentShapingOrbDemo,
-  AgentThinkingOrbDemo,
-  OrbStatePickerDemo,
-  SearchingOrbDemo,
-  SolvingOrbDemo,
-  ThinkingOrbDemo,
-  WorkingOrbDemo,
-} from './demos/thinking-orbs-playground/galleryCards';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
-import { YogeshOrbCreatorDemo } from './demos/yogesh-orb-creator';
-import { YogeshThinkingOrbsDemo } from './demos/yogesh-thinking-orbs';
 import type { NavSection } from './sections';
+
+/** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
+const loadSkiaCards = () => import('./skia/skiaCards');
+
+function loadSkiaAfterCanvasKit() {
+  return import('./skia/ensureCanvasKit')
+    .then((mod) => mod.ensureCanvasKit())
+    .then(() => loadSkiaCards());
+}
+
+function lazySkia<K extends keyof Awaited<ReturnType<typeof loadSkiaCards>>>(key: K): ComponentType {
+  return lazy(() => loadSkiaAfterCanvasKit().then((mod) => ({ default: mod[key] as ComponentType })));
+}
+
+const YogeshThinkingOrbsDemo = lazySkia('YogeshThinkingOrbsDemo');
+const YogeshOrbCreatorDemo = lazySkia('YogeshOrbCreatorDemo');
+const BorderBeamDemo = lazySkia('BorderBeamDemo');
+const LiquidMetalDemo = lazySkia('LiquidMetalDemo');
+const SolvingOrbDemo = lazySkia('SolvingOrbDemo');
+const ThinkingOrbDemo = lazySkia('ThinkingOrbDemo');
+const AgentListeningOrbDemo = lazySkia('AgentListeningOrbDemo');
+const SearchingOrbDemo = lazySkia('SearchingOrbDemo');
+const AgentPlanningOrbDemo = lazySkia('AgentPlanningOrbDemo');
+const AgentThinkingOrbDemo = lazySkia('AgentThinkingOrbDemo');
+const WorkingOrbDemo = lazySkia('WorkingOrbDemo');
+const AgentShapingOrbDemo = lazySkia('AgentShapingOrbDemo');
+const OrbStatePickerDemo = lazySkia('OrbStatePickerDemo');
+
+const SKIA_IDS = new Set([
+  'yogesh-thinking-orbs',
+  'yogesh-orb-creator',
+  'border-beam',
+  'liquid-metal',
+  'orb-solving',
+  'orb-thinking',
+  'orb-agent-listening',
+  'orb-searching',
+  'orb-agent-planning',
+  'orb-agent-thinking',
+  'orb-working',
+  'orb-agent-shaping',
+  'orb-state-picker',
+]);
+
+/** Start CanvasKit, then the shared Skia chunk, when a card nears the viewport. */
+export function warmSkiaDemo(id: string) {
+  if (SKIA_IDS.has(id)) void loadSkiaAfterCanvasKit();
+}
 
 /**
  * Add a piece: demo in src/demos → snippet in src/snippets.ts →
@@ -60,6 +93,8 @@ export type TransitionItem = {
   sections: NavSection[];
   pro: boolean;
   fullRow?: true;
+  /** Skia canvas. Loaded only when the card nears the viewport. */
+  skia?: true;
   Demo: ComponentType;
 };
 
@@ -143,6 +178,7 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['effects'],
     fullRow: true,
     pro: false,
+    skia: true,
     Demo: YogeshThinkingOrbsDemo,
   },
   {
@@ -333,6 +369,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['border', 'beam', 'animated', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: BorderBeamDemo,
   },
   {
@@ -343,6 +380,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'solving', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: SolvingOrbDemo,
   },
   {
@@ -353,6 +391,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'ring', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: ThinkingOrbDemo,
   },
   {
@@ -363,6 +402,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'agent', 'listening', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: AgentListeningOrbDemo,
   },
   {
@@ -373,6 +413,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'searching', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: SearchingOrbDemo,
   },
   {
@@ -383,6 +424,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'agent', 'planning', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: AgentPlanningOrbDemo,
   },
   {
@@ -393,6 +435,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'agent', 'thinking', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: AgentThinkingOrbDemo,
   },
   {
@@ -403,6 +446,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'working', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: WorkingOrbDemo,
   },
   {
@@ -413,6 +457,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'agent', 'shaping', 'preview', 'effects', 'ai'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: AgentShapingOrbDemo,
   },
   {
@@ -433,6 +478,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['liquid', 'metal', 'animated', 'border', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
+    skia: true,
     Demo: LiquidMetalDemo,
   },
   {
@@ -476,6 +522,7 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['thinking', 'orbs', 'state', 'picker', 'playground', 'working', 'searching', 'solving', 'listening', 'effects', 'ai', 'tool'],
     sections: ['tools'],
     pro: false,
+    skia: true,
     Demo: OrbStatePickerDemo,
   },
   {
@@ -498,6 +545,7 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['tools'],
     fullRow: true,
     pro: false,
+    skia: true,
     Demo: YogeshOrbCreatorDemo,
   },
 ];

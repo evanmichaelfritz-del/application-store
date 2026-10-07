@@ -5,10 +5,12 @@ import { AutoPill, SendButton } from '@/src/libdev/Controls';
 import type { DemoProps } from '@/src/libdev/tokens';
 import { useLatchedLayout } from '@/src/libdev/useLatchedLayout';
 import { useLoopProgress } from '@/src/libdev/useLoopProgress';
+import { useSkiaRuntime } from '@/src/skia/liveBudget';
 
 import { LiquidMetalBorder } from './LiquidMetalBorder';
 
 export default function LiquidMetalInner({ reducedMotion, clockRunning }: DemoProps) {
+  const { mount } = useSkiaRuntime();
   const progress = useLoopProgress(3400, reducedMotion, 0.28, clockRunning);
   const auto = useLatchedLayout({ w: 78, h: 36 });
 
@@ -16,34 +18,38 @@ export default function LiquidMetalInner({ reducedMotion, clockRunning }: DemoPr
     <View style={[styles.root, { pointerEvents: 'none' }]}>
       <View style={styles.row}>
         <View collapsable={false} style={styles.autoWrap} onLayout={auto.onLayout}>
-          <Canvas collapsable={false} style={styles.canvasFill}>
-            <LiquidMetalBorder
-              x={3}
-              y={3}
-              width={Math.max(4, auto.box.w - 6)}
-              height={Math.max(4, auto.box.h - 6)}
-              r={(auto.box.h - 6) / 2}
-              progress={progress}
-              thickness={4.5}
-            />
-          </Canvas>
+          {mount ? (
+            <Canvas collapsable={false} style={styles.canvasFill}>
+              <LiquidMetalBorder
+                x={3}
+                y={3}
+                width={Math.max(4, auto.box.w - 6)}
+                height={Math.max(4, auto.box.h - 6)}
+                r={(auto.box.h - 6) / 2}
+                progress={progress}
+                thickness={4.5}
+              />
+            </Canvas>
+          ) : null}
           <View style={styles.autoInner}>
             <AutoPill />
           </View>
         </View>
 
         <View style={styles.sendWrap}>
-          <Canvas collapsable={false} style={styles.canvasFill}>
-            <LiquidMetalBorder
-              x={3}
-              y={3}
-              width={46}
-              height={46}
-              r={23}
-              progress={progress}
-              thickness={5.5}
-            />
-          </Canvas>
+          {mount ? (
+            <Canvas collapsable={false} style={styles.canvasFill}>
+              <LiquidMetalBorder
+                x={3}
+                y={3}
+                width={46}
+                height={46}
+                r={23}
+                progress={progress}
+                thickness={5.5}
+              />
+            </Canvas>
+          ) : null}
           <View style={styles.sendInner}>
             <SendButton size={34} />
           </View>

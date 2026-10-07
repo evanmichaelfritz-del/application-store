@@ -1,9 +1,11 @@
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
 import { memo, useEffect, useMemo, useRef } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useIsFocused } from "expo-router";
 import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+import { useReduceMotion as useStoreReduceMotion } from "@/src/context/ReduceMotionContext";
+import { useSkiaRuntime } from "@/src/skia/liveBudget";
 
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
 import { tick } from "./clock";
@@ -178,7 +180,7 @@ function LiveOrb({
     }
   }, [active, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
 
-  useFrameCallback((frame) => {
+  const frameCallback = useFrameCallback((frame) => {
     "worklet";
     const input = inputSV.value;
     if (!input || !activeSV.value) return;
@@ -192,7 +194,11 @@ function LiveOrb({
       localSV.value = local;
     }
     paint(picture, retire, input, local, tune, t);
-  }, true);
+  }, active);
+
+  useEffect(() => {
+    frameCallback.setActive(active);
+  }, [active, frameCallback]);
 
   return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
 }
@@ -233,8 +239,10 @@ function StillOrb({
 
 export const OrbView = memo(function OrbView(props: Props) {
   const focused = useIsFocused();
-  const reduced = useReducedMotion() === true;
+  const reduced = useReducedMotion() === true || useStoreReduceMotion().reduceMotion;
+  const runtime = useSkiaRuntime();
   if (!focused) return null;
+  if (!runtime.mount) return <View style={{ width: props.size, height: props.size }} />;
   if (reduced) return <StillOrb {...props} />;
-  return <LiveOrb {...props} />;
+  return <LiveOrb {...props} active={props.active !== false && runtime.running} />;
 });
