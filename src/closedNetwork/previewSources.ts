@@ -10,6 +10,8 @@ import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMen
 import type { NavSection } from '@/src/sections';
 import { SNIPPETS } from '@/src/snippets';
 import { PREVIEW_TOOLS_CSS, PREVIEW_TOOLS_HTML, PREVIEW_TOOLS_SCRIPT } from '@/src/demos/preview-tools/copy';
+import { YOGESH_CREATOR_CSS, YOGESH_CREATOR_HTML, YOGESH_CREATOR_SCRIPT } from '@/src/demos/yogesh-orb-creator/copySlots';
+import { YOGESH_ORB_CSS, YOGESH_ORB_HTML, YOGESH_ORB_SCRIPT } from '@/src/demos/yogesh-thinking-orbs/copySlots';
 import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 
 export type PreviewKind = 'transitions' | 'effects';
@@ -1185,6 +1187,18 @@ canvas { display: block; width: 168px; height: 168px; }`,
     extraCss: PREVIEW_TOOLS_CSS,
     script: PREVIEW_TOOLS_SCRIPT,
   },
+  'yogesh-thinking-orbs': {
+    snippet: false,
+    html: YOGESH_ORB_HTML,
+    extraCss: YOGESH_ORB_CSS,
+    script: YOGESH_ORB_SCRIPT,
+  },
+  'yogesh-orb-creator': {
+    snippet: false,
+    html: YOGESH_CREATOR_HTML,
+    extraCss: YOGESH_CREATOR_CSS,
+    script: YOGESH_CREATOR_SCRIPT,
+  },
 };
 
 function escapeHtml(value: string): string {
@@ -1225,6 +1239,12 @@ export type PreviewParts = { html: string; css: string; script: string };
 
 /** HTML, CSS, and script that compose the document the preview iframe runs. */
 export function previewDocumentParts(id: string): PreviewParts {
+  if (id === 'yogesh-thinking-orbs') {
+    return { html: YOGESH_ORB_HTML, css: YOGESH_ORB_CSS, script: YOGESH_ORB_SCRIPT };
+  }
+  if (id === 'yogesh-orb-creator') {
+    return { html: YOGESH_CREATOR_HTML, css: YOGESH_CREATOR_CSS, script: YOGESH_CREATOR_SCRIPT };
+  }
   const source = SOURCES[id];
   if (!source) throw new Error(`Missing preview source for ${id}`);
   const parts = source.document

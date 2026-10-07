@@ -1,8 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
-import { writeClipboard } from '@/src/clipboard';
+import {
+  loadYogeshOrbCreatorPrompt,
+  loadYogeshThinkingOrbsPrompt,
+} from '@/src/demos/yogesh-thinking-orbs/loadPrompt';
+import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { useCopyToast } from '@/src/context/CopyToastContext';
@@ -65,7 +69,25 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
   const [showcase, setShowcase] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadLazyPrompt =
+    item.id === 'yogesh-thinking-orbs'
+      ? loadYogeshThinkingOrbsPrompt
+      : item.id === 'yogesh-orb-creator'
+        ? loadYogeshOrbCreatorPrompt
+        : null;
+
+  useEffect(() => {
+    if (!promptOpen || !loadLazyPrompt) return;
+    let live = true;
+    loadLazyPrompt().then((text) => {
+      if (live) setLazyPrompt(text);
+    });
+    return () => {
+      live = false;
+    };
+  }, [loadLazyPrompt, promptOpen]);
 
   const copyPart = (kind: CopyKind) => {
     setCopied(kind);
@@ -90,7 +112,15 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
     setPromptCopied(true);
     show();
     setTimeout(() => setPromptCopied(false), 1400);
-    setTimeout(() => writeClipboard(promptFor(item.id)), 0);
+    const ready = loadLazyPrompt ? lazyPrompt : promptFor(item.id);
+    if (ready != null) {
+      writeClipboardNow(ready);
+      return;
+    }
+    if (!loadLazyPrompt) return;
+    setTimeout(() => {
+      void loadLazyPrompt().then((text) => writeClipboard(text));
+    }, 0);
   };
 
   return (
@@ -181,12 +211,13 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
               label={promptCopied ? 'Copied' : 'Copy prompt'}
               done={promptCopied}
               onPress={copyPrompt}
+              testID={loadLazyPrompt ? `copy-prompt-${item.id}` : undefined}
             />
           </View>
         }
       >
-        <Text selectable style={styles.prompt}>
-          {promptFor(item.id)}
+        <Text selectable testID={loadLazyPrompt ? `agent-prompt-${item.id}` : undefined} style={styles.prompt}>
+          {loadLazyPrompt ? (lazyPrompt ?? '') : promptFor(item.id)}
         </Text>
       </StoreSheet>
     </View>
