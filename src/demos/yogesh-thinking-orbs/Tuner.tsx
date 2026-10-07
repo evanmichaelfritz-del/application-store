@@ -1,6 +1,7 @@
 import { setStringAsync } from 'expo-clipboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue } from 'react-native-reanimated';
 
@@ -58,9 +59,8 @@ const RENDER_LABEL: Record<RenderName, string> = {
 };
 
 export function Tuner() {
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [width, setWidth] = useState(0);
   const wide = width >= 1280;
   const { colors, playgroundColor, setPlaygroundColor } = useTheme();
   const [index, setIndex] = useState(1);
@@ -483,51 +483,43 @@ export function Tuner() {
   return (
     <View
       testID="yogesh-orb-tuner"
-      onLayout={(event) => {
-        const next = Math.round(event.nativeEvent.layout.width);
-        if (next > 0 && next !== width) setWidth(next);
-      }}
-      style={{ width: '100%', backgroundColor: colors.page, minHeight: width === 0 ? 480 : undefined }}
+      style={{ width: '100%', backgroundColor: colors.page, minHeight: wide ? Math.max(560, shown + 160) : undefined }}
     >
-      {width === 0 ? null : (
-        <>
-          {(menu || picker) && (
-            <Pressable
-              onPress={() => {
-                if (Platform.OS !== 'web') setMenu(null);
-                setPicker(false);
-              }}
-              style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
-            />
-          )}
-          {wide ? (
-            <View style={{ minHeight: Math.max(560, shown + 80), flexDirection: 'row', alignItems: 'stretch', paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
-              <View style={{ alignSelf: 'center', marginBottom: 8 }}>{list}</View>
-              {stage}
-              <View style={{ alignSelf: 'center' }}>{panel}</View>
-              {status}
-            </View>
-          ) : (
-            <View
-              style={{
-                zIndex: 5,
-                paddingLeft: 16,
-                paddingRight: 16,
-                paddingTop: width < 768 ? 24 : 16,
-                paddingBottom: (width < 768 ? 24 : 32) + insets.bottom,
-              }}
-            >
-              {list}
-              <View>
-                {stage}
-                {phone ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24 }}>{status}</View> : null}
-              </View>
-              {phone ? null : status}
-              <View style={{ marginTop: phone ? 24 : 20 }}>{panel}</View>
-            </View>
-          )}
-        </>
+      {(menu || picker) && (
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'web') setMenu(null);
+            setPicker(false);
+          }}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
+        />
       )}
+      {wide ? (
+        <View style={{ minHeight: Math.max(520, shown + 120), flexDirection: 'row', alignItems: 'stretch', paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
+          <View style={{ alignSelf: 'center', marginBottom: 8 }}>{list}</View>
+          {stage}
+          <View style={{ alignSelf: 'center' }}>{panel}</View>
+        </View>
+      ) : (
+        <ScrollView
+          style={{ zIndex: 5 }}
+          contentContainerStyle={{
+            paddingLeft: 16,
+            paddingRight: 16,
+            paddingTop: width < 768 ? 24 : 0,
+            paddingBottom: (width < 768 ? 24 : 32) + insets.bottom,
+          }}
+        >
+          {list}
+          <View>
+            {stage}
+            {phone ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24 }}>{status}</View> : null}
+          </View>
+          {phone ? null : status}
+          <View style={{ marginTop: phone ? 24 : 20 }}>{panel}</View>
+        </ScrollView>
+      )}
+      {wide ? status : null}
     </View>
   );
 }
