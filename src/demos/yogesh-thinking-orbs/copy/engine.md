@@ -1,4 +1,5 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Web loads CanvasKit itself. No custom index.html.
  * Babel: plugins: ['react-native-worklets/plugin']
  * expo ~57.0.23
  * react 19.2.3

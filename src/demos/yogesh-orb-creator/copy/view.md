@@ -1,4 +1,5 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Web loads CanvasKit itself. No custom index.html.
  * Babel: plugins: ['react-native-worklets/plugin']
  * expo ~57.0.23
  * react 19.2.3
@@ -17,7 +18,29 @@
  * @expo-google-fonts/geist ^0.4.2
  */
 
+/* FILE src/Playground.web.tsx */
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+import { WithSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
+import { View } from "react-native";
+
+export function PlaygroundScreen() {
+  return (
+    <WithSkiaWeb
+      getComponent={() => import("./PlaygroundApp")}
+      fallback={<View style={{ flex: 1, backgroundColor: "#000" }} />}
+      opts={{ locateFile: (file) => `/${file}` }}
+    />
+  );
+}
+
+export default PlaygroundScreen;
+
 /* FILE src/Playground.tsx */
+export { PlaygroundScreen } from "./PlaygroundApp";
+export { default } from "./PlaygroundApp";
+
+/* FILE src/PlaygroundApp.tsx */
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { setStringAsync } from "expo-clipboard";
@@ -2056,7 +2079,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Geist_400Regular } from "@expo-google-fonts/geist";
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
 import { fonts, useTheme } from "../theme/theme";
 
 /** Native sweep. Web keeps the CSS version in Shimmer.web.tsx. Not an orb canvas. */

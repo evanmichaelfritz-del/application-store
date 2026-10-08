@@ -1,4 +1,5 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Web loads CanvasKit itself. No custom index.html.
  * Babel: plugins: ['react-native-worklets/plugin']
  * expo ~57.0.23
  * react 19.2.3
@@ -17,75 +18,124 @@
  * @expo-google-fonts/geist ^0.4.2
  */
 
-/* FILE src/ThinkingOrbs.tsx */
+/* FILE src/ThinkingOrbs.web.tsx */
 import "react-native-gesture-handler";
 import "react-native-reanimated";
-import { useState } from "react";
-import { Platform, View } from "react-native";
+import { WithSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
+import { View } from "react-native";
+
+export function ThinkingOrbs() {
+  return (
+    <WithSkiaWeb
+      getComponent={() => import("./ThinkingOrbsApp")}
+      fallback={<View style={{ flex: 1, backgroundColor: "#000" }} />}
+      opts={{ locateFile: (file) => `/${file}` }}
+    />
+  );
+}
+
+export default ThinkingOrbs;
+
+/* FILE src/ThinkingOrbs.tsx */
+export { ThinkingOrbs } from "./ThinkingOrbsApp";
+export { default } from "./ThinkingOrbsApp";
+
+/* FILE src/ThinkingOrbsApp.tsx */
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+import { useCallback, useState } from "react";
+import { Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { SelectRow } from "./components/SelectRow";
+import { SliderRow } from "./components/SliderRow";
+import { PLAYGROUND } from "./content/cards";
+import { useArrowKeys } from "./hooks/useArrowKeys";
 import { OrbView } from "./orb/OrbView";
-import { RENDERS, type RenderName, type ShapeName } from "./orb/model";
-import { ThemeProvider, useTheme } from "./theme/theme";
-
-const SHAPES: { id: ShapeName; label: string }[] = [
-  { id: "sphere", label: "Sphere" },
-  { id: "cube", label: "Cube" },
-  { id: "octahedron", label: "Octahedron" },
-  { id: "tetrahedron", label: "Tetrahedron" },
-  { id: "torus", label: "Torus" },
-];
-
-const RENDER_LABEL: Record<RenderName, string> = {
-  dots: "Dots",
-  crosses: "Crosses",
-  dashes: "Dashes",
-  halftone: "Halftone",
-  lines: "Lines",
-  mesh: "Mesh",
-  squares: "Squares",
-  verticalLines: "Vertical Lines",
-};
+import { ThemeProvider, fonts, useTheme } from "./theme/theme";
 
 function ThinkingOrbsScreen() {
+  const { width } = useWindowDimensions();
+  const wide = width >= 1280;
   const { colors } = useTheme();
-  const [menu, setMenu] = useState<null | "shape" | "render">(null);
-  const [shape, setShape] = useState<ShapeName>("sphere");
-  const [render, setRender] = useState<RenderName>("dots");
+  const [index, setIndex] = useState(1);
+  const [size, setSize] = useState(320);
+  const onIndex = useCallback((next: number) => setIndex(next), []);
+  useArrowKeys(PLAYGROUND.length, index, onIndex);
+  const look = PLAYGROUND[index];
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.page, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, padding: 32 }}>
-      <OrbView state="base" size={320} shape={shape} render={render} color={colors.orb} />
-      <View testID="yogesh-orb-panel" role={Platform.OS === "web" ? "complementary" : undefined} style={{ width: 256, gap: 6, zIndex: 5 }}>
-        <SelectRow
-          label="Shape"
-          value={shape}
-          display={SHAPES.find((item) => item.id === shape)?.label ?? "Sphere"}
-          options={SHAPES}
-          open={menu === "shape"}
-          onToggle={() => {
-            setMenu((current) => (current === 'shape' ? null : 'shape'));
+    <View
+      testID="yogesh-orb-tuner"
+      style={{
+        width: "100%",
+        backgroundColor: colors.page,
+        flexDirection: wide ? "row" : "column",
+        alignItems: "center",
+        paddingLeft: wide ? 32 : 16,
+        paddingRight: wide ? 42 : 16,
+        paddingVertical: 24,
+        gap: 24,
+      }}
+    >
+      <View
+        testID="yogesh-orb-states"
+        role="navigation"
+        accessibilityLabel="States"
+        style={{ width: wide ? 280 : "100%", justifyContent: "center" }}
+      >
+        <View
+          role={Platform.OS === "web" ? "list" : undefined}
+          style={{
+            flexDirection: wide ? "column" : "row",
+            flexWrap: wide ? "nowrap" : "wrap",
+            columnGap: 16,
+            rowGap: 8,
           }}
-          onPick={(id) => {
-            setShape(id);
-            setMenu(null);
-          }}
-        />
-        <SelectRow
-          label="Render"
-          value={render}
-          display={RENDER_LABEL[render]}
-          options={RENDERS.map((id) => ({ id, label: RENDER_LABEL[id] }))}
-          open={menu === "render"}
-          onToggle={() => {
-            setMenu((current) => (current === 'render' ? null : 'render'));
-          }}
-          onPick={(id) => {
-            setRender(id);
-            setMenu(null);
-          }}
-        />
+        >
+          {PLAYGROUND.map((item, i) => {
+            const on = i === index;
+            const press = (
+              <Pressable
+                accessibilityRole="button"
+                aria-current={on ? "true" : undefined}
+                onPress={() => setIndex(i)}
+                hitSlop={{ top: 12, bottom: 12 }}
+                style={{ height: 20, justifyContent: "center" }}
+              >
+                <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>
+                  {item.playground}
+                </Text>
+              </Pressable>
+            );
+            return Platform.OS === "web" ? (
+              <View key={item.id} role="listitem">
+                {press}
+              </View>
+            ) : (
+              <View key={item.id}>{press}</View>
+            );
+          })}
+        </View>
+        {wide ? (
+          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, marginTop: 24, marginBottom: -8 }}>
+            ↑ ↓ to switch
+          </Text>
+        ) : null}
+      </View>
+      <View style={{ alignItems: "center", gap: 16 }}>
+        <View
+          testID="yogesh-orb-stage"
+          accessibilityLabel={Platform.OS === "web" ? undefined : "Orb playground"}
+          accessibilityElementsHidden={Platform.OS === "web" ? true : undefined}
+          importantForAccessibility={Platform.OS === "web" ? "no-hide-descendants" : undefined}
+          aria-hidden={Platform.OS === "web" ? true : undefined}
+        >
+          <OrbView state={look.state} variant={look.variant} size={size} color={colors.orb} />
+        </View>
+        <View style={{ width: wide ? 256 : "100%" }}>
+          <SliderRow label="Size" min={16} max={480} step={1} value={size} decimals={0} onChange={setSize} />
+        </View>
       </View>
     </View>
   );
@@ -93,7 +143,7 @@ function ThinkingOrbsScreen() {
 
 export function ThinkingOrbs() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>
       <SafeAreaProvider>
         <ThemeProvider>
           <ThinkingOrbsScreen />
@@ -1778,7 +1828,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Geist_400Regular } from "@expo-google-fonts/geist";
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
 import { fonts, useTheme } from "../theme/theme";
 
 /** Native sweep. Web keeps the CSS version in Shimmer.web.tsx. Not an orb canvas. */

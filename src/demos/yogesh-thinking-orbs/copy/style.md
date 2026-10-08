@@ -1,4 +1,5 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Web loads CanvasKit itself. No custom index.html.
  * Babel: plugins: ['react-native-worklets/plugin']
  * expo ~57.0.23
  * react 19.2.3
@@ -18,13 +19,8 @@
  */
 
 /* FILE src/theme/theme.tsx */
-import {
-  Geist_400Regular,
-  Geist_400Regular_Italic,
-  Geist_500Medium,
-  Geist_600SemiBold,
-  useFonts,
-} from "@expo-google-fonts/geist";
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
+import { useFonts } from "@expo-google-fonts/geist/useFonts";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 
@@ -115,9 +111,9 @@ export const fonts =
       }
     : {
         regular: "Geist_400Regular",
-        medium: "Geist_500Medium",
-        semibold: "Geist_600SemiBold",
-        italic: "Geist_400Regular_Italic",
+        medium: "Geist_400Regular",
+        semibold: "Geist_400Regular",
+        italic: "Geist_400Regular",
         mono: "monospace",
       };
 
@@ -140,9 +136,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useFonts({
     Geist: Geist_400Regular,
     Geist_400Regular,
-    Geist_500Medium,
-    Geist_600SemiBold,
-    Geist_400Regular_Italic,
   });
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useState(dark.orb);
