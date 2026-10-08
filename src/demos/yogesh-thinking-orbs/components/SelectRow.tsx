@@ -118,13 +118,16 @@ export function SelectRow<T extends string>({
   const armed = useRef(false);
   const sawOpen = useRef(false);
   const primary = useSharedValue(0);
-  const commitRef = useRef(() => {
+  const commitRef = useRef((opening: boolean) => {
     armed.current = true;
-    startTransition(() => {
-      onToggle();
-    });
+    if (opening) onToggle();
+    else {
+      startTransition(() => {
+        onToggle();
+      });
+    }
   });
-  const commitJS = useCallback(() => commitRef.current(), []);
+  const commitJS = useCallback(() => commitRef.current(false), []);
   const web = Platform.OS === "web";
   useLayoutEffect(() => {
     if (web) injectOptionStyles();
@@ -174,20 +177,26 @@ export function SelectRow<T extends string>({
   const sealRef = useRef(sealClosed);
   const unsealPtrRef = useRef(unsealForPointer);
   useLayoutEffect(() => {
-    commitRef.current = () => {
+    commitRef.current = (opening: boolean) => {
       armed.current = true;
-      startTransition(() => {
-        onToggle();
-      });
+      if (opening) onToggle();
+      else {
+        startTransition(() => {
+          onToggle();
+        });
+      }
     };
     sealRef.current = sealClosed;
     unsealPtrRef.current = unsealForPointer;
   });
   const sealJS = useCallback(() => sealRef.current(), []);
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
+  const commitOpen = useCallback(() => {
+    commitRef.current(true);
+  }, []);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
-      commitRef.current();
+      commitRef.current(false);
     });
   }, []);
   const dismissWeb = useCallback(() => {
@@ -300,13 +309,14 @@ export function SelectRow<T extends string>({
             shown.value = withSpring(0, CLOSE_MENU);
           }
           chevron.value = withSpring(next, CHEV);
-          runOnJS(commitNextFrame)();
+          if (next === 1) runOnJS(commitOpen)();
+          else runOnJS(commitNextFrame)();
           return;
         }
         spring(next);
         runOnJS(commitJS)();
       });
-  }, [chevron, commitJS, commitNextFrame, goal, openSV, primary, sealJS, shown, unsealPtrJS, web]);
+  }, [chevron, commitJS, commitNextFrame, commitOpen, goal, openSV, primary, sealJS, shown, unsealPtrJS, web]);
   const menuStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * (aboveSV.value ? 8 : -8) }, { scale: 0.95 + shown.value * 0.05 }],
@@ -318,7 +328,7 @@ export function SelectRow<T extends string>({
     focusOnOpen.current = true;
     unseal();
     driveWebSprings(1);
-    commitNextFrame();
+    commitOpen();
   };
   const moveTo = (index: number, nodes: HTMLElement[]) => {
     const next = Math.max(0, Math.min(nodes.length - 1, index));
