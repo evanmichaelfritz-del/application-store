@@ -78,7 +78,7 @@ export function Showcase() {
           })}
         </View>
         {wide ? (
-          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, marginTop: 24, marginBottom: -8 }}>
+          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, marginTop: 24, marginBottom: -8 }}>
             ↑ ↓ to switch
           </Text>
         ) : null}

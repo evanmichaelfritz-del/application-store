@@ -27,7 +27,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
         fontFamily: typeof style?.fontFamily === "string" ? style.fontFamily : fonts.regular,
         fontSize: typeof style?.fontSize === "number" ? style.fontSize : 14,
         fontStyle: style?.fontStyle,
-        lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "1.65",
+        lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "20px",
         display: "inline-block",
         opacity: 1,
         backgroundImage: sweep

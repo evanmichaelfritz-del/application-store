@@ -438,7 +438,7 @@ export function SelectRow<T extends string>({
           style={{
             height: 36,
             borderRadius: 8,
-            backgroundColor: open ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : colors.row,
+            backgroundColor: open ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : mode === "dark" ? "rgba(255,255,255,0.08)" : colors.row,
             paddingHorizontal: 12,
             flexDirection: "row",
             alignItems: "center",
@@ -471,7 +471,7 @@ export function SelectRow<T extends string>({
               backgroundColor: mode === "light" ? "#fafafa" : colors.pop,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: mode === "light" ? "rgba(0,0,0,0.10)" : colors.ringSoft,
+              borderColor: mode === "light" ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)",
               padding: 4,
               zIndex: 30,
               boxShadow: mode === "dark" ? "0 8px 24px rgba(0,0,0,0.4)" : "0 4px 16px rgba(0,0,0,0.08)",
