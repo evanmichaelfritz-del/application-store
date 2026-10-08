@@ -254,7 +254,7 @@ The `—` is an em dash (U+2014). The `·` is U+00B7.
 - **Changing the look** changes `state`/`variant` on both orbs and remounts the Shimmer (`key={index}`, L410), which restarts its sweep. The orb's look change has no transition (`AGENT_PROMPT_ORBS.md` §9).
 - Known gaps 9–11 apply to this list (§15).
 
-## 6. Selects: Shape and Render (`components/SelectRow.tsx`, Appendix 2; wired at `Tuner.tsx` L133–162)
+## 6. Selects: Shape and Render (`components/SelectRow.tsx`, Appendix 8; wired at `Tuner.tsx` L133–162)
 
 ### 6.1 Options and wiring
 - **Shape** (`Tuner.tsx` L26–32): `sphere` Sphere, `cube` Cube, `octahedron` Octahedron, `tetrahedron` Tetrahedron, `torus` Torus. Default sphere; `display` falls back to "Sphere" (L136). Five options, so `place()` uses a menu height of `8 + 5·36 = 188`.
@@ -425,7 +425,7 @@ const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MEN
 
 **Measured:** the select checks are listed in §16 (rows 40–45) and §15.3. Remaining select differences from live are gaps 7, 8 and 12 (§15.1).
 
-## 7. Color row and colour picker (web: `components/ColorPicker.web.tsx`, Appendix 3; wired at `Tuner.tsx` L163–176)
+## 7. Color row and colour picker (web: `components/ColorPicker.web.tsx`, Appendix 7; wired at `Tuner.tsx` L163–176)
 
 ### 7.1 Wiring (`Tuner.tsx` L163–176)
 `<ColorPicker text={playgroundColor} color={parsed} open={picker} onOpenChange={(next) => { if (next) setMenu(null); setPicker(next); }} onCommit={(next) => { setExact(null); setPlaygroundColor(next.trim()); }} onChange={remember} />`
@@ -525,7 +525,7 @@ Doc comment (L18–21): "Native stand-in. Desktop web uses ColorPicker.web.tsx. 
 ### 7.7 Which colour reaches the orbs
 Both orbs get `color={playgroundColor}` as a prop, and `live` carries `rgba` from `parsed` (§3). On web, `toExtendedSrgb` keeps out-of-sRGB colour as extended floats. Whether the P3 canvas shows it correctly on a real GPU and in Safari is unverified (gap 5).
 
-## 8. Sliders (`components/SliderRow.tsx`, Appendix 5; wired at `Tuner.tsx` L177–248)
+## 8. Sliders (`components/SliderRow.tsx`, Appendix 9; wired at `Tuner.tsx` L177–248)
 
 ### 8.1 The five sliders
 | Label | min | max | step | default | decimals | default text | default fill `(v−min)/(max−min)` | `live` field | shown |
@@ -647,7 +647,7 @@ When the value changes from outside (keys, Reset), `fill → withSpring(target, 
 ### 11.3 Reset (L267–275)
 `setSize(320); setSpeed(1); setDensity(1); setDotSize(1); setTilt(20); setExact(null); setPlaygroundColor(colors.orb)`. The sliders spring to their fills with FILL.
 
-### 11.4 Output template (`content/snippet.ts`; full file in Appendix 11)
+### 11.4 Output template (`content/snippet.ts`; full file in Appendix 14)
 - **Prop order:** state, variant, speed, density, dotSize, tilt, size, then shape, render, className.
 - A prop is skipped when it is `undefined` or equals `DEFAULTS` = `{ variant: "default", size: 20, speed: 1, density: 1, dotSize: 1, tilt: 20 }`. Strings print as `key="v"`, numbers as `key={v}` (JS `String`).
 - `state` is always printed. `size` is the **slider value**, not `shown`. `tilt` is omitted for flat renders.
