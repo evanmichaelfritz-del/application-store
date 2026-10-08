@@ -240,6 +240,7 @@ export const OrbView = memo(function OrbView(props: Props) {
   return <LiveOrb {...props} />;
 });
 
+// The parent's onToggle must use a functional state update (`setMenu((current) => …)`) or reopen races are lost.
 /* FILE src/components/SelectRow.tsx */
 import { createElement, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
