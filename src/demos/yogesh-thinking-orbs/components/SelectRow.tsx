@@ -1,4 +1,5 @@
 import { createElement, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Platform, Pressable, Text, useWindowDimensions, View, type TextStyle, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -25,6 +26,7 @@ declare module "react-native" {
     onKeyDownCapture?: (event: WebKeyEvent) => void;
     onContextMenu?: () => void;
     onPointerCancel?: () => void;
+    dataSet?: Record<string, string>;
   }
 }
 
@@ -55,7 +57,9 @@ const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-test
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"]{background-color:#0000001a;color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;color:#000;outline:2px solid #0000008c;outline-offset:-2px}
-[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}`;
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}
+[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]{transition:background-color .15s ease}
+[data-testid="yogesh-orb-panel"] [data-orb-trigger="dark"][aria-expanded="false"]:hover{background-color:rgba(255,255,255,.12)!important}`;
 
 function injectOptionStyles() {
   if (typeof document === "undefined") return;
@@ -82,7 +86,7 @@ const OPTION_BOX: ViewStyle = {
 const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
 const OUTSIDE_CLOSE_EVENT: "pointerdown" | "click" = "pointerdown";
-/** Web close only (dismissWeb, driveWebSprings close, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
+/** Web close only (dismissWeb, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
 const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 1.8e-7 };
 
 export function SelectRow<T extends string>({
@@ -118,18 +122,50 @@ export function SelectRow<T extends string>({
   const armed = useRef(false);
   const sawOpen = useRef(false);
   const primary = useSharedValue(0);
+  const openRef = useRef(open);
+  const committedOpen = useRef(open);
+  const epoch = useRef(0);
+  const appliedEpoch = useRef(0);
+  const closeDelivered = useRef(false);
+  const toggleRef = useRef(onToggle);
+  const openFrame = useRef(0);
+  const closeFrame = useRef(0);
+  const requestClose = () => {
+    epoch.current += 1;
+    openRef.current = false;
+  };
+  const cancelOpenFrame = () => {
+    if (openFrame.current === 0) return;
+    cancelAnimationFrame(openFrame.current);
+    openFrame.current = 0;
+  };
+  const cancelCloseFrame = () => {
+    if (closeFrame.current === 0) return;
+    cancelAnimationFrame(closeFrame.current);
+    closeFrame.current = 0;
+  };
   const commitRef = useRef((opening: boolean) => {
-    armed.current = true;
-    if (opening) onToggle();
-    else {
-      startTransition(() => {
-        onToggle();
-      });
+    if (opening) {
+      if (!openRef.current) return;
+      appliedEpoch.current = epoch.current;
+      armed.current = true;
+      onToggle();
+      return;
     }
+    const gen = epoch.current;
+    startTransition(() => {
+      if (gen !== epoch.current || openRef.current || !committedOpen.current) return;
+      closeDelivered.current = true;
+      appliedEpoch.current = gen;
+      armed.current = true;
+      onToggle();
+    });
   });
-  const commitJS = useCallback(() => commitRef.current(false), []);
+  const commitJS = useCallback(() => {
+    requestClose();
+    commitRef.current(false);
+  }, []);
   const web = Platform.OS === "web";
-  const [triggerHover, setTriggerHover] = useState(false);
   useLayoutEffect(() => {
     if (web) injectOptionStyles();
   }, [web]);
@@ -161,6 +197,8 @@ export function SelectRow<T extends string>({
     return node instanceof HTMLElement ? node : null;
   };
   const sealClosed = () => {
+    if (openRef.current) return;
+    cancelOpenFrame();
     const menu = menuEl();
     if (!menu) return;
     if (typeof document !== "undefined" && document.activeElement instanceof Node && menu.contains(document.activeElement)) focusTrigger();
@@ -169,7 +207,9 @@ export function SelectRow<T extends string>({
     for (const node of optionsInRow()) node.tabIndex = -1;
   };
   const unseal = () => {
-    menuEl()?.removeAttribute("inert");
+    const menu = menuEl();
+    menu?.removeAttribute("inert");
+    menu?.removeAttribute("aria-hidden");
   };
   const unsealForPointer = () => {
     unseal();
@@ -178,30 +218,83 @@ export function SelectRow<T extends string>({
   const sealRef = useRef(sealClosed);
   const unsealPtrRef = useRef(unsealForPointer);
   useLayoutEffect(() => {
+    toggleRef.current = onToggle;
     commitRef.current = (opening: boolean) => {
-      armed.current = true;
-      if (opening) onToggle();
-      else {
-        startTransition(() => {
-          onToggle();
-        });
+      if (opening) {
+        if (!openRef.current) return;
+        appliedEpoch.current = epoch.current;
+        armed.current = true;
+        onToggle();
+        return;
       }
+      const gen = epoch.current;
+      startTransition(() => {
+        if (gen !== epoch.current || openRef.current || !committedOpen.current) return;
+        closeDelivered.current = true;
+        appliedEpoch.current = gen;
+        armed.current = true;
+        onToggle();
+      });
     };
     sealRef.current = sealClosed;
     unsealPtrRef.current = unsealForPointer;
   });
-  const sealJS = useCallback(() => sealRef.current(), []);
-  const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
-  const commitOpen = useCallback(() => {
-    commitRef.current(true);
+  const sealJS = useCallback(() => {
+    requestClose();
+    sealRef.current();
   }, []);
+  const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
+  const focusSelected = () => {
+    focusOnOpen.current = false;
+    const nodes = optionsInRow();
+    const selected = nodes.find((node) => node.getAttribute("aria-selected") === "true");
+    const target = selected ?? nodes[0];
+    for (const node of nodes) node.tabIndex = node === target ? 0 : -1;
+    target?.focus({ preventScroll: true });
+  };
+  const commitOpen = useCallback(() => {
+    cancelCloseFrame();
+    epoch.current += 1;
+    openRef.current = true;
+    const delivered = closeDelivered.current;
+    if (delivered && committedOpen.current) {
+      const gen = epoch.current;
+      let countered = false;
+      startTransition(() => {
+        if (gen !== epoch.current || !openRef.current) return;
+        closeDelivered.current = false;
+        countered = true;
+        toggleRef.current();
+      });
+      if (countered) armed.current = false;
+    } else if (delivered || !committedOpen.current) {
+      closeDelivered.current = false;
+      flushSync(() => commitRef.current(true));
+    }
+    if (committedOpen.current) focusSelected();
+    openSV.value = 1;
+    goal.value = 1;
+    cancelOpenFrame();
+    openFrame.current = requestAnimationFrame(() => {
+      openFrame.current = 0;
+      if (openSV.value !== 1) return;
+      shown.value = withSpring(1, MENU);
+      chevron.value = withSpring(1, CHEV);
+    });
+  }, [chevron, goal, openSV, shown]);
   const commitNextFrame = useCallback(() => {
-    requestAnimationFrame(() => {
+    cancelCloseFrame();
+    const gen = epoch.current;
+    closeFrame.current = requestAnimationFrame(() => {
+      closeFrame.current = 0;
+      if (gen !== epoch.current || openRef.current) return;
       commitRef.current(false);
     });
   }, []);
   const dismissWeb = useCallback(() => {
     if (openSV.value !== 1) return;
+    requestClose();
+    cancelOpenFrame();
     sealClosed();
     openSV.value = 0;
     goal.value = 0;
@@ -232,13 +325,24 @@ export function SelectRow<T extends string>({
       document.removeEventListener(OUTSIDE_CLOSE_EVENT, onOutside);
     };
   }, [dismissWeb, open, web]);
-  const driveWebSprings = useCallback((next: number) => {
-    openSV.value = next;
-    goal.value = next;
-    shown.value = withSpring(next, next === 1 ? MENU : CLOSE_MENU);
-    chevron.value = withSpring(next, CHEV);
-  }, [chevron, goal, openSV, shown]);
   useLayoutEffect(() => {
+    committedOpen.current = open;
+    if (open === openRef.current) {
+      closeDelivered.current = false;
+      appliedEpoch.current = epoch.current;
+      return;
+    }
+    if (!open && closeDelivered.current && openRef.current) {
+      closeDelivered.current = false;
+      appliedEpoch.current = epoch.current;
+      armed.current = true;
+      onToggle();
+      return;
+    }
+    if (!open && epoch.current === appliedEpoch.current && !closeDelivered.current) openRef.current = false;
+  }, [open, onToggle]);
+  useLayoutEffect(() => {
+    if (!open && openRef.current) return;
     openSV.value = open ? 1 : 0;
   }, [open, openSV]);
   useLayoutEffect(() => {
@@ -260,9 +364,7 @@ export function SelectRow<T extends string>({
   }, [open, options, value]);
   useLayoutEffect(() => {
     if (!web || !open || !focusOnOpen.current) return;
-    focusOnOpen.current = false;
-    const index = Math.max(0, options.findIndex((option) => option.id === value));
-    optionsInRow()[index]?.focus({ preventScroll: true });
+    focusSelected();
   }, [open, options, value, web]);
   const place = () => {
     rowRef.current?.measureInWindow((_x, y, _w, h) => {
@@ -275,6 +377,18 @@ export function SelectRow<T extends string>({
   useEffect(() => {
     place();
   }, [windowH, options.length]);
+  useEffect(() => {
+    return () => {
+      if (openFrame.current !== 0) {
+        cancelAnimationFrame(openFrame.current);
+        openFrame.current = 0;
+      }
+      if (closeFrame.current !== 0) {
+        cancelAnimationFrame(closeFrame.current);
+        closeFrame.current = 0;
+      }
+    };
+  }, []);
   const mountOnPress = (event: { button?: number; nativeEvent?: object }) => {
     primary.value = pointerButton(event) === 0 ? 1 : 0;
   };
@@ -302,16 +416,15 @@ export function SelectRow<T extends string>({
           if (!fromPointer) return;
           openSV.value = next;
           goal.value = next;
-          if (next === 0) runOnJS(sealJS)();
-          else runOnJS(unsealPtrJS)();
           if (next === 1) {
-            shown.value = withSpring(1, MENU);
-          } else {
-            shown.value = withSpring(0, CLOSE_MENU);
+            runOnJS(unsealPtrJS)();
+            runOnJS(commitOpen)();
+            return;
           }
-          chevron.value = withSpring(next, CHEV);
-          if (next === 1) runOnJS(commitOpen)();
-          else runOnJS(commitNextFrame)();
+          runOnJS(sealJS)();
+          shown.value = withSpring(0, CLOSE_MENU);
+          chevron.value = withSpring(0, CHEV);
+          runOnJS(commitNextFrame)();
           return;
         }
         spring(next);
@@ -328,7 +441,6 @@ export function SelectRow<T extends string>({
     setActive(index);
     focusOnOpen.current = true;
     unseal();
-    driveWebSprings(1);
     commitOpen();
   };
   const moveTo = (index: number, nodes: HTMLElement[]) => {
@@ -392,6 +504,7 @@ export function SelectRow<T extends string>({
     if (key === "Enter" || key === " " || key === "Spacebar") {
       event.preventDefault();
       event.stopPropagation();
+      requestClose();
       sealClosed();
       onPick(options[index].id);
       focusTrigger();
@@ -441,10 +554,9 @@ export function SelectRow<T extends string>({
           accessibilityRole="button"
           aria-haspopup={web ? "listbox" : undefined}
           aria-expanded={web ? open : undefined}
+          dataSet={{ orbTrigger: mode }}
           collapsable={false}
           onPointerDown={web ? mountOnPress : undefined}
-          onPointerEnter={web ? () => setTriggerHover(true) : undefined}
-          onPointerLeave={web ? () => setTriggerHover(false) : undefined}
           onContextMenu={web ? cancelClosed : undefined}
           onPointerCancel={web ? cancelClosed : undefined}
           onKeyDownCapture={Platform.OS === "web" ? onKeyDownCapture : undefined}
@@ -455,11 +567,9 @@ export function SelectRow<T extends string>({
               ? mode === "dark"
                 ? "rgba(255,255,255,0.18)"
                 : "rgba(0,0,0,0.10)"
-              : triggerHover && mode === "dark"
-                ? "rgba(255,255,255,0.12)"
-                : mode === "dark"
-                  ? "rgba(255,255,255,0.08)"
-                  : colors.row,
+              : mode === "dark"
+                ? "rgba(255,255,255,0.08)"
+                : colors.row,
             paddingHorizontal: 12,
             flexDirection: "row",
             alignItems: "center",
@@ -508,7 +618,7 @@ export function SelectRow<T extends string>({
                   const on = option.id === value;
                   const tabbable = open && index === active;
                   return (
-                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={OPTION_BOX}>
+                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { requestClose(); sealClosed(); onPick(option.id); focusTrigger(); }} style={OPTION_BOX}>
                       <Text testID="orb-select-label" style={MENU_TEXT}>{option.label}</Text>
                     </Pressable>
                   );
