@@ -3,7 +3,10 @@ import { View } from 'react-native';
 import { Stage } from '@/src/components/Stage';
 import { warmSkiaDemo, type TransitionItem } from '@/src/catalog';
 import { LibdevStage } from '@/src/libdev/LibdevStage';
+import { retainCardState } from '@/src/skia/cardState';
 import { canvasKitReady, ensureCanvasKit } from '@/src/skia/ensureCanvasKit';
+
+retainCardState();
 import {
   getSkiaBudget,
   registerSkiaCard,

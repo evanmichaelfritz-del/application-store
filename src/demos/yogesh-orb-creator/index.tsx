@@ -29,7 +29,7 @@ export function YogeshOrbCreatorDemo() {
           if (next > 0 && Math.abs(next - height) > 1) setHeight(next);
         }}
       >
-        <ThemeProvider>
+        <ThemeProvider cardId="yogesh-orb-creator">
           <Tuner />
         </ThemeProvider>
       </View>

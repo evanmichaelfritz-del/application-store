@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCardField } from "@/src/skia/cardState";
 import { useReduceMotion } from "@/src/context/ReduceMotionContext";
 import { LibdevStage } from "@/src/libdev/LibdevStage";
 import { PREVIEW_CARDS, type PreviewCard } from "./content/previewCards";
@@ -96,9 +96,9 @@ export function OrbStatePickerDemo() {
 }
 
 function StatePicker() {
-  const [state, setState] = useState<OrbState>("listening");
-  const [size, setSize] = useState<OrbSize>(64);
-  const [paused, setPaused] = useState(false);
+  const [state, setState] = useCardField<OrbState>("orb-state-picker", "state", "listening");
+  const [size, setSize] = useCardField<OrbSize>("orb-state-picker", "size", 64);
+  const [paused, setPaused] = useCardField("orb-state-picker", "paused", false);
 
   return (
     <ScrollView

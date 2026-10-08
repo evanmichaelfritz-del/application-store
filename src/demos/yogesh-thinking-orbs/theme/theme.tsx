@@ -1,6 +1,7 @@
 import { usePathname } from "expo-router";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
+import { useCardField } from "@/src/skia/cardState";
 
 export type Mode = "dark" | "light";
 
@@ -110,10 +111,10 @@ type ThemeValue = {
 
 const Ctx = createContext<ThemeValue | null>(null);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children, cardId = "theme" }: { children: ReactNode; cardId?: string }) {
   const path = usePathname();
   const [mode, setMode] = useState<Mode>("dark");
-  const [playgroundColor, setPlaygroundColor] = useState(dark.orb);
+  const [playgroundColor, setPlaygroundColor] = useCardField(cardId, "playgroundColor", dark.orb);
   const [route, setRoute] = useState(path);
   if (path !== route) {
     setRoute(path);
