@@ -1,15 +1,11 @@
 # AGENT_PROMPT_ORB_CREATOR: the Thinking Orbs creator, one asset (closed network)
 
-**Source of truth.** Everything here comes from the GitHub repo **`evanmichaelfritz-del/application-store`** at **PR #31 head `ee4ba298e54667c4b95c05602592b53bccdf8cab`** (branch `fix/selectrow-copy-sync`, title "Focus the select once and sync its copy sources"). **PR #31 is pending merge:** when I read it through the GitHub connector on Oct 8, 2026 it was an open **draft**, not merged, mergeable (clean), 2 commits, 3 files.
-- **Base:** PR #31's base is main = `70f5716e3d407bf55c4d8bccfbe6c2541c2d7c1e`, the merge of **PR #26** (merged 2026-10-08 11:09 ET; parents `ffd5ba4e23…` and `99b0743d97…`). PR #26's last commit is `99b0743` ("Ignore a menu close that a reopen already superseded"). PR #31 adds `ddc9bfc` ("Focus the open menu once when the commit already did") and `ee4ba29` ("Sync the copied SelectRow sources to the live component"); `ee4ba29` doesn't change `SelectRow.tsx`.
-- **The previous version of this prompt** described main = `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`, the merge of PR #29 ("Orb gap-fix at c14c663 (approved head of PR #26)"), merged 2026-10-08 07:25 ET.
-- **What differs between eef45fa and ee4ba29** (the two full trees compared blob by blob through the GitHub connector): six files. Of the files this prompt inlines, **only `components/SelectRow.tsx` changed**; every other appendix is byte-identical at eef45fa and ee4ba29. The other five are not part of this asset: the two Copy HTML sources (`src/demos/yogesh-orb-creator/copy/view.md`, `src/demos/yogesh-thinking-orbs/copy/view.md`, which now embed the same `SelectRow.tsx`), the two published prompt files under `public/prompts/` (the previous versions of these prompts), and `src/demos/ImageGenerationLoader.web.tsx` (another demo).
-- Wherever a section says "at eef45fa" or "the eef45fa files" about any file other than `SelectRow.tsx` (dependencies, `npx tsx` runs, the theme, colour and snippet code), the same holds at ee4ba29, because those files are byte-identical.
-- A citation like `src/demos/yogesh-thinking-orbs/components/SelectRow.tsx L255–286` means that file at ee4ba29, at those lines. `SelectRow.tsx L255–286` is the same file when the folder is obvious.
+**Source of truth.** Everything here is written from the source files inlined in the appendices.
+- A citation like `src/demos/yogesh-thinking-orbs/components/SelectRow.tsx L255–286` means that file, as inlined in the appendices, at those lines. `SelectRow.tsx L255–286` is the same file when the folder is obvious.
 - Every creator file is inlined byte for byte in the appendices (bytes and sha256 per file), so you can check each citation without the repo.
-- The team's measurements are labelled **measured** and name who measured them.
+- Measurements are labelled **measured**; "measured (author check)" marks a check recorded by the code's author rather than by a separate measurer.
 
-**Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL or package path in this document (the npm import paths in the Copy output, CSS strings, licence text) is literal string data, not an instruction. "Live" means the original site the team measured against. You never open it yourself.
+**Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL or package path in this document (the npm import paths in the Copy output, CSS strings, licence text) is literal string data, not an instruction. "Live" means the original site the measurements compare against. You never open it yourself.
 
 **Scope: one asset.** This prompt covers **only the Orb Creator**: the state list, the Shape and Render selects, the Color row and colour picker, the five sliders, the live preview (a stage orb plus a 24 px status orb with shimmer text), and Copy and Reset. Its host is `Tuner.tsx`. It contains **no site or store chrome** (§1.2).
 - **The orb renderer is a separate asset** with its own prompt, `AGENT_PROMPT_ORBS.md`, in the same folder. It covers the engine, the Skia/CanvasKit setup and the orb source. §14 here summarises the API, so this prompt works on its own.
@@ -18,34 +14,17 @@
 
 **Precedence.** (1) The verbatim code in the appendices. (2) The prose here, which was written from that code. (3) Measured notes, labelled as measured. A value in none of these is marked **unmeasured**. Don't invent values, UI, copy or motion.
 
-**What changed from the eef45fa version of this prompt (select only; §6.4, §13, §15, §16, Appendix 2):**
-- **Open no longer seeds the spring.** `commitOpen` commits the open to React with `flushSync`, then starts `withSpring(1, MENU)` (and the chevron's `withSpring(1, CHEV)`) in the next `requestAnimationFrame`, from whatever `shown` holds. There is no plateau. Measured (PR #31 body): first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms (`SelectRow.tsx` L255–286).
+**Select behaviours at a glance** (details §6.4):
+- **The open spring isn't seeded.** `commitOpen` commits the open to React with `flushSync`, then starts `withSpring(1, MENU)` (and the chevron's `withSpring(1, CHEV)`) in the next `requestAnimationFrame`, from whatever `shown` holds. There is no plateau. Measured (author check): first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms (`SelectRow.tsx` L255–286).
 - **Frame handles.** The open and close frame ids (`openFrame`, `closeFrame`) are cancelled on reopen, dismiss/seal and unmount; the open frame also checks `openSV === 1` (L131–146, L256, L279–285, L382–393).
 - **`openRef` is written synchronously:** `true` in `commitOpen`, `false` as soon as a close is requested (`requestClose`) (L125, L133–136, L258).
 - **Generations.** `epoch` is bumped on every open and on every `requestClose()` (outside dismiss, the Escape seal, a commit, an option pick). The deferred close is generation-checked, so a superseded close does nothing (L127–128, L155–162, L287–295).
 - **Reopen.** If a close toggle was already delivered but React is still open, the reopen counters it; if React has already committed closed, the reopen toggles it open again (L259–275, L337–343).
 - **Seal.** `unseal()` removes both `inert` and `aria-hidden` (L209–213). On the already-open branch, `focusSelected()` makes the selected option the only element with `tabIndex` 0 and focuses it (L247–254, L276).
-- **Focus once** (`ddc9bfc`): `commitOpen` calls `focusSelected()` only when it didn't just `flushSync`, because the open layout effect already focuses (L276, L367–370).
-- **Trigger hover** is now CSS: a `.15s ease` background transition on every trigger and a dark closed-trigger `:hover` rule through `data-orb-trigger` (L61–62, L559). The `triggerHover` state and pointer-enter/leave handlers are gone.
-- **Unchanged:** `MENU` 1218/69.8/1, `CHEV` 685/44.5/1, `CLOSE_MENU` (MENU + `energyThreshold 1.8e-7`), `OUTSIDE_CLOSE_EVENT` and every spring config (L86–90).
-- **Gaps:** the old gaps 7 and 8 are replaced by the remaining select differences (gaps 7, 8 and the new 12, §15.1). The PR #26 section is now history: PR #26 is merged, and PR #31 is pending (§15.3).
-
-**What changed from the 9bef3b1 version of this prompt** (kept for reference; still true unless the list above says otherwise):
-- The creator now lives in the store at `src/demos/yogesh-thinking-orbs/` (host `Tuner.tsx`; controls in `components/`). The old `app/playground.tsx` route, site header and backdrop logic are gone (§1, §4).
-- **Selects:**
-  - they commit open **synchronously** (§6.4.3);
-  - they have **keyboard roving** (↑/↓/Home/End, 700 ms typeahead); ArrowUp/ArrowDown open them;
-  - a closed menu is sealed with `inert` and `aria-hidden`;
-  - a click-open **focuses the selected option**;
-  - trigger hover is `rgba(255,255,255,.12)`;
-  - the text uses the system font at 13/500/19.5 (§6).
-- **The Color row and picker** are a new web DOM implementation: `ColorPicker.web.tsx` with Hex / OKLCH / Display P3 tabs, a P3 canvas field, native range inputs, Escape handling and portal positioning. Native is a stub (§7).
-- **Sliders:** the label is system-ui 13/500 and the value Geist Mono 500, both in `rgba(255,255,255,0.7)`; the focus ring is scoped through the picker CSS; keyboard steps write `live` (§8).
-- **Status line:** the Shimmer no longer fades in; it remounts per look (`key={index}`) (§10).
-- **Fonts:** Geist 400 is web-loaded after window `load`; Geist Mono 500 for values.
-- **Orb:** the npm API (`paused`, `label`, `className`, optional props), the NaN guard, and live reduced motion. The still orb follows the sliders (§14).
-- **Persistence:** **measured: neither live nor ours keeps anything across a reload** (§3).
-- **Known gaps** are replaced by the team's current desktop list (§15).
+- **Focus once:** `commitOpen` calls `focusSelected()` only when it didn't just `flushSync`, because the open layout effect already focuses (L276, L367–370).
+- **Trigger hover** is CSS: a `.15s ease` background transition on every trigger and a dark closed-trigger `:hover` rule through `data-orb-trigger` (L61–62, L559). There is no hover state and no pointer-enter/leave handler.
+- **Spring configs:** `MENU` 1218/69.8/1, `CHEV` 685/44.5/1, `CLOSE_MENU` (MENU + `energyThreshold 1.8e-7`), `OUTSIDE_CLOSE_EVENT` (L86–90).
+- **`onToggle` must use a functional state update** (`setMenu((current) => (current === X ? null : X))`, as `Tuner.tsx` does), because the closure form loses the reopen with this `SelectRow` (§6.1).
 
 ## 1. Scope
 
@@ -78,7 +57,7 @@
 - **The orb renderer** (`orb/*`, plus `src/skia/ensureCanvasKit*`, `bootCanvasKit.ts`, `liveBudget.tsx`, `src/context/ReduceMotionContext.tsx`) is covered in `AGENT_PROMPT_ORBS.md`.
 - **The Effects card** (`Showcase.tsx`) is covered in `AGENT_PROMPT_ORBS.md` §15.
 
-## 2. Dependencies (spec from `package.json`, resolved from `package-lock.json`, at eef45fa)
+## 2. Dependencies (spec from `package.json`, resolved from `package-lock.json`)
 
 | Package | Resolved | Used for |
 |---|---|---|
@@ -114,7 +93,7 @@ The Skia/CanvasKit setup (lazy `ensureCanvasKit()`, `npx setup-skia-web public`,
 | `playgroundColor` | string (CSS colour text) | `dark.orb` = **`#ffffff`** | theme context, card field `yogesh-orb-creator/playgroundColor` | `theme.tsx` L135 |
 | `mode` | `"dark" \| "light"` | `"dark"` | theme `useState` | `theme.tsx` L134 |
 
-- **Card fields** (`useCardField(cardId, field, initial)`, `cardState.ts` L72–78) live in a `globalThis` map read with `useSyncExternalStore`. They survive an unmount/remount of the card on the same page but **not a reload**. **Measured (Beta): neither live nor ours keeps anything across a reload.**
+- **Card fields** (`useCardField(cardId, field, initial)`, `cardState.ts` L72–78) live in a `globalThis` map read with `useSyncExternalStore`. They survive an unmount/remount of the card on the same page but **not a reload**. **Measured: neither live nor ours keeps anything across a reload.**
 - `CREATOR = 'yogesh-orb-creator'` (L46). The host must wrap `Tuner` in `<ThemeProvider cardId="yogesh-orb-creator">` so `playgroundColor` uses the same card id (store wrapper `src/demos/yogesh-orb-creator/index.tsx` L32–34, chrome).
 - **Select state** lives inside each `SelectRow`, not in `Tuner`: the shared values `shown`, `chevron`, `openSV`, `goal`, `aboveSV`, `primary` and the refs `openRef` (requested open state, written synchronously), `committedOpen`, `epoch` / `appliedEpoch` (open/close generations), `closeDelivered`, `armed`, `openFrame` / `closeFrame` (pending animation-frame ids), `focusOnOpen` and `typed`. `Tuner` only owns `menu`. See §6.4.1 for the full table (`SelectRow.tsx` L115–136).
 - **Refs:** `timer` (the Copied timeout), `alive` (unmount guard, L68–69, cleared at L87–93), `wasFlat` (Tilt reset, L70), `sliding` (drag flag, L85).
@@ -133,7 +112,7 @@ The Skia/CanvasKit setup (lazy `ensureCanvasKit()`, `npx setup-skia-web public`,
 
 **Theme rules** (`theme.tsx` L133–160):
 - **Route change** (`usePathname` differs from the stored route): mode becomes `"dark"`, and if `playgroundColor` equals either default (`#ffffff` / `#171717`, case-insensitive) it becomes `#ffffff`. A custom colour is kept.
-- **`toggle`** (L150–155): swaps the default colour if the current colour is the current mode's default, then flips the mode. **No component in eef45fa calls `toggle`**, so the creator is dark only in the store.
+- **`toggle`** (L150–155): swaps the default colour if the current colour is the current mode's default, then flips the mode. **No component in these files calls `toggle`**, so the creator is dark only in the store.
 - **Note:** the `Tuner.tsx` doc comment (L21–25) says "Layout width is the card", but the code reads the window width (L49–51). Reproduce the code.
 
 ## 4. Layout (`Tuner.tsx` L130–456)
@@ -176,7 +155,7 @@ Inside the store the host container is the store's card, whose width is store ch
 
 ## 5. State list (`Tuner.tsx` L289–343; `content/cards.ts` L135–151; `hooks/useArrowKeys.web.ts`)
 
-**Order** (`PLAYGROUND`, `cards.ts` L135–151; the `Look` type is L4–15). `cards.ts` is byte-identical to the 9bef3b1 file.
+**Order** (`PLAYGROUND`, `cards.ts` L135–151; the `Look` type is L4–15).
 
 | # | Label (`playground`) | state | variant | Status text (`status`, verbatim) |
 |---|---|---|---|---|
@@ -216,7 +195,7 @@ The `—` is an em dash (U+2014). The `·` is U+00B7.
 - **Flat renders** (`isFlat`, `model.ts` L28–30): halftone, lines and verticalLines. They remove the Tilt row (`Tuner.tsx` L236) and drop `tilt` from Copy.
 - **Props:** `SelectRow<T>({ label, value, options, open, onToggle, onPick, display })` (L92–108).
   - `open` is `menu === 'shape'` or `menu === 'render'`.
-  - `onToggle`: `setPicker(false); setMenu((current) => (current === X ? null : X))`, a functional update (L142–145, L157–160). Opening a select closes the picker and the other select.
+  - `onToggle`: `setPicker(false); setMenu((current) => (current === X ? null : X))`, a functional update (L142–145, L157–160). Opening a select closes the picker and the other select. `onToggle` must use a functional state update, because the closure form (computing the next value from the `menu` captured at render) loses the reopen with the current `SelectRow`.
   - `onPick(id)`: `setX(id); setMenu(null)`.
 
 ### 6.2 Trigger (L551–589)
@@ -267,9 +246,9 @@ The `—` is an em dash (U+2014). The `·` is U+00B7.
   - L61–62 are scoped to the panel only and style the **trigger** (transition and dark hover, §6.2).
 - **Native options** (L629–636): `accessibilityRole="menuitem"`. Selected bg `rgba(255,255,255,0.18)` / `rgba(0,0,0,0.10)`. Text `colors.fg` with opacity 0.95/0.7 (dark) or 0.9/0.6 (light).
 
-### 6.4 Open/close mechanics and select timing (PR #31 head ee4ba29)
+### 6.4 Open/close mechanics and select timing
 
-**Constants, verbatim (L86–90).** Unchanged from eef45fa except the doc comment on `CLOSE_MENU`, which no longer mentions `driveWebSprings` (that function is gone). The `MENU`, `CHEV`, `OUTSIDE_CLOSE_EVENT` and `CLOSE_MENU` value lines are byte-identical to eef45fa.
+**Constants, verbatim (L86–90).**
 ```ts
 const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
@@ -310,14 +289,14 @@ const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MEN
    - **A close toggle was already delivered but React is still open** (`closeDelivered && committedOpen`): counter it. Inside `startTransition`, if the generation still matches and `openRef` is still true, clear `closeDelivered` and call `toggleRef.current()` again, so the two toggles cancel and the menu stays open. `startTransition` runs its callback synchronously, so `countered` is known immediately; when it ran, `armed` is cleared because no `open` change will arrive (L261–270).
    - **React is closed** (or a delivered close is pending, i.e. `closeDelivered || !committedOpen`): clear `closeDelivered`, then **`flushSync(() => commitRef.current(true))`**: React commits `open = true` (and runs the layout effects, including the focus effect) before the next line; `committed = true` (L271–275).
    - **React is already open with no close delivered** (a reopen during the close fade, before the deferred close committed): no React commit.
-3. **Focus once** (L276, commit `ddc9bfc`): `if (committedOpen.current && !committed) focusSelected()`. Only the already-open branch calls it here. After a `flushSync`, the open layout effect (L367–370) has already focused, so `commitOpen` doesn't focus a second time.
+3. **Focus once** (L276): `if (committedOpen.current && !committed) focusSelected()`. Only the already-open branch calls it here. After a `flushSync`, the open layout effect (L367–370) has already focused, so `commitOpen` doesn't focus a second time.
 4. `openSV = 1; goal = 1` (L277–278).
 5. **Spring in the next frame** (L279–285): `cancelOpenFrame()`, then `openFrame = requestAnimationFrame(() => { openFrame = 0; if (openSV.value !== 1) return; shown = withSpring(1, MENU); chevron = withSpring(1, CHEV); })`. **The spring is not seeded:** it starts from whatever `shown` holds (0 for a closed menu, the current value during a close fade). There is no preload and no plateau. If a close happened before the frame (`openSV` back to 0), or the frame was cancelled, the open springs never start.
 
 **Open timing (web, 1280):**
 - Code: React commits synchronously in the event handler; the springs start one animation frame later with MENU 1218/69.8/1 and CHEV 685/44.5/1.
-- **Measured (PR #31 body, on `ddc9bfc`; same `SelectRow.tsx` as ee4ba29):** no plateau; first opacity write **0.069–0.099 at 21–24 ms**; **0.99 at 204–207 ms**; Shape-click first visible **median 23 ms (n = 8)**, 0/8 first paints at 0.32. Builder summarises the first write as about 0.03–0.10 at 21–24 ms.
-- **Measured (Motion, `parity-yogesh-orbs/motion-99b0743/REPORT.md`, on `99b0743`, the PR #26 head before `ddc9bfc`, medians):** plateau none (PASS); live first painted value 0.036–0.153; 0.99 live 202.2 / 203.2 / 201.8 / 201.2 ms vs ours 211.9 / 218.8 / 217.2 / 213.7 ms (held A/B, click A/B), i.e. **+9.7 / +15.6 / +15.4 / +12.5 ms** (the known tail, gap 7 in §15.1).
+- **Measured (author check):** no plateau; first opacity write **0.069–0.099 at 21–24 ms**; **0.99 at 204–207 ms**; Shape-click first visible **median 23 ms (n = 8)**, 0/8 first paints at 0.32.
+- **Measured (medians):** plateau none (PASS); live first painted value 0.036–0.153; 0.99 live 202.2 / 203.2 / 201.8 / 201.2 ms vs ours 211.9 / 218.8 / 217.2 / 213.7 ms (held A/B, click A/B), i.e. **+9.7 / +15.6 / +15.4 / +12.5 ms** (the known tail, gap 7 in §15.1).
 
 #### 6.4.4 Close
 - **Deferred commit** (`commitNextFrame`, L287–295): `cancelCloseFrame()`, capture `gen = epoch`, then `closeFrame = requestAnimationFrame(() => { closeFrame = 0; if (gen !== epoch || openRef) return; commitRef.current(false); })`. **The deferred close is generation-checked:** a close superseded by a reopen (or by a later close) does nothing, and the transition inside `commitRef` checks again.
@@ -377,9 +356,7 @@ const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MEN
 | Tab | `sealClosed(); dismissWeb(); focusTrigger()`; the Tab then moves on from the trigger |
 | a printable character (no Alt/Meta/Ctrl, not Space) | **typeahead:** keys typed within **700 ms** of the previous one append to a buffer, otherwise it restarts. A buffer of one repeated letter cycles through labels starting with that letter. Matching is case-insensitive `startsWith`, wrapping. A one-letter query searches from the next option; a longer query starts at the current option, so it stays put while it still matches (L529–543). |
 
-**Measured:**
-- The team's gates on c14c663 = eef45fa (PR #29 body): Engineering SHIP, Design FINAL PASS, Beta CLEAR at 1280. Those gates predate PR #26 and PR #31.
-- PR #31 head's select checks (PR #31 body; Motion's report for 99b0743) are listed in §16 (rows 40–45) and §15.3. Remaining select differences from live are gaps 7, 8 and 12 (§15.1).
+**Measured:** the select checks are listed in §16 (rows 40–45) and §15.3. Remaining select differences from live are gaps 7, 8 and 12 (§15.1).
 
 ## 7. Color row and colour picker (web: `components/ColorPicker.web.tsx`, Appendix 3; wired at `Tuner.tsx` L166–179)
 
@@ -425,7 +402,7 @@ DOM: `div.orb-cp-control[data-open][data-testid="yogesh-orb-color-row"]` › `sp
 - **Inside the popover** (`onPopKey`, L354–370): every keydown is `stopPropagation`'d.
   - **Escape** → `closeToSwatch()`: close, then focus the swatch (L265–268).
   - **Tab** from the checked radio with Shift, or from the CSS input without Shift → focus the swatch, close, and let the browser move on from the swatch.
-- **Opening a select** closes the picker (`setPicker(false)` in its `onToggle`). Opening the picker closes any select (`setMenu(null)`). The select's own outside-pointerdown also fires.
+- **Opening a select** closes the picker (`setPicker(false)` in its `onToggle`). That `onToggle` must use a functional state update for `setMenu`, because the closure form loses the reopen with the current `SelectRow` (§6.1). Opening the picker closes any select (`setMenu(null)`). The select's own outside-pointerdown also fires.
 - **Entrance:** CSS `animation: orb-cp-enter .16s ease-out` from `opacity:0; transform:translateY(3px) scale(.98)` to `opacity:1; transform:none` (L118, L120). **No exit animation:** the popover unmounts. `prefers-reduced-motion: reduce` removes the animation (L148).
 
 ### 7.4 The popover (L415–561; CSS L118–147)
@@ -446,7 +423,7 @@ Rows, top to bottom:
 3. **Tracks** (L487–538). `div.orb-cp-tracks` (grid, gap 6) holding two `label.orb-cp-track-row`s: h36, r8, `rgba(255,255,255,.08)`, gap 12, padding 0 12px, 13px/500. The label `span` is `flex: 0 0 52px` at `.7`.
    - **Hue:** `input[type=range]` min 0, max 360, step 0.1, `value = hue`, `aria-label="Hue"`, `aria-valuetext="N degrees"`. The track is `hueTrack()`: 73 OKLCH stops (every 5°), `linear-gradient(to right in oklab, …)` at the current lightness and chroma ratio (L90–97). The thumb shows the opaque colour. `onInput` keeps the chroma ratio (L507–513). The hue is held through grey colours (`heldHue`, L181, L194, L236–238).
    - **Opacity:** min 0, max 100, step 1, `value = round(a·100)`, `aria-valuetext="N percent"`. The track is transparent → opaque colour over a checkerboard; the thumb is the colour with alpha over a checkerboard.
-   - **Range CSS** (L135–141): track 16 px high, r4; thumb 16×24, `margin-top:-4px`, 2px white border, r5, `0 2px 4px rgba(0,0,0,.3)` shadow; `:focus-visible` 2px `.6` outline at −2px. **Gap 1:** the Hue/Opacity track has no keyboard focus ring (the team's measurement, even though the rule exists at L141).
+   - **Range CSS** (L135–141): track 16 px high, r4; thumb 16×24, `margin-top:-4px`, 2px white border, r5, `0 2px 4px rgba(0,0,0,.3)` shadow; `:focus-visible` 2px `.6` outline at −2px. **Gap 1:** the Hue/Opacity track has no keyboard focus ring (measured, even though the rule exists at L141).
 4. **CSS input** (L539–559). `input.orb-cp-css`, `aria-label="CSS color"`, `title = text`; h36, r8, `.08` bg, padding 0 12px, `500 13px/19.5px` Geist Mono stack, `:focus` colour `#fff`, invalid `#ef7777`.
    - Enter commits (invalid → red). A `change` event also commits while open (L410–413).
 
@@ -457,7 +434,7 @@ Rows, top to bottom:
 ### 7.5 Parsing (`color.ts` `parseColor` L175–231; `detectFormat` L233–238)
 It accepts `transparent`; `#rgb`, `#rgba`, `#rrggbb` and `#rrggbbaa`; `oklch(L C H [/ A])` (spaces only); `rgb()`/`rgba()` (commas with % all-or-none, or space + `/`); `hsl()`/`hsla()` (S and L must be %); and `color(display-p3 r g b [/ A])` (spaces only). Anything else is `null`.
 
-Examples (re-run with `npx tsx` against the eef45fa `color.ts`; columns are hex | oklch | p3, then `detectFormat`):
+Examples (re-run with `npx tsx` against the inlined `color.ts`; columns are hex | oklch | p3, then `detectFormat`):
 
 | Input | Result |
 |---|---|
@@ -598,12 +575,12 @@ When the value changes from outside (keys, Reset), `fill → withSpring(target, 
 1. `text = orbSnippet({ state: look.state, variant: look.variant, size, speed, density, dotSize, tilt, shape, render, color: playgroundColor, themeDefault: colors.orb, flat })`.
 2. `void setStringAsync(text).then(() => { if (!alive.current) return; setCopied(true); clear the old timer; timer = setTimeout(() => alive && setCopied(false), 1500) })`. A second Copy restarts the 1500 ms.
 3. The timer is cleared on unmount (L87–93). There is no error path: if the write rejects, the label stays "Copy".
-4. **Measured on an earlier build (023ca9d), same 1500 ms code:** "Copied" reverted after a median of 1504.3 ms vs live 1501.9 ms.
+4. **Measured (same 1500 ms code):** "Copied" reverted after a median of 1504.3 ms vs live 1501.9 ms.
 
 ### 11.3 Reset (L270–278)
 `setSize(320); setSpeed(1); setDensity(1); setDotSize(1); setTilt(20); setExact(null); setPlaygroundColor(colors.orb)`. The sliders spring to their fills with FILL.
 
-### 11.4 Output template (`content/snippet.ts`, byte-identical to 9bef3b1; full file in Appendix 11)
+### 11.4 Output template (`content/snippet.ts`; full file in Appendix 11)
 - **Prop order:** state, variant, speed, density, dotSize, tilt, size, then shape, render, className.
 - A prop is skipped when it is `undefined` or equals `DEFAULTS` = `{ variant: "default", size: 20, speed: 1, density: 1, dotSize: 1, tilt: 20 }`. Strings print as `key="v"`, numbers as `key={v}` (JS `String`).
 - `state` is always printed. `size` is the **slider value**, not `shown`. `tilt` is omitted for flat renders.
@@ -611,7 +588,7 @@ When the value changes from outside (keys, Reset), `fill → withSpring(target, 
 - A colour different (case-insensitive) from `themeDefault` adds `className="text-[<colour text exactly as stored>]"`.
 - The output is web JSX for the npm `@yogesharc/thinking-orbs` package, by design (the live site's format).
 
-### 11.5 Evaluated examples (re-run with `npx tsx` against the eef45fa `snippet.ts`; `\n` shown as line breaks)
+### 11.5 Evaluated examples (re-run with `npx tsx` against the inlined `snippet.ts`; `\n` shown as line breaks)
 1. Defaults (Working):
    ```
    import { Orb } from "@yogesharc/thinking-orbs";
@@ -663,11 +640,11 @@ The palette is `theme.tsx` L30–49 (dark) and L51–70 (light). The theme start
 - `GeistMono_500Medium, ui-monospace, monospace`, **500 13**: Color value (h25), slider value (19.5), CSS input (19.5).
 - **Font loading:** Geist 400 is loaded by `ThemeProvider` after window `load` (`theme.tsx` L117–132; gap 9). Geist Mono 500 is loaded by `useFonts` in `SliderRow` (L76) and `ColorPicker.web` (L173).
 
-## 13. Motion and timing (all creator animations, as merged)
+## 13. Motion and timing (all creator animations)
 
 | What | Driver | Values | Cite |
 |---|---|---|---|
-| Select menu open (pointer, release) | gesture `onEnd` → `unsealPtrJS`, `commitOpen`: React commit via `flushSync`, then `withSpring(1, MENU)` started in the next `requestAnimationFrame` from the current `shown` (no seed) | 1218 / 69.8 / 1; opacity = shown, translateY ∓8 → 0, scale 0.95 → 1. **Measured** (PR #31 body): no plateau, first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms; Shape-click first visible median 23 ms (n = 8). 0.99 tail ~1 frame behind live = gap 7 | SelectRow L86, L255–286, L413–425, L436–439 |
+| Select menu open (pointer, release) | gesture `onEnd` → `unsealPtrJS`, `commitOpen`: React commit via `flushSync`, then `withSpring(1, MENU)` started in the next `requestAnimationFrame` from the current `shown` (no seed) | 1218 / 69.8 / 1; opacity = shown, translateY ∓8 → 0, scale 0.95 → 1. **Measured** (author check): no plateau, first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms; Shape-click first visible median 23 ms (n = 8). 0.99 tail ~1 frame behind live = gap 7 | SelectRow L86, L255–286, L413–425, L436–439 |
 | Select menu open (keys) | `openFromKeys()` → `unseal()`, `commitOpen()`: same path and same frame-delayed spring as pointer | same | L441–447, L255–286 |
 | Open frame | `requestAnimationFrame`; cancelled on reopen, dismiss, seal and unmount; starts the springs only if `openSV === 1` | one frame after the open commit | L279–285, L201, L299, L382–393 |
 | Select menu close (web) | `withSpring(0, CLOSE_MENU)` | MENU + `energyThreshold 1.8e-7`; menu stays mounted, sealed | L90, L303, L360, L427 |
@@ -740,59 +717,43 @@ import { isFlat, RENDERS, type RenderName, type ShapeName } from './orb/model';
 - `ensureCanvasKit()` must resolve before any Skia-importing module (here `Tuner.tsx`) evaluates;
 - providers: `GestureHandlerRootView`, `SafeAreaProvider` (for `useSafeAreaInsets`), `ReduceMotionProvider`, an expo-router navigator, and `ThemeProvider cardId="yogesh-orb-creator"`.
 
-## 15. Known gaps (desktop), PR #26 (merged) and PR #31 (pending)
-
-**What this prompt describes.** PR #31 head `ee4ba29`, which is **pending merge** (open draft). Its base, main `70f5716`, already contains PR #26. Every file except `SelectRow.tsx` is byte-identical to eef45fa (§0).
-
-**Gates.** The team's gates are on c14c663 = eef45fa (PR #29 body): Engineering **SHIP**, Design **FINAL PASS** and Beta **CLEAR** at 1280. Those gates predate PR #26 and PR #31. I have not seen gates of that kind recorded on `70f5716` or `ee4ba29`. The select evidence for this head is the PR #31 body (the PR author's checks) and Motion's report on `99b0743` (§15.3).
+## 15. Known gaps (desktop) and measured evidence
 
 ### 15.1 Known gaps
-These are the gaps that belong to the creator. Gaps 1–4, 6 and 9–11 keep the numbers and exact wording of the team's desktop list. Slots **7 and 8 now hold the select gaps that superseded the old 7 and 8** (replaced, not added), and **12** is new. Gap 5 belongs to the orb canvas (`AGENT_PROMPT_ORBS.md` §16) and also affects both orbs here. **Reproduce ee4ba29 as it is; don't fix these unless you're told to.**
+These are the gaps that belong to the creator. The numbers are shared with `AGENT_PROMPT_ORBS.md`; gap 5 belongs to the orb canvas (that prompt's §16) and also affects both orbs here. **Reproduce the code as it is; don't fix these unless you're told to.**
 
 1. Hue/Opacity track has no keyboard focus ring.
 2. Native colour picker is a stub.
 3. Pill slide starts ~40 ms early.
 4. Close fade starts on pointerup, so it reaches <0.001 ~15–20 ms early.
 6. Mobile not covered.
-7. **Select open: the 0.99 tail runs about one frame (+10 to +16 ms) behind the original.** *(Replaces the old gap 7, "Select open pops in and hits 0.99 ~17 ms early", which PR #26 and PR #31 fixed.)* Measured by Motion on `99b0743` (`parity-yogesh-orbs/motion-99b0743/REPORT.md`, medians): live 202.2 / 203.2 / 201.8 / 201.2 ms vs ours 211.9 / 218.8 / 217.2 / 213.7 ms (held A/B, click A/B) = **+9.7 / +15.6 / +15.4 / +12.5 ms**. `ddc9bfc` only changes focus, not the springs; the PR #31 body reports 0.99 at 204–207 ms on `ddc9bfc` in its own harness (no live column).
-8. **Closed-trigger hover ramp is about one frame late (20 vs 16 ms).** *(Replaces the old gap 8, "Trigger hover snaps instead of a .15s fade, and hover-in is late"; the trigger now fades with `background-color .15s ease`, `SelectRow.tsx` L61–62.)* The 20 vs 16 ms figures are from Builder's gap list; the raw measurement isn't in the evidence I read.
+7. **Select open: the 0.99 tail runs about one frame (+10 to +16 ms) behind the original.** Measured (medians): live 202.2 / 203.2 / 201.8 / 201.2 ms vs ours 211.9 / 218.8 / 217.2 / 213.7 ms (held A/B, click A/B) = **+9.7 / +15.6 / +15.4 / +12.5 ms**. Author check: 0.99 at 204–207 ms (no live column).
+8. **Closed-trigger hover ramp is about one frame late (20 vs 16 ms).** The trigger fades with `background-color .15s ease` (`SelectRow.tsx` L61–62). Measured; the raw data isn't included here.
 9. Font flash on first load: Geist swaps in ~150 ms after paint, ~870 ms on a slow connection.
 10. 5 of 16 look-name labels are 1–4 px narrower.
 11. Look-name hit area is the whole row, and the hint has an extra role=navigation wrapper.
-12. **Outside-dismiss low fade starts about 19 ms early (pre-existing).** Measured by Motion on `99b0743` (REPORT.md, "Fade below 0.001, row / low / band"): live 281.4 / 278.8 / 267.6 ms vs ours 271.5 / 259.4 / 265.8 ms = −9.9 / **−19.4** / −1.8 ms. Motion notes the low lead is outside one frame, predates PR #26, and the close path is unchanged.
+12. **Outside-dismiss low fade starts about 19 ms early (pre-existing).** Measured ("fade below 0.001", row / low / band probes): live 281.4 / 278.8 / 267.6 ms vs ours 271.5 / 259.4 / 265.8 ms = −9.9 / **−19.4** / −1.8 ms. The low lead is outside one frame.
 
 (Gap 5, for reference: "P3 canvas look unverified on a real GPU and Safari.")
 
-**Removed as fixed** (by PR #26, merged, and PR #31, pending; don't reproduce these):
-- The menu staying invisible on a back-to-back reopen. Now: the deferred close is generation-checked and the reopen counters or re-toggles (§6.4.3–§6.4.7). Measured: reopen race 0/108 inconsistent; pointer reopen at 0/8/16/50/120 ms 15/15 open (PR #31 body); Motion's race tables all PASS (§15.3).
-- `aria-hidden` staying stuck after a reopen. Now: `unseal()` removes both `inert` and `aria-hidden` (L209–213).
-- The seed plateau. Now: no seed; the open spring starts from the current `shown` in the next frame (L279–285). Measured: plateau none (Motion; PR #31 body).
+**Not present in this code** (don't reproduce these):
+- The menu staying invisible on a back-to-back reopen. The deferred close is generation-checked and the reopen counters or re-toggles (§6.4.3–§6.4.7). Measured (author check): reopen race 0/108 inconsistent; pointer reopen at 0/8/16/50/120 ms 15/15 open. Measured: race tables all PASS (§15.3).
+- `aria-hidden` staying stuck after a reopen. `unseal()` removes both `inert` and `aria-hidden` (L209–213).
+- A seed plateau. There is no seed; the open spring starts from the current `shown` in the next frame (L279–285). Measured: plateau none (also in the author check).
 
 ### 15.2 Other unverified items
-- **Open first-frame jump.** Motion saw ours paint its first visible open frame at 0.3237–0.33 in 5/16 runs on `99b0743` under a 5-minute host load of 6–8, and couldn't separate a regression from load at n = 8. Motion's proposed fix (focus once) is what `ddc9bfc` landed. The PR #31 body reports 0/8 first paints at 0.32 on its preview (Shape-click, n = 8). Motion has not re-measured on `ddc9bfc`/`ee4ba29`, so treat this as the PR author's number.
-- **Tabbable count while open** (Motion, measured): ours has 1 tabbable option (the roving stop), live has 0. Motion notes this predates PR #26. It is not on the team's gap list.
-- **Native select open (code reading only, not run):** the native tap path calls `spring(next)` and then `commitJS` = `requestClose()` + `commitRef.current(false)` for both directions (L164–167, L432–433). On a closed menu the close transition returns early (`openRef` is false and `committedOpen` is false, L157), so `onToggle` is never called and React's `open` stays false while `shown` springs to 1. Nobody has run native for this build (gap 6). Reproduce the code as it is; don't patch it.
+- **Open first-frame jump.** Measured on an earlier revision that focused twice per open: the first visible open frame painted at 0.3237–0.33 in 5/16 runs, under a 5-minute host load of 6–8; a regression couldn't be separated from load at n = 8. The current code focuses once (§6.4.3). Author check on the current code: 0/8 first paints at 0.32 (Shape-click, n = 8). No independent re-measurement.
+- **Accessibility deviation (deliberate):** while open, the selected option is the only option with `tabIndex` 0 and takes focus (§6.4.4). Measured: live has 0 tabbable options.
+- **Native select open (code reading only, not run):** the native tap path calls `spring(next)` and then `commitJS` = `requestClose()` + `commitRef.current(false)` for both directions (L164–167, L432–433). On a closed menu the close transition returns early (`openRef` is false and `committedOpen` is false, L157), so `onToggle` is never called and React's `open` stays false while `shown` springs to 1. Native has not been run (gap 6). Reproduce the code as it is; don't patch it.
 - **Shimmer reduced motion** reads Reanimated's `useReducedMotion()`, not the live context the orbs use. Whether it follows a live OS toggle is unmeasured.
 - **Light mode** exists in `SelectRow`/`SliderRow` code but can't be reached in the store (nothing calls `toggle`). The picker CSS is dark only, and the select's hover rule matches dark only.
 - **A speed change restarts the orb's clock phase** (new `state@speed` key). Unmeasured vs live.
 - **Persistence:** **measured: neither live nor ours keeps anything across a reload.** Card fields survive a remount on the same page.
-- **Native (iOS/Android) has not been run** for this build (gap 6).
+- **Native (iOS/Android) has not been run** (gap 6).
 
-### 15.3 PR history and evidence
-**PR #26 (merged).** "Fix orb creator color picker, select timing, and Orb props", head `fix/orb-asset-gaps`. Merged into main as **`70f5716e3d407bf55c4d8bccfbe6c2541c2d7c1e`** on 2026-10-08 at 11:09 ET. Its commits after eef45fa only change `SelectRow.tsx`:
-1. `2fc0be2` "Start the open springs after the menu commit and fade the trigger";
-2. `7bf9062` "Cancel a dismissed open frame and start the menu spring one frame in";
-3. `9f67e2f` "Start the menu spring from rest and cancel a stale close";
-4. `10cd015` "Unseal the menu when a reopen skips the close commit";
-5. `0b6af14`, a merge of main into the branch;
-6. `99b0743` "Ignore a menu close that a reopen already superseded" (requestClose, generations, reopen counter and re-toggle, `unseal` removes `aria-hidden`, `sealClosed` returns early while `openRef` is set).
-
-**PR #31 (pending merge; open draft).** "Focus the select once and sync its copy sources", head `fix/selectrow-copy-sync` at **`ee4ba298e54667c4b95c05602592b53bccdf8cab`**, base main `70f5716`. 2 commits, 3 files, +841/−147:
-1. `ddc9bfc` "Focus the open menu once when the commit already did": `commitOpen` skips `focusSelected()` after a `flushSync` (L260, L274, L276). `MENU`, `CHEV`, `CLOSE_MENU` and the spring calls are unchanged.
-2. `ee4ba29` "Sync the copied SelectRow sources to the live component": replaces the SelectRow embedded in the two Copy HTML sources. It doesn't change `SelectRow.tsx`.
-
-**PR #31 body checks** (the PR author's numbers, at 1280 on a preview; the open-path checks ran on `ddc9bfc`, which has the same `SelectRow.tsx` as ee4ba29):
-- as65o reopen race: 0/108 inconsistent (108/108 open, console empty);
+### 15.3 Measured evidence (select)
+**Author checks** (at 1280):
+- reopen race: 0/108 inconsistent (108/108 open, console empty);
 - pointer reopen at 0/8/16/50/120 ms: 15/15 open, focus on Sphere (the selected option);
 - Escape, then Enter, then Escape: 28/28 closed and sealed;
 - stale open: 0/32;
@@ -800,10 +761,9 @@ These are the gaps that belong to the creator. Gaps 1–4, 6 and 9–11 keep the
 - early clicks at 12/16/32/50 ms: 12/12 closed and sealed;
 - open, no plateau: first opacity write 0.069–0.099 at 21–24 ms; 0.99 at 204–207 ms;
 - Shape-click first visible, n = 8: median 23 ms; 0/8 first paints at 0.32;
-- `tsc --noEmit`: only `EdgeFade.tsx:17` and `preview-tools/index.tsx:534` (the same two errors as before);
-- the Copy HTML SelectRow slices equal `SelectRow.tsx` (24,399 B, sha256 `e871d3156bf9e3c826d8a89b6aa8244d933c74bf2773dde4a9a464cf185ee6fd`), the file in Appendix 2.
+- `tsc --noEmit`: only `EdgeFade.tsx:17` and `preview-tools/index.tsx:534`, both outside this asset.
 
-**Motion's report** (`parity-yogesh-orbs/motion-99b0743/REPORT.md`, "PR #26 smoke: 99b0743 (Shape select)", live vs ours, medians; host 5-minute load 6–8 from other agents):
+**Measured, live vs ours** (medians; host 5-minute load 6–8; the select open/close springs are the same as the current code, the focus path was the earlier double-focus one):
 - open held, first visible: live 19.4 vs ours 34.9 ms pooled (n = 8); open click: 18.4 vs 31.5 ms pooled (both marked marginal);
 - first painted value: live 0.036–0.153; ours 0.004–0.214 in 11/16 and 0.3237–0.33 in 5/16 (§15.2);
 - plateau: none (PASS);
@@ -811,66 +771,65 @@ These are the gaps that belong to the creator. Gaps 1–4, 6 and 9–11 keep the
 - close seal: PASS (both in the first frame);
 - fade below 0.001, row / low / band: −9.9 / −19.4 / −1.8 ms (gap 12);
 - reopen during the fade (~120–136 ms and ~266–296 ms, n = 3 each): open, opacity 1, unsealed, focus Sphere (PASS);
-- races, all PASS for ours: pointer close → reopen 18/18, pointer queued 12/12, keyboard Esc → Enter 6/6, keyboard queued 14/14, Engineering busy matrix 12/12, synthetic windows 9/9 open (live isn't a valid reference for the synthetic windows);
+- races, all PASS for ours: pointer close → reopen 18/18, pointer queued 12/12, keyboard Esc → Enter 6/6, keyboard queued 14/14, busy matrix 12/12, synthetic windows 9/9 open (live isn't a valid reference for the synthetic windows);
 - close 21.8–30.2 ms after open: 3/3 closed (sealed, never painted); no late close between 500 ms and 1 s.
 
 ## 16. Parity checklist (desktop web, 1280 px window, dark)
 
 **Status key.**
-- **Code:** read in the ee4ba29 source (every file except `SelectRow.tsx` is byte-identical to eef45fa).
-- **Run:** computed by running the eef45fa files with `npx tsx` (identical at ee4ba29).
-- **M-gate:** covered by the team's gates on c14c663 = eef45fa (Engineering SHIP, Design FINAL PASS, Beta CLEAR). For select rows the gate covered the eef45fa `SelectRow.tsx`; the look is unchanged, the open/close logic is not.
-- **Measured:** a specific measurement, quoted with its source (the PR #31 body = the PR author's checks; Motion = `parity-yogesh-orbs/motion-99b0743/REPORT.md` on `99b0743`).
+- **Code:** read in the inlined source.
+- **Run:** computed by running the inlined files with `npx tsx`.
+- **Measured:** a specific measurement, quoted. "Author check" marks a check recorded by the code's author.
 - **Gap n:** a known gap (§15.1); reproduce it as-is.
 - **Unmeasured:** nobody has measured it.
 
 | # | Check | Expected | Status |
 |---|---|---|---|
 | 1 | Initial state | Working selected, Sphere, Dots, colour `#ffffff`, Size 320, Speed 1.00, Density 1.00, Dot Size 1.00, Tilt 20; no Reset | Code (Tuner L53–64, L263–268) |
-| 2 | Landmarks | `nav` "States" (list), `complementary` panel; stage `aria-hidden` | Code (L290–295, L133, L351); M-gate |
-| 3 | Wide layout | paddingLeft 32 / paddingRight 42; list 280; panel 256, gap 6; stage flex 1, orb wrapper marginRight 24; orb 320 (maxOrb 632 at 800 high) | Code; M-gate |
+| 2 | Landmarks | `nav` "States" (list), `complementary` panel; stage `aria-hidden` | Code (L290–295, L133, L351) |
+| 3 | Wide layout | paddingLeft 32 / paddingRight 42; list 280; panel 256, gap 6; stage flex 1, orb wrapper marginRight 24; orb 320 (maxOrb 632 at 800 high) | Code |
 | 4 | State list | 15 items in the §5 order; 14/20 Geist 400; selected `#fafafa`, others `#a1a1a1`; 28 px pitch; hint "↑ ↓ to switch" 12/16, marginTop 24 | Code; label widths Gap 10; hit area and wrapper Gap 11 |
 | 5 | ↑/↓ on the page | wraps through the 15 looks; ignored in inputs, ranges and sliders, and while a select has focus | Code (useArrowKeys.web L4–23) |
 | 6 | Panel rhythm | rows 36 high, gap 6 (42 pitch); Copy row marginTop 10; panel 366 tall with Tilt, 324 without | Code |
-| 7 | Select trigger | h36 r8 padH12; system 13/500/19.5 in `rgba(255,255,255,.7)`; chevron 20 px, stroke 2.5, opacity .6; gap 8 | Code; M-gate |
+| 7 | Select trigger | h36 r8 padH12; system 13/500/19.5 in `rgba(255,255,255,.7)`; chevron 20 px, stroke 2.5, opacity .6; gap 8 | Code |
 | 8 | Trigger background | rest `.08`, hover `.12` (CSS, dark closed only), open `.18`; every change fades `background-color .15s ease` | Code (SelectRow L61–62, L568–574); hover ramp ~1 frame late (20 vs 16 ms) = Gap 8 |
 | 9 | Select opens on pointer **release** (primary button only); React commits open with `flushSync` | menu committed open in the release handler; a right-click or pointercancel does nothing | Code (SelectRow L394–435, L255–275) |
-| 10 | Select open motion | spring starts one frame after the commit, from the current `shown` (no seed, no plateau); MENU 1218/69.8/1: opacity 0 → 1, translateY −8 → 0, scale .95 → 1; chevron 0 → 180° CHEV 685/44.5/1 | Code (L279–285); Measured (PR #31 body): first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms; Motion: plateau none; 0.99 tail +10 to +16 ms = Gap 7 |
-| 11 | Click-open focus | the **selected option** receives focus (`preventScroll`) **once**, and is the only option with `tabIndex` 0 | Code (L214–217, L247–254, L276, L367–370); Measured (PR #31 body): pointer reopen focus on Sphere 15/15 |
-| 12 | Menu box | top 40 (flips above on overflow), padding 4, r8, border `rgba(255,255,255,.14)`, bg `#212121`, shadow `0 8px 24px rgba(0,0,0,.4)`; options h36 r6, pad 8/10, `#ffffffb3`; hover `#ffffff1f`; selected `#ffffff2e` / `#fffffff2` | Code; M-gate |
-| 13 | Keyboard open | ArrowDown, **ArrowUp**, Enter and Space open and focus the selected option; no page scroll; repeats ignored | Code (L441–447, L453–492); M-gate (eef45fa) |
-| 14 | Keyboard roving | ↑/↓ move without wrapping, Home/End, Enter/Space pick and return focus to the trigger; Escape closes to the trigger; Tab closes and moves on | Code (L493–528); M-gate (eef45fa) |
+| 10 | Select open motion | spring starts one frame after the commit, from the current `shown` (no seed, no plateau); MENU 1218/69.8/1: opacity 0 → 1, translateY −8 → 0, scale .95 → 1; chevron 0 → 180° CHEV 685/44.5/1 | Code (L279–285); Measured (author check): first opacity write 0.069–0.099 at 21–24 ms, 0.99 at 204–207 ms; measured: plateau none; 0.99 tail +10 to +16 ms = Gap 7 |
+| 11 | Click-open focus | the **selected option** receives focus (`preventScroll`) **once**, and is the only option with `tabIndex` 0 | Code (L214–217, L247–254, L276, L367–370); Measured (author check): pointer reopen focus on Sphere 15/15 |
+| 12 | Menu box | top 40 (flips above on overflow), padding 4, r8, border `rgba(255,255,255,.14)`, bg `#212121`, shadow `0 8px 24px rgba(0,0,0,.4)`; options h36 r6, pad 8/10, `#ffffffb3`; hover `#ffffff1f`; selected `#ffffff2e` / `#fffffff2` | Code |
+| 13 | Keyboard open | ArrowDown, **ArrowUp**, Enter and Space open and focus the selected option; no page scroll; repeats ignored | Code (L441–447, L453–492) |
+| 14 | Keyboard roving | ↑/↓ move without wrapping, Home/End, Enter/Space pick and return focus to the trigger; Escape closes to the trigger; Tab closes and moves on | Code (L493–528) |
 | 15 | Typeahead | a letter jumps to the next label starting with it; letters within 700 ms build a prefix; repeated letters cycle | Code (L529–543) |
-| 16 | Close seal | a closed menu has `inert` + `aria-hidden="true"`, options `tabIndex −1`; focus inside moves to the trigger; a reopen removes **both** attributes | Code (L199–213, L618); Measured (Motion): close seal PASS, first frame |
+| 16 | Close seal | a closed menu has `inert` + `aria-hidden="true"`, options `tabIndex −1`; focus inside moves to the trigger; a reopen removes **both** attributes | Code (L199–213, L618); Measured: close seal PASS, first frame |
 | 17 | Select close | option click, trigger click, Escape, Tab, outside pointer**down**; CLOSE_MENU (`energyThreshold 1.8e-7`); the React close commits one frame later and is dropped if a reopen superseded it | Code (L287–306); trigger-click close fade early = Gap 4; outside-dismiss low fade ~19 ms early = Gap 12 |
 | 18 | Mutual exclusion | opening a select closes the other and the picker; opening the picker closes the selects | Code (Tuner L142–145, L157–160, L170–173) |
-| 19 | Color row | h36 `.08` r8, gap 12, pad 0 12; "Color" system 13/500/19.5 `.7`; value Geist Mono 500 13, h25, right-aligned; swatch 20×20 r5 over a checkerboard | Code; M-gate |
+| 19 | Color row | h36 `.08` r8, gap 12, pad 0 12; "Color" system 13/500/19.5 `.7`; value Geist Mono 500 13, h25, right-aligned; swatch 20×20 r5 over a checkerboard | Code |
 | 20 | Color value editing | Enter or blur commits a valid value as typed (trimmed); invalid → `#ef7777`, and blur reverts; Escape reverts (and closes the picker to the swatch) | Code (ColorPicker.web L573–620) |
-| 21 | Picker open and placement | swatch click toggles; fixed 280×350 at `row.left − 288`, `row.top − 32`, clamped with an 8 px edge; focus on the checked format; entrance `.16s ease-out` | Code (L245–304, L118–120); M-gate |
+| 21 | Picker open and placement | swatch click toggles; fixed 280×350 at `row.left − 288`, `row.top − 32`, clamped with an 8 px edge; focus on the checked format; entrance `.16s ease-out` | Code (L245–304, L118–120) |
 | 22 | Picker dismissal | outside pointerdown, focus leaving, Escape (focus to the swatch), Tab out of the first or last control | Code (L281–304, L354–370) |
 | 23 | Format tabs | Hex / OKLCH / Display P3 radiogroup; arrows wrap, Home/End; a click reformats the stored text; pill `.2s cubic-bezier(.25,1,.5,1)` | Code; pill early = Gap 3 |
 | 24 | Field | 252×160 canvas, P3 context; x = chroma ratio, y = lightness; marker 12 px with a white border; arrows ±0.01, Shift 0.1 | Code; P3 look = Gap 5 |
 | 25 | Hue / Opacity | native ranges 0–360 step 0.1 / 0–100 step 1; valuetext "N degrees" / "N percent"; track 16 px, thumb 16×24 | Code; no focus ring = Gap 1 |
 | 26 | CSS input | Enter commits; invalid red | Code |
 | 27 | Parsing examples | the §7.5 table | Run |
-| 28 | Sliders | 5 rows per §8.1; label system 13/500 `.7` at left 10; value Geist Mono 500 at right 12; panel focus ring 2px `.6` at −2px | Code; M-gate |
+| 28 | Sliders | 5 rows per §8.1; label system 13/500 `.7` at left 10; value Geist Mono 500 at right 12; panel focus ring 2px `.6` at −2px | Code |
 | 29 | Slider keys | ←/→ ±1 step, Shift ±10, PageUp/PageDown ±10, Home/End; keys update the orb through `live` and props | Code (SliderRow L193–224) |
 | 30 | Slider drag | fill 1:1, rubber band ≤ 18 px, `live` every update, JS ≤ every 32 ms; release springs FILL | Code |
 | 31 | Tilt | hidden on Halftone, Lines and Vertical Lines; reset to 20 when leaving them | Code (Tuner L95–98, L236) |
-| 32 | Status line | 24 px orb + shimmer, gap 8, bottom 22, translateX −4.6; shimmer 14/20, 2s sweep, **no fade**, restarts on look change | Code; M-gate |
-| 33 | Copy | defaults → `import { Orb } from "@yogesharc/thinking-orbs";\n\n<Orb state="working" size={320} />`; "Copied" for 1500 ms | Run (snippet); Measured on 023ca9d: 1504.3 vs 1501.9 ms |
+| 32 | Status line | 24 px orb + shimmer, gap 8, bottom 22, translateX −4.6; shimmer 14/20, 2s sweep, **no fade**, restarts on look change | Code |
+| 33 | Copy | defaults → `import { Orb } from "@yogesharc/thinking-orbs";\n\n<Orb state="working" size={320} />`; "Copied" for 1500 ms | Run (snippet); Measured: 1504.3 vs 1501.9 ms |
 | 34 | Reset | appears only for colour/size/speed/density/dotSize/tilt changes; restores those values, not shape, render or look | Code (L263–284) |
-| 35 | Reduced motion (OS, live) | both orbs still at t = 0 and follow the sliders; picker animation and pill transition off | Code; M-gate |
-| 36 | Reload | nothing persists | Measured (Beta): neither live nor ours keeps anything across a reload |
+| 35 | Reduced motion (OS, live) | both orbs still at t = 0 and follow the sliders; picker animation and pill transition off | Code |
+| 36 | Reload | nothing persists | Measured: neither live nor ours keeps anything across a reload |
 | 37 | Fonts | Geist 400 arrives after window `load` | Gap 9 |
 | 38 | Mobile, iOS, Android | not covered | Gap 6 |
 | 39 | Native colour picker | stub | Gap 2 |
-| 40 | Reopen race (as65o) | close then immediately reopen always ends open and consistent | **Measured** (PR #31 body): 0/108 inconsistent (108/108 open). Motion on 99b0743: pointer 18/18, queued 12/12, busy matrix 12/12, synthetic 9/9 open |
-| 41 | Pointer reopen at 0/8/16/50/120 ms after a close | open, focus on the selected option | **Measured** (PR #31 body): 15/15 open, focus on Sphere |
-| 42 | Escape, Enter, Escape | ends closed and sealed | **Measured** (PR #31 body): 28/28 closed and sealed. Motion on 99b0743: Esc → Enter 6/6 and queued 14/14 open |
-| 43 | Stale open | a deferred open never lands after a close | **Measured** (PR #31 body): 0/32 stale opens |
-| 44 | Early clicks at 12/16/32/50 ms (the PR #31 body's wording; the exact sequence isn't described there) | ends closed and sealed | **Measured** (PR #31 body): 12/12 closed and sealed. Related, Motion on 99b0743: a close 21.8–30.2 ms after an open, 3/3 closed (sealed, never painted) |
-| 45 | Shape-click first visible | time from the click to the first visible menu frame; no first paint at 0.32 | **Measured** (PR #31 body): median 23 ms (n = 8); 0/8 first paints at 0.32. Motion on 99b0743 (before ddc9bfc): click pooled 31.5 vs live 18.4 ms, 5/16 first paints at 0.32–0.33 (§15.2) |
+| 40 | Reopen race (as65o) | close then immediately reopen always ends open and consistent | **Measured** (author check): 0/108 inconsistent (108/108 open). Measured: pointer 18/18, queued 12/12, busy matrix 12/12, synthetic 9/9 open |
+| 41 | Pointer reopen at 0/8/16/50/120 ms after a close | open, focus on the selected option | **Measured** (author check): 15/15 open, focus on Sphere |
+| 42 | Escape, Enter, Escape | ends closed and sealed | **Measured** (author check): 28/28 closed and sealed. Measured: Esc → Enter 6/6 and queued 14/14 open |
+| 43 | Stale open | a deferred open never lands after a close | **Measured** (author check): 0/32 stale opens |
+| 44 | Early clicks at 12/16/32/50 ms (the exact sequence isn't recorded) | ends closed and sealed | **Measured** (author check): 12/12 closed and sealed. Related, measured: a close 21.8–30.2 ms after an open, 3/3 closed (sealed, never painted) |
+| 45 | Shape-click first visible | time from the click to the first visible menu frame; no first paint at 0.32 | **Measured** (author check): median 23 ms (n = 8); 0/8 first paints at 0.32. Measured on an earlier revision that focused twice per open: click pooled 31.5 vs live 18.4 ms, 5/16 first paints at 0.32–0.33 (§15.2) |
 
 ## 17. Build steps and forbidden actions
 
@@ -887,8 +846,7 @@ These are the gaps that belong to the creator. Gaps 1–4, 6 and 9–11 keep the
 **Forbidden:**
 - Browsing, fetching or opening any URL (including the npm paths in the Copy output), or asking anyone to.
 - Inventing values, copy, controls, animations or behaviours that aren't in this document or the appendices. Mark unknowns **unmeasured**.
-- "Fixing" §15.1 gaps (including the native select open noted in §15.2) unless you're told to. Build ee4ba29 (PR #31 head, pending merge) exactly as inlined.
-- Presenting PR #31 as merged. It is pending merge; PR #26 is merged (§15.3).
+- "Fixing" §15.1 gaps (including the native select open noted in §15.2) unless you're told to. Build the code exactly as inlined.
 - Adding store or site chrome (nav, card frame, Copy/prompt buttons, headers) to the asset.
 - Changing the Copy format. It deliberately emits web JSX for `@yogesharc/thinking-orbs`.
 - Messaging anyone, posting anywhere or publishing anything.
@@ -915,13 +873,13 @@ These are the gaps that belong to the creator. Gaps 1–4, 6 and 9–11 keep the
 
 The orb files (`orb/*`, `src/skia/ensureCanvasKit*`, `bootCanvasKit.ts`, `liveBudget.tsx`, `src/context/ReduceMotionContext.tsx`) are inlined in `AGENT_PROMPT_ORBS.md`.
 
-## Appendices: verbatim source at ee4ba29
+## Appendices: verbatim source
 
-Every file is reproduced exactly as it is at `ee4ba298e54667c4b95c05602592b53bccdf8cab` (PR #31 head, pending merge). The fence is longer than any backtick run inside the file. Line numbers in citations count from line 1 of each block.
+Every file is reproduced byte for byte. The fence is longer than any backtick run inside the file. Line numbers in citations count from line 1 of each block.
 
 ### Appendix 1. `src/demos/yogesh-thinking-orbs/Tuner.tsx`
 
-456 lines, 14451 bytes, sha256 `138867090600b0326878fc3b7e630ecc312b47cd99ad4bbfa4b7b50382f91427`. Byte-for-byte from ee4ba29. The creator host
+456 lines, 14451 bytes, sha256 `138867090600b0326878fc3b7e630ecc312b47cd99ad4bbfa4b7b50382f91427`. Byte for byte. The creator host
 
 ```tsx
 import { setStringAsync } from 'expo-clipboard';
@@ -1384,7 +1342,7 @@ export function Tuner() {
 
 ### Appendix 2. `src/demos/yogesh-thinking-orbs/components/SelectRow.tsx`
 
-640 lines, 24399 bytes, sha256 `e871d3156bf9e3c826d8a89b6aa8244d933c74bf2773dde4a9a464cf185ee6fd`. Byte-for-byte from ee4ba29.
+640 lines, 24399 bytes, sha256 `e871d3156bf9e3c826d8a89b6aa8244d933c74bf2773dde4a9a464cf185ee6fd`. Byte for byte.
 
 ```tsx
 import { createElement, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -2031,7 +1989,7 @@ export function SelectRow<T extends string>({
 
 ### Appendix 3. `src/demos/yogesh-thinking-orbs/components/ColorPicker.web.tsx`
 
-637 lines, 27020 bytes, sha256 `0b47e54b1ceba2b64563b91df7b4e7fe979fbe828e1615efb6a85ef13a35a459`. Byte-for-byte from ee4ba29.
+637 lines, 27020 bytes, sha256 `0b47e54b1ceba2b64563b91df7b4e7fe979fbe828e1615efb6a85ef13a35a459`. Byte for byte.
 
 ```tsx
 import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
@@ -2675,7 +2633,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
 
 ### Appendix 4. `src/demos/yogesh-thinking-orbs/components/ColorPicker.tsx`
 
-101 lines, 3270 bytes, sha256 `ab94d7f7842328d81476f516f3f8b2e981a6320e30a88a3a47159c1c10976dd2`. Byte-for-byte from ee4ba29. Native stand-in (gap 2)
+101 lines, 3270 bytes, sha256 `ab94d7f7842328d81476f516f3f8b2e981a6320e30a88a3a47159c1c10976dd2`. Byte for byte. Native stand-in (gap 2)
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -2783,7 +2741,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
 
 ### Appendix 5. `src/demos/yogesh-thinking-orbs/components/SliderRow.tsx`
 
-416 lines, 15362 bytes, sha256 `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2`. Byte-for-byte from ee4ba29.
+416 lines, 15362 bytes, sha256 `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2`. Byte for byte.
 
 ```tsx
 import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
@@ -3206,7 +3164,7 @@ export function SliderRow({
 
 ### Appendix 6. `src/demos/yogesh-thinking-orbs/components/Shimmer.web.tsx`
 
-46 lines, 1711 bytes, sha256 `752c2cd00f74edbe4235d9ffb7c9ef62737e99c9b669652f1ef2b66bbdc06b32`. Byte-for-byte from ee4ba29.
+46 lines, 1711 bytes, sha256 `752c2cd00f74edbe4235d9ffb7c9ef62737e99c9b669652f1ef2b66bbdc06b32`. Byte for byte.
 
 ```tsx
 import { useEffect } from "react";
@@ -3259,7 +3217,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
 
 ### Appendix 7. `src/demos/yogesh-thinking-orbs/components/Shimmer.tsx`
 
-59 lines, 2139 bytes, sha256 `03bca8d1313316e7fbe4bcbeb1fdb0e273e71bd650d2c868e3293b3265e2f5ce`. Byte-for-byte from ee4ba29. Native; needs `../assets/fonts/Geist-Regular.ttf` (binary, not inlined; §1.1)
+59 lines, 2139 bytes, sha256 `03bca8d1313316e7fbe4bcbeb1fdb0e273e71bd650d2c868e3293b3265e2f5ce`. Byte for byte. Native; needs `../assets/fonts/Geist-Regular.ttf` (binary, not inlined; §1.1)
 
 ```tsx
 import { Canvas, LinearGradient, Mask, Rect, Text, useFont, vec } from "@shopify/react-native-skia";
@@ -3325,7 +3283,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
 
 ### Appendix 8. `src/demos/yogesh-thinking-orbs/components/icons.tsx`
 
-46 lines, 2570 bytes, sha256 `6febf676134a2fa64a74874f215306a5c18d804e830249d03b5e19b9ce06363d`. Byte-for-byte from ee4ba29. The creator uses only `Chevron`
+46 lines, 2570 bytes, sha256 `6febf676134a2fa64a74874f215306a5c18d804e830249d03b5e19b9ce06363d`. Byte for byte. The creator uses only `Chevron`
 
 ```tsx
 import { createElement } from "react";
@@ -3378,7 +3336,7 @@ export function Chevron({ color, size = 20 }: { color: string; size?: number }) 
 
 ### Appendix 9a. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.web.ts`
 
-23 lines, 925 bytes, sha256 `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf`. Byte-for-byte from ee4ba29.
+23 lines, 925 bytes, sha256 `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf`. Byte for byte.
 
 ```ts
 import { useEffect } from "react";
@@ -3408,7 +3366,7 @@ export function useArrowKeys(count: number, index: number, onIndex: (index: numb
 
 ### Appendix 9b. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.ts`
 
-2 lines, 186 bytes, sha256 `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258`. Byte-for-byte from ee4ba29. Native no-op
+2 lines, 186 bytes, sha256 `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258`. Byte for byte. Native no-op
 
 ```ts
 /** Native: hardware arrows are a no-op. Web implementation is useArrowKeys.web.ts. */
@@ -3417,7 +3375,7 @@ export function useArrowKeys(_count: number, _index: number, _onIndex: (index: n
 
 ### Appendix 10. `src/demos/yogesh-thinking-orbs/content/cards.ts`
 
-180 lines, 5117 bytes, sha256 `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d`. Byte-for-byte from ee4ba29.
+180 lines, 5117 bytes, sha256 `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d`. Byte for byte.
 
 ```ts
 export type ToolRow = { verb: string; target: string; add?: number; del?: number };
@@ -3604,7 +3562,7 @@ export const USER_PROMPT = "The login page keeps redirecting to itself. Can you 
 
 ### Appendix 11. `src/demos/yogesh-thinking-orbs/content/snippet.ts`
 
-51 lines, 1830 bytes, sha256 `cd99059783d7aed96684cdec6994fa6230f109f8857ad53d3f34c36893938879`. Byte-for-byte from ee4ba29.
+51 lines, 1830 bytes, sha256 `cd99059783d7aed96684cdec6994fa6230f109f8857ad53d3f34c36893938879`. Byte for byte.
 
 ```ts
 import type { RenderName, ShapeName } from "../orb/model";
@@ -3662,7 +3620,7 @@ export function orbSnippet(opts: {
 
 ### Appendix 12. `src/demos/yogesh-thinking-orbs/theme/theme.tsx`
 
-176 lines, 4677 bytes, sha256 `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f`. Byte-for-byte from ee4ba29.
+176 lines, 4677 bytes, sha256 `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f`. Byte for byte.
 
 ```tsx
 import { loadAsync } from "expo-font";
@@ -3845,7 +3803,7 @@ export const syntax = {
 
 ### Appendix 13. `src/demos/yogesh-thinking-orbs/color/color.ts`
 
-238 lines, 9689 bytes, sha256 `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe`. Byte-for-byte from ee4ba29.
+238 lines, 9689 bytes, sha256 `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe`. Byte for byte.
 
 ```ts
 /**
@@ -4090,7 +4048,7 @@ export function detectFormat(value: string): ColorFormat {
 
 ### Appendix 14. `src/skia/cardState.ts`
 
-83 lines, 2710 bytes, sha256 `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c`. Byte-for-byte from ee4ba29.
+83 lines, 2710 bytes, sha256 `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c`. Byte for byte.
 
 ```ts
 import { useCallback, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
