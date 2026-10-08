@@ -65,9 +65,11 @@ export function SelectRow<T extends string>({
   const { colors, mode } = useTheme();
   const { height: windowH } = useWindowDimensions();
   const rowRef = useRef<View>(null);
+  const menuRef = useRef<View>(null);
   const [above, setAbove] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.findIndex((option) => option.id === value)));
   const focusOnOpen = useRef(false);
+  const typed = useRef({ buf: "", at: 0 });
   const aboveSV = useSharedValue(0);
   const shown = useSharedValue(open ? 1 : 0);
   const chevron = useSharedValue(open ? 1 : 0);
@@ -75,7 +77,6 @@ export function SelectRow<T extends string>({
   const goal = useSharedValue(open ? 1 : 0);
   const armed = useRef(false);
   const sawOpen = useRef(false);
-  const primed = useSharedValue(0);
   const primary = useSharedValue(0);
   const commitRef = useRef(() => {
     armed.current = true;
@@ -89,8 +90,6 @@ export function SelectRow<T extends string>({
       onToggle();
     });
   };
-  const revealJS = useCallback(() => {}, []);
-  const hideJS = useCallback(() => {}, []);
   const commitJS = useCallback(() => commitRef.current(), []);
   const web = Platform.OS === "web";
   const optionsInRow = (): HTMLElement[] => {
@@ -116,16 +115,27 @@ export function SelectRow<T extends string>({
     const node: unknown = query.call(host, '[aria-haspopup="listbox"]');
     if (node instanceof HTMLElement) node.focus({ preventScroll: true });
   };
+  const menuEl = (): HTMLElement | null => {
+    const node: unknown = menuRef.current;
+    return node instanceof HTMLElement ? node : null;
+  };
   const sealClosed = () => {
-    const host: unknown = rowRef.current;
-    if (typeof host !== "object" || host === null || !("querySelector" in host)) return;
-    const query = host.querySelector;
-    if (typeof query !== "function") return;
-    const list: unknown = query.call(host, '[role="listbox"]');
-    if (!(list instanceof HTMLElement)) return;
-    list.setAttribute("inert", "");
+    const menu = menuEl();
+    if (!menu) return;
+    if (typeof document !== "undefined" && document.activeElement instanceof Node && menu.contains(document.activeElement)) focusTrigger();
+    menu.setAttribute("inert", "");
+    menu.setAttribute("aria-hidden", "true");
     for (const node of optionsInRow()) node.tabIndex = -1;
   };
+  const unseal = () => {
+    menuEl()?.removeAttribute("inert");
+  };
+  const sealRef = useRef(sealClosed);
+  sealRef.current = sealClosed;
+  const unsealRef = useRef(unseal);
+  unsealRef.current = unseal;
+  const sealJS = useCallback(() => sealRef.current(), []);
+  const unsealJS = useCallback(() => unsealRef.current(), []);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
       commitRef.current();
@@ -133,14 +143,13 @@ export function SelectRow<T extends string>({
   }, []);
   const dismissWeb = useCallback(() => {
     if (openSV.value !== 1) return;
+    sealClosed();
     openSV.value = 0;
     goal.value = 0;
-    shown.value = withSpring(0, CLOSE_MENU, (finished) => {
-      if (finished && goal.value === 0) runOnJS(hideJS)();
-    });
+    shown.value = withSpring(0, CLOSE_MENU);
     chevron.value = withSpring(0, CHEV);
     commitNextFrame();
-  }, [chevron, commitNextFrame, goal, hideJS, openSV, shown]);
+  }, [chevron, commitNextFrame, goal, openSV, shown]);
   useEffect(() => {
     if (!web || !open || typeof document === "undefined") return;
     const inside = (target: EventTarget | null) => {
@@ -167,11 +176,9 @@ export function SelectRow<T extends string>({
   const driveWebSprings = useCallback((next: number) => {
     openSV.value = next;
     goal.value = next;
-    shown.value = withSpring(next, next === 1 ? MENU : CLOSE_MENU, (finished) => {
-      if (finished && goal.value === 0) hideJS();
-    });
+    shown.value = withSpring(next, next === 1 ? MENU : CLOSE_MENU);
     chevron.value = withSpring(next, CHEV);
-  }, [chevron, goal, hideJS, openSV, shown]);
+  }, [chevron, goal, openSV, shown]);
   useLayoutEffect(() => {
     openSV.value = open ? 1 : 0;
   }, [open, openSV]);
@@ -185,11 +192,9 @@ export function SelectRow<T extends string>({
       return;
     }
     goal.value = open ? 1 : 0;
-    shown.value = withSpring(open ? 1 : 0, web && !open ? CLOSE_MENU : MENU, (finished) => {
-      if (finished && goal.value === 0) runOnJS(hideJS)();
-    });
+    shown.value = withSpring(open ? 1 : 0, web && !open ? CLOSE_MENU : MENU);
     chevron.value = withSpring(open ? 1 : 0, CHEV);
-  }, [open, chevron, goal, hideJS, shown]);
+  }, [open, chevron, goal, shown, web]);
   useLayoutEffect(() => {
     if (open) return;
     setActive(Math.max(0, options.findIndex((option) => option.id === value)));
@@ -213,13 +218,10 @@ export function SelectRow<T extends string>({
   }, [windowH, options.length]);
   const mountOnPress = (event: { button?: number; nativeEvent?: object }) => {
     primary.value = pointerButton(event) === 0 ? 1 : 0;
-    if (primary.value !== 1 || openSV.value === 1) return;
-    primed.value = 1;
   };
   const cancelClosed = () => {
     primary.value = 0;
     if (openSV.value === 1) return;
-    primed.value = 0;
     goal.value = 0;
     shown.value = 0;
   };
@@ -227,20 +229,13 @@ export function SelectRow<T extends string>({
     const spring = (next: number) => {
       "worklet";
       goal.value = next;
-      if (next === 1) runOnJS(revealJS)();
-      shown.value = withSpring(next, MENU, (finished) => {
-        if (finished && goal.value === 0) runOnJS(hideJS)();
-      });
+      shown.value = withSpring(next, MENU);
       chevron.value = withSpring(next, CHEV);
     };
     return Gesture.Tap()
       .maxDistance(6)
       .maxDuration(10000)
-      .onBegin(() => {
-        if (openSV.value !== 1 && primary.value === 1) primed.value = 1;
-      })
       .onEnd(() => {
-        primed.value = 0;
         const next = openSV.value === 1 ? 0 : 1;
         if (web) {
           const fromPointer = primary.value === 1;
@@ -248,14 +243,12 @@ export function SelectRow<T extends string>({
           if (!fromPointer) return;
           openSV.value = next;
           goal.value = next;
+          if (next === 0) runOnJS(sealJS)();
+          else runOnJS(unsealJS)();
           if (next === 1) {
-            shown.value = withSpring(1, MENU, (finished) => {
-              if (finished && goal.value === 0) runOnJS(hideJS)();
-            });
+            shown.value = withSpring(1, MENU);
           } else {
-            shown.value = withSpring(0, CLOSE_MENU, (finished) => {
-              if (finished && goal.value === 0) runOnJS(hideJS)();
-            });
+            shown.value = withSpring(0, CLOSE_MENU);
           }
           chevron.value = withSpring(next, CHEV);
           runOnJS(commitNextFrame)();
@@ -263,13 +256,8 @@ export function SelectRow<T extends string>({
         }
         spring(next);
         runOnJS(commitJS)();
-      })
-      .onFinalize((_event, success) => {
-        if (success || primed.value !== 1 || openSV.value === 1) return;
-        primed.value = 0;
-        runOnJS(hideJS)();
       });
-  }, [chevron, commitJS, commitNextFrame, goal, hideJS, openSV, primary, primed, shown, web]);
+  }, [chevron, commitJS, commitNextFrame, goal, openSV, primary, sealJS, shown, unsealJS, web]);
   const menuStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * (aboveSV.value ? 8 : -8) }, { scale: 0.95 + shown.value * 0.05 }],
@@ -279,6 +267,7 @@ export function SelectRow<T extends string>({
     const index = Math.max(0, options.findIndex((option) => option.id === value));
     setActive(index);
     focusOnOpen.current = true;
+    unseal();
     driveWebSprings(1);
     commitNextFrame();
   };
@@ -303,7 +292,7 @@ export function SelectRow<T extends string>({
       focusTrigger();
       return;
     }
-    if (key === "ArrowDown") {
+    if (key === "ArrowDown" || key === "ArrowUp") {
       event.preventDefault();
       event.nativeEvent?.preventDefault?.();
       event.stopPropagation();
@@ -343,6 +332,7 @@ export function SelectRow<T extends string>({
     if (key === "Enter" || key === " " || key === "Spacebar") {
       event.preventDefault();
       event.stopPropagation();
+      sealClosed();
       onPick(options[index].id);
       focusTrigger();
       return;
@@ -361,12 +351,17 @@ export function SelectRow<T extends string>({
       focusTrigger();
       return;
     }
-    if (key.length !== 1 || event.altKey || event.metaKey || event.ctrlKey) return;
-    const letter = key.toLowerCase();
-    for (let n = 0; n < options.length; n++) {
-      const i = (index + 1 + n) % options.length;
-      if (options[i].label.toLowerCase().startsWith(letter)) {
-        event.preventDefault();
+    if (key.length !== 1 || key === " " || event.altKey || event.metaKey || event.ctrlKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const now = Date.now();
+    const t = typed.current;
+    t.buf = now - t.at < 700 ? t.buf + key.toLowerCase() : key.toLowerCase();
+    t.at = now;
+    const q = [...t.buf].every((c) => c === t.buf[0]) ? t.buf[0] : t.buf;
+    for (let n = q.length > 1 ? 0 : 1; n <= options.length; n++) {
+      const i = (index + n) % options.length;
+      if (options[i].label.toLowerCase().startsWith(q)) {
         moveTo(i, nodes);
         return;
       }
@@ -405,6 +400,7 @@ export function SelectRow<T extends string>({
         </View>
       </GestureDetector>
       <Animated.View
+          ref={menuRef}
           pointerEvents={open ? "auto" : "none"}
           focusable={false}
           accessibilityElementsHidden={!open}
@@ -436,7 +432,7 @@ export function SelectRow<T extends string>({
                   const on = option.id === value;
                   const tabbable = open && index === active;
                   return (
-                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { onPick(option.id); focusTrigger(); }} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
+                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
                       <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, opacity: mode === "light" ? (on ? 0.9 : 0.6) : on ? 0.95 : 0.7 }}>{option.label}</Text>
                     </Pressable>
                   );
