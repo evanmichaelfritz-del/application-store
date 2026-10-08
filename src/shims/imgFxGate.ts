@@ -1,19 +1,11 @@
 /**
- * Keeps the pixels-organic loader off the main thread.
- *
- * img-fx has one 29KB fragment program. Compiling it on the main thread, or
- * even drawing it once from a worker, blocks every other GL context for
- * several seconds on a slow GPU. Software GL never compiles: the card keeps
- * the static frame. A real GPU draws that same preset from a worker, on an
- * OffscreenCanvas, and the page shows the static frame until the first
- * present. The present is withheld while CanvasKit is creating a context.
+ * Software GL keeps the organic still and never compiles img-fx.
+ * A real GPU does not mount img-fx at all: the loader draws from a worker,
+ * and this gate refuses the img-fx WebGL context so a slow compile cannot
+ * land on the main thread.
  */
 
-import { canvasKitPending } from '@/src/skia/ensureCanvasKit';
-
 const SOFTWARE_GL = /swiftshader|llvmpipe|software/i;
-/** img-fx caps the shader buffer at 1.25× and nearest-filters it up to 2×. */
-const SHADER_DPR_CAP = 1.25;
 
 type SceneLike = {
   traverse: (fn: (obj: object) => void) => void;
@@ -36,7 +28,6 @@ type ImgFxStats = {
 };
 
 type GateWindow = typeof globalThis & {
-  __imgFxFreezeTime?: number;
   __imgFxUseDrawImage?: boolean;
   __imgFxStats?: ImgFxStats;
 };
@@ -53,10 +44,8 @@ const stats: ImgFxStats = {
 const imgFxCanvases = new WeakSet<HTMLCanvasElement>();
 let installed = false;
 let shaderReady = false;
-let origDraw: CanvasRenderingContext2D['drawImage'] | null = null;
-let worker: Worker | null = null;
-let lastHold: boolean | null = null;
-let origRender: ((scene: SceneLike, camera: object) => void) | null = null;
+let decided: 'software' | 'worker' | null = null;
+let blockImgFxGl = false;
 const readyListeners = new Set<() => void>();
 
 function gateWindow(): GateWindow {
@@ -88,21 +77,14 @@ function releaseGl(gl: WebGL2RenderingContext | null) {
   gl?.getExtension('WEBGL_lose_context')?.loseContext();
 }
 
-/** One short-lived context, dropped before img-fx creates its own. */
+/** One short-lived context, dropped before any loader canvas is created. */
 function detectSoftwareGl() {
   const canvas = document.createElement('canvas');
   canvas.width = 8;
   canvas.height = 8;
   const caveat = canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: true });
   stats.caveatFailed = !caveat;
-  let gl = caveat as WebGL2RenderingContext | null;
-  let extra: HTMLCanvasElement | null = null;
-  if (!gl) {
-    extra = document.createElement('canvas');
-    extra.width = 8;
-    extra.height = 8;
-    gl = extra.getContext('webgl2') as WebGL2RenderingContext | null;
-  }
+  const gl = (caveat || canvas.getContext('webgl2')) as WebGL2RenderingContext | null;
   if (gl) noteGl(gl);
   else if (stats.caveatFailed) {
     stats.software = true;
@@ -111,97 +93,50 @@ function detectSoftwareGl() {
   releaseGl(gl);
 }
 
-function shaderCanvas(): HTMLCanvasElement | null {
-  const node = document.querySelector('canvas.image-gen-shader');
-  return node instanceof HTMLCanvasElement ? node : null;
+function isImgFxGlRequest(canvas: HTMLCanvasElement, type: string, attrs?: unknown) {
+  if (type !== 'webgl' && type !== 'webgl2') return false;
+  const engine = canvas.dataset?.engine || '';
+  if (engine.startsWith('three.js')) return true;
+  if (canvas.width !== 8 || canvas.height !== 8 || canvas.isConnected) return false;
+  if (!attrs || typeof attrs !== 'object') return false;
+  const glAttrs = attrs as WebGLContextAttributes;
+  return glAttrs.powerPreference === 'high-performance' && glAttrs.premultipliedAlpha === false;
 }
 
-function cardInView() {
-  const canvas = shaderCanvas();
-  if (!canvas) return false;
-  const rect = canvas.getBoundingClientRect();
-  return rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
-}
-
-function shouldHold() {
-  return canvasKitPending() || document.hidden || !cardInView();
-}
-
-function targetSize() {
-  const canvas = shaderCanvas();
-  const cssW = canvas?.clientWidth || 168;
-  const cssH = canvas?.clientHeight || cssW;
-  const dpr = Math.min(window.devicePixelRatio || 1, SHADER_DPR_CAP);
-  return {
-    w: Math.max(1, Math.floor(cssW * dpr)),
-    h: Math.max(1, Math.floor(cssH * dpr)),
-    dpr,
-  };
-}
-
-function paintFrame(bmp: ImageBitmap) {
-  const canvas = shaderCanvas();
-  if (!canvas || !origDraw) {
-    bmp.close();
-    return;
+/**
+ * Call once before the loader mounts. Hardware sets the block so img-fx's
+ * renderer cannot create a context later.
+ */
+export function decideImgFxPath(): 'software' | 'worker' {
+  if (decided) return decided;
+  if (typeof document === 'undefined') {
+    stats.software = true;
+    stats.held = true;
+    decided = 'software';
+    return decided;
   }
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    bmp.close();
-    return;
+  try {
+    detectSoftwareGl();
+  } catch {
+    stats.software = true;
+    stats.held = true;
   }
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.imageSmoothingEnabled = false;
-  // ImageBitmap is not an HTMLCanvasElement, so the drawImage patch lets it through.
-  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  bmp.close();
-}
-
-function watchGpu() {
-  if (!worker || holdingStill()) return;
-  const hold = shouldHold();
-  if (hold !== lastHold) {
-    lastHold = hold;
-    worker.postMessage({ type: 'hold', hold });
-    const freeze = gateWindow().__imgFxFreezeTime;
-    if (typeof freeze === 'number') worker.postMessage({ type: 'time', time: freeze });
+  if (!stats.renderer && !stats.caveatFailed) {
+    stats.software = true;
+    stats.held = true;
   }
-  requestAnimationFrame(watchGpu);
+  decided = stats.held ? 'software' : 'worker';
+  blockImgFxGl = decided === 'worker';
+  gateWindow().__imgFxStats = stats;
+  return decided;
 }
 
-function ensureGpuPath() {
-  if (worker || holdingStill() || typeof Worker !== 'function') return;
-  worker = new Worker('/img-fx/organic-worker.js');
-  worker.onmessage = (ev: MessageEvent<{ bmp?: ImageBitmap }>) => {
-    if (ev.data?.bmp) paintFrame(ev.data.bmp);
-  };
-  const boot = () => {
-    if (!worker) return;
-    if (canvasKitPending()) {
-      requestAnimationFrame(boot);
-      return;
-    }
-    worker.postMessage({ type: 'start', ...targetSize() });
-    lastHold = null;
-    watchGpu();
-  };
-  boot();
-}
-
-function wrappedRender(scene: SceneLike, camera: object) {
-  if (holdingStill()) return;
-  if (useImmediateCopy()) {
-    origRender?.(scene, camera);
-    return;
-  }
-  ensureGpuPath();
-}
-
-/** Wrap an img-fx WebGLRenderer so a slow compile never runs on the main thread. */
+/** Software GL: never call the real renderer, so the 29KB program stays uncompiled. */
 export function patchImgFxRenderer(renderer: RendererLike) {
   const canvas = renderer.domElement;
   if (!imgFxCanvases.has(canvas)) return;
+  if (!decided) decideImgFxPath();
+  if (blockImgFxGl) return;
   if (!stats.renderer && !stats.caveatFailed) detectSoftwareGl();
   try {
     noteGl(renderer.getContext());
@@ -209,9 +144,9 @@ export function patchImgFxRenderer(renderer: RendererLike) {
     /* context already lost */
   }
   renderer.debug.checkShaderErrors = false;
-  origRender = renderer.render.bind(renderer);
-  renderer.render = (scene, camera) => wrappedRender(scene, camera);
-  if (!holdingStill() && !useImmediateCopy()) ensureGpuPath();
+  renderer.render = () => {
+    /* The still is the software-GL frame. Compiling here stalls the page. */
+  };
 }
 
 export function installImgFxGate() {
@@ -229,6 +164,7 @@ export function installImgFxGate() {
     type: string,
     attrs?: unknown,
   ) {
+    if (blockImgFxGl && isImgFxGlRequest(this, type, attrs)) return null;
     const imgFx =
       type === 'webgl2' &&
       !!attrs &&
@@ -245,18 +181,20 @@ export function installImgFxGate() {
     return context;
   } as typeof HTMLCanvasElement.prototype.getContext;
 
-  origDraw = CanvasRenderingContext2D.prototype.drawImage;
-  const savedDraw = origDraw;
+  const origDraw = CanvasRenderingContext2D.prototype.drawImage;
   CanvasRenderingContext2D.prototype.drawImage = function drawImage(
     this: CanvasRenderingContext2D,
     ...args: Parameters<CanvasRenderingContext2D['drawImage']>
   ) {
     const source = args[0];
-    if (source instanceof HTMLCanvasElement && this.canvas.classList.contains('image-gen-shader')) {
-      if (useImmediateCopy()) return savedDraw.apply(this, args);
+    if (
+      !useImmediateCopy() &&
+      source instanceof HTMLCanvasElement &&
+      this.canvas.classList.contains('image-gen-shader')
+    ) {
       return;
     }
-    return savedDraw.apply(this, args);
+    return origDraw.apply(this, args);
   } as typeof CanvasRenderingContext2D.prototype.drawImage;
 
   const origClear = CanvasRenderingContext2D.prototype.clearRect;

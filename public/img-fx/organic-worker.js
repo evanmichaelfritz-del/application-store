@@ -1,10 +1,10 @@
-/* Organic loader shader. Runs off the main thread so a slow first draw
-   cannot freeze the page. The full img-fx program is one 29KB fragment;
-   its first draw blocks other GL contexts for ~9s on SwiftShader. This file
-   keeps only the pixels-organic light path (effect 22, dot mode 1) and
-   loops the blur taps, so the first present stays near 100ms and later
-   frames stay well under a long task. Presents are skipped while the page
-   says CanvasKit is creating a context. */
+/* Organic loader, off the main thread.
+
+   The full img-fx program is one 29KB fragment. Its first draw blocks other
+   GL contexts for seconds on a slow GPU, so this file keeps the pixels-organic
+   light path (effect 22, dot mode 1) and loops the blur taps. The photo
+   reveal (shaderColor4 mask, pixel dissolve, 2.2s hold, 320ms fade) runs
+   here too. The page only blits the finished bitmap. */
 const VERT = `#version 300 es
 precision highp float;
 precision highp int;
@@ -26,6 +26,7 @@ layout(location = 0) out highp vec4 pc_fragColor;
   uniform float u_vignette, u_vigOpacity, u_blur, u_highlight, u_shaderOpacity;
   uniform float u_cellSize, u_gap, u_dotSize, u_dotSoftness, u_dotOpacity, u_hlScale, u_fillOpacity, u_edgeFade, u_fadeStr;
   uniform float u_dotMode;
+  uniform float u_outMode;
   uniform int u_effect;
   uniform int u_sweepEase;
 
@@ -277,9 +278,15 @@ vec2 w  = warp(p * 0.7, t * 0.5);
     }
 
     float aOut = alpha * u_shaderOpacity;
-    col = clamp(col, vec3(0.0), vec3(1.0)) * aOut;
-    col = mix(col * 12.92, 1.055 * pow(col, vec3(1.0/2.4)) - 0.055, step(0.0031308, col));
-    gl_FragColor = vec4(col, aOut);
+    vec3 straight = clamp(col, vec3(0.0), vec3(1.0));
+    if (u_outMode > 0.5) {
+      straight = mix(straight * 12.92, 1.055 * pow(straight, vec3(1.0/2.4)) - 0.055, step(0.0031308, straight));
+      gl_FragColor = vec4(straight, 1.0);
+    } else {
+      vec3 premul = straight * aOut;
+      premul = mix(premul * 12.92, 1.055 * pow(premul, vec3(1.0/2.4)) - 0.055, step(0.0031308, premul));
+      gl_FragColor = vec4(premul, aOut);
+    }
   }`;
 
 let gl = null;
@@ -289,9 +296,78 @@ let hold = true;
 let timer = 0;
 let t0 = 0;
 let frozen = null;
+let cssW = 168;
+let cssH = 168;
+let displayW = 168;
+let displayH = 168;
+let uTime = null;
+let uDot = null;
+let uFill = null;
+let uOut = null;
+let uRes = null;
+
+const PRESET_BG = '#f5f5f5';
+const CARD_BG = '#ffffff';
+const REVEAL_SEC = 3;
+const PIX_SEC = 2.55;
+const HOLD_MS = 2200;
+const FADE_MS = 320;
+const SOFTNESS = 0.5;
+const SAMPLE = 64;
+const COLOR4 = [1, 1, 1];
+
+let images = [];
+let running = false;
+let paused = true;
+let phase = 'idle';
+let continueAuto = false;
+let holdMode = 'auto';
+let imageIndex = -1;
+let revealTimer = 0;
+let revealStart = 0;
+let hideStart = 0;
+let currentImage = null;
+let revealDone = false;
+let sampleCache = null;
+let sampleCounter = 0;
+let pixPattern = null;
+let pixCols = 0;
+let pixRows = 0;
+
+let outCanvas = null;
+let outCtx = null;
+let overlay = null;
+let overlayCtx = null;
+let cover = null;
+let coverCtx = null;
+let pixCanvas = null;
+let pixCtx = null;
+let dropCanvas = null;
+let dropCtx = null;
+let maskCanvas = null;
+let maskCtx = null;
+let sampleFull = null;
+let sampleFullCtx = null;
+let sampleSmall = null;
+let sampleSmallCtx = null;
 
 function lin(c) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+function hex(h) {
+  return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+}
+function resolved(h) {
+  return h.toLowerCase() === PRESET_BG ? CARD_BG : h;
+}
+function clamp01(v) {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+function smooth(e) {
+  return e * e * (3 - 2 * e);
 }
 function compile(type, src) {
   const sh = gl.createShader(type);
@@ -299,15 +375,90 @@ function compile(type, src) {
   gl.compileShader(sh);
   return sh;
 }
-function boot(w, h, dpr) {
+function set1(name, v) {
+  const loc = gl.getUniformLocation(program, name);
+  if (loc) gl.uniform1f(loc, v);
+}
+function set3(name, r, g, b) {
+  const loc = gl.getUniformLocation(program, name);
+  if (loc) gl.uniform3f(loc, lin(r), lin(g), lin(b));
+}
+function setPhase(next) {
+  if (phase === next) return;
+  phase = next;
+  postMessage({ type: 'phase', phase });
+}
+function clearRevealTimer() {
+  if (revealTimer) {
+    clearTimeout(revealTimer);
+    revealTimer = 0;
+  }
+}
+function coverRect(img, dw, dh) {
+  const n = dw / Math.max(1, dh);
+  const o = img.width / Math.max(1, img.height);
+  let sx = 0;
+  let sy = 0;
+  let sw = img.width;
+  let sh = img.height;
+  if (o > n) {
+    sw = img.height * n;
+    sx = (img.width - sw) / 2;
+  } else {
+    sh = img.width / n;
+    sy = (img.height - sh) / 2;
+  }
+  const inset = Math.min(sw, sh) * 6e-3;
+  if (sw - 2 * inset > 1 && sh - 2 * inset > 1) {
+    sx += inset;
+    sy += inset;
+    sw -= 2 * inset;
+    sh -= 2 * inset;
+  }
+  return [sx, sy, sw, sh];
+}
+function drawCover(ctx, img, dw, dh) {
+  const [sx, sy, sw, sh] = coverRect(img, dw, dh);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+}
+function ensure2d() {
+  if (outCanvas) return;
+  outCanvas = new OffscreenCanvas(displayW, displayH);
+  outCtx = outCanvas.getContext('2d');
+  overlay = new OffscreenCanvas(displayW, displayH);
+  overlayCtx = overlay.getContext('2d');
+  cover = new OffscreenCanvas(displayW, displayH);
+  coverCtx = cover.getContext('2d');
+  pixCanvas = new OffscreenCanvas(2, 2);
+  pixCtx = pixCanvas.getContext('2d');
+  dropCanvas = new OffscreenCanvas(2, 2);
+  dropCtx = dropCanvas.getContext('2d');
+  maskCanvas = new OffscreenCanvas(SAMPLE, SAMPLE);
+  maskCtx = maskCanvas.getContext('2d');
+  sampleFull = new OffscreenCanvas(displayW, displayH);
+  sampleFullCtx = sampleFull.getContext('2d');
+  sampleSmall = new OffscreenCanvas(SAMPLE, SAMPLE);
+  sampleSmallCtx = sampleSmall.getContext('2d');
+}
+function boot(w, h, dpr, cssWidth, cssHeight, dispW, dispH) {
+  cssW = cssWidth || 168;
+  cssH = cssHeight || cssW;
+  displayW = dispW || w;
+  displayH = dispH || h;
   canvas = new OffscreenCanvas(Math.max(1, w), Math.max(1, h));
   gl = canvas.getContext('webgl2', {
     alpha: true,
     premultipliedAlpha: false,
     antialias: false,
     powerPreference: 'high-performance',
+    preserveDrawingBuffer: true,
   });
-  if (!gl) { postMessage({ type: 'error' }); return; }
+  if (!gl) {
+    postMessage({ type: 'error' });
+    return;
+  }
   program = gl.createProgram();
   gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
   gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
@@ -319,14 +470,8 @@ function boot(w, h, dpr) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-  const set1 = (name, v) => { const loc = gl.getUniformLocation(program, name); if (loc) gl.uniform1f(loc, v); };
-  const set3 = (name, r, g, b) => {
-    const loc = gl.getUniformLocation(program, name);
-    if (loc) gl.uniform3f(loc, lin(r), lin(g), lin(b));
-  };
-  const hex = (h) => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
-  const res = gl.getUniformLocation(program, 'u_resolution');
-  if (res) gl.uniform2f(res, canvas.width, canvas.height);
+  uRes = gl.getUniformLocation(program, 'u_resolution');
+  if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
   set1('u_dpr', dpr || 1);
   set1('u_speed', 0.3);
   set1('u_intensity', 0.85);
@@ -352,43 +497,344 @@ function boot(w, h, dpr) {
   set1('u_edgeFade', 20);
   set1('u_fadeStr', 1);
   set1('u_dotMode', 1);
+  set1('u_outMode', 0);
   const effect = gl.getUniformLocation(program, 'u_effect');
   if (effect) gl.uniform1i(effect, 22);
   const sweep = gl.getUniformLocation(program, 'u_sweepEase');
   if (sweep) gl.uniform1i(sweep, 0);
   ['#e3e3e3', '#ffffff', '#f5f5f5', '#f5f5f5', '#080808', '#f5f5f5', '#f5f5f5'].forEach((h, i) => {
-    const [r, g, b] = hex(h);
+    const [r, g, b] = hex(resolved(h));
     set3('u_color' + (i + 1), r, g, b);
     set1('u_alpha' + (i + 1), 1);
   });
-  const [br, bg, bb] = hex('#ffffff');
+  const [br, bg, bb] = hex(CARD_BG);
   set3('u_cardBg', br, bg, bb);
+  uTime = gl.getUniformLocation(program, 'u_time');
+  uDot = gl.getUniformLocation(program, 'u_dotMode');
+  uFill = gl.getUniformLocation(program, 'u_fillOpacity');
+  uOut = gl.getUniformLocation(program, 'u_outMode');
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.disable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
   t0 = performance.now();
+  ensure2d();
+}
+function drawShader(dotMode, fill, outMode) {
+  const seconds = frozen == null ? 40 + (performance.now() - t0) / 1000 : frozen;
+  if (uTime) gl.uniform1f(uTime, seconds);
+  if (uDot) gl.uniform1f(uDot, dotMode);
+  if (uFill) gl.uniform1f(uFill, fill);
+  if (uOut) gl.uniform1f(uOut, outMode);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+function takeSample() {
+  drawShader(0, 0, 1);
+  const w = canvas.width;
+  const h = canvas.height;
+  const pixels = new Uint8Array(w * h * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  if (sampleFull.width !== w || sampleFull.height !== h) {
+    sampleFull.width = w;
+    sampleFull.height = h;
+  }
+  const img = new ImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    const src = (h - 1 - y) * w * 4;
+    img.data.set(pixels.subarray(src, src + w * 4), y * w * 4);
+  }
+  sampleFullCtx.putImageData(img, 0, 0);
+  sampleSmallCtx.imageSmoothingEnabled = true;
+  sampleSmallCtx.imageSmoothingQuality = 'high';
+  sampleSmallCtx.clearRect(0, 0, SAMPLE, SAMPLE);
+  sampleSmallCtx.drawImage(sampleFull, 0, 0, SAMPLE, SAMPLE);
+  return sampleSmallCtx.getImageData(0, 0, SAMPLE, SAMPLE).data;
+}
+function buildMask(sample, u) {
+  const thresh = 1 - u * (1 + SOFTNESS);
+  const img = maskCtx.createImageData(SAMPLE, SAMPLE);
+  const data = img.data;
+  for (let i = 0; i < SAMPLE * SAMPLE; i++) {
+    const o = i * 4;
+    const dr = sample[o] / 255 - COLOR4[0];
+    const dg = sample[o + 1] / 255 - COLOR4[1];
+    const db = sample[o + 2] / 255 - COLOR4[2];
+    const n = Math.exp(-8 * (dr * dr + dg * dg + db * db));
+    let e = (n - thresh) / SOFTNESS;
+    e = smooth(clamp01(e));
+    data[o] = 255;
+    data[o + 1] = 255;
+    data[o + 2] = 255;
+    data[o + 3] = (e * 255 + 0.5) | 0;
+  }
+  maskCtx.putImageData(img, 0, 0);
+}
+function ensurePattern(cols, rows) {
+  if (pixPattern && pixCols === cols && pixRows === rows && pixPattern.revealStart === revealStart) return;
+  const n = cols * rows;
+  const values = new Float32Array(n);
+  const span = 1 - 2 * 0.07;
+  for (let i = 0; i < n; i++) values[i] = 0.07 + Math.random() * span;
+  pixPattern = values;
+  pixPattern.revealStart = revealStart;
+  pixCols = cols;
+  pixRows = rows;
+}
+function paintPhoto(img) {
+  overlayCtx.globalCompositeOperation = 'source-over';
+  overlayCtx.globalAlpha = 1;
+  overlayCtx.clearRect(0, 0, displayW, displayH);
+  drawCover(overlayCtx, img, displayW, displayH);
+}
+function paintReveal(now) {
+  const elapsed = (now - revealStart) / 1000;
+  const linear = Math.min(elapsed / REVEAL_SEC, 1);
+  const eased = easeOutCubic(linear);
+  if (linear >= 1) {
+    paintPhoto(currentImage);
+    return { shaderOpacity: 0, done: true };
+  }
+  if ((sampleCounter++ & 1) === 0 || !sampleCache) sampleCache = takeSample();
+  buildMask(sampleCache, eased);
+  const base = 6 + 0.22 * 74;
+  const cols = Math.max(2, Math.floor(base * cssW / 320));
+  const rows = Math.max(2, Math.floor(base * cssH / 320));
+  ensurePattern(cols, rows);
+  if (pixCanvas.width !== cols || pixCanvas.height !== rows) {
+    pixCanvas.width = cols;
+    pixCanvas.height = rows;
+  }
+  if (dropCanvas.width !== cols || dropCanvas.height !== rows) {
+    dropCanvas.width = cols;
+    dropCanvas.height = rows;
+    const blank = dropCtx.createImageData(cols, rows);
+    for (let i = 0; i < blank.data.length; i += 4) {
+      blank.data[i] = 255;
+      blank.data[i + 1] = 255;
+      blank.data[i + 2] = 255;
+    }
+    dropCtx.putImageData(blank, 0, 0);
+  }
+  const y = easeOutCubic(Math.min(elapsed / PIX_SEC, 1));
+  const gain = 1 / (2 * 0.07);
+  const drop = dropCtx.createImageData(cols, rows);
+  for (let i = 0; i < pixPattern.length; i++) {
+    const a = clamp01(0.5 + (pixPattern[i] - y) * gain);
+    drop.data[i * 4] = 255;
+    drop.data[i * 4 + 1] = 255;
+    drop.data[i * 4 + 2] = 255;
+    drop.data[i * 4 + 3] = (a * 255 + 0.5) | 0;
+  }
+  dropCtx.putImageData(drop, 0, 0);
+  coverCtx.clearRect(0, 0, displayW, displayH);
+  drawCover(coverCtx, currentImage, displayW, displayH);
+  pixCtx.globalCompositeOperation = 'source-over';
+  pixCtx.clearRect(0, 0, cols, rows);
+  pixCtx.imageSmoothingEnabled = true;
+  pixCtx.imageSmoothingQuality = 'high';
+  pixCtx.drawImage(cover, 0, 0, displayW, displayH, 0, 0, cols, rows);
+  pixCtx.globalCompositeOperation = 'destination-in';
+  pixCtx.imageSmoothingEnabled = false;
+  pixCtx.drawImage(dropCanvas, 0, 0);
+  pixCtx.globalCompositeOperation = 'source-over';
+  overlayCtx.globalCompositeOperation = 'source-over';
+  overlayCtx.globalAlpha = 1;
+  overlayCtx.clearRect(0, 0, displayW, displayH);
+  overlayCtx.imageSmoothingEnabled = true;
+  overlayCtx.imageSmoothingQuality = 'high';
+  overlayCtx.drawImage(cover, 0, 0);
+  overlayCtx.imageSmoothingEnabled = false;
+  overlayCtx.drawImage(pixCanvas, 0, 0, cols, rows, 0, 0, displayW, displayH);
+  pixCtx.globalCompositeOperation = 'source-over';
+  pixCtx.clearRect(0, 0, cols, rows);
+  pixCtx.imageSmoothingEnabled = true;
+  pixCtx.imageSmoothingQuality = 'high';
+  pixCtx.drawImage(maskCanvas, 0, 0, cols, rows);
+  overlayCtx.imageSmoothingEnabled = false;
+  overlayCtx.globalCompositeOperation = 'destination-in';
+  overlayCtx.drawImage(pixCanvas, 0, 0, cols, rows, 0, 0, displayW, displayH);
+  overlayCtx.globalCompositeOperation = 'source-over';
+  overlayCtx.imageSmoothingEnabled = true;
+  return { shaderOpacity: 1 - eased, done: false };
+}
+function finishReveal() {
+  if (revealDone) return;
+  revealDone = true;
+  setPhase('visible');
+  if (!running || paused) return;
+  if (holdMode === 'manual') {
+    clearRevealTimer();
+    return;
+  }
+  clearRevealTimer();
+  revealTimer = setTimeout(() => {
+    revealTimer = 0;
+    beginHide();
+  }, HOLD_MS);
+}
+function scheduleIdle(delayMs) {
+  if (!running || paused) return;
+  setPhase('idle');
+  currentImage = null;
+  const ms = delayMs == null ? (1.2 + Math.random() * 1.2) * 1000 : delayMs;
+  clearRevealTimer();
+  revealTimer = setTimeout(() => {
+    revealTimer = 0;
+    beginReveal(true, 'auto');
+  }, ms);
+}
+function beginReveal(cont, mode) {
+  if (!running || paused) return;
+  if (!images.length) {
+    clearRevealTimer();
+    revealTimer = setTimeout(() => beginReveal(cont, mode), 500);
+    return;
+  }
+  let next = 0;
+  if (images.length > 1) {
+    do next = Math.floor(Math.random() * images.length);
+    while (next === imageIndex);
+  }
+  imageIndex = next;
+  continueAuto = cont;
+  holdMode = mode;
+  currentImage = images[next];
+  revealStart = performance.now();
+  revealDone = false;
+  sampleCache = null;
+  sampleCounter = 0;
+  pixPattern = null;
+  setPhase('reveal');
+}
+function beginHide() {
+  if (paused || phase === 'hide' || phase === 'idle') return;
+  setPhase('hide');
+  hideStart = performance.now();
+  clearRevealTimer();
+  revealTimer = setTimeout(() => {
+    revealTimer = 0;
+    currentImage = null;
+    if (continueAuto && running && !paused) scheduleIdle();
+    else {
+      running = false;
+      setPhase('idle');
+    }
+  }, FADE_MS);
+}
+function startAuto() {
+  if (running) return;
+  running = true;
+  paused = false;
+  scheduleIdle(Math.random() * 1500);
+}
+function setPaused(next) {
+  if (paused === next) return;
+  paused = next;
+  if (paused) {
+    clearRevealTimer();
+    return;
+  }
+  if (!running) return;
+  if (phase === 'visible') {
+    if (holdMode === 'manual') return;
+    clearRevealTimer();
+    revealTimer = setTimeout(() => {
+      revealTimer = 0;
+      beginHide();
+    }, Math.min(HOLD_MS, 500));
+    return;
+  }
+  if (phase === 'hide') {
+    clearRevealTimer();
+    revealTimer = setTimeout(() => {
+      revealTimer = 0;
+      currentImage = null;
+      scheduleIdle();
+    }, FADE_MS);
+    return;
+  }
+  scheduleIdle();
+}
+function manualReveal() {
+  if (paused || phase === 'reveal' || phase === 'visible' || phase === 'hide') return;
+  const was = running;
+  clearRevealTimer();
+  if (!was) running = true;
+  beginReveal(was, 'manual');
+}
+function opacities(now) {
+  if (phase === 'reveal' && currentImage) {
+    const frame = paintReveal(now);
+    if (frame.done) finishReveal();
+    return { shaderOpacity: frame.done ? 0 : frame.shaderOpacity, overlayOpacity: 1 };
+  }
+  if (phase === 'visible' && currentImage) {
+    return { shaderOpacity: 0, overlayOpacity: 1 };
+  }
+  if (phase === 'hide') {
+    const p = Math.min((now - hideStart) / FADE_MS, 1);
+    return { shaderOpacity: p, overlayOpacity: 1 - p };
+  }
+  return { shaderOpacity: 1, overlayOpacity: 0 };
 }
 function present() {
-  if (hold || !gl || !program) { timer = 0; return; }
-  const seconds = frozen == null ? 40 + (performance.now() - t0) / 1000 : frozen;
-  const time = gl.getUniformLocation(program, 'u_time');
-  if (time) gl.uniform1f(time, seconds);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-  // No finish/readPixels. transferToImageBitmap is the only sync, and the
-  // page withholds it while CanvasKit is opening a context.
-  const bmp = canvas.transferToImageBitmap();
-  postMessage({ type: 'frame', bmp }, [bmp]);
+  if (hold || !gl || !program || !outCtx) {
+    timer = 0;
+    return;
+  }
+  try {
+    const now = performance.now();
+    const fade = opacities(now);
+    if (fade.shaderOpacity > 0) drawShader(1, 0.18, 0);
+    outCtx.globalCompositeOperation = 'source-over';
+    outCtx.globalAlpha = 1;
+    outCtx.fillStyle = '#ffffff';
+    outCtx.fillRect(0, 0, displayW, displayH);
+    if (fade.shaderOpacity > 0) {
+      outCtx.globalAlpha = fade.shaderOpacity;
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.drawImage(canvas, 0, 0, displayW, displayH);
+    }
+    if (fade.overlayOpacity > 0) {
+      outCtx.globalAlpha = fade.overlayOpacity;
+      outCtx.imageSmoothingEnabled = true;
+      outCtx.drawImage(overlay, 0, 0);
+    }
+    outCtx.globalAlpha = 1;
+    const bmp = outCanvas.transferToImageBitmap();
+    postMessage({ type: 'frame', bmp }, [bmp]);
+  } catch (err) {
+    postMessage({ type: 'error', message: String(err && err.message ? err.message : err) });
+  }
   timer = setTimeout(present, 100);
 }
 self.onmessage = (ev) => {
   const msg = ev.data || {};
   if (msg.type === 'start') {
-    if (!gl) boot(msg.w, msg.h, msg.dpr);
+    if (!gl) boot(msg.w, msg.h, msg.dpr, msg.cssW, msg.cssH, msg.displayW, msg.displayH);
+    return;
+  }
+  if (msg.type === 'photos') {
+    images = msg.bitmaps || [];
     return;
   }
   if (msg.type === 'hold') {
     hold = !!msg.hold;
-    if (!hold && !timer) present();
+    if (!hold && !timer && gl) present();
+    return;
+  }
+  if (msg.type === 'auto') {
+    if (msg.on) {
+      if (!running) startAuto();
+      else setPaused(false);
+    } else setPaused(true);
+    return;
+  }
+  if (msg.type === 'reveal') {
+    manualReveal();
+    return;
+  }
+  if (msg.type === 'hide') {
+    beginHide();
     return;
   }
   if (msg.type === 'time') frozen = msg.time;
