@@ -1,10 +1,11 @@
-import { Component, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
 import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { getImgFxShaderReady, subscribeImgFxReady } from '@/src/shims/imgFxGate';
+import { paintOrganicStill } from '@/src/shims/organicStill';
 import { colors } from '@/src/theme';
 
 const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
@@ -27,6 +28,23 @@ class WebGlGate extends Component<{ children: ReactNode; fallback: ReactNode }, 
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
+}
+
+function OrganicStill() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useLayoutEffect(() => {
+    const canvas = ref.current;
+    if (canvas) paintOrganicStill(canvas);
+  }, []);
+  return (
+    <canvas
+      ref={ref}
+      width={168}
+      height={168}
+      aria-hidden
+      style={{ width: '100%', height: '100%', display: 'block' }}
+    />
+  );
 }
 
 function hostElement(node: View | null): HTMLElement | null {
@@ -127,7 +145,9 @@ export function ImageGenerationLoaderDemo() {
               data-testid="img-fx-loader"
               style={{ display: 'block', lineHeight: 0 }}
             >
-              <div className="t-img-fx-card" style={cardStyle} />
+              <div className="t-img-fx-card" style={cardStyle}>
+                <OrganicStill />
+              </div>
             </ImageGeneration>
           ) : (
             <div style={cardStyle} />

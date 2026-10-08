@@ -111,7 +111,7 @@ type ThemeValue = {
 
 const Ctx = createContext<ThemeValue | null>(null);
 
-export function ThemeProvider({ children, cardId = "theme" }: { children: ReactNode; cardId?: string }) {
+export function ThemeProvider({ children, cardId }: { children: ReactNode; cardId: string }) {
   const path = usePathname();
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useCardField(cardId, "playgroundColor", dark.orb);

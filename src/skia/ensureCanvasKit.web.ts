@@ -4,6 +4,11 @@ export function canvasKitReady(): boolean {
   return typeof globalThis.CanvasKit !== 'undefined';
 }
 
+/** True while LoadSkiaWeb is in flight and its WebGL context is not up yet. */
+export function canvasKitPending(): boolean {
+  return pending !== null && !canvasKitReady();
+}
+
 /** Shared LoadSkiaWeb. Later cards await the same promise. */
 export function ensureCanvasKit(): Promise<void> {
   if (canvasKitReady()) return Promise.resolve();
