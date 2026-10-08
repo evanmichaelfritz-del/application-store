@@ -187,7 +187,9 @@ export function SelectRow<T extends string>({
     for (const node of optionsInRow()) node.tabIndex = -1;
   };
   const unseal = () => {
-    menuEl()?.removeAttribute("inert");
+    const menu = menuEl();
+    menu?.removeAttribute("inert");
+    menu?.removeAttribute("aria-hidden");
   };
   const unsealForPointer = () => {
     unseal();
@@ -218,7 +220,9 @@ export function SelectRow<T extends string>({
       focusOnOpen.current = false;
       const nodes = optionsInRow();
       const selected = nodes.find((node) => node.getAttribute("aria-selected") === "true");
-      (selected ?? nodes[0])?.focus({ preventScroll: true });
+      const target = selected ?? nodes[0];
+      for (const node of nodes) node.tabIndex = node === target ? 0 : -1;
+      target?.focus({ preventScroll: true });
       openSV.value = 1;
       goal.value = 1;
     }
