@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { Text as RNText, type TextStyle } from "react-native";
 import Animated, {
   Easing,
-  useAnimatedStyle,
   useDerivedValue,
   useReducedMotion,
   useSharedValue,
@@ -19,15 +18,9 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const reduced = useReducedMotion();
   const size = typeof style?.fontSize === "number" ? style.fontSize : 14;
   const font = useFont(require("../assets/fonts/Geist-Regular.ttf"), size);
-  const opacity = useSharedValue(0);
   const shift = useSharedValue(0);
   const width = font ? Math.max(1, Math.ceil(font.getTextWidth(text))) : Math.max(1, Math.ceil(text.length * size * 0.56));
   const height = Math.ceil(size * 1.45);
-
-  useEffect(() => {
-    opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 300 });
-  }, [text, opacity]);
 
   useEffect(() => {
     if (reduced) return;
@@ -37,20 +30,17 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
 
   const start = useDerivedValue(() => vec(shift.value, 0));
   const end = useDerivedValue(() => vec(shift.value + width * 2, 0));
-  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   if (reduced || !font) {
     return (
-      <Animated.View style={fade}>
-        <RNText style={[{ color: colors.muted, fontFamily: style?.fontFamily ?? fonts.regular, fontSize: size, fontStyle: style?.fontStyle }, style]}>
-          {text}
-        </RNText>
-      </Animated.View>
+      <RNText style={[{ color: colors.muted, fontFamily: style?.fontFamily ?? fonts.regular, fontSize: size, fontStyle: style?.fontStyle }, style]}>
+        {text}
+      </RNText>
     );
   }
 
   return (
-    <Animated.View style={fade}>
+    <Animated.View>
       <Canvas style={{ width, height }}>
         <Mask mode="alpha" mask={<Text x={0} y={size} text={text} font={font} color="white" />}>
           <Rect x={0} y={0} width={width} height={height}>

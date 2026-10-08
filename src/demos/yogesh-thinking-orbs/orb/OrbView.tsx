@@ -1,10 +1,20 @@
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { createElement, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useIsFocused } from "expo-router";
 import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
 import { useReduceMotion as useStoreReduceMotion } from "@/src/context/ReduceMotionContext";
+import {
+  ORB_DEFAULT_COLOR,
+  ORB_DEFAULT_DENSITY,
+  ORB_DEFAULT_DOT_SIZE,
+  ORB_DEFAULT_PAUSED,
+  ORB_DEFAULT_SIZE,
+  ORB_DEFAULT_SPEED,
+  ORB_DEFAULT_STATE,
+  ORB_DEFAULT_TILT,
+} from "./orbProps";
 import { useSkiaRuntime } from "@/src/skia/liveBudget";
 
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
@@ -62,24 +72,48 @@ function usePicture() {
   return { picture, retire };
 }
 
-type Props = {
-  state: string;
+export type OrbViewProps = {
+  /** Omitted state is npm's `base`. Unknown ids resolve inside `buildInput`. */
+  state?: string;
   variant?: string;
-  size: number;
+  /** npm default is 20. */
+  size?: number;
   speed?: number;
   density?: number;
   dotSize?: number;
   tilt?: number;
   shape?: ShapeName;
   render?: RenderName;
-  color: string;
+  /** Omitted color paints the dark-store stand-in for npm `currentColor`. */
+  color?: string;
   /** When false the canvas stays mounted but does not tick. */
   active?: boolean;
+  /** npm `paused`: hold the frame and do not tick. */
+  paused?: boolean;
+  /** Screen-reader name. Without one the orb is hidden from assistive tech. */
+  label?: string;
+  /** Web className passthrough on the orb box. */
+  className?: string;
   /** Playground sliders write here. Landing orbs leave it unset. */
   live?: SharedValue<OrbLive>;
   /** Last rasterized frame, for a card that has scrolled its canvas away. */
   onFrame?: (uri: string) => void;
 };
+
+function useOrbReduced(): boolean {
+  const store = useStoreReduceMotion().reduceMotion;
+  const reanimatedReduced = useReducedMotion() === true;
+  const [media, setMedia] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setMedia(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  return store || reanimatedReduced || media;
+}
 
 function paint(
   picture: SharedValue<SkPicture>,
@@ -135,25 +169,67 @@ function CanvasHost({
   );
 }
 
-function LiveOrb({
-  state,
-  variant,
+function OrbFrame({
   size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
+  label,
+  className,
+  children,
+}: {
+  size: number;
+  label?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (Platform.OS === "web") {
+    return createElement(
+      "div",
+      {
+        className,
+        role: label ? "img" : undefined,
+        "aria-label": label,
+        "aria-hidden": label ? undefined : true,
+        style: { width: size, height: size, lineHeight: 0 },
+      },
+      children,
+    );
+  }
+  return (
+    <View
+      accessibilityRole={label ? "image" : undefined}
+      accessibilityLabel={label}
+      accessibilityElementsHidden={label ? undefined : true}
+      importantForAccessibility={label ? "auto" : "no-hide-descendants"}
+      style={{ width: size, height: size }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function OrbCanvas({
+  state = ORB_DEFAULT_STATE,
+  variant,
+  size = ORB_DEFAULT_SIZE,
+  speed = ORB_DEFAULT_SPEED,
+  density = ORB_DEFAULT_DENSITY,
+  dotSize = ORB_DEFAULT_DOT_SIZE,
+  tilt = ORB_DEFAULT_TILT,
   shape = "sphere",
   render = "dots",
-  color,
+  color = ORB_DEFAULT_COLOR,
   active = true,
+  paused = ORB_DEFAULT_PAUSED,
+  label,
+  className,
   live,
   onFrame,
-}: Props) {
+  reduced,
+}: OrbViewProps & { reduced: boolean }) {
   const { picture, retire } = usePicture();
   const inputSV = useSharedValue<OrbInput | null>(null);
   const localSV = useSharedValue<OrbLocal | null>(null);
-  const activeSV = useSharedValue(active);
+  const running = active && !paused && !reduced;
+  const activeSV = useSharedValue(running);
   const fallback = useSharedValue<OrbLive>({
     size,
     speed,
@@ -162,7 +238,6 @@ function LiveOrb({
     tilt,
     ...colorToRgba(color),
   });
-
   const built = useMemo(
     () => buildInput({ state, variant, size, density, dotSize, shape, render }),
     [state, variant, size, density, dotSize, shape, render],
@@ -173,76 +248,65 @@ function LiveOrb({
     localSV.value = null;
   }, [built, inputSV, localSV]);
 
-  useEffect(() => {
-    activeSV.value = active;
+  if (activeSV.value !== running) activeSV.value = running;
+
+  useLayoutEffect(() => {
+    activeSV.value = running;
     if (!live) {
       fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
     }
-  }, [active, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
+  }, [running, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
+
+  // Reduced motion paints from props, not the shared tune, so a slider edit is visible in the same commit.
+  // Pause holds the current frame. A mount that is already paused paints t=0 once.
+  const boot = useRef(true);
+  useLayoutEffect(() => {
+    const first = boot.current;
+    boot.current = false;
+    if (!reduced && !(paused && first)) return;
+    const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    const input = built;
+    runOnUI(() => {
+      "worklet";
+      paint(picture, retire, input, makeLocal(input), tune, 0);
+    })();
+  }, [reduced, paused, built, color, density, dotSize, picture, retire, size, speed, tilt]);
 
   const frameCallback = useFrameCallback((frame) => {
     "worklet";
     const input = inputSV.value;
     if (!input || !activeSV.value) return;
     const tune = live ? live.value : fallback.value;
-    const look = `${input.state}@${tune.speed}`;
+    const clockKey = `${input.state}@${tune.speed}`;
     const now = frame.timestamp;
-    const t = tick(look, now, tune.speed);
+    const t = tick(clockKey, now, tune.speed);
     let local = localSV.value;
-    if (!local || local.key !== input.key || local.dots.length !== input.count * 6) {
+    const speedKey = `${input.key}@${tune.speed}`;
+    if (!local || local.key !== speedKey || local.dots.length !== input.count * 6) {
       local = makeLocal(input);
+      local.key = speedKey;
       localSV.value = local;
     }
     paint(picture, retire, input, local, tune, t);
-  }, active);
+  }, running);
 
-  useEffect(() => {
-    frameCallback.setActive(active);
-  }, [active, frameCallback]);
+  useLayoutEffect(() => {
+    frameCallback.setActive(running);
+  }, [running, frameCallback]);
 
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
-}
-
-function StillOrb({
-  state,
-  variant,
-  size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
-  shape = "sphere",
-  render = "dots",
-  color,
-  live,
-  onFrame,
-}: Props) {
-  const { picture, retire } = usePicture();
-  const built = useMemo(
-    () => buildInput({ state, variant, size, density, dotSize, shape, render }),
-    [state, variant, size, density, dotSize, shape, render],
+  return (
+    <OrbFrame size={size} label={label} className={className}>
+      <CanvasHost size={size} picture={picture} onFrame={onFrame} />
+    </OrbFrame>
   );
-
-  useEffect(() => {
-    const tune: OrbLive = live
-      ? live.value
-      : { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
-    const input = built;
-    runOnUI(() => {
-      "worklet";
-      paint(picture, retire, input, makeLocal(input), tune, 0);
-    })();
-  }, [built, color, density, dotSize, live, picture, retire, size, speed, tilt]);
-
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
 }
 
-export const OrbView = memo(function OrbView(props: Props) {
+export const OrbView = memo(function OrbView(props: OrbViewProps) {
   const focused = useIsFocused();
-  const reduced = useReducedMotion() === true || useStoreReduceMotion().reduceMotion;
+  const reduced = useOrbReduced();
   const runtime = useSkiaRuntime();
+  const size = props.size ?? ORB_DEFAULT_SIZE;
   if (!focused) return null;
-  if (!runtime.mount) return <View style={{ width: props.size, height: props.size }} />;
-  if (reduced) return <StillOrb {...props} />;
-  return <LiveOrb {...props} active={props.active !== false && runtime.running} />;
+  if (!runtime.mount) return <View style={{ width: size, height: size }} />;
+  return <OrbCanvas {...props} reduced={reduced} active={props.active !== false && runtime.running} />;
 });

@@ -34,7 +34,7 @@ const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
 const OUTSIDE_CLOSE_EVENT: "pointerdown" | "click" = "pointerdown";
 /** Web close only (dismissWeb, driveWebSprings close, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
-const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 7e-7 };
+const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 1.8e-7 };
 
 export function SelectRow<T extends string>({
   label,
@@ -65,6 +65,7 @@ export function SelectRow<T extends string>({
   const goal = useSharedValue(open ? 1 : 0);
   const armed = useRef(false);
   const sawOpen = useRef(false);
+  const primed = useSharedValue(0);
   const revealRef = useRef(() => setPresent(true));
   const hideRef = useRef(() => setPresent(false));
   const commitRef = useRef(() => {
@@ -162,6 +163,16 @@ export function SelectRow<T extends string>({
   useEffect(() => {
     place();
   }, [windowH, options.length]);
+  const mountOnPress = () => {
+    if (openSV.value === 1) return;
+    primed.value = 1;
+    if (web) {
+      const { flushSync } = require("react-dom") as { flushSync: (fn: () => void) => void };
+      flushSync(() => revealRef.current());
+      return;
+    }
+    revealRef.current();
+  };
   const tap = useMemo(() => {
     const spring = (next: number) => {
       "worklet";
@@ -175,7 +186,14 @@ export function SelectRow<T extends string>({
     return Gesture.Tap()
       .maxDistance(6)
       .maxDuration(10000)
+      .onBegin(() => {
+        if (openSV.value !== 1) {
+          primed.value = 1;
+          runOnJS(revealJS)();
+        }
+      })
       .onEnd(() => {
+        primed.value = 0;
         const next = openSV.value === 1 ? 0 : 1;
         if (web) {
           openSV.value = next;
@@ -190,8 +208,13 @@ export function SelectRow<T extends string>({
         }
         spring(next);
         runOnJS(commitJS)();
+      })
+      .onFinalize((_event, success) => {
+        if (success || primed.value !== 1 || openSV.value === 1) return;
+        primed.value = 0;
+        runOnJS(hideJS)();
       });
-  }, [chevron, commitJS, commitNextFrame, goal, hideJS, openSV, revealJS, shown, web]);
+  }, [chevron, commitJS, commitNextFrame, goal, hideJS, openSV, primed, revealJS, shown, web]);
   const menuStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * (aboveSV.value ? 8 : -8) }, { scale: 0.95 + shown.value * 0.05 }],
@@ -220,6 +243,7 @@ export function SelectRow<T extends string>({
           aria-haspopup={web ? "listbox" : undefined}
           aria-expanded={web ? open : undefined}
           collapsable={false}
+          onPointerDown={web ? mountOnPress : undefined}
           onKeyDown={Platform.OS === "web" ? onKeyDown : undefined}
           onKeyDownCapture={Platform.OS === "web" ? onKeyDownCapture : undefined}
           style={{

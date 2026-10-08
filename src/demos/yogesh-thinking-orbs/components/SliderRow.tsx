@@ -33,6 +33,15 @@ function writeLive(live: SharedValue<OrbLive>, field: SliderField, next: number)
   else live.value = { ...cur, tilt: next };
 }
 
+function writeLiveNow(live: SharedValue<OrbLive>, field: SliderField, next: number) {
+  const cur = live.value;
+  if (field === "size") live.value = { ...cur, size: next };
+  else if (field === "speed") live.value = { ...cur, speed: next };
+  else if (field === "density") live.value = { ...cur, density: next };
+  else if (field === "dotSize") live.value = { ...cur, dotSize: next };
+  else live.value = { ...cur, tilt: next };
+}
+
 export function SliderRow({
   label,
   min,
@@ -172,9 +181,14 @@ export function SliderRow({
     },
   );
 
-  const move = (steps: number) => {
-    const next = snap(value + steps * step, min, max, step);
+  const publishNow = (next: number) => {
+    if (live && field) writeLiveNow(live, field, next);
+    setLabelText(next.toFixed(decimals));
     onChange(next);
+  };
+
+  const move = (steps: number) => {
+    publishNow(snap(value + steps * step, min, max, step));
   };
 
   useEffect(() => {
@@ -191,13 +205,13 @@ export function SliderRow({
       else return;
       event.preventDefault();
       event.stopPropagation();
-      if (key === "Home") onChange(min);
-      else if (key === "End") onChange(max);
+      if (key === "Home") publishNow(min);
+      else if (key === "End") publishNow(max);
       else if (steps !== null) move(steps);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focused, value, min, max, step, onChange]);
+  }, [decimals, field, focused, live, max, min, onChange, step, value]);
 
   const gesture = useMemo(() => {
     const revertIfAbandoned = () => {

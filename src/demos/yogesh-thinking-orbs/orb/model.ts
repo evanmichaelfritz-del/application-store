@@ -3,6 +3,7 @@
  * Copyright (c) 2026 Yogesh. See ./LICENSE.
  */
 
+import { resolveLook } from "./orbProps";
 import { SHAPES, torus, type Pt, type ShapeName } from "./shapes";
 
 export type { ShapeName };
@@ -108,8 +109,9 @@ export type OrbInput = {
 
 const REACH = 24;
 
+/** A known look id. Unknown states become `base`; unknown variants drop to that state's default. */
 export function lookId(state: string, variant?: string): string {
-  return variant && variant !== "default" ? `${state}-${variant}` : state;
+  return resolveLook(state, variant);
 }
 
 export function buildInput(opts: {

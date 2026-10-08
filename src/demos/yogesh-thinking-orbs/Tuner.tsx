@@ -1,6 +1,6 @@
 import { setStringAsync } from 'expo-clipboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue } from 'react-native-reanimated';
@@ -23,22 +23,6 @@ import { fonts, useTheme } from './theme/theme';
  * Layout width is the card, so the same wide / tablet / phone branches run in
  * the space the store actually gives the asset.
  */
-
-function bindTitle(title: string) {
-  return (node: object | null) => {
-    if (!node || !('setAttribute' in node)) return;
-    const set = node.setAttribute;
-    if (typeof set !== 'function') return;
-    set.call(node, 'title', title);
-  };
-}
-
-function swatchHexFrom(color: Oklch, fallback: string): string {
-  if (!color) return fallback;
-  const { r, g, b } = toSrgb(color);
-  const byte = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16).padStart(2, '0');
-  return `#${byte(r)}${byte(g)}${byte(b)}`;
-}
 
 const SHAPES: { id: ShapeName; label: string }[] = [
   { id: 'sphere', label: 'Sphere' },
@@ -81,7 +65,6 @@ export function Tuner() {
   const [menu, setMenu] = useState<null | 'shape' | 'render'>(null);
   const [picker, setPicker] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [draft, setDraft] = useState(playgroundColor);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const alive = useRef(true);
   const wasFlat = useRef(false);
@@ -100,10 +83,6 @@ export function Tuner() {
   };
   const live = useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba });
   const sliding = useRef(false);
-
-  useEffect(() => {
-    setDraft(playgroundColor);
-  }, [playgroundColor]);
 
   useEffect(
     () => () => {
@@ -184,68 +163,20 @@ export function Tuner() {
           setMenu(null);
         }}
       />
-      <View
-        style={{
-          height: 36,
-          borderRadius: 8,
-          backgroundColor: colors.row,
-          borderWidth: picker ? 1 : 0,
-          borderColor: colors.ring,
-          paddingLeft: 12,
-          paddingRight: 8,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
+      <ColorPicker
+        text={playgroundColor}
+        color={parsed}
+        open={picker}
+        onOpenChange={(next) => {
+          if (next) setMenu(null);
+          setPicker(next);
         }}
-      >
-        <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>Color</Text>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={() => {
-            const next = parseColor(draft);
-            if (next) {
-              setExact(null);
-              setPlaygroundColor(draft.trim());
-            } else setDraft(playgroundColor);
-          }}
-          accessibilityLabel="Color color value"
-          ref={bindTitle(draft)}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={{ flex: 1, color: colors.fg, fontFamily: fonts.mono, fontSize: 13, textAlign: 'right', paddingVertical: 0 }}
-        />
-        <Pressable
-          testID="yogesh-orb-color-swatch"
-          onPress={() => {
-            setMenu(null);
-            setPicker((v) => !v);
-          }}
-          accessibilityRole={Platform.OS === 'web' ? 'button' : undefined}
-          accessibilityLabel="Pick color color"
-          aria-haspopup={Platform.OS === 'web' ? 'dialog' : undefined}
-          aria-expanded={Platform.OS === 'web' ? picker : undefined}
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 6,
-            backgroundColor: swatchHexFrom(parsed, colors.fg),
-            borderWidth: 1,
-            borderColor: colors.ringSoft,
-          }}
-        />
-      </View>
-      {picker && wide ? (
-        <View style={{ position: 'absolute', right: '100%', top: 0, marginRight: 12, zIndex: 40 }}>
-          <ColorPicker wide color={parsed} onChange={remember} />
-        </View>
-      ) : null}
-      {picker && phone ? (
-        <View style={{ position: 'absolute', left: 0, top: 40, width: 280, zIndex: 30 }}>
-          <ColorPicker wide={false} color={parsed} onChange={remember} />
-        </View>
-      ) : null}
-      {picker && !wide && !phone ? <ColorPicker wide={false} color={parsed} onChange={remember} /> : null}
+        onCommit={(next) => {
+          setExact(null);
+          setPlaygroundColor(next.trim());
+        }}
+        onChange={remember}
+      />
       <SliderRow
         label="Size"
         min={16}
@@ -479,7 +410,7 @@ export function Tuner() {
         color={playgroundColor}
         live={live}
       />
-      <Shimmer text={look.status} style={phone ? { lineHeight: 20 } : undefined} />
+      <Shimmer key={index} text={look.status} style={phone ? { lineHeight: 20 } : undefined} />
     </View>
   );
 
@@ -488,15 +419,12 @@ export function Tuner() {
       testID="yogesh-orb-tuner"
       style={{ width: '100%', backgroundColor: colors.page, minHeight: wide ? Math.max(560, shown + 160) : undefined }}
     >
-      {(menu || picker) && (
+      {menu && Platform.OS !== 'web' ? (
         <Pressable
-          onPress={() => {
-            if (Platform.OS !== 'web') setMenu(null);
-            setPicker(false);
-          }}
+          onPress={() => setMenu(null)}
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
         />
-      )}
+      ) : null}
       {wide ? (
         <View style={{ minHeight: Math.max(520, shown + 120), flexDirection: 'row', alignItems: 'stretch', paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
           <View style={{ alignSelf: 'center', marginBottom: 8 }}>{list}</View>
