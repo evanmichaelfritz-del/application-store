@@ -122,13 +122,21 @@ export function SelectRow<T extends string>({
   const armed = useRef(false);
   const sawOpen = useRef(false);
   const primary = useSharedValue(0);
+  const openRef = useRef(open);
   const openFrame = useRef(0);
+  const closeFrame = useRef(0);
   const cancelOpenFrame = () => {
     if (openFrame.current === 0) return;
     cancelAnimationFrame(openFrame.current);
     openFrame.current = 0;
   };
+  const cancelCloseFrame = () => {
+    if (closeFrame.current === 0) return;
+    cancelAnimationFrame(closeFrame.current);
+    closeFrame.current = 0;
+  };
   const commitRef = useRef((opening: boolean) => {
+    if (opening === openRef.current) return;
     armed.current = true;
     if (opening) onToggle();
     else {
@@ -189,6 +197,7 @@ export function SelectRow<T extends string>({
   const unsealPtrRef = useRef(unsealForPointer);
   useLayoutEffect(() => {
     commitRef.current = (opening: boolean) => {
+      if (opening === openRef.current) return;
       armed.current = true;
       if (opening) onToggle();
       else {
@@ -203,18 +212,29 @@ export function SelectRow<T extends string>({
   const sealJS = useCallback(() => sealRef.current(), []);
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
   const commitOpen = useCallback(() => {
-    flushSync(() => commitRef.current(true));
+    cancelCloseFrame();
+    if (!openRef.current) flushSync(() => commitRef.current(true));
+    else {
+      focusOnOpen.current = false;
+      const nodes = optionsInRow();
+      const selected = nodes.find((node) => node.getAttribute("aria-selected") === "true");
+      (selected ?? nodes[0])?.focus({ preventScroll: true });
+      openSV.value = 1;
+      goal.value = 1;
+    }
     cancelOpenFrame();
     openFrame.current = requestAnimationFrame(() => {
       openFrame.current = 0;
       if (openSV.value !== 1) return;
-      shown.value = 0.1157;
-      shown.value = withSpring(1, { ...MENU, velocity: 11.35 });
+      shown.value = withSpring(1, MENU);
       chevron.value = withSpring(1, CHEV);
     });
-  }, [chevron, openSV, shown]);
+  }, [chevron, goal, openSV, shown]);
   const commitNextFrame = useCallback(() => {
-    requestAnimationFrame(() => {
+    cancelCloseFrame();
+    closeFrame.current = requestAnimationFrame(() => {
+      closeFrame.current = 0;
+      if (!openRef.current) return;
       commitRef.current(false);
     });
   }, []);
@@ -251,6 +271,9 @@ export function SelectRow<T extends string>({
       document.removeEventListener(OUTSIDE_CLOSE_EVENT, onOutside);
     };
   }, [dismissWeb, open, web]);
+  useLayoutEffect(() => {
+    openRef.current = open;
+  }, [open]);
   useLayoutEffect(() => {
     openSV.value = open ? 1 : 0;
   }, [open, openSV]);
@@ -290,9 +313,14 @@ export function SelectRow<T extends string>({
   }, [windowH, options.length]);
   useEffect(() => {
     return () => {
-      if (openFrame.current === 0) return;
-      cancelAnimationFrame(openFrame.current);
-      openFrame.current = 0;
+      if (openFrame.current !== 0) {
+        cancelAnimationFrame(openFrame.current);
+        openFrame.current = 0;
+      }
+      if (closeFrame.current !== 0) {
+        cancelAnimationFrame(closeFrame.current);
+        closeFrame.current = 0;
+      }
     };
   }, []);
   const mountOnPress = (event: { button?: number; nativeEvent?: object }) => {
