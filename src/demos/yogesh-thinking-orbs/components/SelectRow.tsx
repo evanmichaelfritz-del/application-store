@@ -123,8 +123,17 @@ export function SelectRow<T extends string>({
   const sawOpen = useRef(false);
   const primary = useSharedValue(0);
   const openRef = useRef(open);
+  const committedOpen = useRef(open);
+  const epoch = useRef(0);
+  const appliedEpoch = useRef(0);
+  const closeDelivered = useRef(false);
+  const toggleRef = useRef(onToggle);
   const openFrame = useRef(0);
   const closeFrame = useRef(0);
+  const requestClose = () => {
+    epoch.current += 1;
+    openRef.current = false;
+  };
   const cancelOpenFrame = () => {
     if (openFrame.current === 0) return;
     cancelAnimationFrame(openFrame.current);
@@ -136,16 +145,26 @@ export function SelectRow<T extends string>({
     closeFrame.current = 0;
   };
   const commitRef = useRef((opening: boolean) => {
-    if (opening === openRef.current) return;
-    armed.current = true;
-    if (opening) onToggle();
-    else {
-      startTransition(() => {
-        onToggle();
-      });
+    if (opening) {
+      if (!openRef.current) return;
+      appliedEpoch.current = epoch.current;
+      armed.current = true;
+      onToggle();
+      return;
     }
+    const gen = epoch.current;
+    startTransition(() => {
+      if (gen !== epoch.current || openRef.current || !committedOpen.current) return;
+      closeDelivered.current = true;
+      appliedEpoch.current = gen;
+      armed.current = true;
+      onToggle();
+    });
   });
-  const commitJS = useCallback(() => commitRef.current(false), []);
+  const commitJS = useCallback(() => {
+    requestClose();
+    commitRef.current(false);
+  }, []);
   const web = Platform.OS === "web";
   useLayoutEffect(() => {
     if (web) injectOptionStyles();
@@ -178,6 +197,7 @@ export function SelectRow<T extends string>({
     return node instanceof HTMLElement ? node : null;
   };
   const sealClosed = () => {
+    if (openRef.current) return;
     cancelOpenFrame();
     const menu = menuEl();
     if (!menu) return;
@@ -198,34 +218,62 @@ export function SelectRow<T extends string>({
   const sealRef = useRef(sealClosed);
   const unsealPtrRef = useRef(unsealForPointer);
   useLayoutEffect(() => {
+    toggleRef.current = onToggle;
     commitRef.current = (opening: boolean) => {
-      if (opening === openRef.current) return;
-      armed.current = true;
-      if (opening) onToggle();
-      else {
-        startTransition(() => {
-          onToggle();
-        });
+      if (opening) {
+        if (!openRef.current) return;
+        appliedEpoch.current = epoch.current;
+        armed.current = true;
+        onToggle();
+        return;
       }
+      const gen = epoch.current;
+      startTransition(() => {
+        if (gen !== epoch.current || openRef.current || !committedOpen.current) return;
+        closeDelivered.current = true;
+        appliedEpoch.current = gen;
+        armed.current = true;
+        onToggle();
+      });
     };
     sealRef.current = sealClosed;
     unsealPtrRef.current = unsealForPointer;
   });
-  const sealJS = useCallback(() => sealRef.current(), []);
+  const sealJS = useCallback(() => {
+    requestClose();
+    sealRef.current();
+  }, []);
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
+  const focusSelected = () => {
+    focusOnOpen.current = false;
+    const nodes = optionsInRow();
+    const selected = nodes.find((node) => node.getAttribute("aria-selected") === "true");
+    const target = selected ?? nodes[0];
+    for (const node of nodes) node.tabIndex = node === target ? 0 : -1;
+    target?.focus({ preventScroll: true });
+  };
   const commitOpen = useCallback(() => {
     cancelCloseFrame();
-    if (!openRef.current) flushSync(() => commitRef.current(true));
-    else {
-      focusOnOpen.current = false;
-      const nodes = optionsInRow();
-      const selected = nodes.find((node) => node.getAttribute("aria-selected") === "true");
-      const target = selected ?? nodes[0];
-      for (const node of nodes) node.tabIndex = node === target ? 0 : -1;
-      target?.focus({ preventScroll: true });
-      openSV.value = 1;
-      goal.value = 1;
+    epoch.current += 1;
+    openRef.current = true;
+    const delivered = closeDelivered.current;
+    if (delivered && committedOpen.current) {
+      const gen = epoch.current;
+      let countered = false;
+      startTransition(() => {
+        if (gen !== epoch.current || !openRef.current) return;
+        closeDelivered.current = false;
+        countered = true;
+        toggleRef.current();
+      });
+      if (countered) armed.current = false;
+    } else if (delivered || !committedOpen.current) {
+      closeDelivered.current = false;
+      flushSync(() => commitRef.current(true));
     }
+    if (committedOpen.current) focusSelected();
+    openSV.value = 1;
+    goal.value = 1;
     cancelOpenFrame();
     openFrame.current = requestAnimationFrame(() => {
       openFrame.current = 0;
@@ -236,14 +284,16 @@ export function SelectRow<T extends string>({
   }, [chevron, goal, openSV, shown]);
   const commitNextFrame = useCallback(() => {
     cancelCloseFrame();
+    const gen = epoch.current;
     closeFrame.current = requestAnimationFrame(() => {
       closeFrame.current = 0;
-      if (!openRef.current) return;
+      if (gen !== epoch.current || openRef.current) return;
       commitRef.current(false);
     });
   }, []);
   const dismissWeb = useCallback(() => {
     if (openSV.value !== 1) return;
+    requestClose();
     cancelOpenFrame();
     sealClosed();
     openSV.value = 0;
@@ -276,9 +326,23 @@ export function SelectRow<T extends string>({
     };
   }, [dismissWeb, open, web]);
   useLayoutEffect(() => {
-    openRef.current = open;
-  }, [open]);
+    committedOpen.current = open;
+    if (open === openRef.current) {
+      closeDelivered.current = false;
+      appliedEpoch.current = epoch.current;
+      return;
+    }
+    if (!open && closeDelivered.current && openRef.current) {
+      closeDelivered.current = false;
+      appliedEpoch.current = epoch.current;
+      armed.current = true;
+      onToggle();
+      return;
+    }
+    if (!open && epoch.current === appliedEpoch.current && !closeDelivered.current) openRef.current = false;
+  }, [open, onToggle]);
   useLayoutEffect(() => {
+    if (!open && openRef.current) return;
     openSV.value = open ? 1 : 0;
   }, [open, openSV]);
   useLayoutEffect(() => {
@@ -300,9 +364,7 @@ export function SelectRow<T extends string>({
   }, [open, options, value]);
   useLayoutEffect(() => {
     if (!web || !open || !focusOnOpen.current) return;
-    focusOnOpen.current = false;
-    const index = Math.max(0, options.findIndex((option) => option.id === value));
-    optionsInRow()[index]?.focus({ preventScroll: true });
+    focusSelected();
   }, [open, options, value, web]);
   const place = () => {
     rowRef.current?.measureInWindow((_x, y, _w, h) => {
@@ -442,6 +504,7 @@ export function SelectRow<T extends string>({
     if (key === "Enter" || key === " " || key === "Spacebar") {
       event.preventDefault();
       event.stopPropagation();
+      requestClose();
       sealClosed();
       onPick(options[index].id);
       focusTrigger();
@@ -555,7 +618,7 @@ export function SelectRow<T extends string>({
                   const on = option.id === value;
                   const tabbable = open && index === active;
                   return (
-                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={OPTION_BOX}>
+                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { requestClose(); sealClosed(); onPick(option.id); focusTrigger(); }} style={OPTION_BOX}>
                       <Text testID="orb-select-label" style={MENU_TEXT}>{option.label}</Text>
                     </Pressable>
                   );
