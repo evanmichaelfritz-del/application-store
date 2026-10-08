@@ -1,5 +1,30 @@
+/* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Web loads CanvasKit itself. No custom index.html.
+ * locateFile: (file) => `/${file}` assumes the site root. A sub-path host must change that prefix.
+ * Babel: plugins: ['react-native-worklets/plugin']
+ * Mount: put these files under src/ and replace App.tsx with `export { default } from './src/ThinkingOrbs'`.
+ * expo ~57.0.23
+ * react 19.2.3
+ * react-dom 19.2.3
+ * react-native 0.86.3
+ * react-native-web ~0.21.0
+ * @shopify/react-native-skia 2.6.2
+ * react-native-reanimated 4.5.1
+ * react-native-worklets 0.10.1
+ * react-native-gesture-handler ~2.32.0
+ * expo-constants ~57.0.18
+ * @expo-google-fonts/geist ^0.4.2
+ * @expo-google-fonts/geist-mono ^0.4.3
+ */
+
 /* FILE src/theme/theme.tsx */
-import { usePathname } from "expo-router";
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
+import { Geist_400Regular_Italic } from "@expo-google-fonts/geist/400Regular_Italic";
+import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium";
+import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold";
+import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono/400Regular";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 
@@ -77,12 +102,13 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 const webSans = 'Geist, "Geist Fallback", system-ui, sans-serif';
+const webRegular = 'Geist_400Regular, Geist, "Geist Fallback", system-ui, sans-serif';
 const webMono = '"Geist Mono", "Geist Mono Fallback"';
 
 export const fonts =
   Platform.OS === "web"
     ? {
-        regular: webSans,
+        regular: webRegular,
         medium: webSans,
         semibold: webSans,
         italic: webSans,
@@ -112,19 +138,18 @@ type ThemeValue = {
 const Ctx = createContext<ThemeValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const path = usePathname();
+  useFonts({
+    Geist: Geist_400Regular,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_400Regular_Italic,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+    "Geist Mono": GeistMono_400Regular,
+  });
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useState(dark.orb);
-  const [route, setRoute] = useState(path);
-  if (path !== route) {
-    setRoute(path);
-    setMode("dark");
-    setPlaygroundColor((current) => {
-      const c = current.toLowerCase();
-      if (c === dark.orb.toLowerCase() || c === light.orb.toLowerCase()) return dark.orb;
-      return current;
-    });
-  }
   const value = useMemo<ThemeValue>(
     () => ({
       mode,
@@ -156,4 +181,3 @@ export const syntax = {
   tag: "#359bd9",
   attr: "#d8944d",
 };
-
