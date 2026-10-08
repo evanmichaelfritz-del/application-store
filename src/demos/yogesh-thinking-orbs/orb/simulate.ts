@@ -59,6 +59,12 @@ function rewind(t: number, w: number) {
   return k * (fwd - back) + a;
 }
 
+function periodOf(state: string) {
+  "worklet";
+  const period = PERIOD[state];
+  return period === undefined ? 6500 : period;
+}
+
 function yawOf(state: string, t: number) {
   "worklet";
   if (state === "retrying") return rewind(2 * t, TAU / 9000);
@@ -67,7 +73,7 @@ function yawOf(state: string, t: number) {
     const u = turns - Math.floor(turns);
     return (Math.floor(turns) + (1 - (1 - u) ** 3)) * TAU;
   }
-  return (t / PERIOD[state]) * TAU;
+  return (t / periodOf(state)) * TAU;
 }
 
 const RING_TIP = (30 * Math.PI) / 180;
@@ -153,7 +159,7 @@ export function step(input: OrbInput, local: OrbLocal, t: number, tilt: number, 
   const rs = input.rs * dotScale;
   const c = size / 2;
   const R = input.R;
-  const period = PERIOD[state];
+  const period = periodOf(state);
   const yaw = yawOf(state, t);
   const gyro = state === "working-gyro" ? (t / 5000) * TAU : -1;
   const pitch = (((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10 * Math.cos(gyro))) * Math.PI) / 180;

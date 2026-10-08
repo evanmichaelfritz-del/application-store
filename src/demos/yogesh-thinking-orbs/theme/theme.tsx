@@ -1,5 +1,6 @@
+import { loadAsync } from "expo-font";
 import { usePathname } from "expo-router";
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 import { useCardField } from "@/src/skia/cardState";
 
@@ -77,12 +78,13 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 const webSans = 'Geist, "Geist Fallback", system-ui, sans-serif';
+const webRegular = 'Geist_400Regular, Geist, "Geist Fallback", system-ui, sans-serif';
 const webMono = '"Geist Mono", "Geist Mono Fallback"';
 
 export const fonts =
   Platform.OS === "web"
     ? {
-        regular: webSans,
+        regular: webRegular,
         medium: webSans,
         semibold: webSans,
         italic: webSans,
@@ -112,6 +114,22 @@ type ThemeValue = {
 const Ctx = createContext<ThemeValue | null>(null);
 
 export function ThemeProvider({ children, cardId }: { children: ReactNode; cardId: string }) {
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    let cancelled = false;
+    const load = () => {
+      void import("@expo-google-fonts/geist/400Regular").then((mod) => {
+        if (cancelled) return;
+        return loadAsync({ Geist_400Regular: mod.Geist_400Regular });
+      });
+    };
+    if (document.readyState === "complete") load();
+    else window.addEventListener("load", load, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", load);
+    };
+  }, []);
   const path = usePathname();
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useCardField(cardId, "playgroundColor", dark.orb);

@@ -1,11 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Platform, Text, View, type TextStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
 import { runOnJS } from "react-native-reanimated";
 
 import type { OrbLive } from "../orb/OrbView";
 import { fonts, useTheme } from "../theme/theme";
+
+const SLIDER_SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
+const SLIDER_MONO = "GeistMono_500Medium, ui-monospace, monospace";
+
+function injectSmoothing() {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  if (document.getElementById("orb-font-smoothing")) return;
+  const style = document.createElement("style");
+  style.id = "orb-font-smoothing";
+  style.textContent = `[data-testid="yogesh-orb-tuner"],[data-testid="yogesh-orb-tuner"] *,.orb-cp-pop,.orb-cp-pop *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}`;
+  document.head.appendChild(style);
+}
 
 const FILL = { stiffness: 300, damping: 25, mass: 0.8 };
 const BACK = { stiffness: 224, damping: 25.4, mass: 1 };
@@ -58,7 +72,11 @@ export function SliderRow({
   /** JS-thread drag flag so a state sync does not clobber the shared value. */
   onDrag?: (active: boolean) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
+  useFonts({ GeistMono_500Medium });
+  useLayoutEffect(() => {
+    injectSmoothing();
+  }, []);
   const [width, setWidth] = useState(1);
   const [focused, setFocused] = useState(false);
   const [labelText, setLabelText] = useState(value.toFixed(decimals));
@@ -172,9 +190,14 @@ export function SliderRow({
     },
   );
 
-  const move = (steps: number) => {
-    const next = snap(value + steps * step, min, max, step);
+  const publishNow = (next: number) => {
+    if (live && field) writeLive(live, field, next);
+    setLabelText(next.toFixed(decimals));
     onChange(next);
+  };
+
+  const move = (steps: number) => {
+    publishNow(snap(value + steps * step, min, max, step));
   };
 
   useEffect(() => {
@@ -182,8 +205,9 @@ export function SliderRow({
     const onKey = (event: KeyboardEvent) => {
       const key = event.key;
       let steps: number | null = null;
-      if (key === "ArrowRight" || key === "ArrowUp") steps = 1;
-      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -1;
+      const big = event.shiftKey ? 10 : 1;
+      if (key === "ArrowRight" || key === "ArrowUp") steps = big;
+      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -big;
       else if (key === "PageUp") steps = 10;
       else if (key === "PageDown") steps = -10;
       else if (key === "Home") steps = 0;
@@ -191,13 +215,13 @@ export function SliderRow({
       else return;
       event.preventDefault();
       event.stopPropagation();
-      if (key === "Home") onChange(min);
-      else if (key === "End") onChange(max);
+      if (key === "Home") publishNow(min);
+      else if (key === "End") publishNow(max);
       else if (steps !== null) move(steps);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focused, value, min, max, step, onChange]);
+  }, [decimals, field, focused, live, max, min, onChange, step, value]);
 
   const gesture = useMemo(() => {
     const revertIfAbandoned = () => {
@@ -304,6 +328,37 @@ export function SliderRow({
     transform: [{ translateX: fill.value * width }, { scaleX: scaleX.value }, { scaleY: scaleY.value }],
   }));
   const marks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+  const web = Platform.OS === "web";
+  const ink = mode === "light" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+  const sliderLabel: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        left: 10,
+        color: ink,
+        fontFamily: SLIDER_SANS,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: -0.5 }],
+      }
+    : { position: "absolute", top: 8, left: 10, color: colors.fg, fontFamily: fonts.regular, fontSize: 13 };
+  const sliderValue: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        right: 12,
+        paddingBottom: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: "transparent",
+        color: ink,
+        fontFamily: SLIDER_MONO,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: 0.5 }],
+      }
+    : { position: "absolute", top: 8, right: 12, color: colors.fg, fontFamily: fonts.mono, fontSize: 13 };
 
   return (
     <GestureDetector gesture={gesture}>
@@ -322,6 +377,7 @@ export function SliderRow({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
+        aria-valuetext={labelText}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onLayout={(e) => setWidth(Math.max(1, e.nativeEvent.layout.width))}
@@ -338,10 +394,6 @@ export function SliderRow({
             backgroundColor: colors.row,
             overflow: "hidden",
             justifyContent: "center",
-            outlineStyle: focused ? "solid" : undefined,
-            outlineWidth: focused ? 2 : 0,
-            outlineColor: colors.fg,
-            outlineOffset: 2,
           },
           rowStyle,
         ]}
@@ -354,9 +406,9 @@ export function SliderRow({
           pointerEvents="none"
           style={[{ position: "absolute", top: 8, width: 3, height: 20, marginLeft: -1.5, borderRadius: 1, backgroundColor: colors.fg }, handleStyle]}
         />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 }} pointerEvents="none">
-          <Text onLayout={(e) => { labelW.value = e.nativeEvent.layout.width; }} style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>{label}</Text>
-          <Text onLayout={(e) => { valueW.value = e.nativeEvent.layout.width; }} style={{ color: colors.fg, fontFamily: fonts.mono, fontSize: 13 }}>{labelText}</Text>
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+          <Text onLayout={(e) => { labelW.value = e.nativeEvent.layout.width; }} style={sliderLabel}>{label}</Text>
+          <Text onLayout={(e) => { valueW.value = e.nativeEvent.layout.width; }} style={sliderValue}>{labelText}</Text>
         </View>
       </Animated.View>
     </GestureDetector>

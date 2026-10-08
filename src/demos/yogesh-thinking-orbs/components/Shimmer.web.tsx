@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Platform, type TextStyle } from "react-native";
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { useTheme, fonts } from "../theme/theme";
 
@@ -13,38 +13,34 @@ function injectKeyframes() {
   document.head.appendChild(style);
 }
 
+/** Status label. Full opacity on the first frame. Remount (key by look index) restarts the sweep. */
 export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
-  const opacity = useSharedValue(0);
   useEffect(() => {
     injectKeyframes();
-    opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 300 });
-  }, [text, opacity]);
-  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  }, []);
   const sweep = !reduced;
   return (
-    <Animated.View style={anim}>
-      <span
-        style={{
-          fontFamily: typeof style?.fontFamily === "string" ? style.fontFamily : fonts.regular,
-          fontSize: typeof style?.fontSize === "number" ? style.fontSize : 14,
-          fontStyle: style?.fontStyle,
-          lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "1.65",
-          display: "inline-block",
-          backgroundImage: sweep
-            ? `linear-gradient(90deg, ${colors.muted} 35%, ${colors.fg} 50%, ${colors.muted} 65%)`
-            : undefined,
-          backgroundSize: "200% 100%",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          color: sweep ? "transparent" : colors.muted,
-          animation: sweep ? "orb-shimmer 2s linear infinite" : undefined,
-        }}
-      >
-        {text}
-      </span>
-    </Animated.View>
+    <span
+      style={{
+        fontFamily: typeof style?.fontFamily === "string" ? style.fontFamily : fonts.regular,
+        fontSize: typeof style?.fontSize === "number" ? style.fontSize : 14,
+        fontStyle: style?.fontStyle,
+        lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "20px",
+        display: "inline-block",
+        opacity: 1,
+        backgroundImage: sweep
+          ? `linear-gradient(90deg, ${colors.muted} 35%, ${colors.fg} 50%, ${colors.muted} 65%)`
+          : undefined,
+        backgroundSize: "200% 100%",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        color: sweep ? "transparent" : colors.muted,
+        animation: sweep ? "orb-shimmer 2s linear infinite" : undefined,
+      }}
+    >
+      {text}
+    </span>
   );
 }

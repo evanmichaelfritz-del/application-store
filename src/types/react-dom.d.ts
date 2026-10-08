@@ -5,4 +5,5 @@ declare module 'react-dom' {
     container: Element | DocumentFragment,
     key?: string | null,
   ): ReactElement;
+  export function flushSync(fn: () => void): void;
 }
