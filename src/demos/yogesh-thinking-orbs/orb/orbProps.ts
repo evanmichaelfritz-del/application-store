@@ -4,7 +4,17 @@
  * `color` is not an npm prop (npm paints `currentColor`); the dark store default is `#ffffff`.
  */
 
-export const VARIANTS = {
+export type OrbStateName =
+  | "base"
+  | "working"
+  | "reasoning"
+  | "searching"
+  | "background"
+  | "retrying"
+  | "compacting"
+  | "waiting";
+
+export const VARIANTS: Record<OrbStateName, readonly string[]> = {
   base: ["default"],
   working: ["default", "gyro"],
   reasoning: ["default", "twins"],
@@ -13,11 +23,26 @@ export const VARIANTS = {
   retrying: ["default", "surge"],
   compacting: ["default", "squeeze", "fuse"],
   waiting: ["default"],
-} as const;
+};
 
-export type OrbStateName = keyof typeof VARIANTS;
+export type KnownLook =
+  | "base"
+  | "working"
+  | "working-gyro"
+  | "reasoning"
+  | "reasoning-twins"
+  | "searching"
+  | "searching-lighthouse"
+  | "background"
+  | "background-spiral"
+  | "retrying"
+  | "retrying-surge"
+  | "compacting"
+  | "compacting-squeeze"
+  | "compacting-fuse"
+  | "waiting";
 
-export const KNOWN_LOOKS = [
+export const KNOWN_LOOKS: readonly KnownLook[] = [
   "base",
   "working",
   "working-gyro",
@@ -33,9 +58,7 @@ export const KNOWN_LOOKS = [
   "compacting-squeeze",
   "compacting-fuse",
   "waiting",
-] as const;
-
-export type KnownLook = (typeof KNOWN_LOOKS)[number];
+];
 
 const KNOWN = new Set<string>(KNOWN_LOOKS);
 
@@ -48,11 +71,21 @@ export const ORB_DEFAULT_DOT_SIZE = 1;
 export const ORB_DEFAULT_TILT = 20;
 export const ORB_DEFAULT_PAUSED = false;
 
+export function isOrbState(value: string): value is OrbStateName {
+  return Object.prototype.hasOwnProperty.call(VARIANTS, value);
+}
+
+export function isKnownLook(value: string): value is KnownLook {
+  return KNOWN.has(value);
+}
+
 export function resolveLook(state?: string, variant?: string): KnownLook {
-  const which = state && Object.prototype.hasOwnProperty.call(VARIANTS, state) ? (state as OrbStateName) : ORB_DEFAULT_STATE;
-  const own = variant !== undefined && variant !== "default" && (VARIANTS[which] as readonly string[]).includes(variant);
+  const which = state !== undefined && isOrbState(state) ? state : ORB_DEFAULT_STATE;
+  const v: readonly string[] = VARIANTS[which];
+  const own = variant !== undefined && variant !== "default" && v.includes(variant);
   const id = own ? `${which}-${variant}` : which;
-  return (KNOWN.has(id) ? id : ORB_DEFAULT_STATE) as KnownLook;
+  if (isKnownLook(id)) return id;
+  return ORB_DEFAULT_STATE;
 }
 
 export type OrbPassProps = {

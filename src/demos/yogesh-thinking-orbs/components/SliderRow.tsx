@@ -33,15 +33,6 @@ function writeLive(live: SharedValue<OrbLive>, field: SliderField, next: number)
   else live.value = { ...cur, tilt: next };
 }
 
-function writeLiveNow(live: SharedValue<OrbLive>, field: SliderField, next: number) {
-  const cur = live.value;
-  if (field === "size") live.value = { ...cur, size: next };
-  else if (field === "speed") live.value = { ...cur, speed: next };
-  else if (field === "density") live.value = { ...cur, density: next };
-  else if (field === "dotSize") live.value = { ...cur, dotSize: next };
-  else live.value = { ...cur, tilt: next };
-}
-
 export function SliderRow({
   label,
   min,
@@ -182,7 +173,7 @@ export function SliderRow({
   );
 
   const publishNow = (next: number) => {
-    if (live && field) writeLiveNow(live, field, next);
+    if (live && field) writeLive(live, field, next);
     setLabelText(next.toFixed(decimals));
     onChange(next);
   };

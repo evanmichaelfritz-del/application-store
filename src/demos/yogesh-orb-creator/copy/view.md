@@ -795,7 +795,7 @@ const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
 const OUTSIDE_CLOSE_EVENT: "pointerdown" | "click" = "pointerdown";
 /** Web close only (dismissWeb, driveWebSprings close, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
-const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 7e-7 };
+const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 1.8e-7 };
 
 export function SelectRow<T extends string>({
   label,

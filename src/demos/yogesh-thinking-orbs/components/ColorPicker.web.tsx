@@ -1,18 +1,15 @@
-import { createElement, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
-function flushSync(fn: () => void) {
-  const sync = (require("react-dom") as { flushSync?: (work: () => void) => void }).flushSync;
-  if (sync) sync(fn);
-  else fn();
-}
+import { GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
+import React, { createElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
 
 import {
   detectFormat,
+  displayP3GammaToSrgb,
   formatColor,
   maxChroma,
   oklchToRgb,
   parseColor,
+  srgbGammaToDisplayP3,
   type ColorFormat,
   type Oklch,
 } from "../color/color";
@@ -24,7 +21,7 @@ const TABS: { id: ColorFormat; label: string }[] = [
 ];
 
 const SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
-const MONO = '"Geist Mono", "Geist Mono Fallback", ui-monospace, monospace';
+const MONO = "GeistMono_500Medium, ui-monospace, monospace";
 
 type FieldSpace = "srgb" | "p3";
 
@@ -37,7 +34,12 @@ type FieldCanvas = {
 type FieldContext = {
   createImageData: (w: number, h: number) => { data: Uint8ClampedArray };
   putImageData: (data: { data: Uint8ClampedArray }, x: number, y: number) => void;
+  getContextAttributes?: () => { colorSpace?: string };
 };
+
+type BitmapSpace = "srgb" | "display-p3";
+
+const bitmapSpace = new WeakMap<object, BitmapSpace>();
 
 function isFieldCanvas(node: object | null): node is FieldCanvas {
   return !!node && "getContext" in node && "width" in node && "height" in node;
@@ -55,8 +57,14 @@ function chromaRatio(color: Oklch, space: FieldSpace) {
 
 function paintField(node: object | null, hue: number, space: FieldSpace) {
   if (!isFieldCanvas(node)) return;
-  const ctx = node.getContext("2d", { colorSpace: space === "p3" ? "display-p3" : "srgb" });
+  const ctx = node.getContext("2d", { colorSpace: "display-p3" });
   if (!ctx) return;
+  let bitmap = bitmapSpace.get(node);
+  if (!bitmap) {
+    const reported = ctx.getContextAttributes?.().colorSpace;
+    bitmap = reported === "display-p3" ? "display-p3" : "srgb";
+    bitmapSpace.set(node, bitmap);
+  }
   const w = node.width;
   const h = node.height;
   const image = ctx.createImageData(w, h);
@@ -65,7 +73,9 @@ function paintField(node: object | null, hue: number, space: FieldSpace) {
     const cap = maxChroma(l, hue, space);
     for (let x = 0; x < w; x++) {
       const c = (w <= 1 ? 0 : x / (w - 1)) * cap;
-      const rgb = oklchToRgb({ l, c, h: hue, a: 1 }, space);
+      let rgb = oklchToRgb({ l, c, h: hue, a: 1 }, space);
+      if (bitmap === "display-p3" && space === "srgb") rgb = srgbGammaToDisplayP3(rgb);
+      else if (bitmap === "srgb" && space === "p3") rgb = displayP3GammaToSrgb(rgb);
       const i = (y * w + x) * 4;
       image.data[i] = Math.round(255 * Math.min(1, Math.max(0, rgb[0])));
       image.data[i + 1] = Math.round(255 * Math.min(1, Math.max(0, rgb[1])));
@@ -126,7 +136,10 @@ function injectStyles() {
 .orb-cp-track::-moz-range-track{height:16px;border:0;border-radius:4px;background:var(--orb-cp-track)}
 .orb-cp-track::-webkit-slider-thumb{-webkit-appearance:none;box-sizing:border-box;width:16px;height:24px;margin-top:-4px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
 .orb-cp-track::-moz-range-thumb{box-sizing:border-box;width:16px;height:24px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
-.orb-cp-track:focus-visible{outline:none}
+.orb-cp-track:focus{outline:none}
+.orb-cp-track:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+.orb-cp-format:focus{outline:none}
+.orb-cp-format:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
 [data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]:focus-visible,[data-testid="yogesh-orb-panel"] [role="slider"]:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
 .orb-cp-css{width:100%;height:36px;box-sizing:border-box;border:0;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:0 12px;font:500 13px/19.5px ${MONO};outline:none;caret-color:rgba(255,255,255,.7)}
 .orb-cp-css:focus{color:#fff;caret-color:#fff;outline:none}
@@ -141,7 +154,7 @@ export type ColorPickerProps = {
   color: Oklch;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Commit the typed string as entered. Uppercase hex stays uppercase. */
+  /** Commit the typed string unchanged. Uppercase hex stays uppercase. */
   onCommit: (text: string) => void;
   onChange: (color: Oklch, text: string) => void;
 };
@@ -149,7 +162,15 @@ export type ColorPickerProps = {
 type DomInput = HTMLInputElement;
 type DomButton = HTMLButtonElement;
 
+function isFormatButton(node: Element): node is HTMLButtonElement {
+  return node instanceof HTMLButtonElement;
+}
+
+type FieldPoint = { clientX: number; clientY: number };
+
 export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChange }: ColorPickerProps) {
+  useFonts({ GeistMono_500Medium });
+  const popId = useId();
   const [format, setFormat] = useState<ColorFormat>(() => detectFormat(text));
   const [rowDraft, setRowDraft] = useState(text);
   const [cssDraft, setCssDraft] = useState(text);
@@ -223,11 +244,16 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     if (!row || !pop) return;
     const rect = row.getBoundingClientRect();
     const vh = window.innerHeight;
+    const vw = window.innerWidth;
     let top = rect.top - 32;
     const maxTop = Math.max(8, vh - 8 - 350);
     if (top < 8) top = 8;
     if (top > maxTop) top = maxTop;
-    pop.style.left = `${rect.left - 288}px`;
+    let left = rect.left - 288;
+    const maxLeft = Math.max(8, vw - 8 - 280);
+    if (left < 8) left = 8;
+    if (left > maxLeft) left = maxLeft;
+    pop.style.left = `${left}px`;
     pop.style.top = `${top}px`;
   };
 
@@ -246,7 +272,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
       popRef.current?.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]')?.focus({ preventScroll: true });
     }
     wasOpen.current = true;
-    const onPointerDown = (event: PointerEvent) => {
+    const onPointerDown = (event: globalThis.PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (rowRef.current?.contains(target) || popRef.current?.contains(target)) return;
@@ -275,33 +301,35 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     onChange(next, formatColor(next, nextFormat));
   };
 
-  const onFieldPointer = (event: PointerEvent) => {
+  const onFieldPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
-    const node = event.currentTarget as HTMLDivElement;
+    const node = event.currentTarget;
     event.preventDefault();
     node.focus({ preventScroll: true });
     if (node.setPointerCapture) node.setPointerCapture(event.pointerId);
-    const read = (e: PointerEvent) => {
+    const read = (e: FieldPoint) => {
       const rect = node.getBoundingClientRect();
       const l = Math.min(1, Math.max(0, 1 - (e.clientY - rect.top) / Math.max(1, rect.height)));
       const nextRatio = Math.min(1, Math.max(0, (e.clientX - rect.left) / Math.max(1, rect.width)));
       apply({ l, c: nextRatio * maxChroma(l, hue, space), h: hue, a: color.a });
     };
     read(event);
-    const move = (e: PointerEvent) => {
+    const move = (e: globalThis.PointerEvent) => {
       if (!node.hasPointerCapture?.(e.pointerId)) return;
       read(e);
     };
-    const up = (e: PointerEvent) => {
+    const end = (e: globalThis.PointerEvent) => {
       if (node.hasPointerCapture?.(e.pointerId)) node.releasePointerCapture(e.pointerId);
       node.removeEventListener("pointermove", move);
-      node.removeEventListener("pointerup", up);
+      node.removeEventListener("pointerup", end);
+      node.removeEventListener("pointercancel", end);
     };
     node.addEventListener("pointermove", move);
-    node.addEventListener("pointerup", up);
+    node.addEventListener("pointerup", end);
+    node.addEventListener("pointercancel", end);
   };
 
-  const onFieldKey = (event: KeyboardEvent) => {
+  const onFieldKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const key = event.key;
     if (key !== "ArrowUp" && key !== "ArrowDown" && key !== "ArrowLeft" && key !== "ArrowRight") return;
     event.preventDefault();
@@ -317,7 +345,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     apply({ l, c: nextRatio * maxChroma(l, hue, space), h: hue, a: color.a });
   };
 
-  const onPopKey = (event: KeyboardEvent) => {
+  const onPopKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
     event.stopPropagation();
     if (event.key === "Escape") {
       event.preventDefault();
@@ -334,10 +362,10 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     flushSync(() => onOpenChange(false));
   };
 
-  const onFormatKey = (event: KeyboardEvent) => {
+  const onFormatKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.altKey || event.metaKey || event.ctrlKey || !popRef.current) return;
-    const buttons = [...popRef.current.querySelectorAll<HTMLButtonElement>(".orb-cp-format")];
-    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const buttons = [...popRef.current.querySelectorAll(".orb-cp-format")].filter(isFormatButton);
+    const index = buttons.findIndex((b) => b === document.activeElement);
     if (index < 0) return;
     let next = -1;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % buttons.length;
@@ -377,6 +405,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           ref: popRef,
           className: "orb-cp-pop",
           role: "dialog",
+          id: popId,
           "aria-label": "Color color picker",
           "data-testid": "yogesh-orb-color-popover",
           onKeyDown: onPopKey,
@@ -461,8 +490,8 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
                 "--orb-cp-track": hueTrack({ ...color, h: hue }, ratio, space),
                 "--orb-cp-thumb": opaque,
               },
-              onInput: (event: Event) => {
-                const h = Number((event.target as HTMLInputElement).value);
+              onInput: (event: React.FormEvent<HTMLInputElement>) => {
+                const h = Number(event.currentTarget.value);
                 setHeldHue(h);
                 const l = color.l;
                 const nextRatio = chromaRatio(color, space);
@@ -487,8 +516,8 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
                 "--orb-cp-track": `linear-gradient(to right, transparent, ${opaque}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
                 "--orb-cp-thumb": `linear-gradient(${withAlpha}, ${withAlpha}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
               },
-              onInput: (event: Event) => {
-                apply({ l: color.l, c: color.c, h: hue, a: Number((event.target as HTMLInputElement).value) / 100 });
+              onInput: (event: React.FormEvent<HTMLInputElement>) => {
+                apply({ l: color.l, c: color.c, h: hue, a: Number(event.currentTarget.value) / 100 });
               },
             }),
           ),
@@ -503,14 +532,14 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           "aria-invalid": cssInvalid ? true : undefined,
           title: text,
           value: cssDraft,
-          onInput: (event: Event) => {
-            setCssDraft((event.target as HTMLInputElement).value);
+          onInput: (event: React.FormEvent<HTMLInputElement>) => {
+            setCssDraft(event.currentTarget.value);
             setCssInvalid(false);
           },
-          onKeyDown: (event: KeyboardEvent) => {
+          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
             if (event.key !== "Enter") return;
             event.preventDefault();
-            const value = (event.target as HTMLInputElement).value;
+            const value = event.currentTarget.value;
             if (!commitRef.current(value)) setCssInvalid(true);
           },
         }),
@@ -537,18 +566,22 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           "aria-invalid": rowInvalid ? true : undefined,
           title: text,
           value: rowDraft,
-          onInput: (event: Event) => {
-            setRowDraft((event.target as HTMLInputElement).value);
+          onInput: (event: React.FormEvent<HTMLInputElement>) => {
+            setRowDraft(event.currentTarget.value);
             setRowInvalid(false);
           },
-          onKeyDown: (event: KeyboardEvent) => {
+          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
             event.stopPropagation();
-            const input = event.target as HTMLInputElement;
+            const input = event.currentTarget;
             if (event.key === "Escape") {
               event.preventDefault();
               input.value = text;
               setRowDraft(text);
               setRowInvalid(false);
+              if (open) {
+                closeToSwatch();
+                return;
+              }
               input.blur();
               return;
             }
@@ -565,6 +598,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           "data-testid": "yogesh-orb-color-swatch",
           "aria-label": "Pick color color",
           "aria-haspopup": "dialog",
+          "aria-controls": popId,
           "aria-expanded": open,
           style: { "--orb-cp-color": swatchColor },
           onClick: () => onOpenChange(!open),

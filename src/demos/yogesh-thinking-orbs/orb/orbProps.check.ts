@@ -1,5 +1,5 @@
 /**
- * Run: node --experimental-strip-types src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts
+ * Run: npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts
  * Unknown looks resolve to a known id, and a slipped id cannot produce NaN yaw.
  */
 import { buildInput } from "./model";

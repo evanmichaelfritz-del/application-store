@@ -23,7 +23,16 @@ declare module "react-native" {
   interface ViewProps {
     onKeyDown?: (event: WebKeyEvent) => void;
     onKeyDownCapture?: (event: WebKeyEvent) => void;
+    onContextMenu?: () => void;
+    onPointerCancel?: () => void;
   }
+}
+
+function pointerButton(event: { button?: number; nativeEvent?: object }): number {
+  if (typeof event.button === "number") return event.button;
+  const native = event.nativeEvent;
+  if (native && "button" in native && typeof native.button === "number") return native.button;
+  return 0;
 }
 
 function keyName(event: WebKeyEvent): string {
@@ -57,7 +66,7 @@ export function SelectRow<T extends string>({
   const { height: windowH } = useWindowDimensions();
   const rowRef = useRef<View>(null);
   const [above, setAbove] = useState(false);
-  const [present, setPresent] = useState(open);
+  const [present] = useState(true);
   const aboveSV = useSharedValue(0);
   const shown = useSharedValue(open ? 1 : 0);
   const chevron = useSharedValue(open ? 1 : 0);
@@ -66,16 +75,17 @@ export function SelectRow<T extends string>({
   const armed = useRef(false);
   const sawOpen = useRef(false);
   const primed = useSharedValue(0);
-  const revealRef = useRef(() => setPresent(true));
-  const hideRef = useRef(() => setPresent(false));
+  const primary = useSharedValue(0);
+  const revealRef = useRef(() => {});
+  const hideRef = useRef(() => {});
   const commitRef = useRef(() => {
     armed.current = true;
     startTransition(() => {
       onToggle();
     });
   });
-  revealRef.current = () => setPresent(true);
-  hideRef.current = () => setPresent(false);
+  revealRef.current = () => {};
+  hideRef.current = () => {};
   commitRef.current = () => {
     armed.current = true;
     startTransition(() => {
@@ -142,10 +152,8 @@ export function SelectRow<T extends string>({
     }
     if (armed.current) {
       armed.current = false;
-      if (open) setPresent(true);
       return;
     }
-    if (open) setPresent(true);
     goal.value = open ? 1 : 0;
     shown.value = withSpring(open ? 1 : 0, web && !open ? CLOSE_MENU : MENU, (finished) => {
       if (finished && goal.value === 0) runOnJS(hideJS)();
@@ -163,15 +171,17 @@ export function SelectRow<T extends string>({
   useEffect(() => {
     place();
   }, [windowH, options.length]);
-  const mountOnPress = () => {
-    if (openSV.value === 1) return;
+  const mountOnPress = (event: { button?: number; nativeEvent?: object }) => {
+    primary.value = pointerButton(event) === 0 ? 1 : 0;
+    if (primary.value !== 1 || openSV.value === 1) return;
     primed.value = 1;
-    if (web) {
-      const { flushSync } = require("react-dom") as { flushSync: (fn: () => void) => void };
-      flushSync(() => revealRef.current());
-      return;
-    }
-    revealRef.current();
+  };
+  const cancelClosed = () => {
+    primary.value = 0;
+    if (openSV.value === 1) return;
+    primed.value = 0;
+    goal.value = 0;
+    shown.value = 0;
   };
   const tap = useMemo(() => {
     const spring = (next: number) => {
@@ -187,21 +197,25 @@ export function SelectRow<T extends string>({
       .maxDistance(6)
       .maxDuration(10000)
       .onBegin(() => {
-        if (openSV.value !== 1) {
-          primed.value = 1;
-          runOnJS(revealJS)();
-        }
+        if (openSV.value !== 1 && primary.value === 1) primed.value = 1;
       })
       .onEnd(() => {
         primed.value = 0;
         const next = openSV.value === 1 ? 0 : 1;
         if (web) {
+          if (next === 1 && primary.value !== 1) return;
           openSV.value = next;
           goal.value = next;
-          if (next === 1) runOnJS(revealJS)();
-          shown.value = withSpring(next, next === 1 ? MENU : CLOSE_MENU, (finished) => {
-            if (finished && goal.value === 0) runOnJS(hideJS)();
-          });
+          if (next === 1) {
+            shown.value = 0.1157;
+            shown.value = withSpring(1, { ...MENU, velocity: 11.33 }, (finished) => {
+              if (finished && goal.value === 0) runOnJS(hideJS)();
+            });
+          } else {
+            shown.value = withSpring(0, CLOSE_MENU, (finished) => {
+              if (finished && goal.value === 0) runOnJS(hideJS)();
+            });
+          }
           chevron.value = withSpring(next, CHEV);
           runOnJS(commitNextFrame)();
           return;
@@ -214,7 +228,7 @@ export function SelectRow<T extends string>({
         primed.value = 0;
         runOnJS(hideJS)();
       });
-  }, [chevron, commitJS, commitNextFrame, goal, hideJS, openSV, primed, revealJS, shown, web]);
+  }, [chevron, commitJS, commitNextFrame, goal, hideJS, openSV, primary, primed, shown, web]);
   const menuStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * (aboveSV.value ? 8 : -8) }, { scale: 0.95 + shown.value * 0.05 }],
@@ -244,6 +258,8 @@ export function SelectRow<T extends string>({
           aria-expanded={web ? open : undefined}
           collapsable={false}
           onPointerDown={web ? mountOnPress : undefined}
+          onContextMenu={web ? cancelClosed : undefined}
+          onPointerCancel={web ? cancelClosed : undefined}
           onKeyDown={Platform.OS === "web" ? onKeyDown : undefined}
           onKeyDownCapture={Platform.OS === "web" ? onKeyDownCapture : undefined}
           style={{
@@ -268,6 +284,7 @@ export function SelectRow<T extends string>({
       {present ? (
         <Animated.View
           pointerEvents={open ? "auto" : "none"}
+          focusable={false}
           accessibilityElementsHidden={!open}
           importantForAccessibility={open ? "auto" : "no-hide-descendants"}
           aria-hidden={!open}
@@ -292,11 +309,11 @@ export function SelectRow<T extends string>({
           {web
             ? createElement(
                 "div",
-                { role: "listbox", "aria-label": label },
+                { role: "listbox", "aria-label": label, inert: open ? undefined : true },
                 options.map((option) => {
                   const on = option.id === value;
                   return (
-                    <Pressable key={option.id} role="option" accessibilityState={{ selected: on }} aria-selected={on} onPress={() => onPick(option.id)} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
+                    <Pressable key={option.id} role="option" tabIndex={-1} focusable={false} accessibilityState={{ selected: on }} aria-selected={on} onPress={() => onPick(option.id)} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
                       <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, opacity: mode === "light" ? (on ? 0.9 : 0.6) : on ? 0.95 : 0.7 }}>{option.label}</Text>
                     </Pressable>
                   );

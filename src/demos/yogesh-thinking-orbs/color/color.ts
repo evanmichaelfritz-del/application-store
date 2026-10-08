@@ -118,8 +118,13 @@ const M_SRGB_TO_P3 = [
 ];
 
 /** Gamma sRGB floats → Display P3 floats. Round only at the call site. */
-function srgbToDisplayP3(rgb: number[]): number[] {
+export function srgbGammaToDisplayP3(rgb: number[]): number[] {
   return dot(M_SRGB_TO_P3, rgb.map(toLinear)).map(toGamma);
+}
+
+/** Gamma Display P3 floats → sRGB floats. Round only at the call site. */
+export function displayP3GammaToSrgb(rgb: number[]): number[] {
+  return dot(M_SRGB_INV, dot(M_P3, rgb.map(toLinear))).map(toGamma);
 }
 
 export function formatColor(color: Oklch, format: ColorFormat): string {
@@ -127,7 +132,7 @@ export function formatColor(color: Oklch, format: ColorFormat): string {
   if (format === "oklch") return `oklch(${num(color.l)} ${num(color.c)} ${num(color.h, 2)}${alpha})`;
   if (format === "p3") {
     const srgb = oklchToRgb(clampChroma(color, "srgb"), "srgb").map((v) => clamp(v));
-    const p3 = srgbToDisplayP3(srgb);
+    const p3 = srgbGammaToDisplayP3(srgb);
     return `color(display-p3 ${p3.map((v) => num(v, 5)).join(" ")}${alpha})`;
   }
   const rgb = oklchToRgb(clampChroma(color, "srgb"), "srgb");

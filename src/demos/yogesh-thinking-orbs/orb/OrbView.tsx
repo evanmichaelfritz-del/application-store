@@ -1,10 +1,10 @@
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
-import { createElement, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createElement, memo, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { Platform, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useIsFocused } from "expo-router";
-import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
-import { useReduceMotion as useStoreReduceMotion } from "@/src/context/ReduceMotionContext";
+import { useFrameCallback, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+import { useReduceMotion } from "@/src/context/ReduceMotionContext";
 import {
   ORB_DEFAULT_COLOR,
   ORB_DEFAULT_DENSITY,
@@ -101,18 +101,7 @@ export type OrbViewProps = {
 };
 
 function useOrbReduced(): boolean {
-  const store = useStoreReduceMotion().reduceMotion;
-  const reanimatedReduced = useReducedMotion() === true;
-  const [media, setMedia] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setMedia(query.matches);
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
-  }, []);
-  return store || reanimatedReduced || media;
+  return useReduceMotion().reduceMotion;
 }
 
 function paint(
@@ -248,8 +237,6 @@ function OrbCanvas({
     localSV.value = null;
   }, [built, inputSV, localSV]);
 
-  if (activeSV.value !== running) activeSV.value = running;
-
   useLayoutEffect(() => {
     activeSV.value = running;
     if (!live) {
@@ -258,12 +245,12 @@ function OrbCanvas({
   }, [running, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
 
   // Reduced motion paints from props, not the shared tune, so a slider edit is visible in the same commit.
-  // Pause holds the current frame. A mount that is already paused paints t=0 once.
-  const boot = useRef(true);
+  // Entering pause holds the current frame. Later state, size, or colour edits repaint that still.
+  const wasPaused = useRef(paused);
   useLayoutEffect(() => {
-    const first = boot.current;
-    boot.current = false;
-    if (!reduced && !(paused && first)) return;
+    const enteredPause = paused && !wasPaused.current;
+    wasPaused.current = paused;
+    if (!reduced && (!paused || enteredPause)) return;
     const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
     const input = built;
     runOnUI(() => {
