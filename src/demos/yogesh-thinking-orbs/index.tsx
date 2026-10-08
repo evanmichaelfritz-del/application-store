@@ -26,7 +26,7 @@ export function YogeshThinkingOrbsDemo() {
           if (next > 0 && Math.abs(next - height) > 1) setHeight(next);
         }}
       >
-        <ThemeProvider>
+        <ThemeProvider cardId="yogesh-thinking-orbs">
           <Showcase />
         </ThemeProvider>
       </View>

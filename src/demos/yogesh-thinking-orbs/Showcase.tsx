@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useCardField } from '@/src/skia/cardState';
 import { SliderRow } from './components/SliderRow';
 import { PLAYGROUND } from './content/cards';
 import { useArrowKeys } from './hooks/useArrowKeys';
@@ -14,8 +15,8 @@ export function Showcase() {
   const { width } = useWindowDimensions();
   const wide = width >= 1280;
   const { colors } = useTheme();
-  const [index, setIndex] = useState(1);
-  const [size, setSize] = useState(320);
+  const [index, setIndex] = useCardField('yogesh-thinking-orbs', 'index', 1);
+  const [size, setSize] = useCardField('yogesh-thinking-orbs', 'size', 320);
   const onIndex = useCallback((next: number) => setIndex(next), []);
   useArrowKeys(PLAYGROUND.length, index, onIndex);
   const look = PLAYGROUND[index];

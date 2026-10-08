@@ -5,6 +5,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue } from 'react-native-reanimated';
 
+import { useCardField } from '@/src/skia/cardState';
 import { ColorPicker } from './components/ColorPicker';
 import { SelectRow } from './components/SelectRow';
 import { Shimmer } from './components/Shimmer';
@@ -58,22 +59,25 @@ const RENDER_LABEL: Record<RenderName, string> = {
   verticalLines: 'Vertical Lines',
 };
 
+const CREATOR = 'yogesh-orb-creator';
+
 export function Tuner() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const wide = width >= 1280;
   const { colors, playgroundColor, setPlaygroundColor } = useTheme();
-  const [index, setIndex] = useState(1);
+  const [index, setIndex] = useCardField(CREATOR, 'index', 1);
   const onIndex = useCallback((next: number) => setIndex(next), []);
   useArrowKeys(PLAYGROUND.length, index, onIndex);
   const look = PLAYGROUND[index];
-  const [shape, setShape] = useState<ShapeName>('sphere');
-  const [render, setRender] = useState<RenderName>('dots');
-  const [size, setSize] = useState(320);
-  const [speed, setSpeed] = useState(1);
-  const [density, setDensity] = useState(1);
-  const [dotSize, setDotSize] = useState(1);
-  const [tilt, setTilt] = useState(20);
+  const [shape, setShape] = useCardField<ShapeName>(CREATOR, 'shape', 'sphere');
+  const [render, setRender] = useCardField<RenderName>(CREATOR, 'render', 'dots');
+  const [size, setSize] = useCardField(CREATOR, 'size', 320);
+  const [speed, setSpeed] = useCardField(CREATOR, 'speed', 1);
+  const [density, setDensity] = useCardField(CREATOR, 'density', 1);
+  const [dotSize, setDotSize] = useCardField(CREATOR, 'dotSize', 1);
+  const [tilt, setTilt] = useCardField(CREATOR, 'tilt', 20);
+  const [exact, setExact] = useCardField<{ color: Oklch; text: string } | null>(CREATOR, 'exact', null);
   const [menu, setMenu] = useState<null | 'shape' | 'render'>(null);
   const [picker, setPicker] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -81,18 +85,17 @@ export function Tuner() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const alive = useRef(true);
   const wasFlat = useRef(false);
-  const exact = useRef<{ color: Oklch; text: string } | null>(null);
   const flat = isFlat(render);
   const phone = width < 768;
   const headerH = width >= 768 ? 48 : 72;
   const maxOrb = Math.max(96, height - headerH - 120);
   const shown = Math.min(size, wide ? maxOrb : Math.min(maxOrb, Math.max(96, width - 32)));
   const parsed: Oklch =
-    (exact.current && exact.current.text === playgroundColor ? exact.current.color : null) ??
+    (exact && exact.text === playgroundColor ? exact.color : null) ??
     parseColor(playgroundColor) ?? { l: 1, c: 0, h: 0, a: 1 };
   const rgba = canUseExtendedColor() ? toExtendedSrgb(parsed) : toSrgb(parsed);
   const remember = (color: Oklch, text: string) => {
-    exact.current = { color, text };
+    setExact({ color, text });
     setPlaygroundColor(text);
   };
   const live = useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba });
@@ -202,7 +205,7 @@ export function Tuner() {
           onSubmitEditing={() => {
             const next = parseColor(draft);
             if (next) {
-              exact.current = null;
+              setExact(null);
               setPlaygroundColor(draft.trim());
             } else setDraft(playgroundColor);
           }}
@@ -339,7 +342,7 @@ export function Tuner() {
               setDensity(1);
               setDotSize(1);
               setTilt(20);
-              exact.current = null;
+              setExact(null);
               setPlaygroundColor(colors.orb);
             }}
             hitSlop={8}
