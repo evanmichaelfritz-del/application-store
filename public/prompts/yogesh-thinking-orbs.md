@@ -1,187 +1,236 @@
 # AGENT_PROMPT_ORBS: Yogesh Thinking Orbs, the orb asset only (closed network)
 
-**Source of truth.** Everything here comes from the FINAL tree **`9bef3b1e68b74186c5cc39b449873009fb8ec980`** (tip of main on Origin `evan-fritz/tmp-2bc1ba32f462905d`), tarball `yogesh-thinking-orbs-9bef3b1.tgz`, sha256 **`10a2ba47a1fb45d6f5878f575fd1a7c47a299d5f6e63f4ce43b2484d7217455c`**, plus the team's measured parity notes for that build. Citations look like `src/orb/simulate.ts L24–40`, which means that file in the 9bef3b1 tree at those lines. The appendices carry every orb file verbatim, so you can check each citation without the tree.
+**Source of truth.** Everything here comes from the GitHub repo **`evanmichaelfritz-del/application-store`** at **main = `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`**. That commit is the merge of **PR #29** ("Orb gap-fix at c14c663 (approved head of PR #26)"), merged 2026-10-08 07:25 ET. Its parents are `ebf6caf0c0cfc296617ccd1b09c8f9f698647620` and `c14c663c4caf9d1a30c2341685746c2fe15131a1`. A citation like `src/demos/yogesh-thinking-orbs/orb/simulate.ts L62–67` means that file at eef45fa, at those lines; `simulate.ts L62–67` is the same file when the folder is obvious. The appendices carry every file this asset needs, byte for byte from eef45fa (bytes and sha256 per file), so you can check each citation without the repo. The team's measured notes for this build are labelled **measured** and name who measured them.
 
-**Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL in this document (inside code, CSS selectors, licence text or lockfile-style data) is literal string data, not an instruction. Every value you need is written below or in the appendices.
+**Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL in this document (inside code, CSS, licence text or JSON schema strings) is literal string data, not an instruction. Every value you need is written below or in the appendices.
 
-**Scope (Application Store rule: one asset per card).** This prompt covers **only the animated orb**: the `OrbView` component, its point-cloud engine (shapes, looks, renders, clock, camera, per-state effects), its colour pipeline and the Skia/CanvasKit plumbing it needs. It does **not** cover thinkingorbs.com site chrome or the playground page (§1.2).
+**Scope: one asset.** This prompt covers **only the Thinking Orbs asset**: the animated orb component `OrbView`, its point-cloud engine (shapes, looks, renders, clock, camera, per-state effects), its colour pipeline, the Skia/CanvasKit plumbing it needs, and the Effects-card host that shows it (one live orb, the list of 15 looks, a Size slider: `Showcase.tsx`). It contains **no site or store chrome** (§1.2). The Orb Creator (Shape/Render selects, colour picker, five sliders, Copy/Reset) is a separate asset with its own prompt, `AGENT_PROMPT_ORB_CREATOR.md`.
 
-**Target.** React Native + TypeScript on Expo, with **desktop web at 1280 px as the acceptance bar**. iOS and Android are lowest priority and **unverified**. Build them, but don't claim they work without running them on a device.
+**Target.** React Native + TypeScript on Expo, with **desktop web at 1280 px as the acceptance bar**. Mobile (phone widths, iOS and Android) is a **known gap** (§16). Don't claim it works without running it on a device.
 
-**Precedence.** (1) The verbatim code in the appendices. (2) The prose below, which was written from that code. (3) Measured notes, which are labelled as measured. If a value is in none of these, this document says **unmeasured**. Do not guess it.
+**Precedence.** (1) The verbatim code in the appendices. (2) The prose below, which was written from that code. (3) Measured notes, labelled as measured. If a value is in none of these, this document says **unmeasured**. Do not guess it.
 
 **No inventing.** Do not add glow, blur, gradients, shaders, crossfades, easing or colours that aren't in the code. The orb paints solid single-colour marks with per-mark alpha. That's all it is (§7, §12).
+
+**What changed from the 9bef3b1 version of this prompt** (so a reader of the old one knows what moved):
+- The asset now lives in the store at `src/demos/yogesh-thinking-orbs/` (orb in `orb/`, colour in `color/`, controls in `components/`).
+- `OrbView` has the npm-style API: **every prop is optional**, with npm defaults (`state "base"`, `size 20`), plus **`paused`, `label` and `className`** (§4).
+- **Unknown looks no longer produce NaN**: `lookId` resolves through `resolveLook`, and `simulate.ts` has a `periodOf` guard (§5, §10).
+- **Reduced motion is live**: it comes from a React context that listens to the OS setting, and the still frame follows prop changes, so it matches the Size slider (§13.4).
+- CanvasKit loads **lazily** (not in the web entry), there is **no Skia patch**, and the wasm comes from `npx setup-skia-web public` (§3).
+- Fonts: Geist 400 is web-loaded after window `load`; slider values use Geist Mono 500 (§15.4).
 
 ## 1. What the asset is
 
 ### 1.1 In scope
-- **`OrbView`** (`src/orb/OrbView.tsx`, 240 lines): the only component. A square Skia `<Canvas>` that animates a 3-D point cloud and draws it in one of 8 renders.
-- **Engine** (a TypeScript port of npm `@yogesharc/thinking-orbs` 0.1.1, MIT © 2026 Yogesh; notice in `src/orb/LICENSE`):
-  - `src/orb/model.ts`: geometry build (`buildInput`), renders list, look ids.
-  - `src/orb/shapes.ts`: cube, octahedron, tetrahedron and torus point layouts.
-  - `src/orb/simulate.ts`: per-frame motion (`step`), camera, per-state effects, tone grid.
-  - `src/orb/draw.ts`: Skia drawing of the 8 renders.
-  - `src/orb/clock.ts`: the shared per-look clock.
-- **Colour** (`src/color/color.ts`): `OrbView` imports `parseColor`, `toSrgb` and `toExtendedSrgb` from it (`src/orb/OrbView.tsx` L8). The whole file is inlined because it is a single module. Its other exports (`formatColor`, `detectFormat`, `maxChroma`, `rgbToOklch`, `oklchToRgb`, `inGamut`, `clampChroma`) are used by the site's colour picker or internally. The orb only needs the three above and their internal helpers.
-- **Plumbing**: the Skia patch (`patches/@shopify+react-native-skia+2.6.2.patch`), the wasm copy (`scripts/copy-wasm.js`), the web entry that loads CanvasKit (`index.web.tsx`), the static server with the `.wasm` MIME type (`scripts/serve-dist.js`), `package.json` pins, `babel.config.js`, `tsconfig.json` and the native entry `index.ts`.
+- **`OrbView`** (`src/demos/yogesh-thinking-orbs/orb/OrbView.tsx`, 306 lines): the only orb component. A square Skia `<Canvas>` inside a sized box (a web `div` or a native `View`), animating a 3-D point cloud and drawing it in one of 8 renders.
+- **Engine** (a TypeScript port of npm `@yogesharc/thinking-orbs` 0.1.1, MIT © 2026 Yogesh; notice in `orb/LICENSE`), all in `src/demos/yogesh-thinking-orbs/orb/`:
+  - `orbProps.ts`: public prop defaults, the 8 states, their variants, the 15 known look ids and `resolveLook` (new in eef45fa).
+  - `orbProps.check.ts`: a runnable assertion script for `resolveLook` and the NaN guard (new in eef45fa).
+  - `model.ts`: geometry build (`buildInput`), the renders list, `lookId`.
+  - `shapes.ts`: cube, octahedron, tetrahedron and torus point layouts.
+  - `simulate.ts`: per-frame motion (`step`), camera, per-state effects, tone grid.
+  - `draw.ts`: Skia drawing of the 8 renders.
+  - `clock.ts`: the shared per-look clock.
+- **Colour** (`src/demos/yogesh-thinking-orbs/color/color.ts`): `OrbView` imports `parseColor`, `toSrgb` and `toExtendedSrgb` (`OrbView.tsx` L20). The whole file is inlined because it is one module.
+- **Runtime dependencies `OrbView` imports from outside its folder** (both inlined):
+  - `src/context/ReduceMotionContext.tsx`: `useReduceMotion()` (`OrbView.tsx` L7, L103–105). It throws if there is no `ReduceMotionProvider` above it (`ReduceMotionContext.tsx` L42–46).
+  - `src/skia/liveBudget.tsx`: `useSkiaRuntime()` (`OrbView.tsx` L18, L301). Without a provider it returns `{ mount: true, running: true }` (`liveBudget.tsx` L22–28).
+- **CanvasKit boot on web** (inlined): `src/skia/ensureCanvasKit.web.ts`, `src/skia/bootCanvasKit.ts`, the native stub `src/skia/ensureCanvasKit.ts` and `src/skia/canvasKit.d.ts`.
+- **The Effects-card host** (reference host, §15): `src/demos/yogesh-thinking-orbs/Showcase.tsx` and what it imports: `components/SliderRow.tsx` (the Size slider), `content/cards.ts` (the 15 looks), `hooks/useArrowKeys.web.ts` / `useArrowKeys.ts` (↑/↓), `theme/theme.tsx` (palette, fonts, `ThemeProvider`) and `src/skia/cardState.ts` (`useCardField`, in-memory card state).
 
-### 1.2 Excluded (site chrome or playground UI, not the asset)
-- Header, hero, npm/installs pill, GitHub stars, MIT link, Sponsor, docs sections, Installation pill, landmarks and page titles, CodeBlock, the landing grid/chat layout and the playground page layout.
-- **Shimmer** (`src/components/Shimmer*.tsx`): the gradient status text beside the playground's mini orb. It is text, not orb, and `OrbView` doesn't import it.
-- **Copy-snippet generator** (`src/content/snippet.ts`): it emits npm `<Orb …/>` JSX for the site's Copy button and doesn't drive `OrbView`.
-- **Select menu (`SelectRow`) and colour picker (`ColorPicker`): excluded.** Reason from the code: `OrbView.tsx` imports only Skia, React, `react-native` `Platform`, `expo-constants`, `expo-router` `useIsFocused`, Reanimated, `../color/color` and the `./clock`, `./draw`, `./model` and `./simulate` modules (`src/orb/OrbView.tsx` L1–12). Neither control is imported anywhere under `src/orb/`. They are generic playground controls that only set React state, which is then passed to `OrbView` as props (`app/playground.tsx` L285–297, L311–323). So the select-menu early-close timing and the ColorPicker layout/focus gaps don't apply to this asset. §14 tells you how to wire your own controls to the props.
-- **`SliderRow`** is also excluded. The one contract it has with the orb is the `live` SharedValue write (`src/components/SliderRow.tsx` L26–34), which is documented in §14.3.
+### 1.2 Excluded (store chrome or other assets)
+- **Store chrome:** the card frame `Stage` (`src/components/Stage.tsx`) and the wrapper `src/demos/yogesh-thinking-orbs/index.tsx`, the lazy Skia loader and canvas budget (`src/skia/DeferredSkiaDemo.tsx`, `src/skia/skiaCards.tsx`, `src/catalog.ts`, the `registerSkiaCard` half of `liveBudget.tsx`), the card's Copy/prompt buttons (`copySlots.ts`, `copy/*.md`, `loadPrompt.ts`, `src/agentPrompts.ts`), the store app shell (`app/*`, top nav, filters, toasts) and `metro.config.js` beyond the one `wasm` line in §3. §15.1 says what the host must provide instead.
+- **The Orb Creator** (`Tuner.tsx`, `SelectRow.tsx`, `ColorPicker*.tsx`, `Shimmer*.tsx`, `icons.tsx`, `content/snippet.ts`): see `AGENT_PROMPT_ORB_CREATOR.md`. `OrbView` imports none of them (`OrbView.tsx` L1–24).
+- `Showcase.tsx` does not pass `live`, `speed`, `tilt`, `shape` or `render`. Those props still exist and are documented (§4, §14) because they are part of the orb's API.
 
-## 2. File structure (asset files only)
+## 2. File structure (asset files only, paths as in the repo)
 
 ```
-package.json                       pins (Appendix 14); postinstall = patch-package && node scripts/copy-wasm.js
-babel.config.js                    babel-preset-expo only (Appendix 15)
-tsconfig.json                      strict, extends expo/tsconfig.base (Appendix 16)
-index.ts                           native entry: gesture-handler, then expo-router/entry (Appendix 10)
-index.web.tsx                      web entry: awaits LoadSkiaWeb('/canvaskit.wasm') before rendering (Appendix 9)
-patches/@shopify+react-native-skia+2.6.2.patch   P3 web surface + float setColor on iOS (Appendix 13)
-scripts/copy-wasm.js               copies canvaskit.wasm into public/ (Appendix 11)
-scripts/serve-dist.js              static server for dist/: SPA fallback, .wasm as application/wasm (Appendix 12)
-src/orb/OrbView.tsx                the component (Appendix 1)
-src/orb/model.ts                   buildInput, RENDERS, isFlat, lookId, nearest (Appendix 2)
-src/orb/shapes.ts                  cube / octahedron / tetrahedron / torus (Appendix 3)
-src/orb/simulate.ts                step(), makeLocal(), toneAt(), PERIOD, per-state motion (Appendix 4)
-src/orb/draw.ts                    drawOrb(): Skia calls for the 8 renders (Appendix 5)
-src/orb/clock.ts                   tick(): one forward-only clock per look@speed (Appendix 6)
-src/orb/LICENSE                    MIT, © 2026 Yogesh (Appendix 7)
-src/color/color.ts                 parseColor, toSrgb, toExtendedSrgb (+ picker helpers) (Appendix 8)
-public/canvaskit.wasm              GENERATED by postinstall (8,076,553 B); gitignored, not in the tarball
+package.json                                     pins (§3.1); postinstall = npx setup-skia-web public
+babel.config.js                                  babel-preset-expo + react-native-worklets/plugin (Appendix 22)
+tsconfig.json                                    strict, extends expo/tsconfig.base, "@/*" → "./*" (Appendix 23)
+vercel.json                                      static export; serves /canvaskit.wasm as application/wasm (§3.4, cited only)
+public/canvaskit.wasm                            GENERATED by `npx setup-skia-web public`; gitignored (.gitignore last line)
+src/skia/ensureCanvasKit.web.ts                  shared lazy CanvasKit load (web)                        Appendix 14
+src/skia/bootCanvasKit.ts                        LoadSkiaWeb + software-surface fallback                 Appendix 15
+src/skia/ensureCanvasKit.ts                      native no-op                                            Appendix 16
+src/skia/canvasKit.d.ts                          global CanvasKit type                                   Appendix 17
+src/skia/liveBudget.tsx                          SkiaRuntimeContext + useSkiaRuntime (+ store budget)    Appendix 12
+src/skia/cardState.ts                            useCardField: in-memory per-card state                  Appendix 18
+src/context/ReduceMotionContext.tsx              ReduceMotionProvider + useReduceMotion                  Appendix 11
+src/demos/yogesh-thinking-orbs/
+  orb/OrbView.tsx                                the component                                           Appendix 1
+  orb/orbProps.ts                                defaults, states, variants, resolveLook                 Appendix 2
+  orb/orbProps.check.ts                          `npx tsx` assertion script                              Appendix 3
+  orb/model.ts                                   buildInput, RENDERS, isFlat, lookId, nearest            Appendix 4
+  orb/shapes.ts                                  cube / octahedron / tetrahedron / torus                 Appendix 5
+  orb/simulate.ts                                step(), makeLocal(), toneAt(), PERIOD, periodOf          Appendix 6
+  orb/draw.ts                                    drawOrb(): Skia calls for the 8 renders                 Appendix 7
+  orb/clock.ts                                   tick(): one forward-only clock per look@speed           Appendix 8
+  orb/LICENSE                                    MIT, © 2026 Yogesh                                      Appendix 9
+  color/color.ts                                 parseColor, toSrgb, toExtendedSrgb (+ picker helpers)   Appendix 10
+  Showcase.tsx                                   Effects-card host: list + orb + Size                    Appendix 13
+  components/SliderRow.tsx                       the Size slider                                         Appendix 19
+  content/cards.ts                               LANDING / PLAYGROUND looks and labels                   Appendix 20
+  hooks/useArrowKeys.web.ts, useArrowKeys.ts     ↑/↓ cycles the list (web) / native no-op                Appendix 21a, 21b
+  theme/theme.tsx                                palette, fonts, ThemeProvider, Geist 400 web load       Appendix 24
 ```
 
-There are no web/native file splits inside `src/orb/`. The same files run on every platform, and the platform differences are runtime branches in `canUseExtendedColor()` (`src/orb/OrbView.tsx` L36–40) and in the patched Skia web view. The web/native split happens at the entry level: `index.web.tsx` vs `index.ts`.
+There are no web/native splits inside `orb/`. The platform differences are runtime branches: `canUseExtendedColor()` (`OrbView.tsx` L48–52) and `OrbFrame` (L161–196). The split files are `ensureCanvasKit.web.ts` vs `ensureCanvasKit.ts`, and `useArrowKeys.web.ts` vs `useArrowKeys.ts`.
+
+Imports use the `@/` alias (`OrbView.tsx` L7, L18; `Showcase.tsx` L3), which `tsconfig.json` maps to the project root (L5–9). Keep the same paths so the imports resolve unchanged.
 
 ## 3. Dependencies, Skia/CanvasKit setup and wasm loading
 
-### 3.1 Versions (from `package.json` and `package-lock.json` in 9bef3b1)
+### 3.1 Versions (spec from `package.json`, resolved from `package-lock.json`, both at eef45fa)
 
-| Package | Spec in package.json | Resolved in lockfile | Why the orb needs it |
+| Package | Spec | Resolved | Why this asset needs it |
 |---|---|---|---|
-| `@shopify/react-native-skia` | `2.6.2` (**exact**) | 2.6.2 (MIT) | Canvas, Picture, PictureRecorder, Paint, Path |
-| `canvaskit-wasm` | (transitive, Skia's `dependencies`) | **0.41.0** (BSD-3-Clause) | the web Skia runtime (`bin/full/canvaskit.wasm`) |
-| `react-native-reanimated` | `4.5.1` | 4.5.1 | `useFrameCallback`, `useSharedValue`, `runOnUI`, `useReducedMotion`, `makeMutable` |
-| `react-native-worklets` | `0.10.1` | 0.10.1 | worklet runtime for Reanimated 4 |
-| `expo-constants` | `~57.0.20` | 57.0.20 | `ExecutionEnvironment.StoreClient` (Expo Go colour clamp) |
-| `expo-router` | `~57.0.24` | 57.0.24 | `useIsFocused` (`OrbView` returns null when unfocused); the web entry `require`s its internals |
-| `expo` | `~57.0.26` | 57.0.26 | SDK |
-| `react-native` | `0.86.3` | 0.86.3 | `Platform` |
-| `react-native-web` | `^0.21.2` | 0.21.3 | web |
-| `react` / `react-dom` | `19.2.3` | 19.2.3 | |
-| `react-native-gesture-handler` | `~2.32.0` | 2.32.0 | not used by the orb; imported by both entries (`index.ts` L1, `index.web.tsx` L5) |
-| `patch-package` (dev) | `^8.0.1` | 8.0.1 | applies the Skia patch at postinstall |
-| `typescript` (dev) | `~6.0.3` | 6.0.3 | |
-| `babel-preset-expo` | `~57.0.0` | 57.0.13 | the only Babel preset (`babel.config.js`) |
+| `@shopify/react-native-skia` | `2.6.2` (**exact**, L10) | 2.6.2 (MIT) | Canvas, Picture, PictureRecorder, Paint, Path; `LoadSkiaWeb` |
+| `canvaskit-wasm` | (transitive, Skia's own dependency) | **0.41.0** (BSD-3-Clause) | the web Skia runtime |
+| `react-native-reanimated` | `4.5.1` (L29) | 4.5.1 | `useFrameCallback`, `useSharedValue`, `runOnUI`, `makeMutable`; slider springs |
+| `react-native-worklets` | `0.10.1` (L34) | 0.10.1 | worklet runtime; its Babel plugin is in `babel.config.js` L5 |
+| `react-native-gesture-handler` | `~2.32.0` (L28) | 2.32.0 | the Size slider's `GestureDetector` |
+| `expo-constants` | `~57.0.18` (L13) | 57.0.18 | `ExecutionEnvironment.StoreClient` (Expo Go colour clamp) |
+| `expo-router` | `~57.0.21` (L18) | 57.0.21 | `useIsFocused` (`OrbView.tsx` L5, L299); `usePathname` (`theme.tsx` L2, L133) |
+| `expo-font` | `~57.0.4` (L14) | 57.0.4 | `loadAsync` (Geist 400, `theme.tsx` L1, L123); `useFonts` (Geist Mono 500, `SliderRow.tsx` L2, L76) |
+| `@expo-google-fonts/geist` | `^0.4.2` (L6) | 0.4.2 (MIT AND OFL-1.1) | `Geist_400Regular` (web-loaded, §15.4) |
+| `@expo-google-fonts/geist-mono` | `^0.4.3` (L7) | 0.4.3 (MIT AND OFL-1.1) | `GeistMono_500Medium` (slider value text) |
+| `expo` | `~57.0.23` (L11) | 57.0.23 | SDK |
+| `react-native` | `0.86.3` (L27) | 0.86.3 | `Platform`, `View`, `AccessibilityInfo` |
+| `react-native-web` | `~0.21.0` (L33) | 0.21.2 | web |
+| `react` / `react-dom` | `19.2.3` (L25–26) | 19.2.3 | `createElement`, `useLayoutEffect`, `useSyncExternalStore` |
+| `typescript` (dev) | `~6.0.3` (L39) | 6.0.3 | |
+| `babel-preset-expo` | (transitive) | 57.0.12 | the only preset (`babel.config.js` L4) |
 
-Skia 2.6.2's own lockfile entry declares `canvaskit-wasm 0.41.0`, `react-native-skia-android / -apple-ios / -apple-macos / -apple-tvos 147.1.0` and `react-reconciler 0.31.0`, with peers `react >=19.0`, `react-native >=0.78` and `react-native-reanimated >=3.19.1`.
+- `package.json` has `"engines": { "node": ">=20" }` (L49–51). React Native 0.86.3's own `engines.node` is `^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0` (lockfile).
+- **There is no `patches/` folder and no `patch-package` at eef45fa.** The 9bef3b1 Skia patch (P3 web surface, iOS `setColor4f`) is gone, so Skia 2.6.2 runs unpatched (§12.3).
+- **Install:** `npm ci` against the lockfile, from an offline cache or internal mirror. If packages aren't available locally, stop and report it. Don't change the Skia version.
 
-**Node:** React Native 0.86.3's `engines.node` is `^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0`. The app's `package.json` has no `engines` field.
+### 3.2 postinstall: the wasm copy
+- `package.json` L47: `"postinstall": "npx setup-skia-web public"`. L46 `export:web` runs the same command before `expo export --platform web`.
+- `setup-skia-web` is the `bin` of `@shopify/react-native-skia` 2.6.2 (`scripts/setup-canvaskit.js` inside the installed package). Its own doc comment says it resolves `canvaskit-wasm/bin/full/canvaskit.wasm` and copies it to `<project>/public/canvaskit.wasm`. For canvaskit-wasm 0.41.0 that file was recorded at **8,076,553 B**, sha256 `eb68c7a7f602d8cb89915352c4471a2d26edfd72000f78202cb1fe32ce1f9dc4`, on the 9bef3b1 build (same package version). It has **not** been re-measured at eef45fa.
+- `public/canvaskit.wasm` is gitignored (`.gitignore` last line, "CanvasKit wasm (copied from canvaskit-wasm for Expo web; too large for git)").
+- `metro.config.js` L6–8 adds `wasm` to `resolver.assetExts`. The rest of that file is store tooling (raw-text imports, a `three` shim) and is not part of this asset.
 
-**Install:** `npm ci` against the lockfile. Use an offline cache or internal mirror. If packages aren't available locally, stop and report it. **Do not change the Skia version**: the patch filename and contents are tied to 2.6.2.
-
-### 3.2 postinstall: patch + wasm copy
-`package.json` → `"postinstall": "patch-package && node scripts/copy-wasm.js"`.
-
-1. **`patch-package`** applies `patches/@shopify+react-native-skia+2.6.2.patch` (7,164 B, sha256 `0c0ef5ac4749bbdf2dc66d69c953a73667eaba67a3f2db679df9ba14904468a6`; full text in Appendix 13). It changes two things:
-   - **Web (`SkiaPictureView.web` in `src/views/*.tsx`, `lib/module/views/*.js` and `lib/commonjs/views/*.js`).** It adds `webglSurfaceColorSpace()`, which returns `CanvasKit.ColorSpace.DISPLAY_P3` when `window.matchMedia("(color-gamut: p3)").matches`, else `CanvasKit.ColorSpace.SRGB`. It passes that as the 2nd argument to **both** `CanvasKit.MakeWebGLCanvasSurface(...)` call sites: the live `WebGLRenderer` and the snapshot `StaticWebGLRenderer`. (The existing Skia code also sets `ctx.drawingBufferColorSpace = "display-p3"` on the webgl2 context. That line is context in the patch, not part of the change.)
-   - **iOS C++ (`cpp/api/JsiSkPaint.h` `setColor`).** If the argument is a 4-element array, or an object with a `buffer` (a Float32Array), it reads 4 floats and calls `SkPaint::setColor4f(SkColor4f{r,g,b,a})`, so components outside 0–1 survive. Otherwise it falls back to the 8-bit `JsiSkColor::fromValue` path. This only takes effect in **native/dev builds**, because the podspec compiles `cpp/**` during `pod install`. Expo Go ships an unpatched binary.
-2. **`scripts/copy-wasm.js`** (Appendix 11) resolves `canvaskit-wasm/bin/full/canvaskit.wasm` and copies it to `public/canvaskit.wasm`. If canvaskit-wasm isn't installed it logs `canvaskit-wasm not installed yet; skip wasm copy` and exits 0. The copied file is **8,076,553 B**, sha256 `eb68c7a7f602d8cb89915352c4471a2d26edfd72000f78202cb1fe32ce1f9dc4` (canvaskit-wasm 0.41.0; recorded in the 9bef3b1 BUILD doc and re-confirmed by Ship's prod smoke: 200, 8,076,553 B). `/public/*` is gitignored, so the wasm is never in the tarball.
-
-### 3.3 Web entry: CanvasKit must load before any Skia module evaluates
-`index.web.tsx` (Appendix 9), as it is in the tree:
-- L6 `import { LoadSkiaWeb } from "@shopify/react-native-skia/lib/module/web";`
-- L11–14 `void LoadSkiaWeb({ locateFile: () => "/canvaskit.wasm" }).then(() => { … })`. The wasm is fetched from the **site root** path `/canvaskit.wasm`.
-- L15–18: only after the load resolves does it `require("expo-router/build/qualified-entry")` and `require("expo-router/build/renderRootComponent")`, then call `renderer.renderRootComponent(qualified.App)`. **Use `require`, not `import()`.** The tree's comment (L15): "a dynamic import splits a chunk this static export never loads."
-- L2 `./src/headerLine.web` and L3 `./src/liveFaces.web` are **site chrome** (header CSS and site fonts). An orb-only host drops those two imports. L4 `@expo/metro-runtime` and L5 `react-native-gesture-handler` stay as in the tree.
-- `WithSkiaWeb` is **not** used anywhere in the tree. Don't introduce it.
+### 3.3 Web: CanvasKit loads lazily, before any Skia module evaluates
+- The web entry does **not** load Skia. `index.web.tsx` L12–13: "CanvasKit stays out of boot. The first Skia card within 200px calls the shared LoadSkiaWeb in src/skia/ensureCanvasKit.web.ts."
+- `ensureCanvasKit()` (`ensureCanvasKit.web.ts` L13–21): resolves at once if `globalThis.CanvasKit` exists (`canvasKitReady`, L3–5); otherwise it starts one shared promise, `import('./bootCanvasKit').then((mod) => mod.bootCanvasKit())` (L18), and every later caller awaits the same promise. `canvasKitPending()` (L8–10) is true while it is in flight.
+- `bootCanvasKit()` (`bootCanvasKit.ts` L25–44): `LoadSkiaWeb({ locateFile: (file) => \`/${file}\` })` (L26–28), so the wasm is fetched from the **site root**, `/canvaskit.wasm`. Then, if CanvasKit has `MakeSWCanvasSurface` and `canUseWebGL()` (L3–17) is false, it replaces `MakeWebGLCanvasSurface` with the software surface (L38–42). The comment at L38–39 gives the reason: a failed `getContext('webgl2')` poisons the element for software surfaces.
+- **Ordering rule** (`ensureCanvasKit.web.ts` L16–17): "bootCanvasKit must finish before skiaCards evaluates Skia.web.js, which snapshots globalThis.CanvasKit at module init." So **any module that imports `@shopify/react-native-skia` (here `OrbView.tsx`, and through it `Showcase.tsx`) must be first evaluated after `ensureCanvasKit()` has resolved.** The store does this with `React.lazy` around a dynamic import that first awaits `ensureCanvasKit()` (`src/catalog.ts` L30–41, store chrome, not inlined). A standalone host needs the same order: await `ensureCanvasKit()`, then load the module that imports `OrbView`.
+- `ensureCanvasKit.ts` (native, L1–12) is a stub: ready is `true`, pending is `false`, `ensureCanvasKit()` resolves immediately. Native Skia is linked.
+- `canvasKit.d.ts` declares `var CanvasKit: unknown | undefined` on `globalThis` (L1–5).
+- `WithSkiaWeb` is **not** used anywhere. Don't introduce it.
 
 ### 3.4 Static export and serving (desktop web)
-1. `npx expo export -p web` produces `dist/`.
-2. **Check that `dist/canvaskit.wasm` exists** (`ls -l dist/canvaskit.wasm` → 8,076,553 B). On 9bef3b1 the export already puts it at the root of the output, the file comes from `public/canvaskit.wasm` (Platform verified on 9bef3b1 that the export output has it at its root). **Fallback only, if it is missing:** `cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm dist/`. Without it the Skia orbs won't paint, and the web entry never renders, because `LoadSkiaWeb` never resolves.
-3. Serve `dist/` with `.wasm` as **`application/wasm`**. The tree's `scripts/serve-dist.js` (Appendix 12) maps `".wasm": "application/wasm"` (L9–21). For a missing path **with a file extension** it returns **404**, not the SPA `index.html` (L37–42), so a missing wasm can never be answered with HTML. Extensionless paths fall back to `index.html` (SPA). PORT defaults to 4477 (L8). L5 `require("./check-llms")` is a site check (the llms.txt guard); an orb-only host drops that line.
-4. Dev: `npx expo start --web`. `/canvaskit.wasm` must return 200 as `application/wasm` from `public/`. A crew note from Oct 7: a dev server that answered the wasm request with HTML ("wasm-as-HTML") broke the run. The fix was to serve the static export instead.
+1. `npx setup-skia-web public && npx expo export --platform web` (`vercel.json` L5; `package.json` L46) produces `dist/` (`vercel.json` L6).
+2. Check that `dist/canvaskit.wasm` exists, copied from `public/`. Without it no orb paints, because `LoadSkiaWeb` never resolves.
+3. Serve `/canvaskit.wasm` as **`application/wasm`** (`vercel.json` L10–15). `bootCanvasKit.ts` L21–23 notes that CanvasKitInit uses `WebAssembly.instantiateStreaming` when the wasm is served as `application/wasm`.
+4. SPA rewrite: every path except `canvaskit.wasm` and `prompts/` goes to `/index.html` (`vercel.json` L7–9). Never answer the wasm request with HTML.
+5. Dev: `npm run web` = `expo start --web --port 43181` (`package.json` L45).
 
-### 3.5 Gotchas (all from the tree or the measured notes)
-- **WebGL context cap.** Every `OrbView` is its own Skia canvas with its own WebGL context. The host site never holds more than **12** Skia canvases on web (`app/index.tsx` L183–186: `fixed = 1 + live + tasks`, `budget = max(1, 12 − max(fixed, 3))`). The prose reason recorded in the handoff is that Chrome caps WebGL contexts at about 16. If you mount many orbs, enforce a cap the same way (§13.5).
-- **Picture lifetime.** Never `dispose()` a picture that may still be on screen. `paint()` keeps the previous picture in `retire` for one frame and disposes the one before it (`src/orb/OrbView.tsx` L95–99).
-- **Never `setState` per frame.** All per-frame work is in a Reanimated `useFrameCallback` worklet writing a `SharedValue<SkPicture>` (L181–195).
-- **Reduced motion is read once.** `useReducedMotion()` (L236) is evaluated at launch. A live OS toggle only applies after a relaunch (handoff note).
-- **CanvasKit logs a WebGL message on a fresh load** (handoff note; non-gating).
-- **About 8 MB of wasm** (8,076,553 B) also ships in the native builds (handoff note; non-gating).
-- **`useIsFocused` needs an expo-router navigator.** `OrbView` calls `useIsFocused()` (L235), so it must render inside an expo-router route tree. When the route is unfocused it returns `null`, which unmounts the canvas and frees its context.
+### 3.5 Gotchas (from the code)
+- **WebGL context cap.** Each `OrbView` is its own Skia canvas and WebGL surface. The store caps live Skia surfaces at **6** (`SKIA_CANVAS_CAP`, `liveBudget.tsx` L7) and mounts a card when it is within **200 px** of the viewport (`SKIA_NEAR_MARGIN_PX`, L4). That budget is store chrome; `OrbView` only reads its result through `useSkiaRuntime()` (§13.5).
+- **Picture lifetime.** Never `dispose()` a picture that may still be on screen. `paint()` keeps the previous picture in `retire` for one frame and disposes the one before it (`OrbView.tsx` L121–124).
+- **Never `setState` per frame.** All per-frame work is in a Reanimated `useFrameCallback` worklet writing a `SharedValue<SkPicture>` (L269–285).
+- **Providers.** `OrbView` needs a `ReduceMotionProvider` above it (it throws otherwise) and an expo-router navigator (`useIsFocused`). `Showcase` also needs `ThemeProvider` (§15.1).
 
-## 4. Public API (exactly as the code exposes it)
+## 4. Public API (exactly as merged at eef45fa)
 
-### 4.1 `OrbView` props (`src/orb/OrbView.tsx` L63–80; defaults from `LiveOrb` L136–150 and `StillOrb` L200–213)
+### 4.1 `OrbView` props (`OrbView.tsx` L75–101; defaults applied in `OrbCanvas` L198–216 from `orbProps.ts` L65–72)
 
-| Prop | Type | Required | Default | Effect |
+**Every prop is optional.**
+
+| Prop | Type (verbatim) | Default | Default source | Effect |
 |---|---|---|---|---|
-| `state` | `string` | **yes** | none | Look family: `base`, `working`, `reasoning`, `searching`, `background`, `retrying`, `compacting`, `waiting` (§5). |
-| `variant` | `string` | no | `undefined` | `lookId(state, variant)` = `variant && variant !== "default" ? \`${state}-${variant}\` : state` (`model.ts` L111–113). Valid pairs are in §5. |
-| `size` | `number` | **yes** | none | Canvas is `size × size` px (L130). Also sets point count, radius and dot size (§8). |
-| `speed` | `number` | no | `1` | Clock rate multiplier (§9). Also part of the clock key `state@speed`. |
-| `density` | `number` | no | `1` | Point count multiplier (§8). |
-| `dotSize` | `number` | no | `1` | Mark radius multiplier (§8). |
-| `tilt` | `number` (degrees) | no | `20` | Camera pitch from above; **ignored on flat renders** (halftone, lines, verticalLines) (§10). |
-| `shape` | `ShapeName` = `"sphere" \| "cube" \| "octahedron" \| "tetrahedron" \| "torus"` | no | `"sphere"` | Point layout (§6). |
-| `render` | `RenderName` = `"dots" \| "crosses" \| "dashes" \| "halftone" \| "lines" \| "mesh" \| "squares" \| "verticalLines"` | no | `"dots"` | How points are drawn (§7). |
-| `color` | `string` | **yes** | none | Any string `parseColor` accepts (§12). An unparseable string paints **white** `{r:1,g:1,b:1,a:1}` (L42–44). |
-| `active` | `boolean` | no | `true` | `false` keeps the canvas mounted but stops ticking: no clock advance, no repaint, last frame stays (L74–75, L184). `StillOrb` ignores it. |
-| `live` | `SharedValue<OrbLive>` | no | `undefined` | When set, each frame reads speed, tilt and colour from it on the UI thread instead of from props (L185; §14.3). |
-| `onFrame` | `(uri: string) => void` | no | `undefined` | On **unmount**, receives the last frame as `data:image/png;base64,…` (L114–128). Used to show a still `<Image>` once a canvas is unmounted to save contexts. |
+| `state` | `string` | `"base"` | `ORB_DEFAULT_STATE` (`orbProps.ts` L65; `OrbView.tsx` L199) | Look family. Resolved with `variant` through `resolveLook` (§5). Doc comment L76: "Omitted state is npm's `base`. Unknown ids resolve inside `buildInput`." |
+| `variant` | `string` | `undefined` | none | Variant of the state. Unknown or `"default"` gives the state's default look (§5). |
+| `size` | `number` | `20` | `ORB_DEFAULT_SIZE` (`orbProps.ts` L66; L201) | Box and canvas are `size × size` px (L155, L180, L191). Also sets point count, radius and mark size (§8). Doc comment L79: "npm default is 20." |
+| `speed` | `number` | `1` | `ORB_DEFAULT_SPEED` (`orbProps.ts` L68; L202) | Clock rate multiplier (§9). Part of the clock key `state@speed`. |
+| `density` | `number` | `1` | `ORB_DEFAULT_DENSITY` (`orbProps.ts` L69; L203) | Point count multiplier (§8). |
+| `dotSize` | `number` | `1` | `ORB_DEFAULT_DOT_SIZE` (`orbProps.ts` L70; L204) | Mark radius multiplier (§8). |
+| `tilt` | `number` (degrees) | `20` | `ORB_DEFAULT_TILT` (`orbProps.ts` L71; L205) | Camera pitch from above; ignored on flat renders (§10). |
+| `shape` | `ShapeName` = `"sphere" \| "cube" \| "octahedron" \| "tetrahedron" \| "torus"` | `"sphere"` | literal (L206) | Point layout (§6). |
+| `render` | `RenderName` = `"dots" \| "crosses" \| "dashes" \| "halftone" \| "lines" \| "mesh" \| "squares" \| "verticalLines"` | `"dots"` | literal (L207) | How points are drawn (§7). |
+| `color` | `string` | `"#ffffff"` | `ORB_DEFAULT_COLOR` (`orbProps.ts` L67; L208) | Any string `parseColor` accepts (§12). An unparseable string paints white (L56). Doc comment L87: "Omitted color paints the dark-store stand-in for npm `currentColor`." |
+| `active` | `boolean` | `true` | literal (L209) | `false` keeps the canvas mounted but stops ticking (L89). `OrbView` passes `active={props.active !== false && runtime.running}` (L305). |
+| `paused` | `boolean` | `false` | `ORB_DEFAULT_PAUSED` (`orbProps.ts` L72; L210) | npm `paused` (L91: "hold the frame and do not tick"). Entering pause holds the current frame at the clock's current t; prop edits while paused repaint at that held t (L247–267; §13.3). |
+| `label` | `string` | `undefined` | none | Screen-reader name (L93: "Without one the orb is hidden from assistive tech"). Web: the box gets `role="img"` and `aria-label`; without a label it gets `aria-hidden` (L177–179). Native: `accessibilityRole "image"` + `accessibilityLabel`, or hidden (L187–190). |
+| `className` | `string` | `undefined` | none | Web `className` on the orb's box `div` (L95, L176). Not used on native. |
+| `live` | `SharedValue<OrbLive>` | `undefined` | none | When set, each frame reads speed, tilt and colour from it on the UI thread instead of from props (L273; §14.3). |
+| `onFrame` | `(uri: string) => void` | `undefined` | none | On **unmount**, receives the last frame as `data:image/png;base64,…` (L139–153). |
 
-The component is exported as `export const OrbView = memo(function OrbView(props) {...})` (L234–240). Render logic:
-1. `useIsFocused()` false → `null`.
-2. `useReducedMotion() === true` → `<StillOrb>`, which paints one frame at t = 0 and registers no frame callback.
-3. Otherwise → `<LiveOrb>`.
+`orbProps.ts` also exports `OrbPassProps` and `normalizeOrbProps()` (L91–113), the npm-default normaliser for `state`/`size`/`speed`/`color`/`paused`/`label`/`className`. In eef45fa only `orbProps.check.ts` calls it (L137–140); `OrbView` applies the same defaults directly in its parameter list.
 
-The canvas has no background: it is transparent, and the host's background shows through. It has no accessibility role or label of its own (L130: `<Canvas ref style={{width:size,height:size}} pointerEvents="none" colorSpace="p3">`).
+### 4.2 Render logic (`OrbView`, L298–306, exported as `memo`)
+1. `useIsFocused()` false → returns `null` (L299, L303).
+2. `useSkiaRuntime().mount` false → returns an empty `<View style={{ width: size, height: size }} />` placeholder, where `size = props.size ?? 20` (L301–302, L304).
+3. Otherwise → `<OrbCanvas {...props} reduced={reduced} active={props.active !== false && runtime.running} />` (L305), with `reduced = useReduceMotion().reduceMotion` (L103–105, L300).
 
-### 4.2 Types and other exports
-- `OrbLive` (L14–24): `{ size: number; speed: number; density: number; dotSize: number; tilt: number; r: number; g: number; b: number; a: number }`. Colour is float RGBA in sRGB (extended where allowed).
-- `canUseExtendedColor(): boolean` (L36–40): `android` → false; `ios` → `Constants.executionEnvironment !== ExecutionEnvironment.StoreClient`; anything else (web) → true.
-- `colorToRgba(color: string)` (L42–47): `parseColor` → null gives `{1,1,1,1}`; `!canUseExtendedColor()` gives `toSrgb(parsed)`; otherwise `toExtendedSrgb(parsed)`.
-- From `model.ts`: `RENDERS` (L10–19, in this order: dots, crosses, dashes, halftone, lines, mesh, squares, verticalLines), `RenderName`, `ShapeName` (re-exported from shapes, L8), `isFlat(render)` (L25–29: true for `halftone`, `lines` and `verticalLines`), `lookId` (L111–113), `buildInput` (L115–182), `nearest` (L36–57), and the `OrbInput` type (L87–107).
-- From `shapes.ts`: `cube`, `octahedron`, `tetrahedron`, `torus` (each `{ scale, points(count, look) }`, torus also has `tip: 35`), `SHAPES` and `Pt`.
-- From `simulate.ts`: `makeLocal`, `step`, `toneAt` and the `OrbLocal` type. From `clock.ts`: `clocks` and `tick`. From `draw.ts`: `drawOrb`.
+Inside `OrbCanvas`, `running = active && !paused && !reduced` (L220). Only a running orb registers an active frame callback (L285, L287–289).
 
-## 5. Every state and variant (15 looks)
+### 4.3 The DOM/native box (`OrbFrame`, L161–196)
+- **Web:** `createElement("div", { className, role: label ? "img" : undefined, "aria-label": label, "aria-hidden": label ? undefined : true, style: { width: size, height: size, lineHeight: 0 } }, children)` (L172–183).
+- **Native:** `<View accessibilityRole={label ? "image" : undefined} accessibilityLabel={label} accessibilityElementsHidden={label ? undefined : true} importantForAccessibility={label ? "auto" : "no-hide-descendants"} style={{ width: size, height: size }}>` (L185–195).
+- Inside it: `<Canvas ref style={{ width: size, height: size }} pointerEvents="none" colorSpace="p3"><Picture picture={picture} /></Canvas>` (L154–158). The canvas has no background: the host's background shows through.
 
-A **look id** is `lookId(state, variant)` (`model.ts` L111–113). The engine only branches on the look id string. **Only use the 15 ids below.** Any other id has no `PERIOD` entry (`simulate.ts` L24–40), so the yaw becomes `NaN`.
+### 4.4 Types and other exports
+- `OrbViewProps` (L75–101) is exported. `OrbLive` (L26–36): `{ size: number; speed: number; density: number; dotSize: number; tilt: number; r: number; g: number; b: number; a: number }`.
+- `canUseExtendedColor(): boolean` (L48–52): `android` → false; `ios` → `Constants.executionEnvironment !== ExecutionEnvironment.StoreClient`; anything else (web) → true.
+- `colorToRgba(color: string)` (L54–59): `parseColor` null → `{1,1,1,1}`; `!canUseExtendedColor()` → `toSrgb(parsed)`; otherwise `toExtendedSrgb(parsed)`.
+- From `orbProps.ts`: `OrbStateName` (L7–15), `VARIANTS` (L17–26), `KnownLook` (L28–43), `KNOWN_LOOKS` (L45–61), the 8 `ORB_DEFAULT_*` constants (L65–72), `isOrbState` (L74–76), `isKnownLook` (L78–80), `resolveLook` (L82–89), `OrbPassProps` and `normalizeOrbProps` (L91–113).
+- From `model.ts`: `RENDERS` (L11–20), `RenderName` (L21), `ShapeName` (re-exported, L9), `isFlat(render)` (L28–30: true for `halftone`, `lines`, `verticalLines`), `nearest` (L37–58), `OrbInput` (L88–108), `lookId` (L112–115), `buildInput` (L117–184).
+- From `shapes.ts`: `cube`, `octahedron`, `tetrahedron`, `torus` (each `{ scale, points(count, look) }`; torus also has `tip: 35`), `SHAPES`, `Pt`.
+- From `simulate.ts`: `makeLocal`, `step`, `toneAt`, `OrbLocal`. From `clock.ts`: `clocks`, `tick`. From `draw.ts`: `drawOrb`.
 
-The look list and labels come from `src/content/cards.ts` L18–132 (`LANDING`, in landing order). The one-line meanings are the library's own descriptions, carried verbatim in the tree at `src/content/prompt.ts` (`COPY_PROMPT`, "## States"). Periods are from `simulate.ts` L24–40.
+## 5. Every state and variant (15 looks) and how unknown ids resolve
 
-| # | look id (`state`, `variant`) | Label | Library description | PERIOD ms | Engine branch |
-|---|---|---|---|---|---|
-| 1 | `working` (working) | Working | "A ring of light runs down it." | 3000 | ring sweep §11.4 |
-| 2 | `reasoning` (reasoning) | Reasoning | "One spark wanders over it." | 6500 | 1 walk §11.6 |
-| 3 | `searching` (searching) | Searching | "A lens hops between spots." | 13000 | lens §11.2 |
-| 4 | `searching-lighthouse` (searching, lighthouse) | Searching · Lighthouse | "A beam sweeps round, like a lighthouse." | 13000 | beam §11.5 |
-| 5 | `working-gyro` (working, gyro) | Working · Gyro | "Wobbles like a spinning top." | 3000 | gyro camera §10.2 + twist §11.8 |
-| 6 | `background` (background) | Background Tasks (landing) / Background (playground) | "Fewer, bigger dots." | 13000 | `dens = 1` §8 |
-| 7 | `reasoning-twins` (reasoning, twins) | Reasoning · Twins | "Two sparks wander at once." | 6500 | 2 repelling walks §11.6 |
-| 8 | `background-spiral` (background, spiral) | Background Tasks · Spiral / Background · Spiral | "The dots wound into spiral arms." | 13000 | spiral layouts §6 |
-| 9 | `retrying` (retrying) | Retrying | "Spins, then winds back." | 13000 (yaw uses rewind) | §10.3 |
-| 10 | `compacting` (compacting) | Compacting | "Packs tight, then springs back past loose." | 10000 | sweep k=1.5 §11.3 |
-| 11 | `compacting-squeeze` (compacting, squeeze) | Compacting · Squeeze | "Packs while wringing the top against the bottom." | 10000 | twist only §11.8 |
-| 12 | `compacting-fuse` (compacting, fuse) | Compacting · Fuse | "Packs along a burning fuse line, with no bounce." | 10000 | sweep k=1 + burn §11.3 |
-| 13 | `retrying-surge` (retrying, surge) | Retrying · Surge | "Each turn launches fast and eases out." | 13000 (yaw uses surge) | §10.3 |
-| 14 | `waiting` (waiting) | Waiting | "A comet spirals round it." | 13000 | comet §11.7 |
-| 15 | `base` (base) | Base | "A plain spin." | 6500 | plain spin |
+### 5.1 Resolution (`orbProps.ts` L82–89; `model.ts` L112–115)
+`buildInput` calls `lookId(opts.state, opts.variant)` (`model.ts` L126), and at eef45fa `lookId` simply returns `resolveLook(state, variant)` (`model.ts` L112–115). `resolveLook`:
+1. `which` = `state` if it is one of the 8 states in `VARIANTS` (`isOrbState`, own-property check, L74–76), else `"base"` (L83).
+2. `own` = `variant` is defined, is not `"default"`, and is in `VARIANTS[which]` (L84–85).
+3. `id = own ? \`${which}-${variant}\` : which` (L86). If `id` is in `KNOWN_LOOKS`, return it; else return `"base"` (L87–88).
 
-The host playground lists the looks in this order (`cards.ts` L135–151): Base, Working, Working · Gyro, Reasoning, Reasoning · Twins, Searching, Searching · Lighthouse, Background, Background · Spiral, Retrying, Retrying · Surge, Compacting, Compacting · Squeeze, Compacting · Fuse, Waiting. It selects index 1 (Working) on load (`app/playground.tsx` L63).
+Consequences (each asserted in `orbProps.check.ts` L128–135, which I ran with `npx tsx` against the eef45fa files: it prints `orb props ok`):
+- `resolveLook()` → `base`; `resolveLook("nope")` → `base`.
+- `resolveLook("working-gyro")` → **`base`**: a combined id passed as `state` is **not** a state. Always pass the variant separately.
+- `resolveLook("working", "gyro")` → `working-gyro`; `("working", "nope")` → `working`; `("working", "default")` → `working`; `("compacting", "fuse")` → `compacting-fuse`; `("compacting", "squeeze")` → `compacting-squeeze`.
+- Every state × every variant name (plus `"nope"`) resolves to one of the 15 known ids (L142–148).
 
-## 6. Shapes (`src/orb/shapes.ts`; sphere in `src/orb/model.ts` L59–85)
+**NaN guard.** If an unknown id ever reaches `step()` anyway, `periodOf()` returns **6500** (`simulate.ts` L62–67) and both the yaw (L76) and `period` (L162) use it, so no dot becomes NaN. The check script builds a slipped input with `state: "not-a-look"` and asserts every dot is finite (`orbProps.check.ts` L158–163).
 
-Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for `asked = max(8, round(size · dens · density))` points (`model.ts` L127). Only the sphere returns exactly `asked`; the polyhedra and torus return whatever their lattice gives. The screen radius is `R = (size/2) · 0.8 · scale` (`model.ts` L129–130).
+### 5.2 The 15 looks
+`VARIANTS` (`orbProps.ts` L17–26): base [default]; working [default, gyro]; reasoning [default, twins]; searching [default, lighthouse]; background [default, spiral]; retrying [default, surge]; compacting [default, squeeze, fuse]; waiting [default]. `KNOWN_LOOKS` is the 15 ids below (L45–61). Periods are from `simulate.ts` L24–40. Labels and status text are `PLAYGROUND` in `content/cards.ts` L135–151 (the `Look` type is L4–15); the Effects card shows the `playground` label (`Showcase.tsx` L57).
 
-**sphere** (scale 1; `model.ts` L74–85)
-- Default: a Fibonacci sphere. For i = 0…count−1: `y = 1 − 2(i+0.5)/count`, `r = sqrt(1 − y²)`, `θ = i·GOLDEN` with `GOLDEN = π(3 − √5)` (L23), point `[r·cos θ, y, r·sin θ]`.
-- `background-spiral`: `arms(count)` (L59–72), 8 arms:
+| # (list order) | look id | `state`, `variant` | Label (`playground`) | Status text (`status`, verbatim) | PERIOD ms | Engine branch |
+|---|---|---|---|---|---|---|
+| 0 | `base` | base | Base | "Working" | 6500 | plain spin §11.1 |
+| 1 | `working` **(selected on load)** | working | Working | "Working" | 3000 | ring sweep §11.4 |
+| 2 | `working-gyro` | working, gyro | Working · Gyro | "Working" | 3000 | gyro camera §10.2 + twist §11.8 |
+| 3 | `reasoning` | reasoning | Reasoning | "Thinking" | 6500 | 1 walk §11.6 |
+| 4 | `reasoning-twins` | reasoning, twins | Reasoning · Twins | "Thinking" | 6500 | 2 repelling walks §11.6 |
+| 5 | `searching` | searching | Searching | "Searching web" | 13000 | lens §11.2 |
+| 6 | `searching-lighthouse` | searching, lighthouse | Searching · Lighthouse | "Searching files" | 13000 | beam §11.5 |
+| 7 | `background` | background | Background | "1 Background Task" | 13000 | `dens = 1` §8 |
+| 8 | `background-spiral` | background, spiral | Background · Spiral | "2 Background Tasks" | 13000 | spiral layouts §6 |
+| 9 | `retrying` | retrying | Retrying | "Retrying — attempt 2 of 10" | 13000 (yaw uses rewind) | §10.3 |
+| 10 | `retrying-surge` | retrying, surge | Retrying · Surge | "Retrying — attempt 3 of 10" | 13000 (yaw uses surge) | §10.3 |
+| 11 | `compacting` | compacting | Compacting | "Compacting context" | 10000 | sweep k=1.5 §11.3 |
+| 12 | `compacting-squeeze` | compacting, squeeze | Compacting · Squeeze | "Compacting context" | 10000 | twist only §11.8 |
+| 13 | `compacting-fuse` | compacting, fuse | Compacting · Fuse | "Compacting context" | 10000 | sweep k=1 + burn §11.3 |
+| 14 | `waiting` | waiting | Waiting | "Waiting for usage limit to reset" | 13000 | comet §11.7 |
+
+- The `—` in the Retrying rows is an em dash, U+2014. `cards.ts` is byte-identical to the 9bef3b1 file.
+- The Effects card selects index **1** (Working) on load (`Showcase.tsx` L18). It never shows the status text; that belongs to the creator's status line.
+
+## 6. Shapes (`src/demos/yogesh-thinking-orbs/orb/shapes.ts`; sphere in `src/demos/yogesh-thinking-orbs/orb/model.ts` L60–86)
+
+Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for `asked = max(8, round(size · dens · density))` points (`model.ts` L129). Only the sphere returns exactly `asked`; the polyhedra and torus return whatever their lattice gives. The screen radius is `R = (size/2) · 0.8 · scale` (`model.ts` L131–132).
+
+**sphere** (scale 1; `model.ts` L75–86)
+- Default: a Fibonacci sphere. For i = 0…count−1: `y = 1 − 2(i+0.5)/count`, `r = sqrt(1 − y²)`, `θ = i·GOLDEN` with `GOLDEN = π(3 − √5)` (`model.ts` L24), point `[r·cos θ, y, r·sin θ]`.
+- `background-spiral`: `arms(count)` (`model.ts` L60–73), 8 arms:
   - `g = sqrt(4π/count)`, `along = 0.6g`;
   - for arm m = 0…7: `room = m ? (m & −m) : 8`, `lim = min(85°, acos(min(1, g·8/(2π·room))))`;
   - lat runs from `−lim + ((m·0.618) mod 1)·along` to `lim`, stepping `along / sqrt(1 + cos²(lat))`;
@@ -206,7 +255,7 @@ Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for 
 - Default: `gap = sqrt(4π²·RING·TUBE/count)`, `nv = max(3, round(2π·TUBE/gap))` tube rings. Ring j (`v = 2πj/nv`) holds `nu = max(3, round(2π(RING + TUBE·cos v)/gap))` points at `u = ((i + (j mod 2)/2)/nu)·2π`.
 - `background-spiral`: 6 strands, 3 turns. `v = (k/6)·2π + 3u`; u advances by `along / hypot(RING + TUBE·cos v, TUBE·3)` with `along = 0.6·sqrt(4π/count)`, until u reaches 2π.
 
-**Computed counts.** These were produced by transpiling and running the 9bef3b1 `buildInput` (code outputs, not live measurements). Look `working`, density 1, dotSize 1:
+**Computed counts.** These were produced by running the eef45fa `buildInput` with `npx tsx` (code outputs, not live measurements; identical to the 9bef3b1 values because `shapes.ts` is byte-identical and `model.ts` only changed `lookId`). Look `working`, density 1, dotSize 1:
 
 | Shape | count @ size 96 (asked 384) | R @ 96 | count @ size 320 (asked 1280) | background-spiral count @ 96 |
 |---|---|---|---|---|
@@ -216,14 +265,14 @@ Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for 
 | tetrahedron | 394 | 46.08 | 1252 | 163 |
 | torus | 374 | 46.08 | 1265 | 396 |
 
-## 7. Renders (`src/orb/draw.ts`; per-point data from `simulate.ts` L387–418)
+## 7. Renders (`src/demos/yogesh-thinking-orbs/orb/draw.ts`; per-point data from `simulate.ts` L393–424)
 
-**No shaders, gradients, blurs or blend modes exist in the orb.** `draw.ts` only calls `Skia.Paint()`, `setAntiAlias(true)`, `setColor`, `setAlphaf`, `setStyle`, `setStrokeWidth`, `setStrokeCap`, `drawCircle`, `drawRect`, `drawLine` and `drawPath`. Nothing under `src/orb/` uses `RuntimeEffect`, `Shader`, `Gradient`, `BlendMode` or blur. The only per-mark "uniforms" are the radius `r` and alpha `a`, which `step()` computes each frame.
+**No shaders, gradients, blurs or blend modes exist in the orb.** `draw.ts` only calls `Skia.Paint()`, `setAntiAlias(true)`, `setColor`, `setAlphaf`, `setStyle`, `setStrokeWidth`, `setStrokeCap`, `drawCircle`, `drawRect`, `drawLine` and `drawPath`. Nothing under `src/demos/yogesh-thinking-orbs/orb/` uses `RuntimeEffect`, `Shader`, `Gradient`, `BlendMode` or blur. The only per-mark "uniforms" are the radius `r` and alpha `a`, which `step()` computes each frame.
 
 - **One base colour per orb** (L22–25): `const base = Skia.Color(Float32Array.of(r, g, b, a)); paint.setColor(base);`. The floats come from `colorToRgba` (§12).
 - **Per-mark alpha:** `paint.setAlphaf(Math.min(1, a_mark) * rgba.a)` (L108). Marks with `a_mark < 0.005` are skipped (L107).
 - `minR(r) = Math.max(0.45, r)` (L10–13).
-- Per-point buffer layout: `dots[i*6 + 0..5] = [px, py, r, a, dx, dy]` (`simulate.ts` L389–395), where `dx = z1` and `dy = −(vx·sin pitch)` give the dash direction.
+- Per-point buffer layout: `dots[i*6 + 0..5] = [px, py, r, a, dx, dy]` (`simulate.ts` L395–401), where `dx = z1` and `dy = −(vx·sin pitch)` give the dash direction.
 
 | Render | Flat | Drawing (draw.ts lines) |
 |---|---|---|
@@ -231,33 +280,33 @@ Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for 
 | `squares` | no | Fill; `h = minR(r)·0.9`; `drawRect(XYWHRect(x−h, y−h, 2h, 2h))` (L111–113) |
 | `dashes` | no | Stroke + round cap (L93–96); `rr = minR(r)`; `(ux, uy) = (dx, dy)/hypot(dx, dy)·rr·1.8` (hypot 0 → 1); width `max(0.5, rr·0.9)`; line `(x−ux, y−uy) → (x+ux, y+uy)` (L114–122) |
 | `crosses` | no | Stroke + round cap; `h = rr·1.4`; width `max(0.5, rr·0.7)`; one horizontal and one vertical line through (x, y) (L123–128) |
-| `mesh` | no | Edges first, with a second paint: Stroke, width `max(0.35, input.rs·0.6)`, alpha `0.85·min(a_i, a_j)·rgba.a` (skipped below 0.005), one `drawLine` per pair (L76–91). Then joints: Fill, `drawCircle(x, y, minR(r)·0.4)` (L129–130). Pairs are the unique 3-nearest neighbours (`model.ts` L148–161). |
+| `mesh` | no | Edges first, with a second paint: Stroke, width `max(0.35, input.rs·0.6)`, alpha `0.85·min(a_i, a_j)·rgba.a` (skipped below 0.005), one `drawLine` per pair (L76–91). Then joints: Fill, `drawCircle(x, y, minR(r)·0.4)` (L129–130). Pairs are the unique 3-nearest neighbours (`model.ts` L150–163). |
 | `halftone` | yes | For each grid cell k of g×g: `rad = toneAt(local, k, cell)`; skip `rad < 0.3`; alpha `rgba.a`; `drawCircle(((k mod g)+0.5)·cell, (floor(k/g)+0.5)·cell, rad)` (L34–42) |
 | `lines` | yes | One filled path per row j: `v = (j+0.5)·cell`; for k, `u = (k+0.5)·cell`, `h = 0.8·toneAt(j·g + k)`; `moveTo(0, v)`, then the top points `(u, v−h)`, `lineTo(size, v)`, the bottom points `(u, v+h)` in reverse, `close()`; Fill at alpha `rgba.a` (L44–72) |
 | `verticalLines` | yes | The same transposed: tone index `k·g + j`, points `(v∓h, u)`, from `(v, 0)` to `(v, size)` (L44–72) |
 
-**Tone grid** (flat renders only; `simulate.ts` L396–418, L422–427). Each projected point splats bilinearly into the 4 surrounding cells. With `fx = px/cell − 0.5`, `fy = py/cell − 0.5` and weight f:
+**Tone grid** (flat renders only; `simulate.ts` L402–424, L428–433). Each projected point splats bilinearly into the 4 surrounding cells. With `fx = px/cell − 0.5`, `fy = py/cell − 0.5` and weight f:
 - `ink[idx] += a·r·f·(0.4 + 0.6a) / rs`
 - `hits[idx] += a·f`
 - `toneAt(k) = hits ? 0.5·cell·min(1, ((ink/hits)·min(1, hits/0.3)) / 2.2) : 0`
 
-Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L162, L179). Flat renders force the tilt term of pitch to 0 (`simulate.ts` L159), and the working ring uses `vy` as its coordinate on flat renders (L338).
+Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L164, L181). Flat renders force the tilt term of pitch to 0 (`simulate.ts` L165), and the working ring uses `vy` as its coordinate on flat renders (`simulate.ts` L344).
 
-## 8. Geometry and sizing (`buildInput`, `src/orb/model.ts` L115–182)
+## 8. Geometry and sizing (`buildInput`, `src/demos/yogesh-thinking-orbs/orb/model.ts` L117–184)
 
-- `state = lookId(opts.state, opts.variant)` (L124).
-- `dens = state === "background" ? 1 : 4` (L126). Only plain `background` gets the sparse density; `background-spiral` uses 4.
-- `asked = max(8, round(size·dens·density))` (L127).
-- `R = (size/2)·0.8·(form?.scale ?? 1)` (L129–130).
-- `rs = (size/64)^0.6 · (0.72·sqrt(4/dens)) · dotSize` (L131). This is the base mark radius.
-- `count = points.length`. Points go into a `Float64Array` (L133–139; the L98 comment: Float64 "so near-ties in the walker match the npm numbers").
-- Reasoning looks (count > 1): 24 nearest neighbours per point (`REACH = 24`, L109), stored in a `Float32Array` with −1 in empty slots (L140–147).
-- Mesh: unique 3-nearest pairs (L148–161).
-- `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (L162, L179).
-- `key = "${state}|${shape}|${render}|${size}|${density}|${dotSize}"` (L164). A changed key or point count re-creates the per-orb state (`OrbView.tsx` L189–193).
-- The input is memoised on `[state, variant, size, density, dotSize, shape, render]` (`OrbView.tsx` L164–167, L215–218). **`speed`, `tilt` and `color` never rebuild geometry.**
+- `state = lookId(opts.state, opts.variant)` (L126). Since eef45fa `lookId` returns `resolveLook(state, variant)` (`model.ts` L112–115, `orbProps.ts` L82–89), so `state` is always one of the 15 known ids (§5).
+- `dens = state === "background" ? 1 : 4` (L128). Only plain `background` gets the sparse density; `background-spiral` uses 4.
+- `asked = max(8, round(size·dens·density))` (L129).
+- `R = (size/2)·0.8·(form?.scale ?? 1)` (L131–132).
+- `rs = (size/64)^0.6 · (0.72·sqrt(4/dens)) · dotSize` (L133). This is the base mark radius.
+- `count = points.length`. Points go into a `Float64Array` (L134–141; the L99 comment: Float64 "so near-ties in the walker match the npm numbers").
+- Reasoning looks (count > 1): 24 nearest neighbours per point (`REACH = 24`, L110), stored in a `Float32Array` with −1 in empty slots (L142–149).
+- Mesh: unique 3-nearest pairs (L150–163).
+- `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (L164, L181).
+- `key = "${state}|${shape}|${render}|${size}|${density}|${dotSize}"` (L166). The frame callback now keys the per-orb state with `${input.key}@${tune.speed}` (`OrbView.tsx` L278): a changed key, a changed speed or a changed point count re-creates the per-orb state with `makeLocal` (`OrbView.tsx` L277–283). (On 9bef3b1 the speed was not part of this key.)
+- The input is memoised on `[state, variant, size, density, dotSize, shape, render]` (`OrbView.tsx` L230–233). **`speed`, `tilt` and `color` never rebuild geometry.**
 
-**Computed sizing** (sphere, dots, density 1, dotSize 1; executed from the 9bef3b1 code; cells are `count | rs | g`):
+**Computed sizing** (sphere, dots, density 1, dotSize 1; re-run with `npx tsx` against the eef45fa code, same values as 9bef3b1; cells are `count | rs | g`):
 
 | look | size 20 | size 24 | size 96 | size 320 |
 |---|---|---|---|---|
@@ -269,66 +318,64 @@ Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L16
 - Mesh pairs (working, sphere): 675 at size 96, 2391 at size 320.
 - Density at size 320: 0.25 gives 320 points; 3 gives 3840.
 
-**Sizes the host site uses** (host choices; reproduce them for the same visual contexts):
-- Landing cards: **96** (`app/index.tsx` L415–422), centred in a 224-tall well (L413).
-- Header brand orb: **20**, look `base` (`src/components/Header.tsx` L271).
-- Chat status orbs: **20** (`src/components/Chat.tsx` L101, L115).
-- Playground stage: `shown = min(size, wide ? maxOrb : min(maxOrb, max(96, width − 32)))`, with `maxOrb = max(96, height − headerH − 120)` and `headerH = width ≥ 768 ? 48 : 72` (`app/playground.tsx` L84–86); default size 320 (L69).
-- Playground status mini-orb: **24** (`app/playground.tsx` L311–323).
+**Sizes the store hosts use at eef45fa** (host choices; reproduce them for the same visual contexts):
+- Effects card (`Showcase.tsx`, the reference host in §15): one orb at the card's `size` field, default **320** (`Showcase.tsx` L19), changed by a Size slider 16–480, step 1 (L97).
+- Orb Creator card (`Tuner.tsx`, covered by `AGENT_PROMPT_ORB_CREATOR.md`): stage orb `size={shown}` with `shown = min(size, wide ? maxOrb : min(maxOrb, max(96, width − 32)))`, `maxOrb = max(96, windowH − headerH − 120)`, `headerH = width ≥ 768 ? 48 : 72` (`Tuner.tsx` L73–75), default size 320 (L59); and a **24** px status orb (L400–412).
 
-## 9. Time: the shared clock (`src/orb/clock.ts` L1–26; call site `OrbView.tsx` L181–195)
+## 9. Time: the shared clock (`orb/clock.ts` L1–26; call site `OrbView.tsx` L269–285)
 
-- `clocks = makeMutable<Record<string, Clock>>({})` (L10). One global map, shared by every orb on the page.
-- The key is `look = \`${input.state}@${tune.speed}\`` (`OrbView.tsx` L186). Every orb with the same look id **and** the same speed shares one clock, so their phases stay in sync.
-- `tick(look, now, speed)` (L12–26):
+- `clocks = makeMutable<Record<string, Clock>>({})` (`clock.ts` L10). One global map, shared by every orb on the page.
+- The key is `clockKey = \`${input.state}@${tune.speed}\`` (`OrbView.tsx` L274). Every orb with the same look id **and** the same speed shares one clock, so their phases stay in sync.
+- `tick(look, now, speed)` (`clock.ts` L12–26):
   - first call: `{ t: 0, last: now }`;
   - then, if `now > last`: `t += min(now − last, 100) · speed`, and `last = now`.
-  - So it is **forward-only, the frame gap is capped at 100 ms, and t is in milliseconds scaled by speed**. Several orbs calling in the same frame advance it only once, because `now` equals `last` after the first call.
-- `now = frame.timestamp` from Reanimated `useFrameCallback` (`OrbView.tsx` L187).
-- **Pause behaviour.** An inactive orb (`active = false`) returns before calling `tick` (L184), so the clock does not advance for it. When it resumes, the jump is capped at 100 ms × speed (unless another orb with the same key kept ticking). The tree's comment (`clock.ts` L6) says "A paused orb must not call this."
-- **Speed changes switch clocks.** A new `speed` value is a new key, which starts a clock at t = 0 (or resumes an existing clock for that key). So changing speed jumps the animation phase. That is what the code does. Whether live behaves the same is **unmeasured**.
-- **Loop behaviour.** No look has an end. Everything is periodic in t: yaw laps per `PERIOD`, plus the per-effect cycles in §11. There is **no crossfade** when the look changes: the input is rebuilt and the local state is reset (`OrbView.tsx` L169–172), and the next frame draws the new look (handoff motion summary: "no crossfade on look change").
-- **Reduced motion.** `StillOrb` paints once at **t = 0**, with `makeLocal(input)` fresh, through `runOnUI` (`OrbView.tsx` L220–229). It has no frame callback and repaints only when its props change.
+  - So it is **forward-only, the frame gap is capped at 100 ms, and t is in milliseconds scaled by speed**. Several orbs calling in the same frame advance it only once.
+- `now = frame.timestamp` from Reanimated `useFrameCallback` (`OrbView.tsx` L275).
+- **Inactive or paused orbs don't tick.** The frame callback returns early when `activeSV` is false (L272), and the callback itself is deactivated with `frameCallback.setActive(running)` (L287–289), where `running = active && !paused && !reduced` (L220). `clock.ts` L6: "A paused orb must not call this." On resume the jump is capped at 100 ms × speed, unless another orb with the same key kept ticking.
+- **Pause holds the frame at the clock's t.** On the render where `paused` turns true (and motion isn't reduced), `OrbCanvas` reads `clocks.value[\`${built.state}@${tune.speed}\`].t` into `heldT` and keeps the current picture (L251–259). Later prop edits while paused repaint one frame at that held t (L260–266; §13.3).
+- **Speed changes switch clocks and reset per-orb state.** A new `speed` is a new clock key (start at t = 0 or resume that key's clock), and since eef45fa it is also part of the per-orb state key `${input.key}@${tune.speed}` (L278), so `makeLocal` runs again (reasoning walks restart). Whether live npm behaves the same on a speed change is **unmeasured**.
+- **Loop behaviour.** No look has an end. Everything is periodic in t: yaw laps per `PERIOD` (or 6500 via `periodOf`), plus the per-effect cycles in §11. There is **no crossfade** when the look changes: the input is rebuilt and the local state reset (L235–238), and the next frame draws the new look.
+- **Reduced motion** paints one frame at **t = 0** from props with a fresh `makeLocal` (L247–267), and repaints whenever a prop changes (§13.4).
 
-## 10. Camera and projection (`src/orb/simulate.ts` L146–173, L290–305, L381–395)
+## 10. Camera and projection (`src/demos/yogesh-thinking-orbs/orb/simulate.ts` L152–179, L296–311, L387–401)
 
 ### 10.1 Per-frame camera
-- `yaw = yawOf(state, t)` (L157). By default that is `(t / PERIOD[state]) · 2π` (L70): one full turn per PERIOD ms at speed 1.
-- `gyro = state === "working-gyro" ? (t/5000)·2π : −1` (L158).
-- `pitch = ((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10·cos(gyro))) · π/180` (L159).
-  - `tip` is 35 for the torus and 0 otherwise (`model.ts` L168).
+- `yaw = yawOf(state, t)` (L163). By default that is `(t / periodOf(state)) · 2π` (L76), where `periodOf` returns `PERIOD[state]`, or **6500** when the id has no entry (L62–67, the NaN guard added in eef45fa): one full turn per PERIOD ms at speed 1.
+- `gyro = state === "working-gyro" ? (t/5000)·2π : −1` (L164).
+- `pitch = ((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10·cos(gyro))) · π/180` (L165).
+  - `tip` is 35 for the torus and 0 otherwise (`model.ts` L170).
   - `flat` is true for halftone, lines and verticalLines.
-- `roll = gyro < 0 ? 0 : 12·sin(gyro) · π/180` (L160).
+- `roll = gyro < 0 ? 0 : 12·sin(gyro) · π/180` (L166).
 
 ### 10.2 working-gyro
-Pitch wobbles ±10° and roll ±12° on a **5000 ms** cycle (L158–160). The twist is `tw = 0.5·sin((t/2600)·2π)` (L255–256, see §11.8).
+Pitch wobbles ±10° and roll ±12° on a **5000 ms** cycle (L164–166). The twist is `tw = 0.5·sin((t/2600)·2π)` (L261–262, see §11.8).
 
 ### 10.3 Retrying yaw
-- **`retrying`:** `yaw = rewind(2t, 2π/9000)` (L64; `rewind` at L42–60). It uses a 3200 ms cycle `P` in the doubled time `2t`, which is 1600 ms of real time at speed 1. With `u = t' mod 3200` and `w = 2π/9000`:
+- **`retrying`:** `yaw = rewind(2t, 2π/9000)` (L70; `rewind` at L42–60). It uses a 3200 ms cycle `P` in the doubled time `2t`, which is 1600 ms of real time at speed 1. With `u = t' mod 3200` and `w = 2π/9000`:
   - `u < 2000`: `a = u·w` (linear spin);
   - `2000 ≤ u < 2200`: `x = (u−2000)/200`, `a = (2000 + 200(x − x²/2))·w` (brake);
   - `2200 ≤ u < 3000`: `a = 2100w − back·spring((u−2200)/800)`, with `back = 0.6·2100·w` and `spring(x) = 1 − e^(−4.5x)·cos(3πx) − x·e^(−4.5)` (L19–22) (wind back 60%);
   - `u ≥ 3000`: `x = (u−3000)/200`, `a = 2100w − back + 100x²·w` (re-accelerate);
   - net advance per cycle: `fwd − back`, where `fwd = (2000+100+100)·w`; `yaw = k·(fwd − back) + a`.
-- **`retrying-surge`:** `turns = t/3250`, `u = frac(turns)`, `yaw = (floor(turns) + (1 − (1−u)³))·2π` (L65–69). That is one turn per **3250 ms**, with a cubic ease-out on each turn.
+- **`retrying-surge`:** `turns = t/3250`, `u = frac(turns)`, `yaw = (floor(turns) + (1 − (1−u)³))·2π` (L71–75). That is one turn per **3250 ms**, with a cubic ease-out on each turn.
 
-### 10.4 Per-point transform (L290–305)
+### 10.4 Per-point transform (L296–311)
 For model point (x, y, z):
-- `turn = yaw + TWIST·tw·y`, with `TWIST = 1.4` (L80, L294). Use `ly = sin(turn)` and `lc = cos(turn)` when `tw ≠ 0`; otherwise use `sin(yaw)` and `cos(yaw)`.
+- `turn = yaw + TWIST·tw·y`, with `TWIST = 1.4` (L86, L300). Use `ly = sin(turn)` and `lc = cos(turn)` when `tw ≠ 0`; otherwise use `sin(yaw)` and `cos(yaw)`.
 - `z1 = −x·ly + z·lc`, `vx = x·lc + z·ly`, `vy = y·cos(pitch) − z1·sin(pitch)`, `vz = y·sin(pitch) + z1·cos(pitch)`.
-- **Depth:** `d = (vz + 1)/2`, `r = (0.5 + 1.4d)·rs`, `a = max(0, (d − 0.3)/0.7)` (L303–305). Back-facing points fade out, and front points are up to 1.9× rs.
+- **Depth:** `d = (vz + 1)/2`, `r = (0.5 + 1.4d)·rs`, `a = max(0, (d − 0.3)/0.7)` (L309–311). Back-facing points fade out, and front points are up to 1.9× rs.
 - Effects (§11) then modify vx, vy, r and a.
-- Roll, when non-zero, rotates (vx, vy) by `roll` (L381–386).
-- **Screen:** `px = c + vx·R`, `py = c − vy·R`, with `c = size/2` (L387–388).
+- Roll, when non-zero, rotates (vx, vy) by `roll` (L387–392).
+- **Screen:** `px = c + vx·R`, `py = c − vy·R`, with `c = size/2` (L393–394).
 
-## 11. Per-state animation (`src/orb/simulate.ts`)
+## 11. Per-state animation (`src/demos/yogesh-thinking-orbs/orb/simulate.ts`)
 
 Helpers: `ease(x) = (1 − cos πx)/2` (L10–13), `hash(n) = frac(sin(n·127.1)·43758.5453)` (L14–18), `spring(x)` (L19–22). The time **t is in clock ms** (§9), so at speed s every duration below is divided by s in real time. "Lit" means `r *= 1 + k·g` and `a += (1 − a)·g` for some weight g.
 
 ### 11.1 base
 No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
 
-### 11.2 searching: lens (L83–107, L254, L306–320)
+### 11.2 searching: lens (L89–113, L260, L312–326)
 - `LENS_MS = 1800`, `MOVE = 0.4`, `LENS = 0.6` rad.
 - Every 1800 ms the lens hops from `spot(k)` to `spot(k+1)`. It moves during the first 40% of each hop with `e = (1 − cos(π·u/0.4))/2`, then holds.
 - `spot(k)`: `phi = 2.45k + 1.5·hash(k)`, `theta = (15 + 30·hash(k+0.5))°`, giving the unit vector `[sin θ cos φ, sin θ sin φ, cos θ]`. The lens sits 15–45° off the view axis.
@@ -338,7 +385,7 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
   - If w > 0: `vx, vy *= 1 + 0.12w`; `vx += (vx − lens.x)·0.35w`, same for vy; `r *= 1 + 0.9w`; `a += (1 − a)·w`.
 - Yaw lap 13000 ms.
 
-### 11.3 compacting and compacting-fuse: sweep (L257–275, L321–334)
+### 11.3 compacting and compacting-fuse: sweep (L263–281, L327–340)
 - Cycle **2800 ms**: `u = (t mod 2800)/2800`.
 - The sweep line moves `sweepAt = −1.15 + 2.3·min(1, u/0.7)` across screen-x during the first 70%. `sweepHold = 1` for `u < 0.7`, otherwise `release(s)` with `s = (u − 0.7)/0.3`:
   - compacting: `s < 0.45 → 1 − 1.25·ease(s/0.45)`; `s < 0.7 → −0.25·(1 − (s−0.45)/0.25)²` (an undershoot past loose); after that 0;
@@ -351,7 +398,7 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
   - Burn line `gg = exp(−((q − sweepAt)/0.08)²)·max(0, sweepHold)·min(1, d/0.5)`, then `r *= 1 + 0.8gg`, `a += (1 − a)·gg`.
 - Yaw lap 10000 ms.
 
-### 11.4 working: ring (L73–79, L335–346)
+### 11.4 working: ring (L79–85, L341–352)
 - Cycle **1700 ms**: `u = t mod 1700`.
 - The ring position is `at = 1.3 − 2.6·ease(min(1, u/1200))`. It travels down over **1200 ms**, then rests for 500 ms.
 - Ring coordinate: `q = flat ? vy : dot(v, RING_AXIS)`.
@@ -360,7 +407,7 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
 - Passed points: `w = clamp01((q − at)/0.2)·(u < 1200 ? 1 : 1 − min(1, 1.6·(u−1200)/800))`, then `vx, vy *= 1 − 0.08w`, `r *= 1 − 0.15w`.
 - Yaw lap 3000 ms.
 
-### 11.5 searching-lighthouse: beam (L81–82, L347–359)
+### 11.5 searching-lighthouse: beam (L87–88, L353–365)
 - `a *= 0.5` (base dim).
 - `LEAN = 30°`. `across = vx·cos(LEAN) − vy·sin(LEAN)`, `toward = −sin(pitch)·(vx·sin(LEAN) + vy·cos(LEAN)) + cos(pitch)·vz`.
 - Beam angle: `off = atan2(across, toward) − ((t/2500 mod 1)·2π − π)`, a **2500 ms** lap. `dphi` is `off` wrapped to (−π, π].
@@ -368,7 +415,7 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
 - `gg = beam·(0.25 + 0.75·clamp01((d − 0.4)/0.3))`, then `r *= 1 + 0.6gg`, `a += (1 − a)·gg`.
 - Yaw lap 13000 ms.
 
-### 11.6 reasoning and reasoning-twins: walking sparks (L86–88, L178–248, L360–367)
+### 11.6 reasoning and reasoning-twins: walking sparks (L92–94, L184–254, L366–373)
 - `HOP = 220` ms per hop, `TAIL = 5`, `WALK = 16` (walk history length).
 - **Start:** walk 0 begins at the point most facing the camera, `facing(k) = y·sin(pitch) + (−x·sin(yaw) + z·cos(yaw))·cos(pitch)`. Twins' walk 1 begins at the point maximising `facing + squared distance to walk 0's start`.
 - **Each hop:** among the 24 precomputed nearest neighbours of the walk's head, skip any visited in the last 8 steps, and pick the one with the best score `facing(k) + 0.35·hash(hop·31 + j + w·977) + apart`. For twins, `apart = 1.2·min(dist to the other head, 0.8)`; for a single walk it is 0.
@@ -380,7 +427,7 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
 - Yaw lap 6500 ms.
 - The walk state is per orb instance (`OrbLocal`) and depends on history, so two reasoning orbs mounted at different times can show different paths even when they share a clock.
 
-### 11.7 waiting: comet (L250–253, L368–380)
+### 11.7 waiting: comet (L256–259, L374–386)
 - `head = (t/2000)·2π + yaw`: the head laps in **2000 ms** relative to the yaw.
 - `ahead = 2π/2000 + 2π/PERIOD`.
 - `headLat(tt) = 70°·(1 − 2·((tt mod 6000)/6000))`: the head drifts from 70° N to 70° S over **6000 ms**.
@@ -390,10 +437,10 @@ No effect beyond depth: a plain spin, one yaw lap per **6500 ms**.
   - `w = glow·gg^0.6`; `a = 0.5a + (1 − 0.5a)·w`; `r *= 1 + 1.1w`.
 - Yaw lap 13000 ms.
 
-### 11.8 Twist: working-gyro and compacting-squeeze (L255–256, L294–296)
+### 11.8 Twist: working-gyro and compacting-squeeze (L261–262, L300–302)
 - `tw = 0.5·sin((t/2600)·2π)` for working-gyro, and `sin((t/2600)·2π)` for compacting-squeeze, on a **2600 ms** cycle.
 - Each point's yaw becomes `yaw + 1.4·tw·y`, so the top and bottom wring in opposite directions.
-- compacting-squeeze has **no** sweep: `compacting` is only true for `compacting` and `compacting-fuse` (L257).
+- compacting-squeeze has **no** sweep: `compacting` is only true for `compacting` and `compacting-fuse` (L263).
 
 ### 11.9 background and background-spiral
 No per-frame effect. `background` uses `dens = 1`, giving fewer and bigger marks (§8). `background-spiral` uses spiral layouts (§6). Both have a yaw lap of 13000 ms.
@@ -417,9 +464,9 @@ No per-frame effect. `background` uses `dens = 1`, giving fewer and bigger marks
 
 No Reanimated `withTiming`/`withSpring` or bezier easing is used anywhere in the orb. All motion is the closed-form maths above, evaluated per frame.
 
-## 12. Colour (`src/color/color.ts`; `src/orb/OrbView.tsx` L26–47)
+## 12. Colour (`color/color.ts`; `OrbView.tsx` L38–59)
 
-### 12.1 What `color` accepts (`parseColor`, color.ts L170–226)
+### 12.1 What `color` accepts (`parseColor`, `color.ts` L175–231)
 Input is trimmed and lower-cased, then matched against:
 - `transparent` → `{l:0, c:0, h:0, a:0}`;
 - hex `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa` (sRGB);
@@ -428,278 +475,246 @@ Input is trimmed and lower-cased, then matched against:
 - `hsl()` / `hsla()`, with S and L required as %;
 - `color(display-p3 R G B [/ A])`, space syntax only.
 
-Anything else returns `null`. **`OrbView` then paints opaque white** (`OrbView.tsx` L43–44). Internally colour is held as OKLCH `{l, c, h, a}` with l and a clamped to 0–1, c ≥ 0, and h in 0–360.
+Anything else returns `null`, and **`OrbView` then paints opaque white** (`OrbView.tsx` L55–56). Internally colour is OKLCH `{l, c, h, a}` with l and a clamped to 0–1, c ≥ 0, h in 0–360.
 
 ### 12.2 Conversion to paint floats
-- `toSrgb(c)` (L139–143): clamp chroma into the **sRGB** gamut (20-step bisection, `clampChroma` L90–100), convert OKLCH → gamma sRGB, and clamp each channel to 0–1.
-- `toExtendedSrgb(c)` (L145–149): clamp chroma into the **Display P3** gamut, then convert to gamma sRGB **without** clamping. Channels can fall outside 0–1, which is how P3 colours are encoded on an sRGB-referenced paint.
-- `colorToRgba` uses `toExtendedSrgb` only when `canUseExtendedColor()` is true; otherwise it uses `toSrgb` (OrbView L42–47).
-- Matrices: OKLab per the CSS Color 4 values hard-coded in color.ts L30–59 (M_SRGB … M_LMS_OK). The transfer function is the sRGB piecewise curve (L25–28).
+- `toSrgb(c)` (`color.ts` L144–148): clamp chroma into the **sRGB** gamut (20-step bisection, `clampChroma` L90–100), convert OKLCH → gamma sRGB, clamp each channel to 0–1.
+- `toExtendedSrgb(c)` (L150–154): clamp chroma into the **Display P3** gamut, then convert to gamma sRGB **without** clamping. Channels can fall outside 0–1.
+- `colorToRgba` uses `toExtendedSrgb` only when `canUseExtendedColor()` is true; otherwise `toSrgb` (`OrbView.tsx` L54–59).
+- Matrices: the OKLab values hard-coded in `color.ts` L30–59. The transfer function is the sRGB piecewise curve (L25–28).
+- New exports at eef45fa, used only by the creator's colour field: `srgbGammaToDisplayP3` (L120–123, renamed from the private `srgbToDisplayP3`) and `displayP3GammaToSrgb` (L125–128). The orb doesn't call them.
 
-### 12.3 Platform behaviour (`canUseExtendedColor`, OrbView L36–40; patch §3.2)
+### 12.3 Platform behaviour (`canUseExtendedColor`, `OrbView.tsx` L48–52)
 
-| Platform | Surface | Paint input | Result |
+| Platform | Surface | Paint input | Status at eef45fa |
 |---|---|---|---|
-| Web (desktop target) | WebGL surface in **DISPLAY_P3** when `matchMedia("(color-gamut: p3)")` matches, else **SRGB** (patched `webglSurfaceColorSpace()`) | extended-sRGB `Float32Array` floats, unclamped | P3 colours paint at full gamut on P3 displays; Skia converts sRGB-referenced floats onto the surface |
-| iOS native/dev build | `<Canvas colorSpace="p3">` | floats via patched `JsiSkPaint::setColor` → `setColor4f` | extended colour kept. **Unverified: iOS was never booted.** |
-| iOS Expo Go (`ExecutionEnvironment.StoreClient`) | unpatched binary | `toSrgb` (clamped) | sRGB only |
-| Android | GL surface with null colour space; `setColorSpace` is a no-op in Skia 2.6.2 | `toSrgb` (clamped) | always sRGB. Unverified on 9bef3b1 (last checked on round 9.6/9.7) |
-
-The prod bundle contains `DISPLAY_P3` (Ship smoke on 9bef3b1, bundle `index-f8b421c2`).
+| Web (desktop target) | stock `@shopify/react-native-skia` 2.6.2 WebGL surface (no patch; software surface if WebGL is missing, §3.3); the canvas is created with `colorSpace="p3"` (`OrbView.tsx` L155) | extended-sRGB floats, unclamped (`canUseExtendedColor()` is true) | **The P3 canvas look is unverified on a real GPU and Safari** (gap 5, §16). Which colour space the stock web surface uses is not established from this tree. |
+| iOS native | `<Canvas colorSpace="p3">` | extended floats (true except Expo Go) | **Unverified.** The `OrbView.tsx` comment at L38–47 still says the iOS path relies on a postinstall patch to `cpp/api/JsiSkPaint.h` that calls `setColor4f`, but **that patch is not in eef45fa** (§3.1). The same comment says stock Skia packs `r*255` with no clamp, so a component above 1 paints black. Mobile is a known gap. |
+| iOS Expo Go (`StoreClient`) | unpatched binary | `toSrgb` (clamped) | sRGB only; unverified |
+| Android | GL surface | `toSrgb` (clamped) | sRGB only; unverified |
 
 ### 12.4 Light and dark
-**The orb has no theme logic.** It paints exactly the `color` it's given, on a transparent canvas. The colours the host site passes are:
+**The orb has no theme logic.** It paints exactly the `color` it's given, on a transparent canvas.
+- The Effects card passes `color={colors.orb}` (`Showcase.tsx` L94): **`#ffffff`** in dark (`theme.tsx` L39), **`#171717`** in light (L60).
+- The theme starts dark (`theme.tsx` L134) and **no component in eef45fa calls `toggle`** (L150–155), so the store cards are dark-only in practice. Light values are listed because they are in the code.
+- Computed paint floats (re-run with `npx tsx` against eef45fa `color.ts`; identical to 9bef3b1):
+  - `#ffffff` → (1, 1, 1); `#fafafa` → (0.98039, 0.98039, 0.98039); `#171717` → (0.0902, 0.0902, 0.0902);
+  - `color(display-p3 1 0 0)` → toSrgb (1, 0.20346, 0.15875), toExtendedSrgb (1.09307, −0.22674, −0.15013);
+  - `oklch(0.7 0.3 30)` → toSrgb (1, 0.39623, 0.3182), toExtendedSrgb (1.08422, 0.27728, 0.19679).
 
-| Where | Dark | Light | Cite |
-|---|---|---|---|
-| Landing cards, header brand orb, chat orbs | `colors.fg` = **`#fafafa`** | `colors.fg` = **`#0a0a0a`** | `app/index.tsx` L260, L325 (`color={colors.fg}`); `Header.tsx` L271; `Chat.tsx` L101, L115; palette `src/theme/theme.tsx` L30 (dark fg), L51 (light fg) |
-| Playground default orb colour (`colors.orb`) | **`#ffffff`** | **`#171717`** | `src/theme/theme.tsx` L37 (dark `orb`), L58 (light `orb`) |
-
-Playground theme rule (`theme.tsx` L113–140):
-- Toggling the theme swaps the playground colour between `#ffffff` and `#171717` only while it still equals the previous mode's default. A custom colour survives the toggle.
-- A route change resets the mode to dark and maps either default back to `#ffffff`.
-
-Computed paint floats (from the 9bef3b1 colour code):
-- `#ffffff` → (1, 1, 1)
-- `#fafafa` → (0.98039, 0.98039, 0.98039)
-- `#171717` → (0.0902, 0.0902, 0.0902)
-- `#0a0a0a` → 10/255 = 0.03922 per channel (derived; sRGB greys are exact)
-- `color(display-p3 1 0 0)` → toSrgb (1, 0.20346, 0.15875), toExtendedSrgb (1.09307, −0.22674, −0.15013)
-- `oklch(0.7 0.3 30)` → toSrgb (1, 0.39623, 0.3182), toExtendedSrgb (1.08422, 0.27728, 0.19679)
-
-## 13. Render pipeline per frame (`src/orb/OrbView.tsx`)
+## 13. Render pipeline (`OrbView.tsx`)
 
 ### 13.1 Mount
-1. `usePicture()` (L55–61) creates a blank 1×1 recorded picture (L49–53) as the initial `SharedValue<SkPicture>`, plus `retire = SharedValue<SkPicture|null>(null)`.
-2. `LiveOrb` (L136–198) creates the shared values `inputSV`, `localSV`, `activeSV` and `fallback` (`OrbLive` from props, L155–162).
-3. `built = useMemo(buildInput(...))` (L164–167). An effect writes `inputSV.value = built` and `localSV.value = null` (L169–172).
-4. An effect writes `activeSV`, and, when there is no `live`, it also writes `fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) }` (L174–179).
+1. `usePicture()` (L67–73) makes a blank 1×1 recorded picture (`blankPicture`, L61–65) the initial `SharedValue<SkPicture>`, plus `retire = useSharedValue<SkPicture | null>(null)`.
+2. `OrbCanvas` (L198–296) creates `inputSV` and `localSV` (both null), `activeSV = useSharedValue(running)`, and `fallback = useSharedValue<OrbLive>({ size, speed, density, dotSize, tilt, ...colorToRgba(color) })` (L217–229).
+3. `built = useMemo(() => buildInput({ state, variant, size, density, dotSize, shape, render }), [...same 7])` (L230–233). An effect writes `inputSV.value = built; localSV.value = null` (L235–238).
+4. A layout effect writes `activeSV.value = running`, and, when there is no `live`, also `fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) }` (L240–245).
+5. The still-frame layout effect (L247–267) runs; see §13.3 and §13.4.
+6. `frameCallback.setActive(running)` (L287–289).
 
-### 13.2 Every frame (UI thread worklet, `useFrameCallback(…, true)` L181–195)
-1. Return early if there's no input or `activeSV` is false.
-2. `tune = live ? live.value : fallback.value`.
-3. `t = tick(\`${input.state}@${tune.speed}\`, frame.timestamp, tune.speed)`.
-4. If `local` is missing, `local.key !== input.key`, or `local.dots.length !== input.count·6`, then `local = makeLocal(input)` (`simulate.ts` L119–136: walks, hops 0, ink/hits g², dots count·6, lit count).
-5. `paint(picture, retire, input, local, tune, t)` (L82–100):
-   - `step(input, local, t, tune.tilt, 1)` computes the dots buffer and tone grid;
+### 13.2 Every running frame (UI-thread worklet, `useFrameCallback(…, running)` L269–285)
+1. `input = inputSV.value`. Return if there's no input or `activeSV.value` is false (L271–272).
+2. `tune = live ? live.value : fallback.value` (L273).
+3. `t = tick(\`${input.state}@${tune.speed}\`, frame.timestamp, tune.speed)` (L274–276).
+4. `speedKey = \`${input.key}@${tune.speed}\`` (L278). If `local` is missing, or `local.key !== speedKey`, or `local.dots.length !== input.count · 6`, then `local = makeLocal(input); local.key = speedKey; localSV.value = local` (L279–283). `makeLocal` is `simulate.ts` L125–142.
+5. `paint(picture, retire, input, local, tune, t)` (L284; `paint` is L107–125):
+   - `step(input, local, time, tune.tilt, 1)` fills the dots buffer and the tone grid;
    - `recorder = Skia.PictureRecorder()`; `canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, input.size, input.size))`;
    - `drawOrb(canvas, input, local, { r: tune.r, g: tune.g, b: tune.b, a: tune.a })`;
    - `next = recorder.finishRecordingAsPicture()`;
-   - **Rotation:** `old = retire.value; retire.value = picture.value; picture.value = next; old?.dispose()`.
-6. `<Canvas>` (L129–133) draws `<Picture picture={picture}/>`, re-rendered by Skia whenever the shared value changes. There is no React state per frame.
+   - **Rotation:** `old = retire.value; retire.value = picture.value; picture.value = next; if (old) old.dispose()`.
+6. `<Canvas>` (L155–157) draws `<Picture picture={picture} />`. Skia redraws when the shared value changes. **No React state changes per frame.**
 
-### 13.3 What is per-frame and what needs a rebuild
-- **Per frame** (read from `tune` each frame): `speed` (clock rate and clock key), `tilt` (pitch), and `r, g, b, a` (paint).
+### 13.3 Paused (`paused === true`, motion not reduced; L247–267)
+- `wasPaused` and `heldT` are refs (L249–250).
+- On the render where `paused` flips from false to true, it reads `clocks.value[\`${built.state}@${speed}\`]` and stores its `t` in `heldT` (or keeps the old `heldT` if there is no clock), then returns **without painting**. The last running frame stays on screen (L253–259).
+- On later renders while paused, a change to `reduced`, `paused`, `built` (`state`, `variant`, `size`, `density`, `dotSize`, `shape`, `render`), `color`, `density`, `dotSize`, `size`, `speed` or `tilt` repaints **one** frame at `heldT`, using a fresh `makeLocal(input)` and the **props** (not `live`) (L260–266).
+- An orb that **mounts** paused paints one frame at `heldT = 0` (`wasPaused` starts equal to `paused`, so there is no "entered pause" step).
+- The frame callback is inactive (`running` false), so the shared clock isn't ticked by this orb (§9).
+
+### 13.4 Reduced motion (live; L103–105, L220, L247–267)
+- `reduced = useReduceMotion().reduceMotion` (L103–105, L300). `ReduceMotionProvider` (`ReduceMotionContext.tsx` L13–40) reads `AccessibilityInfo.isReduceMotionEnabled()` once on mount (L19–21) **and subscribes to `reduceMotionChanged`** (L22), so toggling the OS setting takes effect without a reload. `reduceMotion = systemReduceMotion || forceReduceMotion` (L31). `setForceReduceMotion` is the store's own override; nothing in this asset calls it.
+- When `reduced` is true, `running` is false (L220): no frame callback, no clock tick. The layout effect paints **one** frame at **t = 0** from the props with a fresh `makeLocal` (L260–266), and repaints on every change of the dependencies above. **So the still orb follows the Size slider** (and any other prop).
+- When `reduced` goes back to false and the orb is active and not paused, the callback is re-activated (L287–289), and the clock resumes where that key left off.
+- On web, RNW's `AccessibilityInfo.isReduceMotionEnabled` / `reduceMotionChanged` follow the `prefers-reduced-motion` media query. That mechanism is react-native-web's; it isn't in this tree.
+
+### 13.5 What is per-frame and what needs a rebuild
+- **Per frame** (read from `tune`): `speed` (clock rate and clock key, plus the per-orb state key), `tilt` (pitch) and `r, g, b, a` (paint).
 - **Rebuild via props** (memoised `buildInput`): `state`, `variant`, `size`, `density`, `dotSize`, `shape`, `render`.
-- `tune.size`, `tune.density` and `tune.dotSize` exist in `OrbLive` but **are not read by `paint`/`step`**. Geometry always comes from `input`. A `live` write of those fields has no visual effect until the props change. The `size` prop also sets the canvas style size (L130).
+- `tune.size`, `tune.density` and `tune.dotSize` exist in `OrbLive` but **are not read by `paint`/`step`**. Geometry always comes from `input`, so a `live` write of those fields has no visual effect until the props change. The `size` prop also sets the box and canvas size (L155, L180, L191).
 
-### 13.4 Unmount, snapshot and focus
-- `CanvasHost` cleanup (L114–128): if `onFrame` is set, it calls `ref.current.makeImageSnapshot()`, `encodeToBase64()` and `dispose()`, then reports `data:image/png;base64,<b64>`. Errors are swallowed (the comment notes the surface may already be gone).
-- `OrbView` returns `null` when the route is unfocused (L235–237), which unmounts the canvas.
+### 13.6 Unmount, snapshot, focus and the host budget
+- `CanvasHost` cleanup (L139–153): if `onFrame` is set, it calls `ref.current.makeImageSnapshot()`, `encodeToBase64()` and `dispose()`, then reports `data:image/png;base64,<b64>`. Errors are swallowed (L150: "The surface can already be gone while the view unmounts.").
+- `OrbView` returns `null` when the route is unfocused (L303), which unmounts the canvas.
+- **Host budget hook:** `OrbView` reads `useSkiaRuntime()` (L301). `mount: false` renders an empty placeholder `View` of `size × size` with no canvas (L304). `running: false` passes `active={false}` (L305): the canvas stays and holds its last frame. The default without a provider is `{ mount: true, running: true }` (`liveBudget.tsx` L22–28). In the store, `DeferredSkiaDemo` provides `{ mount: live, running: live && !hidden }` (store chrome). A standalone host can leave the default or provide its own `SkiaRuntimeContext` value (exported at `liveBudget.tsx` L24).
 
-### 13.5 Canvas budget pattern (host site, `app/index.tsx` L178–216)
-- `fixed = 1 (header) + live chat orb + tasks chat orb`; `budget = max(1, 12 − max(fixed, 3))`, which comes to **9 card canvases**.
-- Cards **mount** within 1 viewport of distance and **stay mounted** within 1.5 viewports. Cards sorted by distance fill the budget.
-- Only cards on screen (`dist === 0`) get `active = true`.
-- Unmounted cards show their last `onFrame` PNG as an `<Image>` of 96×96 (L423–424).
-- Measured on 9bef3b1 (Beta, 1280×800): canvases non-blank, **6 on `/`** and **3 on `/playground`**; 0 console errors.
+## 14. How props drive the orb (no host UI required)
 
-## 14. How controls drive the orb (prop mapping, without the site's UI)
+The orb sees only props, plus the optional `live` SharedValue. Wire any controls you like.
 
-Wire any controls you like (your own selects, sliders, inputs). The orb only sees props, plus the optional `live` SharedValue.
+### 14.1 What the Effects card drives (`Showcase.tsx`)
+| Prop | Source | Values | Cite |
+|---|---|---|---|
+| `state`, `variant` | `PLAYGROUND[index]` | the 15 looks (§5); `index` default 1, in-memory card field `yogesh-thinking-orbs/index` | L18, L22, L94 |
+| `size` | card field `yogesh-thinking-orbs/size` | default 320; Size slider 16–480, step 1, 0 decimals | L19, L94, L97 |
+| `color` | `colors.orb` | `#ffffff` (dark; the only reachable mode in the store, §12.4) | L17, L94 |
+| everything else | omitted | defaults from §4.1: speed 1, density 1, dotSize 1, tilt 20, shape sphere, render dots, active true, paused false; no label, so the orb box is `aria-hidden` | L94 |
 
-### 14.1 Value domains the host playground uses
-These are host choices, recorded so the orb gets the same inputs as on the live site. Source: `app/playground.tsx`.
+The card's stage `View` is also hidden from assistive tech on web (`aria-hidden`, `accessibilityElementsHidden`, `importantForAccessibility="no-hide-descendants"`; L87–93).
 
-| Prop | Control in host | Range | Step | Default | Cite |
-|---|---|---|---|---|---|
-| `state` + `variant` | state list of 15 looks | the 15 look ids (§5) | n/a | Working (index 1) | L63, `cards.ts` L135–151 |
-| `shape` | select | sphere, cube, octahedron, tetrahedron, torus | n/a | `"sphere"` | L39–45, L67 |
-| `render` | select | dots, crosses, dashes, halftone, lines, mesh, squares, verticalLines (labels: Dots, Crosses, Dashes, Halftone, Lines, Mesh, Squares, Vertical Lines) | n/a | `"dots"` | L47–56, L68 |
-| `color` | text/picker | any `parseColor` string (§12.1) | n/a | theme `orb` (`#ffffff` dark / `#171717` light) | `theme.tsx` L116 |
-| `size` | slider | 16–480 | 1 | 320 | L69; slider row "Size" |
-| `speed` | slider | 0.05–3 | 0.05 | 1 | L70; "Speed" |
-| `density` | slider | 0.25–3 | 0.05 | 1 | L71; "Density" |
-| `dotSize` | slider | 0.25–3 | 0.05 | 1 | L72; "Dot Size" |
-| `tilt` | slider | −90–90 | 1 | 20 | L73; "Tilt" |
+### 14.2 Value domains the creator uses (for reference, from `Tuner.tsx`)
+These are the Orb Creator's control ranges. They're listed so a host that drives the other props passes the same domains. The creator itself is the other prompt.
 
-- **Tilt on flat renders:** the host hides the Tilt slider while `isFlat(render)` is true. When the render goes from flat back to non-flat it resets tilt to **20** (`app/playground.tsx` L111–114). The engine ignores tilt on flat renders anyway (`simulate.ts` L159).
-- **Snapping:** host slider values snap to the step and are rounded with `toFixed(4)` (`SliderRow.tsx` L18–24).
-- **Stage size:** the host passes `size = shown`, the clamped stage size (§8), to the big orb, and a fixed 24 to the status mini-orb. Both get the same look, shape, render, colour and tuning and share one `live` (L285–297, L311–323).
+| Prop | Range | Step | Default | Cite |
+|---|---|---|---|---|
+| `shape` | sphere, cube, octahedron, tetrahedron, torus | n/a | `"sphere"` | `Tuner.tsx` L27–33, L57 |
+| `render` | the 8 renders (labels Dots, Crosses, Dashes, Halftone, Lines, Mesh, Squares, Vertical Lines) | n/a | `"dots"` | L35–44, L58 |
+| `size` | 16–480 | 1 | 320 (the stage then clamps it to `shown`, §8) | L59, L180–193 |
+| `speed` | 0.05–3 | 0.05 | 1 | L60, L194–207 |
+| `density` | 0.25–3 | 0.05 | 1 | L61, L208–221 |
+| `dotSize` | 0.25–3 | 0.05 | 1 | L62, L222–235 |
+| `tilt` | −90–90 | 1 | 20; hidden on flat renders, reset to 20 when leaving a flat render | L63, L95–98, L236–251 |
 
-### 14.2 Plain prop driving (simplest; recommended for a standalone host)
-Hold each value in React state and pass it as a prop. Every prop change re-renders `OrbView`:
-- geometry props rebuild the input (§13.3);
-- `speed`, `tilt` and `color` update `fallback` through the effect at L174–179 and take effect on the next frame.
+Slider values snap to the step and are rounded with `toFixed(4)` (`SliderRow.tsx` L32–38).
 
-### 14.3 The `live` SharedValue (per-frame tuning during a drag)
-The host creates `const live = useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba })`, where `rgba = canUseExtendedColor() ? toExtendedSrgb(parsed) : toSrgb(parsed)` (`app/playground.tsx` L88, L93).
-- While a slider drags, a worklet writes one field at a time: `live.value = { ...live.value, [field]: next }` for size, speed, density, dotSize or tilt (`SliderRow.tsx` L26–34). JS state is published at most every **32 ms** (`PUSH_MS = 32`, L14).
-- When not dragging, an effect rewrites the whole object from React state: `live.value = { size: shown, speed, density, dotSize, tilt, ...rgba }`, skipped while `sliding.current` is true (`app/playground.tsx` L116–119).
-- **Effect on the orb:** speed and tilt change on the very next frame, with no React render. Size, density and dotSize only change the drawing when the props catch up (§13.3).
+### 14.3 Plain prop driving (what the Effects card does)
+Hold each value in React state and pass it as a prop.
+- Geometry props rebuild the input (§13.5).
+- `speed`, `tilt` and `color` update `fallback` through the layout effect at L240–245 and apply on the next frame.
+- During a Size drag on the Effects card, `SliderRow` (no `live`) publishes to JS at most every **32 ms** (`PUSH_MS`, `SliderRow.tsx` L28, L282–286) and on release (L288–300). Each publish changes `size` and rebuilds the input.
 
-## 15. Minimal host (mount and drive the orb)
+### 14.4 The `live` SharedValue (per-frame tuning during a drag; used by the creator)
+- The host creates `useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba })` with `rgba = canUseExtendedColor() ? toExtendedSrgb(parsed) : toSrgb(parsed)` (`Tuner.tsx` L79, L84).
+- While a slider drags, a worklet writes one field at a time (`writeLive`, `SliderRow.tsx` L40–48), on every pan update (L281), on release (L297) and on tap (L312). Since eef45fa, keyboard and accessibility steps write it too (`publishNow`, L193–197).
+- When not dragging, an effect rewrites the whole object from React state, skipped while `sliding.current` is true (`Tuner.tsx` L100–103).
+- **Effect on the orb:** speed and tilt change on the very next frame, with no React render. Size, density and dotSize change the drawing only when the props catch up (§13.5). A paused or reduced-motion orb ignores `live` and repaints from props (§13.3–13.4).
 
-This host is **illustrative scaffolding**. Its layout isn't a parity target. It only uses values from the tree: page `#000000` (dark `page`, `theme.tsx` L29), orb colour `#ffffff` (dark `orb`, L37), sizes 96 and 320 (§8), the look list (§5), and the prop defaults (§4.1). The orb files under `src/orb/` and `src/color/color.ts` are copied **verbatim** from the appendices.
+## 15. Reference host: the Effects card (`Showcase.tsx`) and what a host must provide
 
-### 15.1 Files
-```
-package.json            same dependencies as Appendix 14 (orb needs: §3.1)
-babel.config.js         Appendix 15 (babel-preset-expo)
-tsconfig.json           Appendix 16
-app.json                needs "plugins": ["expo-router", …] and "web": { "bundler": "metro", "output": "single" } (as in the tree's app.json)
-index.ts                Appendix 10
-index.web.tsx           Appendix 9 minus L2 and L3 (site CSS and fonts), see 15.2
-patches/…2.6.2.patch    Appendix 13
-scripts/copy-wasm.js    Appendix 11
-scripts/serve-dist.js   Appendix 12 minus L5 (site llms check)
-src/orb/*               Appendices 1–7
-src/color/color.ts      Appendix 8
-app/_layout.tsx         15.3
-app/index.tsx           15.4
-```
+### 15.1 Host requirements (from the code)
+`Showcase` and `OrbView` need these above them. The store provides them in its shell (chrome, not inlined); a standalone host provides them itself.
+1. **CanvasKit before Skia evaluates (web).** Await `ensureCanvasKit()` (Appendix 14), then load the module that imports `OrbView`/`Showcase`, for example with `React.lazy(() => ensureCanvasKit().then(() => import("./Showcase")).then((m) => ({ default: m.Showcase })))`. That one-liner is illustrative (it hasn't been compiled); the pattern is the store's `src/catalog.ts` L33–41.
+2. **`GestureHandlerRootView`** from react-native-gesture-handler, around the tree. `SliderRow` uses `GestureDetector`.
+3. **`ReduceMotionProvider`** (Appendix 11). `useReduceMotion` throws without it (L42–46).
+4. **An expo-router navigator** (any `Stack`/`Slot` layout). `OrbView` calls `useIsFocused()` and `ThemeProvider` calls `usePathname()`.
+5. **`ThemeProvider cardId="yogesh-thinking-orbs"`** (`theme.tsx` L116–162) around `Showcase`, which calls `useTheme()` (it throws without the provider, L164–168). The store wraps it exactly like that (`src/demos/yogesh-thinking-orbs/index.tsx` L29–31, chrome).
+6. **Optional `SkiaRuntimeContext`** (§13.6). The default mounts and runs.
+7. **A black frame of at least the host's height.** The store's card frame (`Stage`, chrome) renders the host on `#000000` with a transparent border, starting 520 px tall and growing to the host's measured height (`index.tsx` L9–27). A stand-in only needs a full-width `#000000` container whose height follows its content. Don't copy the store's card chrome.
 
-### 15.2 `index.web.tsx` for an orb-only host (the tree's file with the two site imports removed)
-```tsx
-import type { ComponentType } from "react";
-import "@expo/metro-runtime";
-import "react-native-gesture-handler";
-import { LoadSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
+### 15.2 Layout at desktop 1280 (`Showcase.tsx`)
+`wide = useWindowDimensions().width >= 1280` (L15–16), so the **window** width decides the branch; at a 1280 px window it is wide.
 
-type QualifiedEntry = { App: ComponentType };
-type RootRenderer = { renderRootComponent: (app: ComponentType) => void };
+| Element | Wide (≥ 1280) | Narrow (mobile: known gap) | Cite |
+|---|---|---|---|
+| Root `View` testID `yogesh-orb-tuner` | width 100%, bg `colors.page` (#000000), `flexDirection: row`, `alignItems: center`, paddingLeft **32**, paddingRight **42**, paddingVertical **24**, gap **24** | column; padding 16 / 16 | L25–37 |
+| States wrapper testID `yogesh-orb-states` | `role="navigation"`, `accessibilityLabel="States"`, width **280**, `justifyContent: center` | width 100% | L38–43 |
+| List | web `role="list"`; column, nowrap, columnGap 16, rowGap **8** | row, wrap | L44–52 |
+| Item | web: `View role="listitem"` › `Pressable accessibilityRole="button"`, `aria-current="true"` when selected, `hitSlop {top:12,bottom:12}`, height **20**, `justifyContent: center` › `Text` `playground` label | same, without listitem wrappers on native | L53–78 |
+| Item text | `fonts.regular`, **14/20**, `colors.fg` (#fafafa) when selected, else `colors.muted` (#a1a1a1) | same | L56 |
+| Hint (wide only) | "↑ ↓ to switch", `fonts.regular` **12/16**, `colors.muted`, marginTop **24**, marginBottom **−8** | not rendered | L80–84 |
+| Right column | `alignItems: center`, gap **16** | same | L86 |
+| Stage testID `yogesh-orb-stage` | web: `aria-hidden`; native: label "Orb playground" | same | L87–93 |
+| Orb | `<OrbView state variant size={size} color={colors.orb} />` | same | L94 |
+| Size slider wrapper | width **256** › `SliderRow label="Size" min 16 max 480 step 1 decimals 0` | width 100% | L96–98 |
 
-// CanvasKit must exist before any Skia component module evaluates.
-void LoadSkiaWeb({
-  locateFile: () => "/canvaskit.wasm",
-}).then(() => {
-  // require, not import(): a dynamic import splits a chunk this static export never loads.
-  const qualified: QualifiedEntry = require("expo-router/build/qualified-entry");
-  const renderer: RootRenderer = require("expo-router/build/renderRootComponent");
-  renderer.renderRootComponent(qualified.App);
-});
-```
+- No page-level scroll or header belongs to this asset.
+- Text uses `fonts.regular` (web: `Geist_400Regular, Geist, "Geist Fallback", system-ui, sans-serif`, `theme.tsx` L81, L87).
 
-### 15.3 `app/_layout.tsx` (minimal; `OrbView` needs an expo-router navigator for `useIsFocused`)
-```tsx
-import { Stack } from "expo-router";
+### 15.3 Interaction
+- **Click or tap** an item → `setIndex(i)` (L64). The orb's `state`/`variant` change; the input rebuilds; the next frame draws the new look. No transition (§9).
+- **↑/↓** anywhere on the page (web) → previous/next look, wrapping (`useArrowKeys.web.ts` L4–23). It is ignored when the event target is inside `input, textarea, select, [contenteditable='true'], [role='slider'], [data-arrow-keys='own']` (L11), and it calls `preventDefault()` otherwise (L15). Native: no-op (`useArrowKeys.ts`).
+- **Size slider** (`SliderRow`, Appendix 19). Row h **36**, radius **8**, bg `colors.row` (#141414), `overflow: hidden` (L390–399). Fill bg `colors.slider` (#3e3e3e) (L401). 9 tick marks at 10 %…90 %, 1 px `colors.fg`, top/bottom 8 (L402–404). Handle 3×20, radius 1, `colors.fg` (L405–408).
+  - Hover/drag reaction (L143–164): handle opacity `withTiming` 150 ms to 0 (idle), 0.1 (near the label/value text), 0.9 (dragging) or 0.5 (hover); scaleX spring `HANDLE_X` to 1/0.25; scaleY spring `HANDLE_Y` to 0.75 near the text; marks opacity `withTiming` 200 ms to 0.35/0.
+  - Fill spring `FILL {stiffness 300, damping 25, mass 0.8}` on external change and on tap/release (L181, L256, L296). Rubber-band overshoot up to ±18 px at 0.25× the overflow (L269–276), back with `BACK {224, 25.4, 1}` (L291).
+  - Web text (L331–361): label `system-ui, -apple-system, "SF Pro Display", sans-serif` 13/500/19.5 at left 10, ink `rgba(255,255,255,0.7)` (dark), `translateY(-50%) translateY(-0.5px)`. Value `GeistMono_500Medium, ui-monospace, monospace` 13/500/19.5 at right 12, paddingBottom 1, 1 px transparent bottom border, same ink, `translateY(-50%) translateY(0.5px)`.
+  - Keys when focused (web, L203–224): ←/↓ −1 step, →/↑ +1 step; with Shift ±10 steps; PageUp/PageDown ±10 steps; Home → min; End → max. Accessibility increment/decrement ±1 step (L370–374).
+  - ARIA: `accessibilityRole="adjustable"`, label "Size", `tabIndex 0`, `aria-valuemin/max/now`, `aria-valuetext` = the displayed text (L366–380).
+  - **Focus style on the Effects card: unmeasured.** The slider row sets no outline of its own; the only explicit slider focus ring in the tree is scoped to the creator panel (`ColorPicker.web.tsx` L144).
+- `injectSmoothing()` adds one `<style id="orb-font-smoothing">` that sets `-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale` on `[data-testid="yogesh-orb-tuner"]` and its descendants (and on the creator's `.orb-cp-pop`) (`SliderRow.tsx` L15–22, L77–79).
 
-export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#000000" } }} />;
-}
-```
+### 15.4 Fonts (web)
+- **Geist 400** is loaded by `ThemeProvider` **after window `load`**: if `document.readyState === "complete"` it loads at once, else on `window.addEventListener("load", …, { once: true })`. It dynamically imports `@expo-google-fonts/geist/400Regular` and calls `expo-font` `loadAsync({ Geist_400Regular })` (`theme.tsx` L117–132). Until then the list text renders in the fallbacks of `fonts.regular`. **Measured** by the team: Geist swaps in about 150 ms after paint, about 870 ms on a slow connection (gap 9, §16).
+- **Geist Mono 500** (the slider value) loads through `useFonts({ GeistMono_500Medium })` in `SliderRow` (L76) and renders as `GeistMono_500Medium, ui-monospace, monospace` (L13).
+- The slider label uses the system stack (L12), not Geist.
+- `fonts.mono` on web is `"Geist Mono", "Geist Mono Fallback"` (`theme.tsx` L82). The Effects card doesn't use it.
 
-### 15.4 `app/index.tsx` (all 15 looks at 96, plus one driven orb at 320)
-```tsx
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+### 15.5 State and persistence
+`index` and `size` live in `useCardField('yogesh-thinking-orbs', …)` (`cardState.ts` L72–78): a `globalThis` map read through `useSyncExternalStore`. Values survive an unmount/remount on the same page but **not a reload**. For the creator, the team measured that neither the live site nor this build keeps anything across a reload. That wasn't measured separately for the Effects card, but it uses the same mechanism.
 
-import { OrbView } from "../src/orb/OrbView";
-import { RENDERS, type RenderName, type ShapeName } from "../src/orb/model";
+## 16. Known gaps and unverified items (orb asset)
 
-const LOOKS: { state: string; variant?: string; label: string }[] = [
-  { state: "base", label: "Base" },
-  { state: "working", label: "Working" },
-  { state: "working", variant: "gyro", label: "Working · Gyro" },
-  { state: "reasoning", label: "Reasoning" },
-  { state: "reasoning", variant: "twins", label: "Reasoning · Twins" },
-  { state: "searching", label: "Searching" },
-  { state: "searching", variant: "lighthouse", label: "Searching · Lighthouse" },
-  { state: "background", label: "Background" },
-  { state: "background", variant: "spiral", label: "Background · Spiral" },
-  { state: "retrying", label: "Retrying" },
-  { state: "retrying", variant: "surge", label: "Retrying · Surge" },
-  { state: "compacting", label: "Compacting" },
-  { state: "compacting", variant: "squeeze", label: "Compacting · Squeeze" },
-  { state: "compacting", variant: "fuse", label: "Compacting · Fuse" },
-  { state: "waiting", label: "Waiting" },
-];
-const SHAPES: ShapeName[] = ["sphere", "cube", "octahedron", "tetrahedron", "torus"];
+**Gates on the merged code** (from the PR #29 body, read through the GitHub connector): at head `c14c663`, which PR #29 merged as eef45fa, the team recorded Engineering **SHIP**, Design **FINAL PASS** and Beta **CLEAR** at desktop 1280. PR #29 excludes Motion's open-timing and hover-in fixes and Engineering's rAF-cancel fix; those are pending in PR #26, which touches only the creator's `SelectRow.tsx`. **Nothing in PR #26 changes the orb or the Effects card.**
 
-export default function OrbHost() {
-  const [look, setLook] = useState(1); // Working, as the playground starts
-  const [shape, setShape] = useState<ShapeName>("sphere");
-  const [render, setRender] = useState<RenderName>("dots");
-  const [speed, setSpeed] = useState(1);
-  const [tilt, setTilt] = useState(20);
-  const cur = LOOKS[look];
-  const next = <T,>(list: readonly T[], v: T) => list[(list.indexOf(v) + 1) % list.length];
-  return (
-    <ScrollView contentContainerStyle={{ padding: 32, gap: 24 }}>
-      <OrbView
-        state={cur.state}
-        variant={cur.variant}
-        size={320}
-        speed={speed}
-        tilt={tilt}
-        shape={shape}
-        render={render}
-        color="#ffffff"
-      />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-        <Pressable onPress={() => setLook((look + 1) % LOOKS.length)}><Text style={{ color: "#fafafa" }}>{cur.label}</Text></Pressable>
-        <Pressable onPress={() => setShape(next(SHAPES, shape))}><Text style={{ color: "#fafafa" }}>{shape}</Text></Pressable>
-        <Pressable onPress={() => setRender(next(RENDERS, render))}><Text style={{ color: "#fafafa" }}>{render}</Text></Pressable>
-        <Pressable onPress={() => setSpeed(speed === 1 ? 3 : 1)}><Text style={{ color: "#fafafa" }}>speed {speed}</Text></Pressable>
-        <Pressable onPress={() => setTilt(tilt === 20 ? -90 : 20)}><Text style={{ color: "#fafafa" }}>tilt {tilt}</Text></Pressable>
-      </View>
-      {/* 15 web canvases + 1 = 16; stay at or under the tree's 12-canvas cap on web (§3.5) by paging or by active/onFrame snapshots (§13.5). */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-        {LOOKS.slice(0, 11).map((l) => (
-          <OrbView key={l.label} state={l.state} variant={l.variant} size={96} color="#fafafa" />
-        ))}
-      </View>
-    </ScrollView>
-  );
-}
-```
-This shows the first 11 looks plus the driven orb, which is 12 canvases. The values used (3, −90, 20, 1) are the ends and defaults of the host ranges in §14.1. Copy the rest of the host site's UI only if another card asks for it.
+### 16.1 Known gaps (desktop), the team's list, worded exactly
+These are the gaps from the team's list that apply to this asset. The numbers are the list's own; gaps 1–4, 7 and 8 are about the creator's controls and are in `AGENT_PROMPT_ORB_CREATOR.md`.
 
-Check: I extracted 15.2–15.4 together with the verbatim `src/orb/*` and `src/color/color.ts`, and ran `tsc --noEmit` (strict, `expo/tsconfig.base`) against the 9bef3b1 `node_modules`. It exits 0. The host has not been run in a browser.
+5. P3 canvas look unverified on a real GPU and Safari.
+6. Mobile not covered.
+9. Font flash on first load: Geist swaps in ~150 ms after paint, ~870 ms on a slow connection.
+10. 5 of 16 look-name labels are 1–4 px narrower.
+11. Look-name hit area is the whole row, and the hint has an extra role=navigation wrapper.
 
-## 16. Parity notes and known gaps (orb asset only)
+Gaps 9–11 concern the look-name list. The Effects card's list (`Showcase.tsx` L38–85) is the same code as the creator's (`Tuner.tsx` L289–342), so they apply here too. The team's list doesn't say which card they were measured on. Reproduce the code as it is; don't "fix" these gaps.
 
-Measured on 9bef3b1 (desktop web, 1280; Beta CLEAR; Ship smoke green 10:27 ET Oct 7, 2026):
-- Canvases non-blank by screenshot pixels: **6 on `/`, 3 on `/playground`**. **0 console errors**.
-- `/canvaskit.wasm` → **200, `application/wasm`, 8,076,553 B**. The prod web bundle `index-f8b421c2` contains `DISPLAY_P3`.
-- Motion's PASS (carried from 8ba6306) covers the site's controls. No orb engine code changed between 023ca9d and 9bef3b1: none of the changed files are under `src/orb/` or in `src/color/color.ts`. The engine is the same port the earlier rounds gated.
+### 16.2 Unverified or unmeasured (orb-specific)
+- **No Skia patch at eef45fa** (§3.1, §12.3). The `OrbView.tsx` comment at L38–47 describes a `JsiSkPaint.h` patch that doesn't exist in this tree. On iOS, extended floats above 1 may clamp or paint black (the same comment says so for stock Skia). Unverified, and covered by gap 6.
+- **Frame-by-frame parity with the live npm orb: unmeasured.** Live draws with SVG (npm 0.1.1); this port draws with Skia from the same maths.
+- **A speed change restarts the clock phase and the per-orb state** (§9). Whether live does the same is unmeasured.
+- **The Size slider's focus style on the Effects card: unmeasured** (§15.3).
+- **`canvaskit.wasm` size at eef45fa: not re-measured.** 8,076,553 B was measured for canvaskit-wasm 0.41.0 on 9bef3b1; eef45fa resolves the same version (§3.2).
+- **The store's light theme is unreachable.** Nothing calls `toggle` (§12.4). Light palette values are documented but never shown.
+- **Native (iOS/Android) has not been run** for this build (gap 6).
 
-**Known gaps and unverified items (non-gating):**
-1. **iOS and Android are unverified.** iOS has never been booted for this project. Android was last checked on round 9.6/9.7, not on 9bef3b1. The extended-colour iOS path (§12.3) is untested.
-2. **Frame-by-frame visual parity with the live npm orb is unmeasured on 9bef3b1.** Design's 1280 crops masked the orb. Live draws with SVG (npm 0.1.1); this port draws with Skia from the same maths. Treat pixel-exact comparison as unmeasured.
-3. **API differs from the npm `<Orb>` the live site documents** (from the tree's `src/content/prompt.ts` props table):
-   - npm `state` defaults to `"base"`, `size` to `20`, and colour is the CSS `currentColor`;
-   - npm has `paused`, `label` (screen-reader name) and `className`;
-   - `OrbView` requires `state`, `size` and `color`, uses `active` instead of `paused`, and has **no label or a11y role**.
-   - Reproduce `OrbView` as it is. Don't add npm props.
-4. **Reduced motion is read once at launch.** A live OS toggle needs a relaunch (handoff note).
-5. **The 12-canvas web cap is a host responsibility** (§3.5, §13.5). Exceeding about 16 WebGL contexts in Chrome loses contexts (handoff rationale).
-6. **CanvasKit logs a WebGL message on a fresh load** (handoff note).
-7. **About 8 MB of wasm ships in the native builds** (8,076,553 B; handoff note).
-8. **A speed change restarts the clock phase** (new `state@speed` key, §9). Whether live does the same is **unmeasured**.
-9. Unknown look ids produce `NaN` yaw (§5). The site never passes one.
+### 16.3 Gaps from the 9bef3b1 prompt that eef45fa fixed (removed)
+- "API differs from npm `<Orb>`": fixed. `state`/`size`/`color` are optional with npm defaults, and `paused`, `label` and `className` exist (§4).
+- "Reduced motion is read once at launch": fixed. It's a live context, and the still frame follows props (§13.4).
+- "Unknown look ids produce NaN yaw": fixed by `resolveLook` and `periodOf` (§5.1).
+- The 9bef3b1 site-host items (12-canvas cap, `/` and `/playground` canvas counts, prod `DISPLAY_P3` string, CanvasKit message on load, wasm in native builds) were about the old site and the patched build. They don't apply to this tree. The store's own budget is 6 surfaces (chrome, §3.5).
 
-## 17. Parity checklist (verify each; expected values are concrete)
+## 17. Parity checklist (numbered; each line has a status)
+
+Status key:
+- **Code**: read in the eef45fa source.
+- **Run**: I computed it by running the eef45fa files with `npx tsx` in a scratch copy.
+- **M-gate**: covered by the team's gates on c14c663 = eef45fa (PR #29 body).
+- **Gap**: a known gap (§16.1).
+- **Unmeasured**: nobody has measured it; verify it yourself.
 
 Install and serve:
-1. `npm ls @shopify/react-native-skia` → **2.6.2**; `npm ls canvaskit-wasm` → **0.41.0**; `npm ls react-native-reanimated` → **4.5.1**; `react-native-worklets` → **0.10.1**.
-2. `npm ci` prints that patch-package applied `@shopify/react-native-skia@2.6.2`. The patch file sha256 is `0c0ef5ac4749bbdf2dc66d69c953a73667eaba67a3f2db679df9ba14904468a6` (7,164 B).
-3. `public/canvaskit.wasm` is **8,076,553 B**, sha256 `eb68c7a7f602d8cb89915352c4471a2d26edfd72000f78202cb1fe32ce1f9dc4`.
-4. After `npx expo export -p web`: `dist/canvaskit.wasm` exists at 8,076,553 B. Copy it from `node_modules/canvaskit-wasm/bin/full/` only if it's missing.
-5. Served: `GET /canvaskit.wasm` → **200**, `Content-Type: application/wasm`. `GET /nope.js` → **404** (not HTML).
-6. The built web bundle contains the string `DISPLAY_P3`. On a P3 display, `matchMedia("(color-gamut: p3)").matches` is true, and the surface is created with `CanvasKit.ColorSpace.DISPLAY_P3`.
-7. `npx tsc --noEmit` exits 0.
 
-Runtime at 1280:
+1. `npm ls @shopify/react-native-skia` → **2.6.2**; `canvaskit-wasm` → **0.41.0**; `react-native-reanimated` → **4.5.1**; `react-native-worklets` → **0.10.1**; `expo` → **57.0.23**; `react-native-web` → **0.21.2**. *(Code: lockfile)*
+2. There is no `patches/` folder; `npm ci` runs only `npx setup-skia-web public` as postinstall. *(Code: package.json L47)*
+3. `public/canvaskit.wasm` exists after install and equals `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm`. On 9bef3b1, that file was 8,076,553 B with sha256 `eb68c7a7…1f9dc4` (full value in §3.2). *(Unmeasured at eef45fa)*
+4. After `npx expo export --platform web`, `dist/canvaskit.wasm` exists. *(Code: vercel.json L5–6; Unmeasured)*
+5. Served: `GET /canvaskit.wasm` → 200 with `Content-Type: application/wasm`, never HTML. *(Code: vercel.json L7–15)*
+6. No module importing Skia evaluates before `ensureCanvasKit()` resolves; the web entry doesn't load CanvasKit. *(Code: index.web.tsx L12–13, ensureCanvasKit.web.ts L13–21)*
+7. `npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts` prints **`orb props ok`**. *(Run)*
 
-8. Page load: **0 console errors** (a CanvasKit WebGL info message on a fresh load is known).
-9. Every mounted orb canvas is non-blank, and no more than **12** Skia canvases are mounted at once.
-10. A `size={96}` orb renders a 96×96 CSS-px canvas with a transparent background and `pointer-events: none`.
-11. `color="nope"` paints white. `color="#ffffff"` paints (1, 1, 1). `#171717` → 0.0902 per channel. `#fafafa` → 0.98039. `color(display-p3 1 0 0)` → paint floats (1.09307, −0.22674, −0.15013) on web, and (1, 0.20346, 0.15875) on Android or Expo Go.
-12. `buildInput` counts (sphere, dots, density 1, dotSize 1) at sizes 20 / 24 / 96 / 320: **80 / 96 / 384 / 1280**. For `background`: **20 / 24 / 96 / 320**. For `background-spiral`: **105 / 117 / 257 / 486**.
-13. `rs` at 96 is **0.9183**; for `background` at 96 it is **1.8366**. `g` at 96 is **18** (background 9, background-spiral 14). Sphere `R` at 96 is **38.4**; other shapes at 96 are **46.08**.
-14. Shape counts for `working` at 96: cube **386**, octahedron **402**, tetrahedron **394**, torus **374**. Mesh pairs at 96: **675**.
-15. Deterministic `step()` checkpoints (size 96, sphere, dots, tilt 20, fresh `makeLocal`; `dots[0..3]` is `[px, py, r, a]`; tolerance 1e-3):
+API (§4):
+
+8. `<OrbView />` with no props renders a **20×20** box, look `base`, colour `#ffffff`, speed 1, density 1, dotSize 1, tilt 20, sphere, dots, running. *(Code: OrbView L198–216, orbProps L65–72)*
+9. `label="Thinking"` → web box `div` has `role="img"` and `aria-label="Thinking"`. No label → `aria-hidden="true"`. *(Code: L172–183)*
+10. `className="x"` → the web box `div` has class `x`. *(Code: L176)*
+11. `paused` → the frame callback is inactive. The frame on screen is the last running one, and a prop edit while paused repaints at the held t. An orb mounted paused shows t = 0. *(Code: L220, L247–267, L287–289)*
+12. `active={false}` → frozen frame, no clock advance. Back to true → resumes with a jump of at most 100 ms × speed. *(Code: clock.ts L20–23)*
+13. `state="working-gyro"` (combined id) → renders **base**. `state="working" variant="gyro"` → Working · Gyro. `state="nope"` → base, and no NaN. *(Run: orbProps.check L128–163)*
+
+Reduced motion (§13.4):
+
+14. Turning the OS reduced-motion setting on **while the page is open** stops every orb at a still frame at t = 0, with no reload. Turning it off resumes motion. *(Code: ReduceMotionContext L17–27; OrbView L220, L287–289. M-gate)*
+15. With reduced motion on, dragging the Effects-card Size slider resizes the still orb, which repaints at t = 0 at the new size. *(Code: L260–267. M-gate)*
+
+Colour (§12):
+
+16. `color="nope"` paints white. `#ffffff` → (1, 1, 1); `#171717` → 0.0902 per channel; `#fafafa` → 0.98039. *(Run)*
+17. `color(display-p3 1 0 0)` → (1.09307, −0.22674, −0.15013) on web; (1, 0.20346, 0.15875) on Android or Expo Go. *(Run for the floats; the on-screen P3 look is Gap 5)*
+
+Geometry and motion (§6–§11; all computed with the eef45fa files, identical to 9bef3b1):
+
+18. `buildInput` counts (sphere, dots, density 1, dotSize 1) at sizes 20 / 24 / 96 / 320: **80 / 96 / 384 / 1280**. `background`: **20 / 24 / 96 / 320**. `background-spiral`: **105 / 117 / 257 / 486**. *(Run)*
+19. At size 96: `rs` **0.9183** (background **1.8366**); `g` **18** (background 9, background-spiral 14); sphere `R` **38.4**, other shapes **46.08**. *(Run)*
+20. Shape counts for `working` at 96: cube **386**, octahedron **402**, tetrahedron **394**, torus **374**. Mesh pairs at 96: **675**. *(Run)*
+21. Deterministic `step()` checkpoints (size 96, sphere, dots, tilt 20, fresh `makeLocal`; `dots[0..3]` = `[px, py, r, a]`; tolerance 1e-3). *(Run)*
     - base, t = 0: dot0 **[50.769, 12.01, 1.321, 0.529]**; dot100 **[59.115, 41.706, 1.708, 0.959]**
     - working, t = 0: dot0 **[50.769, 12.01, 1.365, 0.555]**
     - working, t = 1000: dot0 **[46.726, 14.134, 1.091, 0.487]**; dot100 **[68.284, 24.135, 0.684, 0]**
@@ -709,44 +724,102 @@ Runtime at 1280:
     - retrying, t = 2500: dot0 **[47.071, 11.117, 1.28, 0.484]**
     - base, torus, t = 0: dot0 **[91.776, 48, 1.102, 0.286]**
     - halftone, working, t = 0: g 18, cell 5.3333, **204** cells drawn, sum of radii **311.117**
+    These check your port against the tree, not against live.
+22. Yaw lap at speed 1: base **6500 ms**; working **3000**; reasoning **6500**; searching, background, waiting and lighthouse **13000**; compacting **10000**. Retrying-surge makes 1 turn per **3250 ms**. *(Code: simulate.ts L24–40, L69–77)*
+23. Effect cycles: working ring **1700 ms** (moving for 1200); compacting sweep **2800 ms**; lens hop **1800 ms**; lighthouse beam **2500 ms**; reasoning hop **220 ms**; waiting head **2000 ms**, latitude and glow **6000 ms**; gyro **5000 ms**; twist **2600 ms**. *(Code: §11.10)*
+24. `speed={2}` halves every period above in real time; `speed={0.05}` makes them 20× longer. *(Code: clock.ts L21)*
+25. `tilt` changes pitch on dots, crosses, dashes, squares and mesh, and has **no effect** on halftone, lines or verticalLines. Torus always adds **35°**. *(Code: §10)*
+26. Two orbs with the same look and speed stay phase-locked. Changing one's speed puts it on a separate clock. *(Code: L274)*
+27. Changing look, shape, render, size, density or dotSize swaps the geometry on the next frame, with **no crossfade**. *(Code: L230–238)*
+28. Unmounting an orb that has `onFrame` delivers a `data:image/png;base64,…` string. *(Code: L139–153)*
+29. When the route loses focus, the orb renders `null`. `SkiaRuntimeContext` `{mount:false}` renders an empty `size × size` View. *(Code: L303–304)*
+30. With `live` set, `live.value = {...live.value, tilt: -90}` changes the pitch on the next frame without a React render. Writing only `size` through `live` doesn't change the drawing. *(Code: L273, §13.5)*
 
-    (These were computed by running the 9bef3b1 code itself. They check your port against the tree, not against live.)
-16. Yaw lap at speed 1: base **6500 ms**; working **3000**; reasoning **6500**; searching, background, waiting and lighthouse **13000**; compacting **10000**. Retrying-surge makes 1 turn per **3250 ms**.
-17. Effect cycles: working ring **1700 ms** (moving for 1200); compacting sweep **2800 ms**; lens hop **1800 ms**; lighthouse beam **2500 ms**; reasoning hop **220 ms**; waiting head **2000 ms**, latitude and glow **6000 ms**; gyro **5000 ms**; twist **2600 ms**.
-18. `speed={2}` halves every period above in real time. `speed={0.05}` makes them 20× longer.
-19. `tilt` changes the pitch on dots/crosses/dashes/squares/mesh, and has **no effect** on halftone, lines or verticalLines. Torus always adds **35°**.
-20. `active={false}` freezes the last frame (no clock advance). Switching back resumes with a jump of at most 100 ms × speed.
-21. Two orbs with the same look and speed stay phase-locked. Changing one's speed desyncs it (separate clock).
-22. Changing look, shape, render, size, density or dotSize swaps the geometry on the next frame, with **no crossfade**.
-23. With OS reduced motion on at launch, every orb is a still frame at t = 0, and no frame callback runs.
-24. Unmounting an orb that has `onFrame` delivers a `data:image/png;base64,…` string.
-25. When the route loses focus, the orb renders `null` and its canvas unmounts.
-26. With `live` set, writing `live.value = {...live.value, tilt: -90}` changes the pitch on the next frame without a React render. Writing `size` through `live` alone does **not** change the drawing.
+Effects card at 1280 (§15):
+
+31. Window ≥ 1280 → row layout: padding 32 left / 42 right / 24 vertical, gap 24, list 280 wide, slider 256 wide, orb 320 by default, 15 labels in 14/20 type, "↑ ↓ to switch" hint in 12/16. *(Code: Showcase L25–98. M-gate)*
+32. Working (index 1) is selected on load and is `#fafafa`; the others are `#a1a1a1`. ↑/↓ wraps through the 15 looks except while the slider is focused. *(Code: L18, L56; useArrowKeys.web L4–23)*
+33. Size slider: drag → the orb resizes, with JS publishes at most every 32 ms. Keys ←/→ ±1, Shift ±10, PageUp/PageDown ±10, Home 16, End 480. *(Code: SliderRow L203–224, L282–286)*
+34. Label and value text: system-ui 13/500 at left 10 and Geist Mono 500 13/500 at right 12, both `rgba(255,255,255,0.7)`. *(Code: SliderRow L331–361. M-gate)*
+35. Geist 400 loads after window `load`, so the list repaints from the fallback ~150 ms after first paint. *(Gap 9)*
+36. Look-name label widths: 5 of 16 look-name labels are 1–4 px narrower. *(Gap 10)*
+37. Look-name hit area and the hint's `role=navigation` wrapper. *(Gap 11)*
+38. P3 colour on a real GPU and Safari. *(Gap 5)*
+39. Phone widths, iOS and Android. *(Gap 6)*
+40. Pixel-for-pixel orb frames vs live npm. *(Unmeasured)*
 
 ## 18. Forbidden
 - Browsing, fetching or opening any URL, or asking anyone to.
-- Changing `@shopify/react-native-skia` from 2.6.2, editing the patch so it no longer applies, or using `WithSkiaWeb` or a dynamic `import()` in the web entry.
-- `setState` per frame; disposing a picture that's still on screen; more than 12 web canvases.
+- Changing `@shopify/react-native-skia` from 2.6.2; adding a Skia patch or `WithSkiaWeb`; loading CanvasKit in the web entry; letting a Skia-importing module evaluate before `ensureCanvasKit()` resolves.
+- `setState` per frame, or disposing a picture that's still on screen.
 - Adding shaders, gradients, glow, blur, crossfades, easing curves or colours that aren't in §7–§12.
-- Adding npm-only props (`paused`, `label`, `className`) or theme logic inside the orb.
-- Claiming iOS or Android work without running them on a device.
+- Adding theme logic inside the orb, or props that aren't in §4.1.
+- Copying store chrome (card frame, nav, Copy/prompt buttons, canvas budget, catalog) into the asset.
+- Presenting PR #26 code as merged, or "fixing" the known gaps in §16.1.
+- Claiming iOS, Android or phone widths work without running them.
 
-## Appendices: verbatim source files from 9bef3b1e68b74186c5cc39b449873009fb8ec980
+## Appendix index
 
-Every file below is byte-for-byte from the 9bef3b1 tree (bytes and sha256 given for each). Copy them exactly.
+| # | Path | Lines | Bytes | sha256 |
+|---|---|---|---|---|
+| 1 | `src/demos/yogesh-thinking-orbs/orb/OrbView.tsx` | 306 | 9672 | `1c2599ee3b556f3637544706b7a9c88c72a80f9fdeb7aee99ffe9fef800464a8` |
+| 2 | `src/demos/yogesh-thinking-orbs/orb/orbProps.ts` | 113 | 3081 | `8e990c10d0a2048898e8b2c85f34f08da51013414547372760116aaa1d5331e2` |
+| 3 | `src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts` | 58 | 2749 | `d09f070fa130141e39db1653d727df1ca973f2b8a938b72566db04de5d991aff` |
+| 4 | `src/demos/yogesh-thinking-orbs/orb/model.ts` | 184 | 5316 | `c1bf18fc38db285f308997ff3e56bf7c32b2de27b4b15062be9a8b4470259339` |
+| 5 | `src/demos/yogesh-thinking-orbs/orb/shapes.ts` | 152 | 5288 | `66a83710f294180c1a301f317747519f73d9c6c6314ad36e4d294c1edad35cce` |
+| 6 | `src/demos/yogesh-thinking-orbs/orb/simulate.ts` | 433 | 13389 | `67a78f08b6da4412ac629e8c138d5ffd597f44b3b87db04ca5bf6c8e85b85a65` |
+| 7 | `src/demos/yogesh-thinking-orbs/orb/draw.ts` | 133 | 4279 | `7d2285248fea2d544a6340d9a9e8d4454615766c765f243b639f0f3fd21cb788` |
+| 8 | `src/demos/yogesh-thinking-orbs/orb/clock.ts` | 26 | 687 | `62b73101293bbd0c02a08a759b5ed80d0e1ba0654a4f9f2ae979d93d3fdf0973` |
+| 9 | `src/demos/yogesh-thinking-orbs/orb/LICENSE` | 21 | 1063 | `1c87dcf3935109d8f8dfa2435aa71dfd28164a1f84d0b243030936fd2062ca57` |
+| 10 | `src/demos/yogesh-thinking-orbs/color/color.ts` | 238 | 9689 | `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe` |
+| 11 | `src/context/ReduceMotionContext.tsx` | 46 | 1459 | `7c7229dc2d772ca05bf14db43cbe254e6b7d6de923e610ff19838c54c6a387c1` |
+| 12 | `src/skia/liveBudget.tsx` | 168 | 4501 | `3cb58682fa7f4d40e3df65d472348d3d0c0f1f26b52cc52a6251188e2b0fce68` |
+| 13 | `src/demos/yogesh-thinking-orbs/Showcase.tsx` | 102 | 3771 | `1f669afd30562b43a27f58b65c10a9deba47a6a5908c1e3aeb8cbdb44fbcfb03` |
+| 14 | `src/skia/ensureCanvasKit.web.ts` | 21 | 736 | `78d0afa56535ca1025d52c986e3cd12b551c9369483affb2010e831ddcc1692f` |
+| 15 | `src/skia/bootCanvasKit.ts` | 44 | 1391 | `06ab8d8cd787f4f04a357162920fbcb808b9cef899b255fa3af1bd97df9f8651` |
+| 16 | `src/skia/ensureCanvasKit.ts` | 12 | 294 | `07c0c757607e412caf5d0e42f09ecdd3ca68a0bf0bf71b0b71489c90703206d4` |
+| 17 | `src/skia/canvasKit.d.ts` | 5 | 69 | `05734e669eec654d047d9fe88ae1c10b6266742869373db3c1ea213f7a16e088` |
+| 18 | `src/skia/cardState.ts` | 83 | 2710 | `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c` |
+| 19 | `src/demos/yogesh-thinking-orbs/components/SliderRow.tsx` | 416 | 15362 | `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2` |
+| 20 | `src/demos/yogesh-thinking-orbs/content/cards.ts` | 180 | 5117 | `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d` |
+| 21a | `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.web.ts` | 23 | 925 | `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf` |
+| 21b | `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.ts` | 2 | 186 | `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258` |
+| 22 | `babel.config.js` | 7 | 155 | `b88376188d8e9c110ae64b58881df514fcbe30a5cf1257b7b2561ae18560cbfd` |
+| 23 | `tsconfig.json` | 17 | 242 | `e8e9605c3b1a521e797d6d3a5fd271121fdfbd0aab0904be0873469bc0347a77` |
+| 24 | `src/demos/yogesh-thinking-orbs/theme/theme.tsx` | 176 | 4677 | `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f` |
 
-### Appendix 1: `src/orb/OrbView.tsx` (7132 B, sha256 `587e7464b61a7d9d7dba81f5c0ccde1036e2b2d73e0eac18900407a2ce74009d`)
+`package.json`, `package-lock.json`, `vercel.json` and `metro.config.js` are cited in §3 but not inlined: they are mostly store configuration. The values the asset needs are copied into §3.
 
-````
+## Appendices: verbatim source at eef45fa
+
+Every file is reproduced exactly as it is at `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`. The fence is longer than any backtick run inside the file. Line numbers in citations count from line 1 of each block.
+
+### Appendix 1. `src/demos/yogesh-thinking-orbs/orb/OrbView.tsx`
+
+306 lines, 9672 bytes, sha256 `1c2599ee3b556f3637544706b7a9c88c72a80f9fdeb7aee99ffe9fef800464a8`. Byte-for-byte from eef45fa.
+
+```tsx
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
-import { memo, useEffect, useMemo, useRef } from "react";
-import { Platform } from "react-native";
+import { createElement, memo, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { Platform, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useIsFocused } from "expo-router";
-import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+import { useFrameCallback, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+import { useReduceMotion } from "@/src/context/ReduceMotionContext";
+import {
+  ORB_DEFAULT_COLOR,
+  ORB_DEFAULT_DENSITY,
+  ORB_DEFAULT_DOT_SIZE,
+  ORB_DEFAULT_PAUSED,
+  ORB_DEFAULT_SIZE,
+  ORB_DEFAULT_SPEED,
+  ORB_DEFAULT_STATE,
+  ORB_DEFAULT_TILT,
+} from "./orbProps";
+import { useSkiaRuntime } from "@/src/skia/liveBudget";
 
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
-import { tick } from "./clock";
+import { clocks, tick } from "./clock";
 import { drawOrb } from "./draw";
 import { buildInput, type OrbInput, type RenderName, type ShapeName } from "./model";
 import { makeLocal, step, type OrbLocal } from "./simulate";
@@ -800,24 +873,37 @@ function usePicture() {
   return { picture, retire };
 }
 
-type Props = {
-  state: string;
+export type OrbViewProps = {
+  /** Omitted state is npm's `base`. Unknown ids resolve inside `buildInput`. */
+  state?: string;
   variant?: string;
-  size: number;
+  /** npm default is 20. */
+  size?: number;
   speed?: number;
   density?: number;
   dotSize?: number;
   tilt?: number;
   shape?: ShapeName;
   render?: RenderName;
-  color: string;
+  /** Omitted color paints the dark-store stand-in for npm `currentColor`. */
+  color?: string;
   /** When false the canvas stays mounted but does not tick. */
   active?: boolean;
+  /** npm `paused`: hold the frame and do not tick. */
+  paused?: boolean;
+  /** Screen-reader name. Without one the orb is hidden from assistive tech. */
+  label?: string;
+  /** Web className passthrough on the orb box. */
+  className?: string;
   /** Playground sliders write here. Landing orbs leave it unset. */
   live?: SharedValue<OrbLive>;
   /** Last rasterized frame, for a card that has scrolled its canvas away. */
   onFrame?: (uri: string) => void;
 };
+
+function useOrbReduced(): boolean {
+  return useReduceMotion().reduceMotion;
+}
 
 function paint(
   picture: SharedValue<SkPicture>,
@@ -873,25 +959,67 @@ function CanvasHost({
   );
 }
 
-function LiveOrb({
-  state,
-  variant,
+function OrbFrame({
   size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
+  label,
+  className,
+  children,
+}: {
+  size: number;
+  label?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (Platform.OS === "web") {
+    return createElement(
+      "div",
+      {
+        className,
+        role: label ? "img" : undefined,
+        "aria-label": label,
+        "aria-hidden": label ? undefined : true,
+        style: { width: size, height: size, lineHeight: 0 },
+      },
+      children,
+    );
+  }
+  return (
+    <View
+      accessibilityRole={label ? "image" : undefined}
+      accessibilityLabel={label}
+      accessibilityElementsHidden={label ? undefined : true}
+      importantForAccessibility={label ? "auto" : "no-hide-descendants"}
+      style={{ width: size, height: size }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function OrbCanvas({
+  state = ORB_DEFAULT_STATE,
+  variant,
+  size = ORB_DEFAULT_SIZE,
+  speed = ORB_DEFAULT_SPEED,
+  density = ORB_DEFAULT_DENSITY,
+  dotSize = ORB_DEFAULT_DOT_SIZE,
+  tilt = ORB_DEFAULT_TILT,
   shape = "sphere",
   render = "dots",
-  color,
+  color = ORB_DEFAULT_COLOR,
   active = true,
+  paused = ORB_DEFAULT_PAUSED,
+  label,
+  className,
   live,
   onFrame,
-}: Props) {
+  reduced,
+}: OrbViewProps & { reduced: boolean }) {
   const { picture, retire } = usePicture();
   const inputSV = useSharedValue<OrbInput | null>(null);
   const localSV = useSharedValue<OrbLocal | null>(null);
-  const activeSV = useSharedValue(active);
+  const running = active && !paused && !reduced;
+  const activeSV = useSharedValue(running);
   const fallback = useSharedValue<OrbLive>({
     size,
     speed,
@@ -900,7 +1028,6 @@ function LiveOrb({
     tilt,
     ...colorToRgba(color),
   });
-
   const built = useMemo(
     () => buildInput({ state, variant, size, density, dotSize, shape, render }),
     [state, variant, size, density, dotSize, shape, render],
@@ -911,83 +1038,271 @@ function LiveOrb({
     localSV.value = null;
   }, [built, inputSV, localSV]);
 
-  useEffect(() => {
-    activeSV.value = active;
+  useLayoutEffect(() => {
+    activeSV.value = running;
     if (!live) {
       fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
     }
-  }, [active, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
+  }, [running, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
 
-  useFrameCallback((frame) => {
+  // Reduced motion paints from props at t=0. Entering pause holds the current picture.
+  // A later state, size, or colour edit while paused repaints that same time.
+  const wasPaused = useRef(paused);
+  const heldT = useRef(0);
+  useLayoutEffect(() => {
+    const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    const enteredPause = paused && !wasPaused.current;
+    wasPaused.current = paused;
+    if (enteredPause && !reduced) {
+      const clock = clocks.value[`${built.state}@${tune.speed}`];
+      heldT.current = clock ? clock.t : heldT.current;
+      return;
+    }
+    if (!reduced && !paused) return;
+    const time = reduced ? 0 : heldT.current;
+    const input = built;
+    runOnUI(() => {
+      "worklet";
+      paint(picture, retire, input, makeLocal(input), tune, time);
+    })();
+  }, [reduced, paused, built, color, density, dotSize, picture, retire, size, speed, tilt]);
+
+  const frameCallback = useFrameCallback((frame) => {
     "worklet";
     const input = inputSV.value;
     if (!input || !activeSV.value) return;
     const tune = live ? live.value : fallback.value;
-    const look = `${input.state}@${tune.speed}`;
+    const clockKey = `${input.state}@${tune.speed}`;
     const now = frame.timestamp;
-    const t = tick(look, now, tune.speed);
+    const t = tick(clockKey, now, tune.speed);
     let local = localSV.value;
-    if (!local || local.key !== input.key || local.dots.length !== input.count * 6) {
+    const speedKey = `${input.key}@${tune.speed}`;
+    if (!local || local.key !== speedKey || local.dots.length !== input.count * 6) {
       local = makeLocal(input);
+      local.key = speedKey;
       localSV.value = local;
     }
     paint(picture, retire, input, local, tune, t);
-  }, true);
+  }, running);
 
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
-}
+  useLayoutEffect(() => {
+    frameCallback.setActive(running);
+  }, [running, frameCallback]);
 
-function StillOrb({
-  state,
-  variant,
-  size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
-  shape = "sphere",
-  render = "dots",
-  color,
-  live,
-  onFrame,
-}: Props) {
-  const { picture, retire } = usePicture();
-  const built = useMemo(
-    () => buildInput({ state, variant, size, density, dotSize, shape, render }),
-    [state, variant, size, density, dotSize, shape, render],
+  return (
+    <OrbFrame size={size} label={label} className={className}>
+      <CanvasHost size={size} picture={picture} onFrame={onFrame} />
+    </OrbFrame>
   );
-
-  useEffect(() => {
-    const tune: OrbLive = live
-      ? live.value
-      : { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
-    const input = built;
-    runOnUI(() => {
-      "worklet";
-      paint(picture, retire, input, makeLocal(input), tune, 0);
-    })();
-  }, [built, color, density, dotSize, live, picture, retire, size, speed, tilt]);
-
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
 }
 
-export const OrbView = memo(function OrbView(props: Props) {
+export const OrbView = memo(function OrbView(props: OrbViewProps) {
   const focused = useIsFocused();
-  const reduced = useReducedMotion() === true;
+  const reduced = useOrbReduced();
+  const runtime = useSkiaRuntime();
+  const size = props.size ?? ORB_DEFAULT_SIZE;
   if (!focused) return null;
-  if (reduced) return <StillOrb {...props} />;
-  return <LiveOrb {...props} />;
+  if (!runtime.mount) return <View style={{ width: size, height: size }} />;
+  return <OrbCanvas {...props} reduced={reduced} active={props.active !== false && runtime.running} />;
 });
-````
+```
 
-### Appendix 2: `src/orb/model.ts` (5210 B, sha256 `9ef50c90d194eae6cf6da23048dd892589f135c114e6e3c40f0c2cbed74be7dd`)
+### Appendix 2. `src/demos/yogesh-thinking-orbs/orb/orbProps.ts`
 
-````
+113 lines, 3081 bytes, sha256 `8e990c10d0a2048898e8b2c85f34f08da51013414547372760116aaa1d5331e2`. Byte-for-byte from eef45fa.
+
+```ts
+/**
+ * Public orb props aligned with @yogesharc/thinking-orbs 0.1.1 `Orb` / `mountOrb`.
+ * An unknown state falls back to `base`. A variant the state does not have falls back to that state's default.
+ * `color` is not an npm prop (npm paints `currentColor`); the dark store default is `#ffffff`.
+ */
+
+export type OrbStateName =
+  | "base"
+  | "working"
+  | "reasoning"
+  | "searching"
+  | "background"
+  | "retrying"
+  | "compacting"
+  | "waiting";
+
+export const VARIANTS: Record<OrbStateName, readonly string[]> = {
+  base: ["default"],
+  working: ["default", "gyro"],
+  reasoning: ["default", "twins"],
+  searching: ["default", "lighthouse"],
+  background: ["default", "spiral"],
+  retrying: ["default", "surge"],
+  compacting: ["default", "squeeze", "fuse"],
+  waiting: ["default"],
+};
+
+export type KnownLook =
+  | "base"
+  | "working"
+  | "working-gyro"
+  | "reasoning"
+  | "reasoning-twins"
+  | "searching"
+  | "searching-lighthouse"
+  | "background"
+  | "background-spiral"
+  | "retrying"
+  | "retrying-surge"
+  | "compacting"
+  | "compacting-squeeze"
+  | "compacting-fuse"
+  | "waiting";
+
+export const KNOWN_LOOKS: readonly KnownLook[] = [
+  "base",
+  "working",
+  "working-gyro",
+  "reasoning",
+  "reasoning-twins",
+  "searching",
+  "searching-lighthouse",
+  "background",
+  "background-spiral",
+  "retrying",
+  "retrying-surge",
+  "compacting",
+  "compacting-squeeze",
+  "compacting-fuse",
+  "waiting",
+];
+
+const KNOWN = new Set<string>(KNOWN_LOOKS);
+
+export const ORB_DEFAULT_STATE: OrbStateName = "base";
+export const ORB_DEFAULT_SIZE = 20;
+export const ORB_DEFAULT_COLOR = "#ffffff";
+export const ORB_DEFAULT_SPEED = 1;
+export const ORB_DEFAULT_DENSITY = 1;
+export const ORB_DEFAULT_DOT_SIZE = 1;
+export const ORB_DEFAULT_TILT = 20;
+export const ORB_DEFAULT_PAUSED = false;
+
+export function isOrbState(value: string): value is OrbStateName {
+  return Object.prototype.hasOwnProperty.call(VARIANTS, value);
+}
+
+export function isKnownLook(value: string): value is KnownLook {
+  return KNOWN.has(value);
+}
+
+export function resolveLook(state?: string, variant?: string): KnownLook {
+  const which = state !== undefined && isOrbState(state) ? state : ORB_DEFAULT_STATE;
+  const v: readonly string[] = VARIANTS[which];
+  const own = variant !== undefined && variant !== "default" && v.includes(variant);
+  const id = own ? `${which}-${variant}` : which;
+  if (isKnownLook(id)) return id;
+  return ORB_DEFAULT_STATE;
+}
+
+export type OrbPassProps = {
+  state?: string;
+  variant?: string;
+  size?: number;
+  speed?: number;
+  color?: string;
+  paused?: boolean;
+  label?: string;
+  className?: string;
+};
+
+/** Defaults npm applies when `state` / `size` / `paused` are omitted, plus the dark color stand-in. */
+export function normalizeOrbProps(props: OrbPassProps = {}) {
+  return {
+    state: resolveLook(props.state, props.variant),
+    size: props.size ?? ORB_DEFAULT_SIZE,
+    speed: props.speed ?? ORB_DEFAULT_SPEED,
+    color: props.color ?? ORB_DEFAULT_COLOR,
+    paused: props.paused ?? ORB_DEFAULT_PAUSED,
+    label: props.label,
+    className: props.className,
+  };
+}
+```
+
+### Appendix 3. `src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts`
+
+58 lines, 2749 bytes, sha256 `d09f070fa130141e39db1653d727df1ca973f2b8a938b72566db04de5d991aff`. Byte-for-byte from eef45fa. Run it with `npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts`; it prints `orb props ok`
+
+```ts
+/**
+ * Run: npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts
+ * Unknown looks resolve to a known id, and a slipped id cannot produce NaN yaw.
+ */
+import { buildInput } from "./model";
+import { KNOWN_LOOKS, normalizeOrbProps, resolveLook, type OrbStateName } from "./orbProps";
+import { makeLocal, step } from "./simulate";
+
+function assert(cond: boolean, message: string) {
+  if (!cond) throw new Error(message);
+}
+
+const known = new Set<string>(KNOWN_LOOKS);
+
+assert(resolveLook() === "base", "omitted state");
+assert(resolveLook("nope") === "base", "unknown state");
+assert(resolveLook("working-gyro") === "base", "combined id is not a state");
+assert(resolveLook("working", "gyro") === "working-gyro", "gyro");
+assert(resolveLook("working", "nope") === "working", "unknown variant");
+assert(resolveLook("working", "default") === "working", "default variant");
+assert(resolveLook("compacting", "fuse") === "compacting-fuse", "fuse");
+assert(resolveLook("compacting", "squeeze") === "compacting-squeeze", "squeeze");
+
+const defaults = normalizeOrbProps();
+assert(defaults.state === "base" && defaults.size === 20 && defaults.speed === 1, "defaults");
+assert(defaults.color === "#ffffff" && defaults.paused === false, "color and paused defaults");
+assert(normalizeOrbProps({ paused: true, label: "Thinking", className: "orb" }).paused === true, "paused");
+
+const states: OrbStateName[] = ["base", "working", "reasoning", "searching", "background", "retrying", "compacting", "waiting"];
+for (const state of states) {
+  for (const variant of ["default", "gyro", "twins", "lighthouse", "spiral", "surge", "squeeze", "fuse", "nope"]) {
+    const id = resolveLook(state, variant);
+    assert(known.has(id), `resolved ${state}/${variant} -> ${id}`);
+  }
+}
+
+function finiteLook(state: string, variant?: string) {
+  const input = buildInput({ state, variant, size: 48, density: 1, dotSize: 1, shape: "sphere", render: "dots" });
+  assert(known.has(input.state), `build ${state}`);
+  const local = makeLocal(input);
+  step(input, local, 120, 23, 1);
+  for (let i = 0; i < local.dots.length; i++) {
+    if (!Number.isFinite(local.dots[i])) throw new Error(`NaN dots for ${input.state}`);
+  }
+  const slipped = { ...input, state: "not-a-look" };
+  const slippedLocal = makeLocal(slipped);
+  step(slipped, slippedLocal, 80, 20, 1);
+  for (let i = 0; i < slippedLocal.dots.length; i++) {
+    if (!Number.isFinite(slippedLocal.dots[i])) throw new Error("slipped look produced NaN");
+  }
+}
+
+finiteLook("nope");
+finiteLook("working", "gyro");
+finiteLook("reasoning", "twins");
+for (const id of KNOWN_LOOKS) finiteLook(id.includes("-") ? id.split("-")[0] : id, id.includes("-") ? id.slice(id.indexOf("-") + 1) : "default");
+
+console.log("orb props ok");
+```
+
+### Appendix 4. `src/demos/yogesh-thinking-orbs/orb/model.ts`
+
+184 lines, 5316 bytes, sha256 `c1bf18fc38db285f308997ff3e56bf7c32b2de27b4b15062be9a8b4470259339`. Byte-for-byte from eef45fa.
+
+```ts
 /**
  * Point layout from @yogesharc/thinking-orbs 0.1.1 dist/orb-core.js and renders.js (MIT).
  * Copyright (c) 2026 Yogesh. See ./LICENSE.
  */
 
+import { resolveLook } from "./orbProps";
 import { SHAPES, torus, type Pt, type ShapeName } from "./shapes";
 
 export type { ShapeName };
@@ -1093,8 +1408,9 @@ export type OrbInput = {
 
 const REACH = 24;
 
+/** A known look id. Unknown states become `base`; unknown variants drop to that state's default. */
 export function lookId(state: string, variant?: string): string {
-  return variant && variant !== "default" ? `${state}-${variant}` : state;
+  return resolveLook(state, variant);
 }
 
 export function buildInput(opts: {
@@ -1165,11 +1481,13 @@ export function buildInput(opts: {
     render: opts.render,
   };
 }
-````
+```
 
-### Appendix 3: `src/orb/shapes.ts` (5288 B, sha256 `66a83710f294180c1a301f317747519f73d9c6c6314ad36e4d294c1edad35cce`)
+### Appendix 5. `src/demos/yogesh-thinking-orbs/orb/shapes.ts`
 
-````
+152 lines, 5288 bytes, sha256 `66a83710f294180c1a301f317747519f73d9c6c6314ad36e4d294c1edad35cce`. Byte-for-byte from eef45fa.
+
+```ts
 /**
  * Port of @yogesharc/thinking-orbs 0.1.1 dist/shapes.js (MIT).
  * Copyright (c) 2026 Yogesh. See ./LICENSE.
@@ -1322,11 +1640,13 @@ export const torus = {
 
 export const SHAPES = { cube, octahedron, tetrahedron, torus };
 export type ShapeName = "sphere" | keyof typeof SHAPES;
-````
+```
 
-### Appendix 4: `src/orb/simulate.ts` (13255 B, sha256 `1f0171b1fd26a776bcf4a5248b0b977c9257831c057007bf8076d4b81cc7e016`)
+### Appendix 6. `src/demos/yogesh-thinking-orbs/orb/simulate.ts`
 
-````
+433 lines, 13389 bytes, sha256 `67a78f08b6da4412ac629e8c138d5ffd597f44b3b87db04ca5bf6c8e85b85a65`. Byte-for-byte from eef45fa.
+
+```ts
 /**
  * Per-frame orb motion, ported from @yogesharc/thinking-orbs 0.1.1 dist/orb-core.js (MIT).
  * Copyright (c) 2026 Yogesh. See ./LICENSE.
@@ -1388,6 +1708,12 @@ function rewind(t: number, w: number) {
   return k * (fwd - back) + a;
 }
 
+function periodOf(state: string) {
+  "worklet";
+  const period = PERIOD[state];
+  return period === undefined ? 6500 : period;
+}
+
 function yawOf(state: string, t: number) {
   "worklet";
   if (state === "retrying") return rewind(2 * t, TAU / 9000);
@@ -1396,7 +1722,7 @@ function yawOf(state: string, t: number) {
     const u = turns - Math.floor(turns);
     return (Math.floor(turns) + (1 - (1 - u) ** 3)) * TAU;
   }
-  return (t / PERIOD[state]) * TAU;
+  return (t / periodOf(state)) * TAU;
 }
 
 const RING_TIP = (30 * Math.PI) / 180;
@@ -1482,7 +1808,7 @@ export function step(input: OrbInput, local: OrbLocal, t: number, tilt: number, 
   const rs = input.rs * dotScale;
   const c = size / 2;
   const R = input.R;
-  const period = PERIOD[state];
+  const period = periodOf(state);
   const yaw = yawOf(state, t);
   const gyro = state === "working-gyro" ? (t / 5000) * TAU : -1;
   const pitch = (((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10 * Math.cos(gyro))) * Math.PI) / 180;
@@ -1754,11 +2080,13 @@ export function toneAt(local: OrbLocal, k: number, cell: number) {
   if (!hits) return 0;
   return 0.5 * cell * Math.min(1, ((local.ink[k] / hits) * Math.min(1, hits / 0.3)) / 2.2);
 }
-````
+```
 
-### Appendix 5: `src/orb/draw.ts` (4279 B, sha256 `7d2285248fea2d544a6340d9a9e8d4454615766c765f243b639f0f3fd21cb788`)
+### Appendix 7. `src/demos/yogesh-thinking-orbs/orb/draw.ts`
 
-````
+133 lines, 4279 bytes, sha256 `7d2285248fea2d544a6340d9a9e8d4454615766c765f243b639f0f3fd21cb788`. Byte-for-byte from eef45fa.
+
+```ts
 /**
  * Skia draw of the ported renders (renders.js math, Skia calls).
  * Copyright notice for the render math: MIT, Yogesh 2026. See ./LICENSE.
@@ -1892,11 +2220,13 @@ export function drawOrb(
     }
   }
 }
-````
+```
 
-### Appendix 6: `src/orb/clock.ts` (687 B, sha256 `62b73101293bbd0c02a08a759b5ed80d0e1ba0654a4f9f2ae979d93d3fdf0973`)
+### Appendix 8. `src/demos/yogesh-thinking-orbs/orb/clock.ts`
 
-````
+26 lines, 687 bytes, sha256 `62b73101293bbd0c02a08a759b5ed80d0e1ba0654a4f9f2ae979d93d3fdf0973`. Byte-for-byte from eef45fa.
+
+```ts
 import { makeMutable } from "react-native-reanimated";
 
 /**
@@ -1923,11 +2253,13 @@ export function tick(look: string, now: number, speed: number): number {
   clocks.value = map;
   return c.t;
 }
-````
+```
 
-### Appendix 7: `src/orb/LICENSE` (1063 B, sha256 `1c87dcf3935109d8f8dfa2435aa71dfd28164a1f84d0b243030936fd2062ca57`)
+### Appendix 9. `src/demos/yogesh-thinking-orbs/orb/LICENSE`
 
-````
+21 lines, 1063 bytes, sha256 `1c87dcf3935109d8f8dfa2435aa71dfd28164a1f84d0b243030936fd2062ca57`. Byte-for-byte from eef45fa.
+
+```text
 MIT License
 
 Copyright (c) 2026 Yogesh
@@ -1949,11 +2281,13 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-````
+```
 
-### Appendix 8: `src/color/color.ts` (9459 B, sha256 `0994d34b4b4a6f4dab879febf1f2026b5900d3bd0558267235b59cb26741a1ac`)
+### Appendix 10. `src/demos/yogesh-thinking-orbs/color/color.ts`
 
-````
+238 lines, 9689 bytes, sha256 `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe`. Byte-for-byte from eef45fa. The orb uses `parseColor`, `toSrgb` and `toExtendedSrgb`; the rest serves the creator’s colour picker
+
+```ts
 /**
  * Color parsing and formatting ported from the live playground's picker
  * (OKLCH internally, Hex / OKLCH / Display P3 serialization).
@@ -2074,8 +2408,13 @@ const M_SRGB_TO_P3 = [
 ];
 
 /** Gamma sRGB floats → Display P3 floats. Round only at the call site. */
-function srgbToDisplayP3(rgb: number[]): number[] {
+export function srgbGammaToDisplayP3(rgb: number[]): number[] {
   return dot(M_SRGB_TO_P3, rgb.map(toLinear)).map(toGamma);
+}
+
+/** Gamma Display P3 floats → sRGB floats. Round only at the call site. */
+export function displayP3GammaToSrgb(rgb: number[]): number[] {
+  return dot(M_SRGB_INV, dot(M_P3, rgb.map(toLinear))).map(toGamma);
 }
 
 export function formatColor(color: Oklch, format: ColorFormat): string {
@@ -2083,7 +2422,7 @@ export function formatColor(color: Oklch, format: ColorFormat): string {
   if (format === "oklch") return `oklch(${num(color.l)} ${num(color.c)} ${num(color.h, 2)}${alpha})`;
   if (format === "p3") {
     const srgb = oklchToRgb(clampChroma(color, "srgb"), "srgb").map((v) => clamp(v));
-    const p3 = srgbToDisplayP3(srgb);
+    const p3 = srgbGammaToDisplayP3(srgb);
     return `color(display-p3 ${p3.map((v) => num(v, 5)).join(" ")}${alpha})`;
   }
   const rgb = oklchToRgb(clampChroma(color, "srgb"), "srgb");
@@ -2187,336 +2526,1411 @@ export function detectFormat(value: string): ColorFormat {
   if (/^color\(display-p3\s/i.test(t)) return "p3";
   return "hex";
 }
-````
+```
 
-### Appendix 9: `index.web.tsx` (820 B, sha256 `4868f56bb0d791a61f5c316d1f198f9d72b6008a0c63cfa2fdd03639e8b441e2`)
+### Appendix 11. `src/context/ReduceMotionContext.tsx`
 
-````
-import type { ComponentType } from "react";
-import "./src/headerLine.web";
-import "./src/liveFaces.web";
-import "@expo/metro-runtime";
-import "react-native-gesture-handler";
-import { LoadSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
+46 lines, 1459 bytes, sha256 `7c7229dc2d772ca05bf14db43cbe254e6b7d6de923e610ff19838c54c6a387c1`. Byte-for-byte from eef45fa.
 
-type QualifiedEntry = { App: ComponentType };
-type RootRenderer = { renderRootComponent: (app: ComponentType) => void };
+```tsx
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AccessibilityInfo } from 'react-native';
 
-// CanvasKit must exist before any Skia component module evaluates.
-void LoadSkiaWeb({
-  locateFile: () => "/canvaskit.wasm",
-}).then(() => {
-  // require, not import(): a dynamic import splits a chunk this static export never loads.
-  const qualified: QualifiedEntry = require("expo-router/build/qualified-entry");
-  const renderer: RootRenderer = require("expo-router/build/renderRootComponent");
-  renderer.renderRootComponent(qualified.App);
-});
-````
-
-### Appendix 10: `index.ts` (67 B, sha256 `7017161dc2899382015b20d9810a0d0804ef50b4bd532a6d1acff4b314ba44ba`)
-
-````
-import "react-native-gesture-handler";
-import "expo-router/entry";
-````
-
-### Appendix 11: `scripts/copy-wasm.js` (449 B, sha256 `651caa1ff1b1cbef425c230e50ffb4a0c0b7902293911492cae08904b2ab7e1b`)
-
-````
-const fs = require("fs");
-const path = require("path");
-
-let src;
-try {
-  src = require.resolve("canvaskit-wasm/bin/full/canvaskit.wasm");
-} catch {
-  console.log("canvaskit-wasm not installed yet; skip wasm copy");
-  process.exit(0);
-}
-const destDir = path.join(__dirname, "..", "public");
-fs.mkdirSync(destDir, { recursive: true });
-fs.copyFileSync(src, path.join(destDir, "canvaskit.wasm"));
-console.log("copied full canvaskit.wasm to public/");
-````
-
-### Appendix 12: `scripts/serve-dist.js` (1471 B, sha256 `f7fe30338757295102f502ae971b172ad885ec3d279ac985f2970566dbcefc47`)
-
-````
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
-
-require("./check-llms");
-
-const root = path.join(__dirname, "..", "dist");
-const port = Number(process.env.PORT || 4477);
-const types = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".ico": "image/x-icon",
-  ".ttf": "font/ttf",
-  ".woff2": "font/woff2",
-  ".wasm": "application/wasm",
-  ".map": "application/json",
-  ".txt": "text/plain; charset=utf-8",
+type MotionContextValue = {
+  reduceMotion: boolean;
+  systemReduceMotion: boolean;
+  forceReduceMotion: boolean;
+  setForceReduceMotion: (value: boolean) => void;
 };
 
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
-  let file = path.normalize(path.join(root, decodeURIComponent(url.pathname)));
-  if (!file.startsWith(root)) {
-    res.writeHead(403);
-    res.end("Forbidden");
-    return;
-  }
-  let stat = null;
-  try {
-    stat = fs.statSync(file);
-  } catch {
-    stat = null;
-  }
-  if (!stat || stat.isDirectory()) {
-    if (path.extname(url.pathname)) {
-      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("Not found");
-      return;
-    }
-    file = path.join(root, "index.html");
-  }
-  const ext = path.extname(file);
-  res.writeHead(200, { "Content-Type": types[ext] || "application/octet-stream" });
-  fs.createReadStream(file).pipe(res);
-});
+const MotionContext = createContext<MotionContextValue | null>(null);
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`serving ${root} on http://127.0.0.1:${port}`);
-});
-````
+export function ReduceMotionProvider({ children }: { children: ReactNode }) {
+  const [systemReduceMotion, setSystemReduceMotion] = useState(false);
+  const [forceReduceMotion, setForceReduceMotion] = useState(false);
 
-### Appendix 13: `patches/@shopify+react-native-skia+2.6.2.patch` (7164 B, sha256 `0c0ef5ac4749bbdf2dc66d69c953a73667eaba67a3f2db679df9ba14904468a6`)
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setSystemReduceMotion(enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setSystemReduceMotion);
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
 
-````
-diff --git a/node_modules/@shopify/react-native-skia/cpp/api/JsiSkPaint.h b/node_modules/@shopify/react-native-skia/cpp/api/JsiSkPaint.h
-index 61ad36a..b90fa44 100644
---- a/node_modules/@shopify/react-native-skia/cpp/api/JsiSkPaint.h
-+++ b/node_modules/@shopify/react-native-skia/cpp/api/JsiSkPaint.h
-@@ -73,6 +73,40 @@ public:
-   }
- 
-   JSI_HOST_FUNCTION(setColor) {
-+    // Float colours are extended-sRGB Color4f. Components outside 0–1 must
-+    // survive so iOS can paint Display P3 picks; Skia converts sRGB onto a
-+    // P3 surface. The 8-bit SkColor path turns any component above 1 black.
-+    if (arguments[0].isObject()) {
-+      const auto &object = arguments[0].asObject(runtime);
-+      float r = 0, g = 0, b = 0, a = 1;
-+      bool ok = false;
-+      if (object.isArray(runtime)) {
-+        auto array = object.asArray(runtime);
-+        if (array.size(runtime) == 4) {
-+          r = static_cast<float>(array.getValueAtIndex(runtime, 0).asNumber());
-+          g = static_cast<float>(array.getValueAtIndex(runtime, 1).asNumber());
-+          b = static_cast<float>(array.getValueAtIndex(runtime, 2).asNumber());
-+          a = static_cast<float>(array.getValueAtIndex(runtime, 3).asNumber());
-+          ok = true;
-+        }
-+      } else {
-+        auto bufferValue = object.getProperty(
-+            runtime, jsi::PropNameID::forAscii(runtime, "buffer"));
-+        if (bufferValue.isObject()) {
-+          auto buffer = bufferValue.asObject(runtime).getArrayBuffer(runtime);
-+          auto bfrPtr = reinterpret_cast<const float *>(buffer.data(runtime));
-+          r = bfrPtr[0];
-+          g = bfrPtr[1];
-+          b = bfrPtr[2];
-+          a = bfrPtr[3];
-+          ok = true;
-+        }
-+      }
-+      if (ok) {
-+        getObject()->setColor4f(SkColor4f{r, g, b, a}, nullptr);
-+        return jsi::Value::undefined();
-+      }
-+    }
-     SkColor color = JsiSkColor::fromValue(runtime, arguments[0]);
-     getObject()->setColor(color);
-     return jsi::Value::undefined();
-diff --git a/node_modules/@shopify/react-native-skia/lib/commonjs/views/SkiaPictureView.web.js b/node_modules/@shopify/react-native-skia/lib/commonjs/views/SkiaPictureView.web.js
-index 5626d78..e896b1f 100644
---- a/node_modules/@shopify/react-native-skia/lib/commonjs/views/SkiaPictureView.web.js
-+++ b/node_modules/@shopify/react-native-skia/lib/commonjs/views/SkiaPictureView.web.js
-@@ -24,6 +24,10 @@ const dp2Pixel = (pd, rect) => {
-     height: rect.height * pd
-   };
- };
-+function webglSurfaceColorSpace() {
-+  const p3 = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(color-gamut: p3)").matches;
-+  return p3 ? CanvasKit.ColorSpace.DISPLAY_P3 : CanvasKit.ColorSpace.SRGB;
-+}
- class WebGLRenderer {
-   constructor(canvas, pd) {
-     this.canvas = canvas;
-@@ -48,7 +52,7 @@ class WebGLRenderer {
-     } = this;
-     canvas.width = canvas.clientWidth * pd;
-     canvas.height = canvas.clientHeight * pd;
--    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas);
-+    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas, webglSurfaceColorSpace());
-     const ctx = canvas.getContext("webgl2");
-     if (ctx) {
-       ctx.drawingBufferColorSpace = "display-p3";
-@@ -91,7 +95,7 @@ class StaticWebGLRenderer {
-     const tempCanvas = new OffscreenCanvas(this.canvas.clientWidth * this.pd, this.canvas.clientHeight * this.pd);
-     let surface = null;
-     try {
--      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas);
-+      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas, webglSurfaceColorSpace());
-       const ctx = tempCanvas.getContext("webgl2");
-       if (ctx) {
-         ctx.drawingBufferColorSpace = "display-p3";
-diff --git a/node_modules/@shopify/react-native-skia/lib/module/views/SkiaPictureView.web.js b/node_modules/@shopify/react-native-skia/lib/module/views/SkiaPictureView.web.js
-index 7318000..614497a 100644
---- a/node_modules/@shopify/react-native-skia/lib/module/views/SkiaPictureView.web.js
-+++ b/node_modules/@shopify/react-native-skia/lib/module/views/SkiaPictureView.web.js
-@@ -18,6 +18,10 @@ const dp2Pixel = (pd, rect) => {
-     height: rect.height * pd
-   };
- };
-+function webglSurfaceColorSpace() {
-+  const p3 = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(color-gamut: p3)").matches;
-+  return p3 ? CanvasKit.ColorSpace.DISPLAY_P3 : CanvasKit.ColorSpace.SRGB;
-+}
- class WebGLRenderer {
-   constructor(canvas, pd) {
-     this.canvas = canvas;
-@@ -42,7 +46,7 @@ class WebGLRenderer {
-     } = this;
-     canvas.width = canvas.clientWidth * pd;
-     canvas.height = canvas.clientHeight * pd;
--    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas);
-+    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas, webglSurfaceColorSpace());
-     const ctx = canvas.getContext("webgl2");
-     if (ctx) {
-       ctx.drawingBufferColorSpace = "display-p3";
-@@ -85,7 +89,7 @@ class StaticWebGLRenderer {
-     const tempCanvas = new OffscreenCanvas(this.canvas.clientWidth * this.pd, this.canvas.clientHeight * this.pd);
-     let surface = null;
-     try {
--      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas);
-+      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas, webglSurfaceColorSpace());
-       const ctx = tempCanvas.getContext("webgl2");
-       if (ctx) {
-         ctx.drawingBufferColorSpace = "display-p3";
-diff --git a/node_modules/@shopify/react-native-skia/src/views/SkiaPictureView.web.tsx b/node_modules/@shopify/react-native-skia/src/views/SkiaPictureView.web.tsx
-index 919762a..d8b63d8 100644
---- a/node_modules/@shopify/react-native-skia/src/views/SkiaPictureView.web.tsx
-+++ b/node_modules/@shopify/react-native-skia/src/views/SkiaPictureView.web.tsx
-@@ -34,6 +34,15 @@ interface Renderer {
-   dispose(): void;
- }
- 
-+/** P3 surface only when the display is P3, so Skia converts sRGB paints. */
-+function webglSurfaceColorSpace() {
-+  const p3 =
-+    typeof window !== "undefined" &&
-+    typeof window.matchMedia === "function" &&
-+    window.matchMedia("(color-gamut: p3)").matches;
-+  return p3 ? CanvasKit.ColorSpace.DISPLAY_P3 : CanvasKit.ColorSpace.SRGB;
-+}
-+
- class WebGLRenderer implements Renderer {
-   private surface: JsiSkSurface | null = null;
- 
-@@ -59,7 +68,7 @@ class WebGLRenderer implements Renderer {
-     const { canvas, pd } = this;
-     canvas.width = canvas.clientWidth * pd;
-     canvas.height = canvas.clientHeight * pd;
--    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas);
-+    const surface = CanvasKit.MakeWebGLCanvasSurface(canvas, webglSurfaceColorSpace());
-     const ctx = canvas.getContext("webgl2");
-     if (ctx) {
-       ctx.drawingBufferColorSpace = "display-p3";
-@@ -117,7 +126,7 @@ class StaticWebGLRenderer implements Renderer {
-     let surface: JsiSkSurface | null = null;
- 
-     try {
--      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas);
-+      const webglSurface = CanvasKit.MakeWebGLCanvasSurface(tempCanvas, webglSurfaceColorSpace());
-       const ctx = tempCanvas.getContext("webgl2");
-       if (ctx) {
-         ctx.drawingBufferColorSpace = "display-p3";
-````
+  const value = useMemo(
+    () => ({
+      reduceMotion: systemReduceMotion || forceReduceMotion,
+      systemReduceMotion,
+      forceReduceMotion,
+      setForceReduceMotion,
+    }),
+    [systemReduceMotion, forceReduceMotion],
+  );
 
-### Appendix 14: `package.json` (1262 B, sha256 `aba853970513ffb77ee1adb4d0349e83eccfe230f17e2484d48bbcf6e3a760f4`)
+  return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
+}
 
-````
-{
-  "name": "thinking-orbs",
-  "version": "1.0.0",
-  "private": true,
-  "main": "index",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "postinstall": "patch-package && node scripts/copy-wasm.js",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@expo-google-fonts/geist": "^0.4.2",
-    "@expo-google-fonts/geist-mono": "^0.4.3",
-    "@shopify/react-native-skia": "2.6.2",
-    "babel-preset-expo": "~57.0.0",
-    "expo": "~57.0.26",
-    "expo-clipboard": "~57.0.2",
-    "expo-constants": "~57.0.20",
-    "expo-font": "~57.0.4",
-    "expo-linear-gradient": "~57.0.2",
-    "expo-linking": "~57.0.11",
-    "expo-router": "~57.0.24",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0",
-    "react-native-svg": "15.15.4",
-    "react-native-web": "^0.21.2",
-    "react-native-worklets": "0.10.1"
-  },
-  "devDependencies": {
-    "@types/react": "~19.2.2",
-    "patch-package": "^8.0.1",
-    "typescript": "~6.0.3"
+export function useReduceMotion() {
+  const ctx = useContext(MotionContext);
+  if (!ctx) throw new Error('useReduceMotion must be used inside ReduceMotionProvider');
+  return ctx;
+}
+```
+
+### Appendix 12. `src/skia/liveBudget.tsx`
+
+168 lines, 4501 bytes, sha256 `3cb58682fa7f4d40e3df65d472348d3d0c0f1f26b52cc52a6251188e2b0fce68`. Byte-for-byte from eef45fa. The orb needs only L1–28 (`SkiaRuntime`, `SkiaRuntimeContext`, `useSkiaRuntime`); the registration half from L30 on is the store’s canvas budget (chrome), included so the file compiles as is
+
+```tsx
+import { createContext, useContext } from 'react';
+
+/** Prefetch and mount a Skia card when it is within this many pixels of the viewport. */
+export const SKIA_NEAR_MARGIN_PX = 200;
+
+/** Live WebGL surfaces. Nearest visible cards win; a card that does not fit is skipped. */
+export const SKIA_CANVAS_CAP = 6;
+
+const CANVAS_WEIGHT: Record<string, number> = {
+  'border-beam': 2,
+  'liquid-metal': 2,
+  'yogesh-orb-creator': 2,
+};
+
+export type SkiaRuntime = {
+  /** This card may own a canvas. False unmounts it and frees the WebGL context. */
+  mount: boolean;
+  /** Clock and RAF may advance. False freezes the last frame. */
+  running: boolean;
+};
+
+const defaultRuntime: SkiaRuntime = { mount: true, running: true };
+
+export const SkiaRuntimeContext = createContext<SkiaRuntime>(defaultRuntime);
+
+export function useSkiaRuntime(): SkiaRuntime {
+  return useContext(SkiaRuntimeContext);
+}
+
+type Reg = {
+  id: string;
+  cardId: string;
+  el: HTMLElement;
+  onNear: () => void;
+  armed: boolean;
+  visible: boolean;
+  distance: number;
+};
+
+type Snap = {
+  hidden: boolean;
+  live: ReadonlySet<string>;
+};
+
+const regs = new Map<string, Reg>();
+const listeners = new Set<() => void>();
+let snap: Snap = { hidden: false, live: new Set() };
+let listening = false;
+let scheduled = false;
+
+function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>) {
+  if (a.size !== b.size) return false;
+  for (const id of a) if (!b.has(id)) return false;
+  return true;
+}
+
+function weight(cardId: string) {
+  return CANVAS_WEIGHT[cardId] ?? 1;
+}
+
+function readRect(reg: Reg) {
+  const rect = reg.el.getBoundingClientRect();
+  const vh = window.innerHeight;
+  reg.visible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < vh;
+  reg.distance = Math.abs(rect.top + rect.height / 2 - vh / 2);
+  const near = rect.bottom > -SKIA_NEAR_MARGIN_PX && rect.top < vh + SKIA_NEAR_MARGIN_PX;
+  if (near && !reg.armed) {
+    reg.armed = true;
+    reg.onNear();
   }
 }
-````
 
-### Appendix 15: `babel.config.js` (108 B, sha256 `08c3fbd0e55deb1e580dd631673c8e4f1d838836d4afd9daaf92c668dc7abee0`)
+function computeLive() {
+  const visible = [...regs.values()].filter((reg) => reg.visible);
+  visible.sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
+  const live = new Set<string>();
+  let used = 0;
+  for (const reg of visible) {
+    const cost = weight(reg.cardId);
+    if (used + cost > SKIA_CANVAS_CAP) continue;
+    used += cost;
+    live.add(reg.id);
+  }
+  return live;
+}
 
-````
+function publish() {
+  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  const live = hidden ? snap.live : computeLive();
+  if (hidden === snap.hidden && sameSet(live, snap.live)) return;
+  snap = { hidden, live: hidden ? snap.live : live };
+  listeners.forEach((listener) => listener());
+}
+
+function measure() {
+  if (typeof window === 'undefined') return;
+  regs.forEach((reg) => readRect(reg));
+  publish();
+}
+
+function ensureListening() {
+  if (listening || typeof document === 'undefined') return;
+  listening = true;
+  const onScroll = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      measure();
+    });
+  };
+  document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+  window.addEventListener('resize', onScroll);
+  document.addEventListener('visibilitychange', () => {
+    publish();
+    if (document.visibilityState === 'visible') measure();
+  });
+  const margin = `${SKIA_NEAR_MARGIN_PX}px`;
+  const io = new IntersectionObserver(
+    () => {
+      measure();
+    },
+    { root: null, rootMargin: margin, threshold: [0, 0.01, 1] },
+  );
+  observeAll = (el) => io.observe(el);
+  unobserveAll = (el) => io.unobserve(el);
+  regs.forEach((reg) => io.observe(reg.el));
+}
+
+let observeAll: ((el: HTMLElement) => void) | null = null;
+let unobserveAll: ((el: HTMLElement) => void) | null = null;
+
+export function subscribeSkiaBudget(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function getSkiaBudget() {
+  return snap;
+}
+
+export function registerSkiaCard(id: string, cardId: string, el: HTMLElement, onNear: () => void) {
+  if (typeof IntersectionObserver !== 'function') {
+    onNear();
+    return () => {};
+  }
+  ensureListening();
+  const reg: Reg = {
+    id,
+    cardId,
+    el,
+    onNear,
+    armed: false,
+    visible: false,
+    distance: Number.POSITIVE_INFINITY,
+  };
+  regs.set(id, reg);
+  observeAll?.(el);
+  readRect(reg);
+  publish();
+  return () => {
+    unobserveAll?.(el);
+    regs.delete(id);
+    publish();
+  };
+}
+```
+
+### Appendix 13. `src/demos/yogesh-thinking-orbs/Showcase.tsx`
+
+102 lines, 3771 bytes, sha256 `1f669afd30562b43a27f58b65c10a9deba47a6a5908c1e3aeb8cbdb44fbcfb03`. Byte-for-byte from eef45fa. The Effects-card host (§15)
+
+```tsx
+import { useCallback } from 'react';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useCardField } from '@/src/skia/cardState';
+import { SliderRow } from './components/SliderRow';
+import { PLAYGROUND } from './content/cards';
+import { useArrowKeys } from './hooks/useArrowKeys';
+import { OrbView } from './orb/OrbView';
+import { fonts, useTheme } from './theme/theme';
+
+/**
+ * Effects showcase: one live orb, the 15 playground looks, and Size.
+ * The Tools creator keeps Tuner.tsx; this host does not mount that panel.
+ */
+export function Showcase() {
+  const { width } = useWindowDimensions();
+  const wide = width >= 1280;
+  const { colors } = useTheme();
+  const [index, setIndex] = useCardField('yogesh-thinking-orbs', 'index', 1);
+  const [size, setSize] = useCardField('yogesh-thinking-orbs', 'size', 320);
+  const onIndex = useCallback((next: number) => setIndex(next), []);
+  useArrowKeys(PLAYGROUND.length, index, onIndex);
+  const look = PLAYGROUND[index];
+
+  return (
+    <View
+      testID="yogesh-orb-tuner"
+      style={{
+        width: '100%',
+        backgroundColor: colors.page,
+        flexDirection: wide ? 'row' : 'column',
+        alignItems: 'center',
+        paddingLeft: wide ? 32 : 16,
+        paddingRight: wide ? 42 : 16,
+        paddingVertical: 24,
+        gap: 24,
+      }}
+    >
+      <View
+        testID="yogesh-orb-states"
+        role="navigation"
+        accessibilityLabel="States"
+        style={{ width: wide ? 280 : '100%', justifyContent: 'center' }}
+      >
+        <View
+          role={Platform.OS === 'web' ? 'list' : undefined}
+          style={{
+            flexDirection: wide ? 'column' : 'row',
+            flexWrap: wide ? 'nowrap' : 'wrap',
+            columnGap: 16,
+            rowGap: 8,
+          }}
+        >
+          {PLAYGROUND.map((item, i) => {
+            const on = i === index;
+            const itemText = (
+              <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>
+                {item.playground}
+              </Text>
+            );
+            const press = (
+              <Pressable
+                accessibilityRole="button"
+                aria-current={on ? 'true' : undefined}
+                onPress={() => setIndex(i)}
+                hitSlop={{ top: 12, bottom: 12 }}
+                style={{ height: 20, justifyContent: 'center' }}
+              >
+                {itemText}
+              </Pressable>
+            );
+            return Platform.OS === 'web' ? (
+              <View key={item.id} role="listitem">
+                {press}
+              </View>
+            ) : (
+              <View key={item.id}>{press}</View>
+            );
+          })}
+        </View>
+        {wide ? (
+          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, marginTop: 24, marginBottom: -8 }}>
+            ↑ ↓ to switch
+          </Text>
+        ) : null}
+      </View>
+      <View style={{ alignItems: 'center', gap: 16 }}>
+        <View
+          testID="yogesh-orb-stage"
+          accessibilityLabel={Platform.OS === 'web' ? undefined : 'Orb playground'}
+          accessibilityElementsHidden={Platform.OS === 'web' ? true : undefined}
+          importantForAccessibility={Platform.OS === 'web' ? 'no-hide-descendants' : undefined}
+          aria-hidden={Platform.OS === 'web' ? true : undefined}
+        >
+          <OrbView state={look.state} variant={look.variant} size={size} color={colors.orb} />
+        </View>
+        <View style={{ width: wide ? 256 : '100%' }}>
+          <SliderRow label="Size" min={16} max={480} step={1} value={size} decimals={0} onChange={setSize} />
+        </View>
+      </View>
+    </View>
+  );
+}
+```
+
+### Appendix 14. `src/skia/ensureCanvasKit.web.ts`
+
+21 lines, 736 bytes, sha256 `78d0afa56535ca1025d52c986e3cd12b551c9369483affb2010e831ddcc1692f`. Byte-for-byte from eef45fa.
+
+```ts
+let pending: Promise<void> | null = null;
+
+export function canvasKitReady(): boolean {
+  return typeof globalThis.CanvasKit !== 'undefined';
+}
+
+/** True while LoadSkiaWeb is in flight and its WebGL context is not up yet. */
+export function canvasKitPending(): boolean {
+  return pending !== null && !canvasKitReady();
+}
+
+/** Shared LoadSkiaWeb. Later cards await the same promise. */
+export function ensureCanvasKit(): Promise<void> {
+  if (canvasKitReady()) return Promise.resolve();
+  if (!pending) {
+    // bootCanvasKit must finish before skiaCards evaluates Skia.web.js, which
+    // snapshots globalThis.CanvasKit at module init.
+    pending = import('./bootCanvasKit').then((mod) => mod.bootCanvasKit());
+  }
+  return pending;
+}
+```
+
+### Appendix 15. `src/skia/bootCanvasKit.ts`
+
+44 lines, 1391 bytes, sha256 `06ab8d8cd787f4f04a357162920fbcb808b9cef899b255fa3af1bd97df9f8651`. Byte-for-byte from eef45fa.
+
+```ts
+import { LoadSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
+
+function canUseWebGL() {
+  try {
+    const el = document.createElement('canvas');
+    const gl =
+      el.getContext('webgl2') ||
+      el.getContext('webgl') ||
+      el.getContext('experimental-webgl');
+    if (gl && 'getExtension' in gl) {
+      (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context')?.loseContext();
+    }
+    return Boolean(gl);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One CanvasKit load for the whole page. `LoadSkiaWeb` is a singleton; call
+ * this from `ensureCanvasKit` only. CanvasKitInit uses
+ * `WebAssembly.instantiateStreaming` when `/canvaskit.wasm` is
+ * `application/wasm` (see `vercel.json`).
+ */
+export function bootCanvasKit(): Promise<void> {
+  return LoadSkiaWeb({
+    locateFile: (file) => `/${file}`,
+  }).then(() => {
+    const ck = (
+      globalThis as {
+        CanvasKit?: {
+          MakeWebGLCanvasSurface: (canvas: unknown, ...args: unknown[]) => unknown;
+          MakeSWCanvasSurface: (canvas: unknown) => unknown;
+        };
+      }
+    ).CanvasKit;
+
+    // Don't call WebGL on the real Skia canvas when the GPU is missing —
+    // a failed getContext('webgl2') poisons the element for software surfaces.
+    if (ck?.MakeSWCanvasSurface && !canUseWebGL()) {
+      ck.MakeWebGLCanvasSurface = (canvas) => ck.MakeSWCanvasSurface(canvas);
+    }
+  });
+}
+```
+
+### Appendix 16. `src/skia/ensureCanvasKit.ts`
+
+12 lines, 294 bytes, sha256 `07c0c757607e412caf5d0e42f09ecdd3ca68a0bf0bf71b0b71489c90703206d4`. Byte-for-byte from eef45fa. Native stub
+
+```ts
+/** Native Skia is linked. Web replaces this module with `ensureCanvasKit.web.ts`. */
+export function canvasKitReady(): boolean {
+  return true;
+}
+
+export function canvasKitPending(): boolean {
+  return false;
+}
+
+export function ensureCanvasKit(): Promise<void> {
+  return Promise.resolve();
+}
+```
+
+### Appendix 17. `src/skia/canvasKit.d.ts`
+
+5 lines, 69 bytes, sha256 `05734e669eec654d047d9fe88ae1c10b6266742869373db3c1ea213f7a16e088`. Byte-for-byte from eef45fa.
+
+```ts
+export {};
+
+declare global {
+  var CanvasKit: unknown | undefined;
+}
+```
+
+### Appendix 18. `src/skia/cardState.ts`
+
+83 lines, 2710 bytes, sha256 `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c`. Byte-for-byte from eef45fa.
+
+```ts
+import { useCallback, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
+
+/**
+ * User-set Skia card controls, keyed by card id.
+ *
+ * The canvas unmounts offscreen, and Suspense can remount the lazy demo with
+ * it. This map lives on globalThis so a second copy of the module inside the
+ * Skia chunk still sees the same values. The shell imports it, so the store
+ * is created before that chunk loads. The first read during render returns
+ * the stored value, which is what avoids a flash of the defaults.
+ */
+
+type Bag = Record<string, unknown>;
+
+type Root = {
+  bags: Map<string, Bag>;
+  listeners: Map<string, Set<() => void>>;
+};
+
+const GLOBAL_KEY = '__applicationStoreCardState';
+
+function root(): Root {
+  const host = globalThis as typeof globalThis & { [GLOBAL_KEY]?: Root };
+  if (!host[GLOBAL_KEY]) {
+    host[GLOBAL_KEY] = { bags: new Map(), listeners: new Map() };
+  }
+  return host[GLOBAL_KEY];
+}
+
+function bag(cardId: string): Bag {
+  const state = root();
+  let value = state.bags.get(cardId);
+  if (!value) {
+    value = {};
+    state.bags.set(cardId, value);
+  }
+  return value;
+}
+
+function emit(cardId: string) {
+  root().listeners.get(cardId)?.forEach((listener) => listener());
+}
+
+export function readCardField<T>(cardId: string, field: string, initial: T): T {
+  const value = bag(cardId);
+  if (!Object.prototype.hasOwnProperty.call(value, field)) value[field] = initial;
+  return value[field] as T;
+}
+
+export function writeCardField<T>(cardId: string, field: string, next: SetStateAction<T>) {
+  const value = bag(cardId);
+  const prev = value[field] as T;
+  const resolved = typeof next === 'function' ? (next as (prev: T) => T)(prev) : next;
+  if (Object.is(prev, resolved)) return;
+  value[field] = resolved;
+  emit(cardId);
+}
+
+export function subscribeCard(cardId: string, listener: () => void) {
+  const state = root();
+  let set = state.listeners.get(cardId);
+  if (!set) {
+    set = new Set();
+    state.listeners.set(cardId, set);
+  }
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+  };
+}
+
+export function useCardField<T>(cardId: string, field: string, initial: T): [T, Dispatch<SetStateAction<T>>] {
+  const subscribe = useCallback((listener: () => void) => subscribeCard(cardId, listener), [cardId]);
+  const get = useCallback(() => readCardField(cardId, field, initial), [cardId, field, initial]);
+  const value = useSyncExternalStore(subscribe, get, get);
+  const set = useCallback((next: SetStateAction<T>) => writeCardField(cardId, field, next), [cardId, field]);
+  return [value, set];
+}
+
+/** Touch the store from the shell so this module is not only inside the Skia chunk. */
+export function retainCardState() {
+  return root();
+}
+```
+
+### Appendix 19. `src/demos/yogesh-thinking-orbs/components/SliderRow.tsx`
+
+416 lines, 15362 bytes, sha256 `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2`. Byte-for-byte from eef45fa.
+
+```tsx
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Platform, Text, View, type TextStyle } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import { runOnJS } from "react-native-reanimated";
+
+import type { OrbLive } from "../orb/OrbView";
+import { fonts, useTheme } from "../theme/theme";
+
+const SLIDER_SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
+const SLIDER_MONO = "GeistMono_500Medium, ui-monospace, monospace";
+
+function injectSmoothing() {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  if (document.getElementById("orb-font-smoothing")) return;
+  const style = document.createElement("style");
+  style.id = "orb-font-smoothing";
+  style.textContent = `[data-testid="yogesh-orb-tuner"],[data-testid="yogesh-orb-tuner"] *,.orb-cp-pop,.orb-cp-pop *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}`;
+  document.head.appendChild(style);
+}
+
+const FILL = { stiffness: 300, damping: 25, mass: 0.8 };
+const BACK = { stiffness: 224, damping: 25.4, mass: 1 };
+const HANDLE_X = { stiffness: 439, damping: 35.6, mass: 1 };
+const HANDLE_Y = { stiffness: 685, damping: 47.1, mass: 1 };
+const PUSH_MS = 32;
+
+export type SliderField = "size" | "speed" | "density" | "dotSize" | "tilt";
+
+function snap(value: number, min: number, max: number, step: number) {
+  "worklet";
+  const clamped = Math.min(max, Math.max(min, value));
+  const steps = Math.round((clamped - min) / step);
+  const nearest = Math.min(max, Math.max(min, min + steps * step));
+  return Number(nearest.toFixed(4));
+}
+
+function writeLive(live: SharedValue<OrbLive>, field: SliderField, next: number) {
+  "worklet";
+  const cur = live.value;
+  if (field === "size") live.value = { ...cur, size: next };
+  else if (field === "speed") live.value = { ...cur, speed: next };
+  else if (field === "density") live.value = { ...cur, density: next };
+  else if (field === "dotSize") live.value = { ...cur, dotSize: next };
+  else live.value = { ...cur, tilt: next };
+}
+
+export function SliderRow({
+  label,
+  min,
+  max,
+  step,
+  value,
+  decimals,
+  onChange,
+  live,
+  field,
+  onDrag,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  decimals: number;
+  onChange: (value: number) => void;
+  /** Playground orb reads this every frame. Landing sliders omit it. */
+  live?: SharedValue<OrbLive>;
+  field?: SliderField;
+  /** JS-thread drag flag so a state sync does not clobber the shared value. */
+  onDrag?: (active: boolean) => void;
+}) {
+  const { colors, mode } = useTheme();
+  useFonts({ GeistMono_500Medium });
+  useLayoutEffect(() => {
+    injectSmoothing();
+  }, []);
+  const [width, setWidth] = useState(1);
+  const [focused, setFocused] = useState(false);
+  const [labelText, setLabelText] = useState(value.toFixed(decimals));
+  const fill = useSharedValue((value - min) / (max - min));
+  const over = useSharedValue(0);
+  const dragging = useSharedValue(false);
+  const hover = useSharedValue(0);
+  const handleOp = useSharedValue(0);
+  const scaleX = useSharedValue(0.25);
+  const scaleY = useSharedValue(1);
+  const marksOp = useSharedValue(0);
+  const cfg = useSharedValue({ min, max, step, width, decimals });
+  const tapAnim = useSharedValue(false);
+  const dragged = useSharedValue(false);
+  const ended = useSharedValue(false);
+  const savedFill = useSharedValue(0);
+  const pending = useSharedValue(0);
+  const panDone = useSharedValue(false);
+  const tapDone = useSharedValue(false);
+  const labelW = useSharedValue(0);
+  const valueW = useSharedValue(0);
+  const gen = useSharedValue(0);
+  const lastPush = useSharedValue(0);
+  const onChangeRef = useRef(onChange);
+  const decimalsRef = useRef(decimals);
+  const onDragRef = useRef(onDrag);
+  const jsGen = useRef(0);
+  const skipSync = useRef(false);
+  onChangeRef.current = onChange;
+  decimalsRef.current = decimals;
+  onDragRef.current = onDrag;
+
+  useEffect(() => {
+    cfg.value = { min, max, step, width, decimals };
+  }, [min, max, step, width, decimals, cfg]);
+
+  const publish = useCallback((next: number, token: number) => {
+    if (token !== jsGen.current) return;
+    onDragRef.current?.(true);
+    setLabelText(next.toFixed(decimalsRef.current));
+    onChangeRef.current(next);
+  }, []);
+
+  const commit = useCallback((next: number, token: number) => {
+    jsGen.current = token;
+    skipSync.current = true;
+    onDragRef.current?.(false);
+    setLabelText(next.toFixed(decimalsRef.current));
+    onChangeRef.current(next);
+  }, []);
+
+  const showRatio = useCallback((ratio: number) => {
+    const bounds = cfg.value;
+    const raw = bounds.min + ratio * (bounds.max - bounds.min);
+    setLabelText(raw.toFixed(bounds.decimals));
+  }, [cfg]);
+
+  const revertLabel = useCallback((ratio: number) => {
+    const bounds = cfg.value;
+    const raw = bounds.min + ratio * (bounds.max - bounds.min);
+    setLabelText(raw.toFixed(bounds.decimals));
+  }, [cfg]);
+
+  useAnimatedReaction(
+    () => {
+      const trackW = width;
+      const O = fill.value * 100;
+      const ee = labelW.value > 0 && trackW > 1 ? ((10 + labelW.value + 8) / trackW) * 100 : 30;
+      const et = valueW.value > 0 && trackW > 1 ? ((trackW - 12 - valueW.value - 8) / trackW) * 100 : 78;
+      const near = O < ee || O > et;
+      const visible = dragging.value || hover.value > 0;
+      return {
+        op: !visible ? 0 : near ? 0.1 : dragging.value ? 0.9 : 0.5,
+        sx: visible ? 1 : 0.25,
+        sy: near && visible ? 0.75 : 1,
+        marks: visible ? 0.35 : 0,
+      };
+    },
+    (next) => {
+      handleOp.value = withTiming(next.op, { duration: 150 });
+      scaleX.value = withSpring(next.sx, HANDLE_X);
+      scaleY.value = withSpring(next.sy, HANDLE_Y);
+      marksOp.value = withTiming(next.marks, { duration: 200 });
+    },
+  );
+
+  useEffect(() => {
+    const target = (value - min) / (max - min);
+    if (dragging.value || tapAnim.value) {
+      skipSync.current = false;
+      return;
+    }
+    if (skipSync.current) {
+      skipSync.current = false;
+      setLabelText(value.toFixed(decimals));
+      return;
+    }
+    if (Math.abs(fill.value - target) < 0.0001) {
+      setLabelText(value.toFixed(decimals));
+      return;
+    }
+    fill.value = withSpring(target, FILL);
+    setLabelText(value.toFixed(decimals));
+  }, [value, min, max, decimals, fill, dragging, tapAnim]);
+
+  useAnimatedReaction(
+    () => (tapAnim.value ? fill.value : -1),
+    (ratio) => {
+      if (ratio < 0) return;
+      runOnJS(showRatio)(ratio);
+    },
+  );
+
+  const publishNow = (next: number) => {
+    if (live && field) writeLive(live, field, next);
+    setLabelText(next.toFixed(decimals));
+    onChange(next);
+  };
+
+  const move = (steps: number) => {
+    publishNow(snap(value + steps * step, min, max, step));
+  };
+
+  useEffect(() => {
+    if (!focused || Platform.OS !== "web") return;
+    const onKey = (event: KeyboardEvent) => {
+      const key = event.key;
+      let steps: number | null = null;
+      const big = event.shiftKey ? 10 : 1;
+      if (key === "ArrowRight" || key === "ArrowUp") steps = big;
+      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -big;
+      else if (key === "PageUp") steps = 10;
+      else if (key === "PageDown") steps = -10;
+      else if (key === "Home") steps = 0;
+      else if (key === "End") steps = 0;
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (key === "Home") publishNow(min);
+      else if (key === "End") publishNow(max);
+      else if (steps !== null) move(steps);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [decimals, field, focused, live, max, min, onChange, step, value]);
+
+  const gesture = useMemo(() => {
+    const revertIfAbandoned = () => {
+      "worklet";
+      if (!panDone.value || !tapDone.value || ended.value) return;
+      const ratio = savedFill.value;
+      tapAnim.value = false;
+      dragging.value = false;
+      over.value = withSpring(0, BACK);
+      fill.value = withSpring(ratio, FILL);
+      ended.value = false;
+      panDone.value = false;
+      tapDone.value = false;
+      runOnJS(revertLabel)(ratio);
+    };
+    const pan = Gesture.Pan()
+      .activeOffsetX([-4, 4])
+      .failOffsetY([-6, 6])
+      .onBegin((e) => {
+        ended.value = false;
+        panDone.value = false;
+        tapDone.value = false;
+        dragged.value = false;
+        savedFill.value = fill.value;
+        const bounds = cfg.value;
+        const x = Math.min(bounds.width, Math.max(0, e.x));
+        const raw = bounds.min + (x / Math.max(1, bounds.width)) * (bounds.max - bounds.min);
+        const next = snap(raw, bounds.min, bounds.max, bounds.step);
+        const ratio = (next - bounds.min) / (bounds.max - bounds.min);
+        pending.value = next;
+        tapAnim.value = true;
+        fill.value = withSpring(ratio, FILL);
+      })
+      .onUpdate((e) => {
+        if (!dragged.value) {
+          if (Math.abs(e.translationX) < 4 && Math.abs(e.translationY) < 4) return;
+          dragged.value = true;
+          dragging.value = true;
+          tapAnim.value = false;
+        }
+        const bounds = cfg.value;
+        const x = e.x;
+        let rubber = 0;
+        let ratio = x / bounds.width;
+        if (x < 0) {
+          rubber = -Math.min(18, Math.abs(x) * 0.25);
+          ratio = 0;
+        } else if (x > bounds.width) {
+          rubber = Math.min(18, (x - bounds.width) * 0.25);
+          ratio = 1;
+        }
+        over.value = rubber;
+        fill.value = ratio;
+        const raw = bounds.min + ratio * (bounds.max - bounds.min);
+        const next = snap(raw, bounds.min, bounds.max, bounds.step);
+        pending.value = next;
+        if (live && field) writeLive(live, field, next);
+        const now = Date.now();
+        if (now - lastPush.value >= PUSH_MS) {
+          lastPush.value = now;
+          runOnJS(publish)(next, gen.value);
+        }
+      })
+      .onEnd((e) => {
+        ended.value = true;
+        dragging.value = false;
+        over.value = withSpring(0, BACK);
+        const bounds = cfg.value;
+        const raw = bounds.min + (Math.min(bounds.width, Math.max(0, e.x)) / bounds.width) * (bounds.max - bounds.min);
+        const next = snap(raw, bounds.min, bounds.max, bounds.step);
+        pending.value = next;
+        fill.value = withSpring((next - bounds.min) / (bounds.max - bounds.min), FILL);
+        if (live && field) writeLive(live, field, next);
+        gen.value = gen.value + 1;
+        runOnJS(commit)(next, gen.value);
+      })
+      .onFinalize(() => {
+        panDone.value = true;
+        revertIfAbandoned();
+      });
+    const tap = Gesture.Tap()
+      .maxDistance(6)
+      .maxDuration(10000)
+      .onEnd(() => {
+        ended.value = true;
+        tapAnim.value = false;
+        const next = pending.value;
+        if (live && field) writeLive(live, field, next);
+        gen.value = gen.value + 1;
+        runOnJS(commit)(next, gen.value);
+      })
+      .onFinalize(() => {
+        tapDone.value = true;
+        revertIfAbandoned();
+      });
+    return Gesture.Race(pan, tap);
+  }, [cfg, commit, dragged, dragging, ended, field, fill, gen, lastPush, live, over, panDone, pending, publish, revertLabel, savedFill, tapAnim, tapDone]);
+
+  const fillStyle = useAnimatedStyle(() => ({ width: `${Math.min(100, Math.max(0, fill.value * 100))}%` }));
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: over.value }] }));
+  const markStyle = useAnimatedStyle(() => ({ opacity: marksOp.value }));
+  const handleStyle = useAnimatedStyle(() => ({
+    opacity: handleOp.value,
+    transform: [{ translateX: fill.value * width }, { scaleX: scaleX.value }, { scaleY: scaleY.value }],
+  }));
+  const marks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+  const web = Platform.OS === "web";
+  const ink = mode === "light" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+  const sliderLabel: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        left: 10,
+        color: ink,
+        fontFamily: SLIDER_SANS,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: -0.5 }],
+      }
+    : { position: "absolute", top: 8, left: 10, color: colors.fg, fontFamily: fonts.regular, fontSize: 13 };
+  const sliderValue: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        right: 12,
+        paddingBottom: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: "transparent",
+        color: ink,
+        fontFamily: SLIDER_MONO,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: 0.5 }],
+      }
+    : { position: "absolute", top: 8, right: 12, color: colors.fg, fontFamily: fonts.mono, fontSize: 13 };
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityValue={{ min, max, now: value, text: labelText }}
+        accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === "increment") move(1);
+          if (event.nativeEvent.actionName === "decrement") move(-1);
+        }}
+        focusable
+        tabIndex={0}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={labelText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onLayout={(e) => setWidth(Math.max(1, e.nativeEvent.layout.width))}
+        onPointerEnter={() => {
+          hover.value = 1;
+        }}
+        onPointerLeave={() => {
+          hover.value = 0;
+        }}
+        style={[
+          {
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: colors.row,
+            overflow: "hidden",
+            justifyContent: "center",
+          },
+          rowStyle,
+        ]}
+      >
+        <Animated.View style={[{ position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: colors.slider }, fillStyle]} />
+        {marks.map((mark) => (
+          <Animated.View key={mark} style={[{ position: "absolute", left: `${mark * 100}%`, top: 8, bottom: 8, width: 1, backgroundColor: colors.fg }, markStyle]} />
+        ))}
+        <Animated.View
+          pointerEvents="none"
+          style={[{ position: "absolute", top: 8, width: 3, height: 20, marginLeft: -1.5, borderRadius: 1, backgroundColor: colors.fg }, handleStyle]}
+        />
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+          <Text onLayout={(e) => { labelW.value = e.nativeEvent.layout.width; }} style={sliderLabel}>{label}</Text>
+          <Text onLayout={(e) => { valueW.value = e.nativeEvent.layout.width; }} style={sliderValue}>{labelText}</Text>
+        </View>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+```
+
+### Appendix 20. `src/demos/yogesh-thinking-orbs/content/cards.ts`
+
+180 lines, 5117 bytes, sha256 `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d`. Byte-for-byte from eef45fa.
+
+```ts
+export type ToolRow = { verb: string; target: string; add?: number; del?: number };
+export type Done = ToolRow | "Thought" | { text: string };
+
+export type Look = {
+  id: string;
+  state: string;
+  variant?: string;
+  /** Landing card label. Background says "Background Tasks". */
+  landing: string;
+  /** Playground list label. Background says "Background". */
+  playground: string;
+  status: string;
+  thought?: string;
+  done?: Done;
+};
+
+/** Landing order. Chat history walks this list. */
+export const LANDING: Look[] = [
+  { id: "working", state: "working", landing: "Working", playground: "Working", status: "Working", done: { verb: "Read", target: "login/page.tsx" } },
+  {
+    id: "reasoning",
+    state: "reasoning",
+    landing: "Reasoning",
+    playground: "Reasoning",
+    status: "Thinking",
+    thought: "A redirect back to /login means the session looks missing. The cookie might be set too late…",
+    done: "Thought",
+  },
+  {
+    id: "searching",
+    state: "searching",
+    landing: "Searching",
+    playground: "Searching",
+    status: "Searching web",
+    done: { verb: "Searched web", target: "cookie set after redirect" },
+  },
+  {
+    id: "searching-lighthouse",
+    state: "searching",
+    variant: "lighthouse",
+    landing: "Searching · Lighthouse",
+    playground: "Searching · Lighthouse",
+    status: "Searching files",
+    done: { verb: "Searched", target: "setCookie" },
+  },
+  {
+    id: "working-gyro",
+    state: "working",
+    variant: "gyro",
+    landing: "Working · Gyro",
+    playground: "Working · Gyro",
+    status: "Working",
+    done: { verb: "Edited", target: "session.ts", add: 4, del: 2 },
+  },
+  {
+    id: "background",
+    state: "background",
+    landing: "Background Tasks",
+    playground: "Background",
+    status: "1 Background Task",
+    done: { verb: "Bash", target: "pnpm test --watch" },
+  },
+  {
+    id: "reasoning-twins",
+    state: "reasoning",
+    variant: "twins",
+    landing: "Reasoning · Twins",
+    playground: "Reasoning · Twins",
+    status: "Thinking",
+    thought: "Tests pass. Worth loading the page on the dev server to be sure…",
+    done: "Thought",
+  },
+  {
+    id: "background-spiral",
+    state: "background",
+    variant: "spiral",
+    landing: "Background Tasks · Spiral",
+    playground: "Background · Spiral",
+    status: "2 Background Tasks",
+    done: { verb: "Bash", target: "pnpm dev" },
+  },
+  {
+    id: "retrying",
+    state: "retrying",
+    landing: "Retrying",
+    playground: "Retrying",
+    status: "Retrying — attempt 2 of 10",
+  },
+  {
+    id: "compacting",
+    state: "compacting",
+    landing: "Compacting",
+    playground: "Compacting",
+    status: "Compacting context",
+  },
+  {
+    id: "compacting-squeeze",
+    state: "compacting",
+    variant: "squeeze",
+    landing: "Compacting · Squeeze",
+    playground: "Compacting · Squeeze",
+    status: "Compacting context",
+  },
+  {
+    id: "compacting-fuse",
+    state: "compacting",
+    variant: "fuse",
+    landing: "Compacting · Fuse",
+    playground: "Compacting · Fuse",
+    status: "Compacting context",
+    done: { verb: "Compacted", target: "Saved 45k tokens" },
+  },
+  {
+    id: "retrying-surge",
+    state: "retrying",
+    variant: "surge",
+    landing: "Retrying · Surge",
+    playground: "Retrying · Surge",
+    status: "Retrying — attempt 3 of 10",
+    done: {
+      text: "Fixed. The session cookie was set after the redirect, so every visit looked logged out. It's set first now, before the redirect goes out.",
+    },
+  },
+  {
+    id: "waiting",
+    state: "waiting",
+    landing: "Waiting",
+    playground: "Waiting",
+    status: "Waiting for usage limit to reset",
+  },
+  { id: "base", state: "base", landing: "Base", playground: "Base", status: "Working" },
+];
+
+/** Playground order follows VARIANTS, default first, Working selected on load (index 1). */
+export const PLAYGROUND: Look[] = [
+  LANDING[14],
+  LANDING[0],
+  LANDING[4],
+  LANDING[1],
+  LANDING[6],
+  LANDING[2],
+  LANDING[3],
+  LANDING[5],
+  LANDING[7],
+  LANDING[8],
+  LANDING[12],
+  LANDING[9],
+  LANDING[10],
+  LANDING[11],
+  LANDING[13],
+];
+
+export const INITIAL_ROWS: ToolRow[] = [
+  { verb: "Read", target: "middleware.ts" },
+  { verb: "Edited", target: "middleware.ts", add: 3, del: 1 },
+  { verb: "Bash", target: "pnpm test" },
+];
+
+export function chatFor(index: number) {
+  const last = LANDING.length - 1;
+  const safe = Number.isFinite(index) ? Math.min(last, Math.max(0, Math.floor(index))) : 0;
+  const card = LANDING[safe];
+  const rows: (ToolRow | "Thought" | { text: string })[] = [...INITIAL_ROWS];
+  for (let i = 0; i < safe; i++) {
+    const done = LANDING[i].done;
+    if (done) rows.push(done);
+  }
+  const fuse = LANDING.findIndex((c) => c.landing === "Compacting · Fuse");
+  let tasks: Look | undefined;
+  if (safe <= fuse) {
+    for (let i = safe; i >= 0; i--) if (LANDING[i].state === "background") {
+      tasks = LANDING[i];
+      break;
+    }
+  }
+  const live = card.state === "background" ? undefined : card;
+  return { card, rows, live, tasks };
+}
+
+export const USER_PROMPT = "The login page keeps redirecting to itself. Can you fix it?";
+```
+
+### Appendix 21a. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.web.ts`
+
+23 lines, 925 bytes, sha256 `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf`. Byte-for-byte from eef45fa.
+
+```ts
+import { useEffect } from "react";
+
+/** ↑/↓ wrap the playground state list. Ignored while a field or slider is focused. */
+export function useArrowKeys(count: number, index: number, onIndex: (index: number) => void) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest("input, textarea, select, [contenteditable='true'], [role='slider'], [data-arrow-keys='own']")
+      ) {
+        return;
+      }
+      event.preventDefault();
+      if (count <= 0) return;
+      if (event.key === "ArrowDown") onIndex((index + 1) % count);
+      else onIndex((index - 1 + count) % count);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [count, index, onIndex]);
+}
+```
+
+### Appendix 21b. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.ts`
+
+2 lines, 186 bytes, sha256 `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258`. Byte-for-byte from eef45fa. Native no-op
+
+```ts
+/** Native: hardware arrows are a no-op. Web implementation is useArrowKeys.web.ts. */
+export function useArrowKeys(_count: number, _index: number, _onIndex: (index: number) => void) {}
+```
+
+### Appendix 22. `babel.config.js`
+
+7 lines, 155 bytes, sha256 `b88376188d8e9c110ae64b58881df514fcbe30a5cf1257b7b2561ae18560cbfd`. Byte-for-byte from eef45fa.
+
+```js
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: ["babel-preset-expo"],
+    presets: ['babel-preset-expo'],
+    plugins: ['react-native-worklets/plugin'],
   };
 };
-````
+```
 
-### Appendix 16: `tsconfig.json` (163 B, sha256 `235d4c6b3d7f937c006aa290f9cb1c3e10a0a6213ef9713482af8acebe4fb567`)
+### Appendix 23. `tsconfig.json`
 
-````
+17 lines, 242 bytes, sha256 `e8e9605c3b1a521e797d6d3a5fd271121fdfbd0aab0904be0873469bc0347a77`. Byte-for-byte from eef45fa.
+
+```json
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }
-````
+```
+
+### Appendix 24. `src/demos/yogesh-thinking-orbs/theme/theme.tsx`
+
+176 lines, 4677 bytes, sha256 `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f`. Byte-for-byte from eef45fa.
+
+```tsx
+import { loadAsync } from "expo-font";
+import { usePathname } from "expo-router";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Platform } from "react-native";
+import { useCardField } from "@/src/skia/cardState";
+
+export type Mode = "dark" | "light";
+
+export type Palette = {
+  page: string;
+  fg: string;
+  muted: string;
+  card: string;
+  well: string;
+  row: string;
+  slider: string;
+  pop: string;
+  orb: string;
+  fill: string;
+  bubble: string;
+  ring: string;
+  ringSoft: string;
+  shadow: string;
+  green: string;
+  red: string;
+  codeBg: string;
+  pink: string;
+};
+
+const dark: Palette = {
+  page: "#000000",
+  fg: "#fafafa",
+  muted: "#a1a1a1",
+  card: "#0a0a0a",
+  well: "#1a1a1a",
+  row: "#141414",
+  slider: "#3e3e3e",
+  pop: "#212121",
+  orb: "#ffffff",
+  fill: "#181818",
+  bubble: "#1c1c1c",
+  ring: "rgba(250,250,250,0.3)",
+  ringSoft: "rgba(250,250,250,0.12)",
+  shadow: "transparent",
+  green: "#09bb83",
+  red: "#ff6467",
+  codeBg: "#181818",
+  pink: "#f6339a",
+};
+
+const light: Palette = {
+  page: "#f9f9fa",
+  fg: "#0a0a0a",
+  muted: "#737373",
+  card: "#ffffff",
+  well: "#e6e6e6",
+  row: "#efeff0",
+  slider: "#d7d7d8",
+  pop: "#ffffff",
+  orb: "#171717",
+  fill: "#efeff0",
+  bubble: "#ececee",
+  ring: "rgba(23,23,23,0.3)",
+  ringSoft: "rgba(23,23,23,0.12)",
+  shadow: "rgba(0,0,0,0.06)",
+  green: "#09bb83",
+  red: "#ff6467",
+  codeBg: "#ffffff",
+  pink: "#f6339a",
+};
+
+export function withAlpha(hex: string, alpha: number): string {
+  const n = hex.replace("#", "");
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const webSans = 'Geist, "Geist Fallback", system-ui, sans-serif';
+const webRegular = 'Geist_400Regular, Geist, "Geist Fallback", system-ui, sans-serif';
+const webMono = '"Geist Mono", "Geist Mono Fallback"';
+
+export const fonts =
+  Platform.OS === "web"
+    ? {
+        regular: webRegular,
+        medium: webSans,
+        semibold: webSans,
+        italic: webSans,
+        mono: webMono,
+      }
+    : {
+        regular: "Geist_400Regular",
+        medium: "Geist_500Medium",
+        semibold: "Geist_600SemiBold",
+        italic: "Geist_400Regular_Italic",
+        mono: "GeistMono_400Regular",
+      };
+
+export function mediumWeight(): { fontWeight: "500" } | Record<string, never> {
+  if (Platform.OS === "web") return { fontWeight: "500" };
+  return {};
+}
+
+type ThemeValue = {
+  mode: Mode;
+  colors: Palette;
+  toggle: () => void;
+  playgroundColor: string;
+  setPlaygroundColor: (v: string) => void;
+};
+
+const Ctx = createContext<ThemeValue | null>(null);
+
+export function ThemeProvider({ children, cardId }: { children: ReactNode; cardId: string }) {
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    let cancelled = false;
+    const load = () => {
+      void import("@expo-google-fonts/geist/400Regular").then((mod) => {
+        if (cancelled) return;
+        return loadAsync({ Geist_400Regular: mod.Geist_400Regular });
+      });
+    };
+    if (document.readyState === "complete") load();
+    else window.addEventListener("load", load, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", load);
+    };
+  }, []);
+  const path = usePathname();
+  const [mode, setMode] = useState<Mode>("dark");
+  const [playgroundColor, setPlaygroundColor] = useCardField(cardId, "playgroundColor", dark.orb);
+  const [route, setRoute] = useState(path);
+  if (path !== route) {
+    setRoute(path);
+    setMode("dark");
+    setPlaygroundColor((current) => {
+      const c = current.toLowerCase();
+      if (c === dark.orb.toLowerCase() || c === light.orb.toLowerCase()) return dark.orb;
+      return current;
+    });
+  }
+  const value = useMemo<ThemeValue>(
+    () => ({
+      mode,
+      colors: mode === "dark" ? dark : light,
+      toggle: () => {
+        const prevDefault = mode === "dark" ? dark.orb : light.orb;
+        const nextDefault = mode === "dark" ? light.orb : dark.orb;
+        setPlaygroundColor((current) => (current.toLowerCase() === prevDefault.toLowerCase() ? nextDefault : current));
+        setMode(mode === "dark" ? "light" : "dark");
+      },
+      playgroundColor,
+      setPlaygroundColor,
+    }),
+    [mode, playgroundColor],
+  );
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useTheme() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("theme");
+  return v;
+}
+
+export const syntax = {
+  comment: "#a1a1a1",
+  string: "#4ab074",
+  keyword: "#a17adf",
+  tag: "#359bd9",
+  attr: "#d8944d",
+};
+```

@@ -32,6 +32,30 @@ class WebGlGate extends Component<{ children: ReactNode; fallback: ReactNode }, 
   }
 }
 
+let mosaicStill: HTMLImageElement | null = null;
+
+/** Start the 2× still fetch as soon as the worker path is chosen, off the bundle. */
+function preloadMosaicStill(): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+  if (!mosaicStill) {
+    const img = new Image();
+    img.decoding = 'sync';
+    img.src = MOSAIC_STILL;
+    void img.decode?.().catch(() => {});
+    mosaicStill = img;
+  }
+  return mosaicStill;
+}
+
+function drawMosaicStill(canvas: HTMLCanvasElement) {
+  const img = mosaicStill;
+  if (!img || !img.complete || !img.naturalWidth) return false;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return true;
+}
+
 /** Sync paint so the card is never white while the 2× still is loading. */
 function paintPlaceholder(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d');
@@ -114,12 +138,20 @@ function WorkerLoader({
 
   useLayoutEffect(() => {
     const canvas = stillRef.current;
-    if (canvas) paintPlaceholder(canvas);
+    if (!canvas) return;
+    const img = preloadMosaicStill();
+    if (drawMosaicStill(canvas)) return;
+    paintPlaceholder(canvas);
+    if (!img) return;
+    const onLoad = () => {
+      drawMosaicStill(canvas);
+    };
+    img.addEventListener('load', onLoad);
+    return () => img.removeEventListener('load', onLoad);
   }, []);
 
   useEffect(() => {
     const view = viewRef.current;
-    const still = stillRef.current;
     if (!view) return;
     const cssW = view.clientWidth || 168;
     const cssH = view.clientHeight || cssW;
@@ -143,9 +175,10 @@ function WorkerLoader({
         if (ctx) {
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(data.bmp, 0, 0, viewRef.current.width, viewRef.current.height);
+          viewRef.current.style.visibility = 'visible';
+          if (stillRef.current) stillRef.current.style.visibility = 'hidden';
         }
         data.bmp.close();
-        if (stillRef.current) stillRef.current.style.visibility = 'hidden';
       }
       if (data.phase) onPhaseRef.current(data.phase);
     };
@@ -186,15 +219,6 @@ function WorkerLoader({
       sync();
     };
 
-    const img = new Image();
-    img.decoding = 'async';
-    img.onload = () => {
-      if (dead || !still) return;
-      const ctx = still.getContext('2d');
-      ctx?.drawImage(img, 0, 0, still.width, still.height);
-    };
-    img.src = MOSAIC_STILL;
-
     const loadPhotos = async () => {
       const bitmaps = await Promise.all(
         IMAGES.map(async (src) => {
@@ -233,7 +257,14 @@ function WorkerLoader({
       <canvas
         ref={viewRef}
         aria-hidden
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          visibility: 'hidden',
+        }}
       />
     </div>
   );
@@ -263,6 +294,10 @@ export function ImageGenerationLoaderDemo() {
   const reduceRef = useRef(reduceMotion);
   inViewRef.current = inView && !tabHidden;
   reduceRef.current = reduceMotion;
+
+  useLayoutEffect(() => {
+    if (path === 'worker') preloadMosaicStill();
+  }, [path]);
 
   useEffect(() => {
     if (!canObserve) return;
