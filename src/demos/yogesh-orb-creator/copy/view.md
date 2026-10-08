@@ -150,7 +150,7 @@ export default function PlaygroundScreen() {
   };
 
   const panel = (
-    <View role={Platform.OS === "web" ? "complementary" : undefined} style={{ width: wide ? 256 : "100%", gap: 6, zIndex: 5 }}>
+    <View testID="yogesh-orb-panel" role={Platform.OS === "web" ? "complementary" : undefined} style={{ width: wide ? 256 : "100%", gap: 6, zIndex: 5 }}>
       <SelectRow
         label="Shape"
         value={shape}
