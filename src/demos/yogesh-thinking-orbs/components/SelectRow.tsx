@@ -26,6 +26,7 @@ declare module "react-native" {
     onKeyDownCapture?: (event: WebKeyEvent) => void;
     onContextMenu?: () => void;
     onPointerCancel?: () => void;
+    dataSet?: Record<string, string>;
   }
 }
 
@@ -57,7 +58,8 @@ const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-test
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;color:#000;outline:2px solid #0000008c;outline-offset:-2px}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}
-[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]{transition:background-color .15s ease}`;
+[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]{transition:background-color .15s ease}
+[data-testid="yogesh-orb-panel"] [data-orb-trigger="dark"][aria-expanded="false"]:hover{background-color:rgba(255,255,255,.12)!important}`;
 
 function injectOptionStyles() {
   if (typeof document === "undefined") return;
@@ -120,6 +122,12 @@ export function SelectRow<T extends string>({
   const armed = useRef(false);
   const sawOpen = useRef(false);
   const primary = useSharedValue(0);
+  const openFrame = useRef(0);
+  const cancelOpenFrame = () => {
+    if (openFrame.current === 0) return;
+    cancelAnimationFrame(openFrame.current);
+    openFrame.current = 0;
+  };
   const commitRef = useRef((opening: boolean) => {
     armed.current = true;
     if (opening) onToggle();
@@ -131,7 +139,6 @@ export function SelectRow<T extends string>({
   });
   const commitJS = useCallback(() => commitRef.current(false), []);
   const web = Platform.OS === "web";
-  const [triggerHover, setTriggerHover] = useState(false);
   useLayoutEffect(() => {
     if (web) injectOptionStyles();
   }, [web]);
@@ -163,6 +170,7 @@ export function SelectRow<T extends string>({
     return node instanceof HTMLElement ? node : null;
   };
   const sealClosed = () => {
+    cancelOpenFrame();
     const menu = menuEl();
     if (!menu) return;
     if (typeof document !== "undefined" && document.activeElement instanceof Node && menu.contains(document.activeElement)) focusTrigger();
@@ -196,11 +204,15 @@ export function SelectRow<T extends string>({
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
   const commitOpen = useCallback(() => {
     flushSync(() => commitRef.current(true));
-    requestAnimationFrame(() => {
-      shown.value = withSpring(1, MENU);
+    cancelOpenFrame();
+    openFrame.current = requestAnimationFrame(() => {
+      openFrame.current = 0;
+      if (openSV.value !== 1) return;
+      shown.value = 0.1157;
+      shown.value = withSpring(1, { ...MENU, velocity: 11.35 });
       chevron.value = withSpring(1, CHEV);
     });
-  }, [chevron, shown]);
+  }, [chevron, openSV, shown]);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
       commitRef.current(false);
@@ -208,6 +220,7 @@ export function SelectRow<T extends string>({
   }, []);
   const dismissWeb = useCallback(() => {
     if (openSV.value !== 1) return;
+    cancelOpenFrame();
     sealClosed();
     openSV.value = 0;
     goal.value = 0;
@@ -275,6 +288,13 @@ export function SelectRow<T extends string>({
   useEffect(() => {
     place();
   }, [windowH, options.length]);
+  useEffect(() => {
+    return () => {
+      if (openFrame.current === 0) return;
+      cancelAnimationFrame(openFrame.current);
+      openFrame.current = 0;
+    };
+  }, []);
   const mountOnPress = (event: { button?: number; nativeEvent?: object }) => {
     primary.value = pointerButton(event) === 0 ? 1 : 0;
   };
@@ -439,10 +459,9 @@ export function SelectRow<T extends string>({
           accessibilityRole="button"
           aria-haspopup={web ? "listbox" : undefined}
           aria-expanded={web ? open : undefined}
+          dataSet={{ orbTrigger: mode }}
           collapsable={false}
           onPointerDown={web ? mountOnPress : undefined}
-          onPointerEnter={web ? () => setTriggerHover(true) : undefined}
-          onPointerLeave={web ? () => setTriggerHover(false) : undefined}
           onContextMenu={web ? cancelClosed : undefined}
           onPointerCancel={web ? cancelClosed : undefined}
           onKeyDownCapture={Platform.OS === "web" ? onKeyDownCapture : undefined}
@@ -453,11 +472,9 @@ export function SelectRow<T extends string>({
               ? mode === "dark"
                 ? "rgba(255,255,255,0.18)"
                 : "rgba(0,0,0,0.10)"
-              : triggerHover && mode === "dark"
-                ? "rgba(255,255,255,0.12)"
-                : mode === "dark"
-                  ? "rgba(255,255,255,0.08)"
-                  : colors.row,
+              : mode === "dark"
+                ? "rgba(255,255,255,0.08)"
+                : colors.row,
             paddingHorizontal: 12,
             flexDirection: "row",
             alignItems: "center",
