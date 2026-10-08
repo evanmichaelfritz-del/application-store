@@ -39,6 +39,30 @@ function keyName(event: WebKeyEvent): string {
   return event.key ?? event.nativeEvent?.key ?? "";
 }
 
+/** Dark hover/focus is DialKit `--dial-surface-hover` (#ffffff1f) and `--dial-focus-ring` (#fff9). Selected stays `--dial-surface-active` (#ffffff2e). */
+const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]{background-color:transparent;transition:background-color .15s,color .15s}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-label"]{color:#ffffffb3;opacity:1}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:hover{background-color:#ffffff1f}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"][aria-selected="true"]{background-color:#ffffff2e}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#fffffff2}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:focus-visible{background-color:#ffffff1f;outline:2px solid #fff9;outline-offset:-2px}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#fff;opacity:1}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-label"]{color:#0009}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:hover{background-color:#00000014}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"]{background-color:#0000001a}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#000000e6}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;outline:2px solid #0000008c;outline-offset:-2px}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}`;
+
+function injectOptionStyles() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("orb-select-option-css")) return;
+  const style = document.createElement("style");
+  style.id = "orb-select-option-css";
+  style.textContent = OPTION_CSS;
+  document.head.appendChild(style);
+}
+
 const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
 const OUTSIDE_CLOSE_EVENT: "pointerdown" | "click" = "pointerdown";
@@ -92,6 +116,9 @@ export function SelectRow<T extends string>({
   };
   const commitJS = useCallback(() => commitRef.current(), []);
   const web = Platform.OS === "web";
+  useLayoutEffect(() => {
+    if (web) injectOptionStyles();
+  }, [web]);
   const optionsInRow = (): HTMLElement[] => {
     const host: unknown = rowRef.current;
     if (typeof host !== "object" || host === null || !("querySelectorAll" in host)) return [];
@@ -436,13 +463,13 @@ export function SelectRow<T extends string>({
           {web
             ? createElement(
                 "div",
-                { role: "listbox", "aria-label": label, inert: open ? undefined : true },
+                { role: "listbox", "aria-label": label, className: mode === "light" ? "orb-select-menu is-light" : "orb-select-menu", inert: open ? undefined : true },
                 options.map((option, index) => {
                   const on = option.id === value;
                   const tabbable = open && index === active;
                   return (
-                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
-                      <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, opacity: mode === "light" ? (on ? 0.9 : 0.6) : on ? 0.95 : 0.7 }}>{option.label}</Text>
+                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center" }}>
+                      <Text testID="orb-select-label" style={{ fontFamily: fonts.regular, fontSize: 13 }}>{option.label}</Text>
                     </Pressable>
                   );
                 }),

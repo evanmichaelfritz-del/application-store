@@ -177,6 +177,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
   const [cssDraft, setCssDraft] = useState(text);
   const [rowInvalid, setRowInvalid] = useState(false);
   const [cssInvalid, setCssInvalid] = useState(false);
+  const rowInvalidRef = useRef(false);
   const [heldHue, setHeldHue] = useState(color.h);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const rowInputRef = useRef<DomInput | null>(null);
@@ -202,6 +203,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     const parsed = parseColor(trimmed);
     if (!parsed) return false;
     setFormat(detectFormat(trimmed));
+    rowInvalidRef.current = false;
     setRowInvalid(false);
     setCssInvalid(false);
     setRowDraft(trimmed);
@@ -219,6 +221,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     const css = cssInputRef.current;
     if (document.activeElement !== row) {
       setRowDraft(text);
+      rowInvalidRef.current = false;
       setRowInvalid(false);
     }
     if (document.activeElement !== css) {
@@ -396,7 +399,14 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     return () => node.removeEventListener("change", onChange);
   };
 
-  useEffect(() => bindChange(rowInputRef.current, setRowInvalid), [text]);
+  useEffect(
+    () =>
+      bindChange(rowInputRef.current, (invalid) => {
+        rowInvalidRef.current = invalid;
+        setRowInvalid(invalid);
+      }),
+    [text],
+  );
   useEffect(() => {
     if (!open) return;
     return bindChange(cssInputRef.current, setCssInvalid);
@@ -572,7 +582,16 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           value: rowDraft,
           onInput: (event: React.FormEvent<HTMLInputElement>) => {
             setRowDraft(event.currentTarget.value);
+            rowInvalidRef.current = false;
             setRowInvalid(false);
+          },
+          onBlur: () => {
+            if (!rowInvalidRef.current) return;
+            rowInvalidRef.current = false;
+            flushSync(() => {
+              setRowDraft(textRef.current);
+              setRowInvalid(false);
+            });
           },
           onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
             event.stopPropagation();
@@ -580,6 +599,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
             if (event.key === "Escape") {
               event.preventDefault();
               input.value = text;
+              rowInvalidRef.current = false;
               setRowDraft(text);
               setRowInvalid(false);
               if (open) {
@@ -591,7 +611,10 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
             }
             if (event.key === "Enter") {
               if (commitRef.current(input.value)) input.blur();
-              else setRowInvalid(true);
+              else {
+                rowInvalidRef.current = true;
+                setRowInvalid(true);
+              }
             }
           },
         }),

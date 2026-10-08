@@ -187,8 +187,9 @@ export function SliderRow({
     const onKey = (event: KeyboardEvent) => {
       const key = event.key;
       let steps: number | null = null;
-      if (key === "ArrowRight" || key === "ArrowUp") steps = 1;
-      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -1;
+      const big = event.shiftKey ? 10 : 1;
+      if (key === "ArrowRight" || key === "ArrowUp") steps = big;
+      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -big;
       else if (key === "PageUp") steps = 10;
       else if (key === "PageDown") steps = -10;
       else if (key === "Home") steps = 0;
@@ -327,6 +328,7 @@ export function SliderRow({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
+        aria-valuetext={labelText}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onLayout={(e) => setWidth(Math.max(1, e.nativeEvent.layout.width))}
