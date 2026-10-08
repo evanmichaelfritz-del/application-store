@@ -310,6 +310,7 @@ function wrappedRender(renderer: RendererLike, scene: SceneLike, camera: object)
 export function patchImgFxRenderer(renderer: RendererLike) {
   const canvas = renderer.domElement;
   if (!imgFxCanvases.has(canvas)) return;
+  if (!stats.renderer && !stats.caveatFailed) detectSoftwareGl();
   imgGl = renderer.getContext();
   noteGl(imgGl);
   state.orig = renderer.render.bind(renderer);
@@ -323,7 +324,6 @@ export function installImgFxGate() {
   if (installed || typeof window === 'undefined') return;
   installed = true;
   gateWindow().__imgFxStats = stats;
-  detectSoftwareGl();
 
   const origGetContext = HTMLCanvasElement.prototype.getContext as (
     this: HTMLCanvasElement,
