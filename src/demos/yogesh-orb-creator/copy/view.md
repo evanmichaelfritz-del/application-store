@@ -1,6 +1,8 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
  * Web loads CanvasKit itself. No custom index.html.
+ * locateFile: (file) => `/${file}` assumes the site root. A sub-path host must change that prefix.
  * Babel: plugins: ['react-native-worklets/plugin']
+ * Mount: put these files under src/ and replace App.tsx with `export { default } from './src/Playground'`.
  * expo ~57.0.23
  * react 19.2.3
  * react-dom 19.2.3
@@ -11,11 +13,12 @@
  * react-native-worklets 0.10.1
  * react-native-gesture-handler ~2.32.0
  * react-native-svg 15.15.4
- * expo-linear-gradient ~57.0.2
  * expo-constants ~57.0.18
  * expo-clipboard ~57.0.2
  * react-native-safe-area-context ~5.7.0
  * @expo-google-fonts/geist ^0.4.2
+ * @expo-google-fonts/geist-mono ^0.4.3
+ * @types/react-dom ~19.2.2 (dev)
  */
 
 /* FILE src/Playground.web.tsx */
@@ -43,61 +46,75 @@ export { default } from "./PlaygroundApp";
 /* FILE src/PlaygroundApp.tsx */
 import "react-native-gesture-handler";
 import "react-native-reanimated";
-import { setStringAsync } from "expo-clipboard";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSharedValue } from "react-native-reanimated";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { ColorPicker } from "./components/ColorPicker";
-import { SelectRow } from "./components/SelectRow";
-import { Shimmer } from "./components/Shimmer";
-import { SliderRow } from "./components/SliderRow";
-import { PLAYGROUND } from "./content/cards";
-import { orbSnippet } from "./content/snippet";
-import { useArrowKeys } from "./hooks/useArrowKeys";
-import { parseColor, toExtendedSrgb, toSrgb, type Oklch } from "./color/color";
-import { canUseExtendedColor, OrbView, type OrbLive } from "./orb/OrbView";
-import { isFlat, RENDERS, type RenderName, type ShapeName } from "./orb/model";
-import { ThemeProvider, fonts, useTheme } from "./theme/theme";
+import { Tuner } from "./Tuner";
+import { ThemeProvider } from "./theme/theme";
 
-function bindTitle(title: string) {
-  return (node: object | null) => {
-    if (!node || !("setAttribute" in node)) return;
-    const set = node.setAttribute;
-    if (typeof set !== "function") return;
-    set.call(node, "title", title);
-  };
+export function PlaygroundScreen() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <ThemeProvider>
+            <Tuner />
+          </ThemeProvider>
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
 
-function swatchHexFrom(color: Oklch, fallback: string): string {
-  if (!color) return fallback;
-  const { r, g, b } = toSrgb(color);
-  const byte = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16).padStart(2, "0");
-  return `#${byte(r)}${byte(g)}${byte(b)}`;
-}
+export default PlaygroundScreen;
+
+/* FILE src/Tuner.tsx */
+import { setStringAsync } from 'expo-clipboard';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSharedValue } from 'react-native-reanimated';
+
+import { ColorPicker } from './components/ColorPicker';
+import { SelectRow } from './components/SelectRow';
+import { Shimmer } from './components/Shimmer';
+import { SliderRow } from './components/SliderRow';
+import { PLAYGROUND } from './content/cards';
+import { orbSnippet } from './content/snippet';
+import { useArrowKeys } from './hooks/useArrowKeys';
+import { parseColor, toExtendedSrgb, toSrgb, type Oklch } from './color/color';
+import { canUseExtendedColor, OrbView, type OrbLive } from './orb/OrbView';
+import { isFlat, RENDERS, type RenderName, type ShapeName } from './orb/model';
+import { fonts, useTheme } from './theme/theme';
+
+/**
+ * Playground tuner from 9bef3b1 `app/playground.tsx`, without the site header.
+ * Layout width is the card, so the same wide / tablet / phone branches run in
+ * the space the store actually gives the asset.
+ */
 
 const SHAPES: { id: ShapeName; label: string }[] = [
-  { id: "sphere", label: "Sphere" },
-  { id: "cube", label: "Cube" },
-  { id: "octahedron", label: "Octahedron" },
-  { id: "tetrahedron", label: "Tetrahedron" },
-  { id: "torus", label: "Torus" },
+  { id: 'sphere', label: 'Sphere' },
+  { id: 'cube', label: 'Cube' },
+  { id: 'octahedron', label: 'Octahedron' },
+  { id: 'tetrahedron', label: 'Tetrahedron' },
+  { id: 'torus', label: 'Torus' },
 ];
 
 const RENDER_LABEL: Record<RenderName, string> = {
-  dots: "Dots",
-  crosses: "Crosses",
-  dashes: "Dashes",
-  halftone: "Halftone",
-  lines: "Lines",
-  mesh: "Mesh",
-  squares: "Squares",
-  verticalLines: "Vertical Lines",
+  dots: 'Dots',
+  crosses: 'Crosses',
+  dashes: 'Dashes',
+  halftone: 'Halftone',
+  lines: 'Lines',
+  mesh: 'Mesh',
+  squares: 'Squares',
+  verticalLines: 'Vertical Lines',
 };
 
-function PlaygroundBody() {
+export function Tuner() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const wide = width >= 1280;
@@ -106,43 +123,43 @@ function PlaygroundBody() {
   const onIndex = useCallback((next: number) => setIndex(next), []);
   useArrowKeys(PLAYGROUND.length, index, onIndex);
   const look = PLAYGROUND[index];
-  const [shape, setShape] = useState<ShapeName>("sphere");
-  const [render, setRender] = useState<RenderName>("dots");
+  const [shape, setShape] = useState<ShapeName>('sphere');
+  const [render, setRender] = useState<RenderName>('dots');
   const [size, setSize] = useState(320);
   const [speed, setSpeed] = useState(1);
   const [density, setDensity] = useState(1);
   const [dotSize, setDotSize] = useState(1);
   const [tilt, setTilt] = useState(20);
-  const [menu, setMenu] = useState<null | "shape" | "render">(null);
+  const [exact, setExact] = useState<{ color: Oklch; text: string } | null>(null);
+  const [menu, setMenu] = useState<null | 'shape' | 'render'>(null);
   const [picker, setPicker] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [draft, setDraft] = useState(playgroundColor);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const alive = useRef(true);
   const wasFlat = useRef(false);
-  const exact = useRef<{ color: Oklch; text: string } | null>(null);
   const flat = isFlat(render);
   const phone = width < 768;
   const headerH = width >= 768 ? 48 : 72;
   const maxOrb = Math.max(96, height - headerH - 120);
   const shown = Math.min(size, wide ? maxOrb : Math.min(maxOrb, Math.max(96, width - 32)));
-  const parsed: Oklch = (exact.current && exact.current.text === playgroundColor ? exact.current.color : null) ?? parseColor(playgroundColor) ?? { l: 1, c: 0, h: 0, a: 1 };
+  const parsed: Oklch =
+    (exact && exact.text === playgroundColor ? exact.color : null) ??
+    parseColor(playgroundColor) ?? { l: 1, c: 0, h: 0, a: 1 };
   const rgba = canUseExtendedColor() ? toExtendedSrgb(parsed) : toSrgb(parsed);
   const remember = (color: Oklch, text: string) => {
-    exact.current = { color, text };
+    setExact({ color, text });
     setPlaygroundColor(text);
   };
   const live = useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba });
   const sliding = useRef(false);
 
-  useEffect(() => {
-    setDraft(playgroundColor);
-  }, [playgroundColor]);
-
-  useEffect(() => () => {
-    alive.current = false;
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      alive.current = false;
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (wasFlat.current && !flat) setTilt(20);
@@ -179,19 +196,18 @@ function PlaygroundBody() {
     });
   };
 
-  const close = () => {
-    setMenu(null);
-    setPicker(false);
-  };
-
   const panel = (
-    <View testID="yogesh-orb-panel" role={Platform.OS === "web" ? "complementary" : undefined} style={{ width: wide ? 256 : "100%", gap: 6, zIndex: 5 }}>
+    <View
+      testID="yogesh-orb-panel"
+      role={Platform.OS === 'web' ? 'complementary' : undefined}
+      style={{ width: wide ? 256 : '100%', gap: 6, zIndex: 5 }}
+    >
       <SelectRow
         label="Shape"
         value={shape}
-        display={SHAPES.find((item) => item.id === shape)?.label ?? "Sphere"}
+        display={SHAPES.find((item) => item.id === shape)?.label ?? 'Sphere'}
         options={SHAPES}
-        open={menu === "shape"}
+        open={menu === 'shape'}
         onToggle={() => {
           setPicker(false);
           setMenu((current) => (current === 'shape' ? null : 'shape'));
@@ -206,7 +222,7 @@ function PlaygroundBody() {
         value={render}
         display={RENDER_LABEL[render]}
         options={RENDERS.map((id) => ({ id, label: RENDER_LABEL[id] }))}
-        open={menu === "render"}
+        open={menu === 'render'}
         onToggle={() => {
           setPicker(false);
           setMenu((current) => (current === 'render' ? null : 'render'));
@@ -216,57 +232,109 @@ function PlaygroundBody() {
           setMenu(null);
         }}
       />
-      <View style={{ height: 36, borderRadius: 8, backgroundColor: colors.row, borderWidth: picker ? 1 : 0, borderColor: colors.ring, paddingLeft: 12, paddingRight: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>Color</Text>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={() => {
-            const next = parseColor(draft);
-            if (next) {
-              exact.current = null;
-              setPlaygroundColor(draft.trim());
-            } else setDraft(playgroundColor);
+      <ColorPicker
+        text={playgroundColor}
+        color={parsed}
+        open={picker}
+        onOpenChange={(next) => {
+          if (next) setMenu(null);
+          setPicker(next);
+        }}
+        onCommit={(next) => {
+          setExact(null);
+          setPlaygroundColor(next.trim());
+        }}
+        onChange={remember}
+      />
+      <SliderRow
+        label="Size"
+        min={16}
+        max={480}
+        step={1}
+        value={size}
+        decimals={0}
+        onChange={setSize}
+        live={live}
+        field="size"
+        onDrag={(active) => {
+          sliding.current = active;
+        }}
+      />
+      <SliderRow
+        label="Speed"
+        min={0.05}
+        max={3}
+        step={0.05}
+        value={speed}
+        decimals={2}
+        onChange={setSpeed}
+        live={live}
+        field="speed"
+        onDrag={(active) => {
+          sliding.current = active;
+        }}
+      />
+      <SliderRow
+        label="Density"
+        min={0.25}
+        max={3}
+        step={0.05}
+        value={density}
+        decimals={2}
+        onChange={setDensity}
+        live={live}
+        field="density"
+        onDrag={(active) => {
+          sliding.current = active;
+        }}
+      />
+      <SliderRow
+        label="Dot Size"
+        min={0.25}
+        max={3}
+        step={0.05}
+        value={dotSize}
+        decimals={2}
+        onChange={setDotSize}
+        live={live}
+        field="dotSize"
+        onDrag={(active) => {
+          sliding.current = active;
+        }}
+      />
+      {flat ? null : (
+        <SliderRow
+          label="Tilt"
+          min={-90}
+          max={90}
+          step={1}
+          value={tilt}
+          decimals={0}
+          onChange={setTilt}
+          live={live}
+          field="tilt"
+          onDrag={(active) => {
+            sliding.current = active;
           }}
-          accessibilityLabel="Color color value"
-          ref={bindTitle(draft)}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={{ flex: 1, color: colors.fg, fontFamily: fonts.mono, fontSize: 13, textAlign: "right", paddingVertical: 0 }}
         />
+      )}
+      <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <Pressable
-          onPress={() => {
-            setMenu(null);
-            setPicker((v) => !v);
-          }}
-          accessibilityRole={Platform.OS === "web" ? "button" : undefined}
-          accessibilityLabel="Pick color color"
-          aria-haspopup={Platform.OS === "web" ? "dialog" : undefined}
-          aria-expanded={Platform.OS === "web" ? picker : undefined}
-          style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: swatchHexFrom(parsed, colors.fg), borderWidth: 1, borderColor: colors.ringSoft }}
-        />
-      </View>
-      {picker && wide ? (
-        <View style={{ position: "absolute", right: "100%", top: 0, marginRight: 12, zIndex: 40 }}>
-          <ColorPicker wide color={parsed} onChange={remember} />
-        </View>
-      ) : null}
-      {picker && phone ? (
-        <View style={{ position: "absolute", left: 0, top: 40, width: 280, zIndex: 30 }}>
-          <ColorPicker wide={false} color={parsed} onChange={remember} />
-        </View>
-      ) : null}
-      {picker && !wide && !phone ? <ColorPicker wide={false} color={parsed} onChange={remember} /> : null}
-      <SliderRow label="Size" min={16} max={480} step={1} value={size} decimals={0} onChange={setSize} live={live} field="size" onDrag={(active) => { sliding.current = active; }} />
-      <SliderRow label="Speed" min={0.05} max={3} step={0.05} value={speed} decimals={2} onChange={setSpeed} live={live} field="speed" onDrag={(active) => { sliding.current = active; }} />
-      <SliderRow label="Density" min={0.25} max={3} step={0.05} value={density} decimals={2} onChange={setDensity} live={live} field="density" onDrag={(active) => { sliding.current = active; }} />
-      <SliderRow label="Dot Size" min={0.25} max={3} step={0.05} value={dotSize} decimals={2} onChange={setDotSize} live={live} field="dotSize" onDrag={(active) => { sliding.current = active; }} />
-      {flat ? null : <SliderRow label="Tilt" min={-90} max={90} step={1} value={tilt} decimals={0} onChange={setTilt} live={live} field="tilt" onDrag={(active) => { sliding.current = active; }} />}
-      <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <Pressable onPress={copy} hitSlop={8} accessibilityRole={Platform.OS === "web" ? "button" : undefined}>
-          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>{copied ? "Copied" : "Copy"}</Text>
+          testID="yogesh-orb-export"
+          onPress={copy}
+          hitSlop={8}
+          accessibilityRole={Platform.OS === 'web' ? 'button' : undefined}
+        >
+          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>
+            {copied ? 'Copied' : 'Copy'}
+          </Text>
         </Pressable>
-        {playgroundColor.trim().toLowerCase() !== colors.orb.toLowerCase() || size !== 320 || speed !== 1 || density !== 1 || dotSize !== 1 || tilt !== 20 ? (
+        {playgroundColor.trim().toLowerCase() !== colors.orb.toLowerCase() ||
+        size !== 320 ||
+        speed !== 1 ||
+        density !== 1 ||
+        dotSize !== 1 ||
+        tilt !== 20 ? (
           <Pressable
             onPress={() => {
               setSize(320);
@@ -274,7 +342,7 @@ function PlaygroundBody() {
               setDensity(1);
               setDotSize(1);
               setTilt(20);
-              exact.current = null;
+              setExact(null);
               setPlaygroundColor(colors.orb);
             }}
             hitSlop={8}
@@ -288,60 +356,114 @@ function PlaygroundBody() {
   );
 
   const list = (
-    <View role="navigation" accessibilityLabel="States" style={{ width: wide ? 280 : "100%", justifyContent: "center" }}>
-      <View role={Platform.OS === "web" ? "list" : undefined} style={{ flexDirection: wide ? "column" : "row", flexWrap: wide ? "nowrap" : "wrap", columnGap: 16, rowGap: 8 }}>
+    <View
+      testID="yogesh-orb-states"
+      role="navigation"
+      accessibilityLabel="States"
+      style={{ width: wide ? 280 : '100%', justifyContent: 'center' }}
+    >
+      <View
+        role={Platform.OS === 'web' ? 'list' : undefined}
+        style={{
+          flexDirection: wide ? 'column' : 'row',
+          flexWrap: wide ? 'nowrap' : 'wrap',
+          columnGap: 16,
+          rowGap: 8,
+        }}
+      >
         {PLAYGROUND.map((item, i) => {
           const on = i === index;
-          return Platform.OS === "web" ? (
+          return Platform.OS === 'web' ? (
             <View key={item.id} role="listitem">
-              <Pressable accessibilityRole="button" aria-current={on ? "true" : undefined} onPress={() => setIndex(i)} hitSlop={{ top: 12, bottom: 12 }} style={{ height: 20, justifyContent: "center" }}>
-                <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>{item.playground}</Text>
+              <Pressable
+                accessibilityRole="button"
+                aria-current={on ? 'true' : undefined}
+                onPress={() => setIndex(i)}
+                hitSlop={{ top: 12, bottom: 12 }}
+                style={{ height: 20, justifyContent: 'center' }}
+              >
+                <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>
+                  {item.playground}
+                </Text>
               </Pressable>
             </View>
           ) : (
-            <Pressable key={item.id} accessibilityRole="button" aria-current={on ? "true" : undefined} onPress={() => setIndex(i)} hitSlop={{ top: 12, bottom: 12 }} style={{ height: 20, justifyContent: "center" }}>
-              <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>{item.playground}</Text>
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              aria-current={on ? 'true' : undefined}
+              onPress={() => setIndex(i)}
+              hitSlop={{ top: 12, bottom: 12 }}
+              style={{ height: 20, justifyContent: 'center' }}
+            >
+              <Text style={{ color: on ? colors.fg : colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>
+                {item.playground}
+              </Text>
             </Pressable>
           );
         })}
       </View>
-      {wide ? <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, marginTop: 24, marginBottom: -8 }}>↑ ↓ to switch</Text> : null}
+      {wide ? (
+        <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, marginTop: 24, marginBottom: -8 }}>
+          ↑ ↓ to switch
+        </Text>
+      ) : null}
     </View>
   );
 
   const stage = (
     <View
-      accessibilityLabel={Platform.OS === "web" ? undefined : "Orb playground"}
-      accessibilityElementsHidden={Platform.OS === "web" ? true : undefined}
-      importantForAccessibility={Platform.OS === "web" ? "no-hide-descendants" : undefined}
-      aria-hidden={Platform.OS === "web" ? true : undefined}
-      style={{ flex: wide ? 1 : undefined, minHeight: phone ? height * 0.6 : wide ? 0 : shown, padding: phone ? 32 : 0, alignItems: "center", justifyContent: "center", marginTop: phone ? 24 : 0 }}
+      testID="yogesh-orb-stage"
+      accessibilityLabel={Platform.OS === 'web' ? undefined : 'Orb playground'}
+      accessibilityElementsHidden={Platform.OS === 'web' ? true : undefined}
+      importantForAccessibility={Platform.OS === 'web' ? 'no-hide-descendants' : undefined}
+      aria-hidden={Platform.OS === 'web' ? true : undefined}
+      style={{
+        flex: wide ? 1 : undefined,
+        minHeight: phone ? height * 0.6 : wide ? 0 : shown,
+        padding: phone ? 32 : 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: phone ? 24 : 0,
+      }}
     >
       <View style={wide ? { marginRight: 24 } : undefined}>
-      <OrbView
-        state={look.state}
-        variant={look.variant}
-        size={shown}
-        speed={speed}
-        density={density}
-        dotSize={dotSize}
-        tilt={tilt}
-        shape={shape}
-        render={render}
-        color={playgroundColor}
-        live={live}
-      />
+        <OrbView
+          state={look.state}
+          variant={look.variant}
+          size={shown}
+          speed={speed}
+          density={density}
+          dotSize={dotSize}
+          tilt={tilt}
+          shape={shape}
+          render={render}
+          color={playgroundColor}
+          live={live}
+        />
       </View>
     </View>
   );
 
   const status = (
     <View
+      testID="yogesh-orb-status"
       pointerEvents="none"
       style={
         wide
-          ? { position: "absolute", left: 0, right: 0, bottom: 22 + insets.bottom, zIndex: 6, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, transform: [{ translateX: -4.6 }] }
-          : { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, alignSelf: "center" }
+          ? {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 22 + insets.bottom,
+              zIndex: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transform: [{ translateX: -4.6 }],
+            }
+          : { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center' }
       }
     >
       <OrbView
@@ -357,33 +479,41 @@ function PlaygroundBody() {
         color={playgroundColor}
         live={live}
       />
-      <Shimmer text={look.status} style={phone ? { lineHeight: 20 } : undefined} />
+      <Shimmer key={index} text={look.status} style={phone ? { lineHeight: 20 } : undefined} />
     </View>
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.page }}>
-      {(menu || picker) && (
+    <View
+      testID="yogesh-orb-tuner"
+      style={{ width: '100%', backgroundColor: colors.page, minHeight: wide ? Math.max(560, shown + 160) : undefined }}
+    >
+      {menu && Platform.OS !== 'web' ? (
         <Pressable
-          onPress={() => {
-            if (Platform.OS !== "web") setMenu(null);
-            setPicker(false);
-          }}
-          style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
+          onPress={() => setMenu(null)}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
         />
-      )}
+      ) : null}
       {wide ? (
-        <View style={{ flex: 1, flexDirection: "row", alignItems: "stretch", paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
-          <View style={{ alignSelf: "center", marginBottom: 8 }}>{list}</View>
+        <View style={{ minHeight: Math.max(520, shown + 120), flexDirection: 'row', alignItems: 'stretch', paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
+          <View style={{ alignSelf: 'center', marginBottom: 8 }}>{list}</View>
           {stage}
-          <View style={{ alignSelf: "center" }}>{panel}</View>
+          <View style={{ alignSelf: 'center' }}>{panel}</View>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, paddingTop: width < 768 ? 24 : 0, paddingBottom: (width < 768 ? 24 : 32) + insets.bottom }} style={{ zIndex: 5 }}>
+        <ScrollView
+          style={{ zIndex: 5 }}
+          contentContainerStyle={{
+            paddingLeft: 16,
+            paddingRight: 16,
+            paddingTop: width < 768 ? 24 : 0,
+            paddingBottom: (width < 768 ? 24 : 32) + insets.bottom,
+          }}
+        >
           {list}
           <View>
             {stage}
-            {phone ? <View style={{ position: "absolute", left: 0, right: 0, bottom: 24 }}>{status}</View> : null}
+            {phone ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24 }}>{status}</View> : null}
           </View>
           {phone ? null : status}
           <View style={{ marginTop: phone ? 24 : 20 }}>{panel}</View>
@@ -394,29 +524,24 @@ function PlaygroundBody() {
   );
 }
 
-export function PlaygroundScreen() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <PlaygroundBody />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
-  );
-}
-
-export default PlaygroundScreen;
-
 /* FILE src/orb/OrbView.tsx */
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Platform } from "react-native";
+import { createElement, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AccessibilityInfo, AppState, Platform, View } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
-
+import { useFrameCallback, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+import {
+  ORB_DEFAULT_COLOR,
+  ORB_DEFAULT_DENSITY,
+  ORB_DEFAULT_DOT_SIZE,
+  ORB_DEFAULT_PAUSED,
+  ORB_DEFAULT_SIZE,
+  ORB_DEFAULT_SPEED,
+  ORB_DEFAULT_STATE,
+  ORB_DEFAULT_TILT,
+} from "./orbProps";
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
-import { tick } from "./clock";
+import { clocks, tick } from "./clock";
 import { drawOrb } from "./draw";
 import { buildInput, type OrbInput, type RenderName, type ShapeName } from "./model";
 import { makeLocal, step, type OrbLocal } from "./simulate";
@@ -470,24 +595,68 @@ function usePicture() {
   return { picture, retire };
 }
 
-type Props = {
-  state: string;
+export type OrbViewProps = {
+  /** Omitted state is npm's `base`. Unknown ids resolve inside `buildInput`. */
+  state?: string;
   variant?: string;
-  size: number;
+  /** npm default is 20. */
+  size?: number;
   speed?: number;
   density?: number;
   dotSize?: number;
   tilt?: number;
   shape?: ShapeName;
   render?: RenderName;
-  color: string;
+  /** Omitted color paints the dark-store stand-in for npm `currentColor`. */
+  color?: string;
   /** When false the canvas stays mounted but does not tick. */
   active?: boolean;
+  /** npm `paused`: hold the frame and do not tick. */
+  paused?: boolean;
+  /** Screen-reader name. Without one the orb is hidden from assistive tech. */
+  label?: string;
+  /** Web className passthrough on the orb box. */
+  className?: string;
   /** Playground sliders write here. Landing orbs leave it unset. */
   live?: SharedValue<OrbLive>;
   /** Last rasterized frame, for a card that has scrolled its canvas away. */
   onFrame?: (uri: string) => void;
 };
+
+function useDocumentActive(): boolean {
+  const [active, setActive] = useState(() => {
+    if (Platform.OS === "web") {
+      return typeof document === "undefined" || document.visibilityState !== "hidden";
+    }
+    return AppState.currentState === "active";
+  });
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      const onChange = () => setActive(document.visibilityState !== "hidden");
+      document.addEventListener("visibilitychange", onChange);
+      return () => document.removeEventListener("visibilitychange", onChange);
+    }
+    const sub = AppState.addEventListener("change", (next) => setActive(next === "active"));
+    return () => sub.remove();
+  }, []);
+  return active;
+}
+
+function useOrbReduced(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReduced(enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduced);
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
+  return reduced;
+}
 
 function paint(
   picture: SharedValue<SkPicture>,
@@ -543,25 +712,67 @@ function CanvasHost({
   );
 }
 
-function LiveOrb({
-  state,
-  variant,
+function OrbFrame({
   size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
+  label,
+  className,
+  children,
+}: {
+  size: number;
+  label?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (Platform.OS === "web") {
+    return createElement(
+      "div",
+      {
+        className,
+        role: label ? "img" : undefined,
+        "aria-label": label,
+        "aria-hidden": label ? undefined : true,
+        style: { width: size, height: size, lineHeight: 0 },
+      },
+      children,
+    );
+  }
+  return (
+    <View
+      accessibilityRole={label ? "image" : undefined}
+      accessibilityLabel={label}
+      accessibilityElementsHidden={label ? undefined : true}
+      importantForAccessibility={label ? "auto" : "no-hide-descendants"}
+      style={{ width: size, height: size }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function OrbCanvas({
+  state = ORB_DEFAULT_STATE,
+  variant,
+  size = ORB_DEFAULT_SIZE,
+  speed = ORB_DEFAULT_SPEED,
+  density = ORB_DEFAULT_DENSITY,
+  dotSize = ORB_DEFAULT_DOT_SIZE,
+  tilt = ORB_DEFAULT_TILT,
   shape = "sphere",
   render = "dots",
-  color,
+  color = ORB_DEFAULT_COLOR,
   active = true,
+  paused = ORB_DEFAULT_PAUSED,
+  label,
+  className,
   live,
   onFrame,
-}: Props) {
+  reduced,
+}: OrbViewProps & { reduced: boolean }) {
   const { picture, retire } = usePicture();
   const inputSV = useSharedValue<OrbInput | null>(null);
   const localSV = useSharedValue<OrbLocal | null>(null);
-  const activeSV = useSharedValue(active);
+  const running = active && !paused && !reduced;
+  const activeSV = useSharedValue(running);
   const fallback = useSharedValue<OrbLive>({
     size,
     speed,
@@ -570,7 +781,6 @@ function LiveOrb({
     tilt,
     ...colorToRgba(color),
   });
-
   const built = useMemo(
     () => buildInput({ state, variant, size, density, dotSize, shape, render }),
     [state, variant, size, density, dotSize, shape, render],
@@ -581,106 +791,191 @@ function LiveOrb({
     localSV.value = null;
   }, [built, inputSV, localSV]);
 
-  useEffect(() => {
-    activeSV.value = active;
+  useLayoutEffect(() => {
+    activeSV.value = running;
     if (!live) {
       fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
     }
-  }, [active, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
+  }, [running, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
 
-  useFrameCallback((frame) => {
+  // Reduced motion paints from props at t=0. Entering pause holds the current picture.
+  // A later state, size, or colour edit while paused repaints that same time.
+  const wasPaused = useRef(paused);
+  const heldT = useRef(0);
+  useLayoutEffect(() => {
+    const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    const enteredPause = paused && !wasPaused.current;
+    wasPaused.current = paused;
+    if (enteredPause && !reduced) {
+      const clock = clocks.value[`${built.state}@${tune.speed}`];
+      heldT.current = clock ? clock.t : heldT.current;
+      return;
+    }
+    if (!reduced && !paused) return;
+    const time = reduced ? 0 : heldT.current;
+    const input = built;
+    runOnUI(() => {
+      "worklet";
+      paint(picture, retire, input, makeLocal(input), tune, time);
+    })();
+  }, [reduced, paused, built, color, density, dotSize, picture, retire, size, speed, tilt]);
+
+  const frameCallback = useFrameCallback((frame) => {
     "worklet";
     const input = inputSV.value;
     if (!input || !activeSV.value) return;
     const tune = live ? live.value : fallback.value;
-    const look = `${input.state}@${tune.speed}`;
+    const clockKey = `${input.state}@${tune.speed}`;
     const now = frame.timestamp;
-    const t = tick(look, now, tune.speed);
+    const t = tick(clockKey, now, tune.speed);
     let local = localSV.value;
-    if (!local || local.key !== input.key || local.dots.length !== input.count * 6) {
+    const speedKey = `${input.key}@${tune.speed}`;
+    if (!local || local.key !== speedKey || local.dots.length !== input.count * 6) {
       local = makeLocal(input);
+      local.key = speedKey;
       localSV.value = local;
     }
     paint(picture, retire, input, local, tune, t);
-  }, true);
+  }, running);
 
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
-}
+  useLayoutEffect(() => {
+    frameCallback.setActive(running);
+  }, [running, frameCallback]);
 
-function StillOrb({
-  state,
-  variant,
-  size,
-  speed = 1,
-  density = 1,
-  dotSize = 1,
-  tilt = 20,
-  shape = "sphere",
-  render = "dots",
-  color,
-  live,
-  onFrame,
-}: Props) {
-  const { picture, retire } = usePicture();
-  const built = useMemo(
-    () => buildInput({ state, variant, size, density, dotSize, shape, render }),
-    [state, variant, size, density, dotSize, shape, render],
+  return (
+    <OrbFrame size={size} label={label} className={className}>
+      <CanvasHost size={size} picture={picture} onFrame={onFrame} />
+    </OrbFrame>
   );
-
-  useEffect(() => {
-    const tune: OrbLive = live
-      ? live.value
-      : { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
-    const input = built;
-    runOnUI(() => {
-      "worklet";
-      paint(picture, retire, input, makeLocal(input), tune, 0);
-    })();
-  }, [built, color, density, dotSize, live, picture, retire, size, speed, tilt]);
-
-  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
 }
 
-function useDocumentActive() {
-  const [active, setActive] = useState(true);
-  useEffect(() => {
-    if (Platform.OS === "web" && typeof document !== "undefined") {
-      const sync = () => setActive(document.visibilityState !== "hidden");
-      sync();
-      document.addEventListener("visibilitychange", sync);
-      return () => document.removeEventListener("visibilitychange", sync);
-    }
-    const sync = (state: string) => setActive(state === "active");
-    sync(AppState.currentState);
-    const sub = AppState.addEventListener("change", sync);
-    return () => sub.remove();
-  }, []);
-  return active;
-}
-
-export const OrbView = memo(function OrbView(props: Props) {
+export const OrbView = memo(function OrbView(props: OrbViewProps) {
   const focused = useDocumentActive();
-  const reduced = useReducedMotion() === true;
+  const reduced = useOrbReduced();
   if (!focused) return null;
-  if (reduced) return <StillOrb {...props} />;
-  return <LiveOrb {...props} />;
+  return <OrbCanvas {...props} reduced={reduced} active={props.active !== false} />;
 });
-/* FILE src/components/ColorPicker.tsx */
-import { LinearGradient } from "expo-linear-gradient";
-import { createElement, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { runOnJS } from "react-native-reanimated";
 
-import { detectFormat, formatColor, maxChroma, oklchToRgb, parseColor, toSrgb, type ColorFormat, type Oklch } from "../color/color";
+/* FILE src/components/ColorPicker.tsx */
+import { useEffect, useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
+
+import { detectFormat, formatColor, parseColor, type Oklch } from "../color/color";
 import { fonts, useTheme } from "../theme/theme";
 
-declare module "react-native" {
-  interface ViewProps {
-    dataSet?: Record<string, string>;
-  }
+const INVALID_TITLE = "Enter a hex, RGB, HSL, OKLCH, or Display P3 color";
+
+export type ColorPickerProps = {
+  text: string;
+  color: Oklch;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCommit: (text: string) => void;
+  onChange: (color: Oklch, text: string) => void;
+};
+
+/**
+ * Native stand-in. Desktop web uses ColorPicker.web.tsx.
+ * Mobile layout is a known gap; this keeps the card from crashing.
+ */
+export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChange }: ColorPickerProps) {
+  const { colors } = useTheme();
+  const [draft, setDraft] = useState(text);
+  const [invalid, setInvalid] = useState(false);
+  useEffect(() => {
+    setDraft(text);
+    setInvalid(false);
+  }, [text]);
+  const commit = () => {
+    const trimmed = draft.trim();
+    const parsed = parseColor(trimmed);
+    if (!parsed) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    onCommit(trimmed);
+    onChange(parsed, formatColor(parsed, detectFormat(trimmed)));
+  };
+  return (
+    <View style={{ gap: 6 }}>
+      <View
+        style={{
+          height: 36,
+          borderRadius: 8,
+          backgroundColor: "rgba(255,255,255,0.08)",
+          paddingHorizontal: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <Text style={{ color: "rgba(255,255,255,0.7)", fontFamily: fonts.regular, fontSize: 13 }}>Color</Text>
+        <TextInput
+          value={draft}
+          onChangeText={(value) => {
+            setDraft(value);
+            setInvalid(false);
+          }}
+          onSubmitEditing={commit}
+          accessibilityLabel="Color color value"
+          aria-invalid={invalid}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            color: invalid ? "#ef7777" : "rgba(255,255,255,0.7)",
+            fontFamily: fonts.mono,
+            fontSize: 13,
+            textAlign: "right",
+            paddingVertical: 4,
+          }}
+        />
+        <Pressable
+          testID="yogesh-orb-color-swatch"
+          accessibilityRole="button"
+          accessibilityLabel="Pick color color"
+          onPress={() => onOpenChange(!open)}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 5,
+            backgroundColor: formatColor(color, "hex"),
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.26)",
+          }}
+        />
+      </View>
+      {open ? (
+        <View accessibilityLabel="Color color picker" style={{ borderRadius: 14, backgroundColor: colors.pop, padding: 10, gap: 8 }}>
+          <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 13 }}>{INVALID_TITLE}</Text>
+          <Pressable onPress={() => onOpenChange(false)} accessibilityRole="button">
+            <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>Close</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
 }
+
+/* FILE src/components/ColorPicker.web.tsx */
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
+import React, { createElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
+
+import {
+  detectFormat,
+  displayP3GammaToSrgb,
+  formatColor,
+  maxChroma,
+  oklchToRgb,
+  parseColor,
+  srgbGammaToDisplayP3,
+  type ColorFormat,
+  type Oklch,
+} from "../color/color";
 
 const TABS: { id: ColorFormat; label: string }[] = [
   { id: "hex", label: "Hex" },
@@ -688,35 +983,8 @@ const TABS: { id: ColorFormat; label: string }[] = [
   { id: "p3", label: "Display P3" },
 ];
 
-function hsvToOklch(h: number, s: number, v: number, a: number): Oklch {
-  const c = v * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = v - c;
-  let r = 0, g = 0, b = 0;
-  if (h < 60) [r, g, b] = [c, x, 0];
-  else if (h < 120) [r, g, b] = [x, c, 0];
-  else if (h < 180) [r, g, b] = [0, c, x];
-  else if (h < 240) [r, g, b] = [0, x, c];
-  else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-  const parsed = parseColor(`rgb(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)})`);
-  return { ...(parsed ?? { l: v, c: 0, h, a: 1 }), a };
-}
-
-function rgbToHsv(r: number, g: number, b: number) {
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const d = max - min;
-  let h = 0;
-  if (d !== 0) {
-    if (max === r) h = ((g - b) / d) % 6;
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-    if (h < 0) h += 360;
-  }
-  return { h, s: max === 0 ? 0 : d / max, v: max };
-}
+const SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
+const MONO = "GeistMono_500Medium, ui-monospace, monospace";
 
 type FieldSpace = "srgb" | "p3";
 
@@ -729,10 +997,15 @@ type FieldCanvas = {
 type FieldContext = {
   createImageData: (w: number, h: number) => { data: Uint8ClampedArray };
   putImageData: (data: { data: Uint8ClampedArray }, x: number, y: number) => void;
+  getContextAttributes?: () => { colorSpace?: string };
 };
 
-function isFieldCanvas(node: object): node is FieldCanvas {
-  return "getContext" in node && "width" in node && "height" in node;
+type BitmapSpace = "srgb" | "display-p3";
+
+const bitmapSpace = new WeakMap<object, BitmapSpace>();
+
+function isFieldCanvas(node: object | null): node is FieldCanvas {
+  return !!node && "getContext" in node && "width" in node && "height" in node;
 }
 
 function fieldSpace(format: ColorFormat): FieldSpace {
@@ -745,11 +1018,16 @@ function chromaRatio(color: Oklch, space: FieldSpace) {
   return Math.min(1, Math.max(0, color.c / cap));
 }
 
-// Live paints the plane in OKLCH: x is chroma / max in-gamut chroma, y is lightness from 1 to 0.
 function paintField(node: object | null, hue: number, space: FieldSpace) {
-  if (!node || !isFieldCanvas(node)) return;
-  const ctx = node.getContext("2d", { colorSpace: space === "p3" ? "display-p3" : "srgb" });
+  if (!isFieldCanvas(node)) return;
+  const ctx = node.getContext("2d", { colorSpace: "display-p3" });
   if (!ctx) return;
+  let bitmap = bitmapSpace.get(node);
+  if (!bitmap) {
+    const reported = ctx.getContextAttributes?.().colorSpace;
+    bitmap = reported === "display-p3" ? "display-p3" : "srgb";
+    bitmapSpace.set(node, bitmap);
+  }
   const w = node.width;
   const h = node.height;
   const image = ctx.createImageData(w, h);
@@ -758,7 +1036,9 @@ function paintField(node: object | null, hue: number, space: FieldSpace) {
     const cap = maxChroma(l, hue, space);
     for (let x = 0; x < w; x++) {
       const c = (w <= 1 ? 0 : x / (w - 1)) * cap;
-      const rgb = oklchToRgb({ l, c, h: hue, a: 1 }, space);
+      let rgb = oklchToRgb({ l, c, h: hue, a: 1 }, space);
+      if (bitmap === "display-p3" && space === "srgb") rgb = srgbGammaToDisplayP3(rgb);
+      else if (bitmap === "srgb" && space === "p3") rgb = displayP3GammaToSrgb(rgb);
       const i = (y * w + x) * 4;
       image.data[i] = Math.round(255 * Math.min(1, Math.max(0, rgb[0])));
       image.data[i + 1] = Math.round(255 * Math.min(1, Math.max(0, rgb[1])));
@@ -769,292 +1049,552 @@ function paintField(node: object | null, hue: number, space: FieldSpace) {
   ctx.putImageData(image, 0, 0);
 }
 
-function pureHue(h: number) {
-  const { r, g, b } = toSrgb(hsvToOklch(h, 1, 1, 1));
-  const byte = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16).padStart(2, "0");
-  return `#${byte(r)}${byte(g)}${byte(b)}`;
+function hueTrack(color: Oklch, ratio: number, space: FieldSpace) {
+  const stops: string[] = [];
+  for (let i = 0; i < 73; i++) {
+    const h = i * 5;
+    stops.push(formatColor({ l: color.l, c: ratio * maxChroma(color.l, h, space), h, a: 1 }, "oklch"));
+  }
+  return `linear-gradient(to right in oklab, ${stops.join(", ")})`;
 }
 
-export function ColorPicker({
-  color,
-  onChange,
-  wide,
-}: {
+let injected = false;
+function injectStyles() {
+  if (injected || typeof document === "undefined") return;
+  injected = true;
+  const style = document.createElement("style");
+  style.setAttribute("data-orb-color", "");
+  style.textContent = `
+.orb-cp-control{box-sizing:border-box;height:36px;width:100%;background:rgba(255,255,255,.08);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;transition:background .15s,box-shadow .15s;font-family:${SANS}}
+.orb-cp-control[data-open=true]{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.26)}
+.orb-cp-label{color:rgba(255,255,255,.7);flex-shrink:0;font-size:13px;font-weight:500;line-height:19.5px;transform:translateY(-.5px)}
+.orb-cp-control[data-open=true] .orb-cp-label,.orb-cp-control[data-open=true] .orb-cp-value{color:#fffffff2}
+.orb-cp-inputs{flex:1;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.orb-cp-value{width:100%;min-width:0;height:25px;box-sizing:border-box;color:rgba(255,255,255,.7);text-align:right;text-overflow:ellipsis;background:transparent;border:0;outline:none;padding:4px 0;font:500 13px ${MONO};caret-color:rgba(255,255,255,.7)}
+.orb-cp-value:focus,.orb-cp-control[data-open=true] .orb-cp-value:focus{color:#fff;caret-color:#fff;outline:none;box-shadow:inset 0 -1px 0 0 rgba(255,255,255,.6)}
+.orb-cp-value[aria-invalid=true],.orb-cp-control[data-open=true] .orb-cp-value[aria-invalid=true]{color:#ef7777;caret-color:#ef7777}
+.orb-cp-swatch{box-sizing:border-box;border:1px solid rgba(255,255,255,.26);background-color:transparent;background-image:linear-gradient(var(--orb-cp-color),var(--orb-cp-color)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%);background-size:auto,8px 8px;background-position:0 0,0 50%;cursor:pointer;border-radius:5px;flex:0 0 20px;width:20px;height:20px;padding:0;transition:transform .15s;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.orb-cp-swatch:hover{transform:scale(1.08)}
+.orb-cp-swatch:focus{outline:none}
+.orb-cp-swatch:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+.orb-cp-pop{box-sizing:border-box;width:280px;height:350px;z-index:10002;position:fixed;margin:0;padding:10px;display:grid;grid-template-rows:36px 160px auto 36px;gap:6px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#212121;box-shadow:0 8px 32px rgba(0,0,0,.5);color:rgba(255,255,255,.7);font:500 13px/19.5px ${SANS};animation:orb-cp-enter .16s ease-out;overflow:hidden}
+.orb-cp-pop *,.orb-cp-pop *::before,.orb-cp-pop *::after{box-sizing:border-box}
+@keyframes orb-cp-enter{from{opacity:0;transform:translateY(3px) scale(.98)}to{opacity:1;transform:none}}
+.orb-cp-formats{height:36px;background:rgba(255,255,255,.08);border-radius:8px;padding:2px;display:flex;align-items:center}
+.orb-cp-seg{position:relative;display:flex;flex:1;min-width:0;padding:2px;border-radius:8px}
+.orb-cp-pill{position:absolute;left:2px;top:2px;bottom:2px;width:calc(33.3333% - 1.33333px);border-radius:6px;background:rgba(255,255,255,.18);pointer-events:none;z-index:0;transition:transform .2s cubic-bezier(.25,1,.5,1)}
+.orb-cp-format{position:relative;z-index:1;flex:1 1 0;min-width:0;white-space:nowrap;cursor:pointer;background:transparent;border:0;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:500;line-height:19.5px;color:rgba(255,255,255,.7);transition:color .15s}
+.orb-cp-format:hover,.orb-cp-format[data-active=true]{color:#fffffff2}
+.orb-cp-plane{position:relative;height:160px;border-radius:8px;touch-action:none;cursor:crosshair;user-select:none}
+.orb-cp-plane::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.orb-cp-plane:focus{outline:none}
+.orb-cp-plane:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+.orb-cp-canvas{width:100%;height:100%;display:block;border-radius:inherit;pointer-events:none}
+.orb-cp-marker{position:absolute;z-index:1;width:12px;height:12px;margin:-6px;border:2px solid #fff;border-radius:50%;pointer-events:none;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.orb-cp-tracks{display:grid;gap:6px}
+.orb-cp-track-row{height:36px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;padding:0 12px;font-size:13px;font-weight:500}
+.orb-cp-track-row>span{flex:0 0 52px;color:rgba(255,255,255,.7)}
+.orb-cp-track{appearance:none;-webkit-appearance:none;background:transparent;border:0;flex:1;min-width:0;height:100%;margin:0;padding:0;cursor:pointer;touch-action:none}
+.orb-cp-track::-webkit-slider-runnable-track{height:16px;border-radius:4px;background:var(--orb-cp-track)}
+.orb-cp-track::-moz-range-track{height:16px;border:0;border-radius:4px;background:var(--orb-cp-track)}
+.orb-cp-track::-webkit-slider-thumb{-webkit-appearance:none;box-sizing:border-box;width:16px;height:24px;margin-top:-4px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.orb-cp-track::-moz-range-thumb{box-sizing:border-box;width:16px;height:24px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.orb-cp-track:focus{outline:none}
+.orb-cp-track:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+.orb-cp-format:focus{outline:none}
+.orb-cp-format:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]:focus-visible,[data-testid="yogesh-orb-panel"] [role="slider"]:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
+.orb-cp-css{width:100%;height:36px;box-sizing:border-box;border:0;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:0 12px;font:500 13px/19.5px ${MONO};outline:none;caret-color:rgba(255,255,255,.7)}
+.orb-cp-css:focus{color:#fff;caret-color:#fff;outline:none}
+.orb-cp-css[aria-invalid=true]{color:#ef7777;caret-color:#ef7777}
+@media (prefers-reduced-motion:reduce){.orb-cp-pop{animation:none}.orb-cp-pill{transition:none}}
+`;
+  document.head.appendChild(style);
+}
+
+export type ColorPickerProps = {
+  text: string;
   color: Oklch;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Commit the typed string unchanged. Uppercase hex stays uppercase. */
+  onCommit: (text: string) => void;
   onChange: (color: Oklch, text: string) => void;
-  wide: boolean;
-}) {
-  const { colors, mode } = useTheme();
-  const [format, setFormat] = useState<ColorFormat>("hex");
-  const [draft, setDraft] = useState(formatColor(color, "hex"));
-  const progress = useSharedValue(0);
-  const [heldHue, setHeldHue] = useState(0);
-  const hsv = rgbToHsv(toSrgb(color).r, toSrgb(color).g, toSrgb(color).b);
-  const hue = hsv.s > 0.01 ? hsv.h : heldHue;
-  const [box, setBox] = useState({ w: 1, h: 1 });
-  const [hueW, setHueW] = useState(1);
-  const [opW, setOpW] = useState(1);
-  const tabOn = mode === "dark" ? "#3a3a3a" : "#ffffff";
+};
+
+type DomInput = HTMLInputElement;
+type DomButton = HTMLButtonElement;
+
+function isFormatButton(node: Element): node is HTMLButtonElement {
+  return node instanceof HTMLButtonElement;
+}
+
+type FieldPoint = { clientX: number; clientY: number };
+
+export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChange }: ColorPickerProps) {
+  useFonts({ GeistMono_500Medium });
+  const popId = useId();
+  const [format, setFormat] = useState<ColorFormat>(() => detectFormat(text));
+  const [rowDraft, setRowDraft] = useState(text);
+  const [cssDraft, setCssDraft] = useState(text);
+  const [rowInvalid, setRowInvalid] = useState(false);
+  const [cssInvalid, setCssInvalid] = useState(false);
+  const rowInvalidRef = useRef(false);
+  const [heldHue, setHeldHue] = useState(color.h);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const rowInputRef = useRef<DomInput | null>(null);
+  const cssInputRef = useRef<DomInput | null>(null);
+  const swatchRef = useRef<DomButton | null>(null);
+  const popRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<FieldCanvas | null>(null);
+  const wasOpen = useRef(false);
+  const commitRef = useRef<(raw: string) => boolean>(() => false);
+  const textRef = useRef(text);
+  const onOpenChangeRef = useRef(onOpenChange);
+  textRef.current = text;
+  onOpenChangeRef.current = onOpenChange;
+  const hue = color.c > 1e-7 ? color.h : heldHue;
   const space = fieldSpace(format);
-  const fieldCanvas = useRef<FieldCanvas | null>(null);
-  useEffect(() => {
-    paintField(fieldCanvas.current, color.h, space);
-  }, [color.h, space]);
+  const ratio = chromaRatio(color, space);
+  const opaque = formatColor({ ...color, a: 1 }, "oklch");
+  const withAlpha = formatColor(color, "oklch");
+  const swatchColor = parseColor(text) ? text.trim() : formatColor(color, "hex");
+
+  commitRef.current = (raw: string) => {
+    const trimmed = raw.trim();
+    const parsed = parseColor(trimmed);
+    if (!parsed) return false;
+    setFormat(detectFormat(trimmed));
+    rowInvalidRef.current = false;
+    setRowInvalid(false);
+    setCssInvalid(false);
+    setRowDraft(trimmed);
+    setCssDraft(trimmed);
+    onCommit(trimmed);
+    return true;
+  };
 
   useEffect(() => {
-    progress.value = withTiming(1, { duration: 160, easing: Easing.out(Easing.ease) });
-  }, [progress]);
+    injectStyles();
+  }, []);
+
   useEffect(() => {
-    setDraft(formatColor(color, format));
-  }, [color, format]);
+    const row = rowInputRef.current;
+    const css = cssInputRef.current;
+    if (document.activeElement !== row) {
+      setRowDraft(text);
+      rowInvalidRef.current = false;
+      setRowInvalid(false);
+    }
+    if (document.activeElement !== css) {
+      setCssDraft(text);
+      setCssInvalid(false);
+    }
+    if (document.activeElement !== row && document.activeElement !== css && parseColor(text)) {
+      setFormat(detectFormat(text));
+    }
+  }, [text]);
+
   useEffect(() => {
-    if (hsv.s > 0.01) setHeldHue(hsv.h);
-  }, [hsv.h, hsv.s]);
+    if (color.c > 1e-7) setHeldHue(color.h);
+  }, [color.c, color.h]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    paintField(canvasRef.current, hue, space);
+  }, [open, hue, space]);
+
+  const place = () => {
+    const row = rowRef.current;
+    const pop = popRef.current;
+    if (!row || !pop) return;
+    const rect = row.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const edge = vw < 768 ? 16 : 8;
+    let top = rect.top - 32;
+    const maxTop = Math.max(edge, vh - edge - 350);
+    if (top < edge) top = edge;
+    if (top > maxTop) top = maxTop;
+    let left = rect.left - 288;
+    const maxLeft = Math.max(edge, vw - edge - 280);
+    if (left < edge) left = edge;
+    if (left > maxLeft) left = maxLeft;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+  };
+
+  const closeToSwatch = () => {
+    flushSync(() => onOpenChange(false));
+    swatchRef.current?.focus({ preventScroll: true });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      wasOpen.current = false;
+      return;
+    }
+    place();
+    if (!wasOpen.current) {
+      const checked = popRef.current?.querySelector('[role="radio"][aria-checked="true"]');
+      if (checked && isFormatButton(checked)) checked.focus({ preventScroll: true });
+    }
+    wasOpen.current = true;
+    const onPointerDown = (event: globalThis.PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (rowRef.current?.contains(target) || popRef.current?.contains(target)) return;
+      flushSync(() => onOpenChangeRef.current(false));
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (rowRef.current?.contains(target) || popRef.current?.contains(target)) return;
+      flushSync(() => onOpenChangeRef.current(false));
+    };
+    const onMove = () => place();
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("focusin", onFocusIn);
+    window.addEventListener("resize", onMove);
+    document.addEventListener("scroll", onMove, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("resize", onMove);
+      document.removeEventListener("scroll", onMove, true);
+    };
+  }, [open]);
 
   const apply = (next: Oklch, nextFormat = format) => {
-    const text = formatColor(next, nextFormat);
-    setDraft(text);
-    onChange(next, text);
+    onChange(next, formatColor(next, nextFormat));
   };
 
-  const fromSquare = (x: number, y: number) => {
-    if (Platform.OS === "web") {
-      const space = fieldSpace(format);
-      const l = Math.min(1, Math.max(0, 1 - y / box.h));
-      const ratio = Math.min(1, Math.max(0, x / box.w));
-      apply({ l, c: ratio * maxChroma(l, color.h, space), h: color.h, a: color.a });
-      return;
-    }
-    const nx = Math.min(1, Math.max(0, x / box.w));
-    const ny = Math.min(1, Math.max(0, y / box.h));
-    apply(hsvToOklch(hue, nx, 1 - ny, color.a));
+  const onFieldPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const node = event.currentTarget;
+    event.preventDefault();
+    node.focus({ preventScroll: true });
+    if (node.setPointerCapture) node.setPointerCapture(event.pointerId);
+    const read = (e: FieldPoint) => {
+      const rect = node.getBoundingClientRect();
+      const l = Math.min(1, Math.max(0, 1 - (e.clientY - rect.top) / Math.max(1, rect.height)));
+      const nextRatio = Math.min(1, Math.max(0, (e.clientX - rect.left) / Math.max(1, rect.width)));
+      apply({ l, c: nextRatio * maxChroma(l, hue, space), h: hue, a: color.a });
+    };
+    read(event);
+    const move = (e: globalThis.PointerEvent) => {
+      if (!node.hasPointerCapture?.(e.pointerId)) return;
+      read(e);
+    };
+    const end = (e: globalThis.PointerEvent) => {
+      if (node.hasPointerCapture?.(e.pointerId)) node.releasePointerCapture(e.pointerId);
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", end);
+      node.removeEventListener("pointercancel", end);
+    };
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", end);
+    node.addEventListener("pointercancel", end);
   };
-  const onFieldKey = (event: { key?: string; shiftKey?: boolean; preventDefault: () => void; stopPropagation?: () => void; nativeEvent?: { key?: string; shiftKey?: boolean; preventDefault?: () => void; stopPropagation?: () => void } }) => {
-    if (Platform.OS !== "web") return;
-    const key = event.key ?? event.nativeEvent?.key ?? "";
-    const shift = event.shiftKey ?? event.nativeEvent?.shiftKey ?? false;
-    const step = shift ? 0.1 : 0.01;
-    const space = fieldSpace(format);
+
+  const onFieldKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const key = event.key;
+    if (key !== "ArrowUp" && key !== "ArrowDown" && key !== "ArrowLeft" && key !== "ArrowRight") return;
+    event.preventDefault();
+    const step = event.shiftKey ? 0.1 : 0.01;
     let l = color.l;
-    let ratio = chromaRatio(color, space);
+    let nextRatio = ratio;
     if (key === "ArrowUp") l += step;
     else if (key === "ArrowDown") l -= step;
-    else if (key === "ArrowRight") ratio += step;
-    else if (key === "ArrowLeft") ratio -= step;
-    else return;
-    event.preventDefault();
-    event.stopPropagation?.();
-    event.nativeEvent?.preventDefault?.();
-    event.nativeEvent?.stopPropagation?.();
+    else if (key === "ArrowRight") nextRatio += step;
+    else nextRatio -= step;
     l = Math.min(1, Math.max(0, l));
-    ratio = Math.min(1, Math.max(0, ratio));
-    apply({ l, c: ratio * maxChroma(l, color.h, space), h: color.h, a: color.a });
+    nextRatio = Math.min(1, Math.max(0, nextRatio));
+    apply({ l, c: nextRatio * maxChroma(l, hue, space), h: hue, a: color.a });
   };
-  const fromHue = (x: number) => {
-    const h = Math.min(360, Math.max(0, (x / hueW) * 360));
-    setHeldHue(h);
-    apply(hsvToOklch(h, hsv.s, hsv.v, color.a));
-  };
-  const fromOp = (x: number) => apply({ ...color, a: Math.min(1, Math.max(0, x / opW)) });
-  const onSliderKey = (which: "hue" | "opacity") => (event: { key?: string; preventDefault: () => void; nativeEvent?: { key?: string; preventDefault?: () => void } }) => {
-    if (Platform.OS !== "web") return;
-    const key = event.key ?? event.nativeEvent?.key ?? "";
-    const span = which === "hue" ? 360 : 1;
-    const step = which === "hue" ? 0.1 : 0.01;
-    const page = Math.max(span / 10, step);
-    const current = which === "hue" ? hue : color.a;
-    let next = current;
-    if (key === "ArrowRight" || key === "ArrowUp") next = current + step;
-    else if (key === "ArrowLeft" || key === "ArrowDown") next = current - step;
-    else if (key === "PageUp") next = current + page;
-    else if (key === "PageDown") next = current - page;
-    else if (key === "Home") next = 0;
-    else if (key === "End") next = span;
-    else return;
-    event.preventDefault();
-    event.nativeEvent?.preventDefault?.();
-    next = Math.min(span, Math.max(0, next));
-    if (which === "hue") {
-      setHeldHue(next);
-      apply(hsvToOklch(next, hsv.s, hsv.v, color.a));
+
+  const onPopKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeToSwatch();
       return;
     }
-    apply({ ...color, a: next });
+    if (event.key !== "Tab" || !popRef.current) return;
+    const checked = popRef.current.querySelector('[role="radio"][aria-checked="true"]');
+    const first = checked && isFormatButton(checked) ? checked : null;
+    const last = cssInputRef.current;
+    const leave = (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last);
+    if (!leave) return;
+    // Focus the swatch, then let the browser Tab onward. Preventing default is what stopped on the swatch.
+    swatchRef.current?.focus({ preventScroll: true });
+    flushSync(() => onOpenChange(false));
   };
 
-  const square = Gesture.Pan()
-    .onBegin((e) => runOnJS(fromSquare)(e.x, e.y))
-    .onUpdate((e) => runOnJS(fromSquare)(e.x, e.y));
-  const hueGesture = Gesture.Pan()
-    .onBegin((e) => runOnJS(fromHue)(e.x))
-    .onUpdate((e) => runOnJS(fromHue)(e.x));
-  const opGesture = Gesture.Pan()
-    .onBegin((e) => runOnJS(fromOp)(e.x))
-    .onUpdate((e) => runOnJS(fromOp)(e.x));
+  const onFormatKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.altKey || event.metaKey || event.ctrlKey || !popRef.current) return;
+    const buttons = [...popRef.current.querySelectorAll(".orb-cp-format")].filter(isFormatButton);
+    const index = buttons.findIndex((b) => b === document.activeElement);
+    if (index < 0) return;
+    let next = -1;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % buttons.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (index - 1 + buttons.length) % buttons.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = buttons.length - 1;
+    else return;
+    event.preventDefault();
+    event.stopPropagation();
+    buttons[next].focus({ preventScroll: true });
+    buttons[next].click();
+  };
 
-  const pop = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 3 }, { scale: 0.98 + progress.value * 0.02 }],
-  }));
+  const bindChange = (node: DomInput | null, setInvalid: (invalid: boolean) => void) => {
+    if (!node) return;
+    const onChange = () => {
+      if (node.value === textRef.current) {
+        setInvalid(false);
+        return;
+      }
+      if (!commitRef.current(node.value)) setInvalid(true);
+    };
+    node.addEventListener("change", onChange);
+    return () => node.removeEventListener("change", onChange);
+  };
 
-  const swatch = formatColor(color, "hex");
+  useEffect(
+    () =>
+      bindChange(rowInputRef.current, (invalid) => {
+        rowInvalidRef.current = invalid;
+        setRowInvalid(invalid);
+      }),
+    [text],
+  );
+  useEffect(() => {
+    if (!open) return;
+    return bindChange(cssInputRef.current, setCssInvalid);
+  }, [open, text]);
 
-  return (
-    <Animated.View
-      role="dialog"
-      accessibilityLabel="Color color picker"
-      style={[
+  const pop = open
+    ? createElement(
+        "div",
         {
-          width: wide ? 280 : "100%",
-          height: 350,
-          backgroundColor: mode === "light" ? "#fafafa" : colors.pop,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: colors.ringSoft,
-          padding: 8,
-          gap: 8,
-          boxShadow: mode === "light" ? "0 4px 20px rgba(0,0,0,0.08)" : "0 8px 32px rgba(0,0,0,0.5)",
+          ref: popRef,
+          className: "orb-cp-pop",
+          role: "dialog",
+          id: popId,
+          "aria-label": "Color color picker",
+          "data-testid": "yogesh-orb-color-popover",
+          onKeyDown: onPopKey,
         },
-        pop,
-      ]}
-    >
-      <View accessibilityRole="radiogroup" accessibilityLabel="Color format" style={{ flexDirection: "row", backgroundColor: colors.row, borderRadius: 8, padding: 2 }}>
-        {TABS.map((tab) => {
-          const on = tab.id === format;
-          return (
-            <Pressable
-              key={tab.id}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: on }}
-              aria-checked={on}
-              focusable={Platform.OS === "web" ? false : undefined}
-              tabIndex={Platform.OS === "web" ? -1 : undefined}
-              onPress={() => {
-                const text = formatColor(color, tab.id);
-                setFormat(tab.id);
-                setDraft(text);
-                onChange(color, text);
-              }}
-              style={{ flex: 1, height: 24, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: on ? tabOn : "transparent" }}
-            >
-              <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 11 }}>{tab.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <GestureDetector gesture={square}>
-        <View
-          role="group"
-          accessibilityLabel="Color field; use arrow keys to adjust saturation and lightness"
-          dataSet={Platform.OS === "web" ? { arrowKeys: "own" } : undefined}
-          focusable={Platform.OS === "web" ? true : undefined}
-          tabIndex={Platform.OS === "web" ? 0 : undefined}
-          onKeyDown={Platform.OS === "web" ? onFieldKey : undefined}
-          onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-          style={{ flex: 1, borderRadius: 8, overflow: "hidden" }}
-        >
-          {Platform.OS === "web" ? (
-            createElement("canvas", {
-              key: space,
-              width: 252,
-              height: 160,
+        createElement(
+          "div",
+          { className: "orb-cp-formats" },
+          createElement(
+            "div",
+            { className: "orb-cp-seg", role: "radiogroup", "aria-label": "Color format", onKeyDown: onFormatKey },
+            createElement("div", {
+              className: "orb-cp-pill",
               "aria-hidden": true,
-              style: { width: "100%", height: "100%", display: "block", pointerEvents: "none" },
-              ref: fieldCanvas,
-            })
-          ) : (
-            <>
-              <LinearGradient colors={[ "#ffffff", pureHue(hue) ]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
-              <LinearGradient colors={[ "rgba(0,0,0,0)", "#000000" ]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-            </>
-          )}
-          <View
-            style={{
-              position: "absolute",
-              ...(Platform.OS === "web"
-                ? { left: `${chromaRatio(color, fieldSpace(format)) * 100}%`, top: `${(1 - color.l) * 100}%` }
-                : { left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }),
-              width: 16,
-              height: 16,
-              marginLeft: -8,
-              marginTop: -8,
-              borderRadius: 8,
-              borderWidth: 2,
-              borderColor: "#ffffff",
-              backgroundColor: swatch,
-              shadowColor: "#000000",
-              shadowOpacity: 0.45,
-              shadowRadius: 3,
-              shadowOffset: { width: 0, height: 1 },
-              elevation: 3,
-            }}
-          />
-        </View>
-      </GestureDetector>
-      <GestureDetector gesture={hueGesture}>
-        <View
-          accessibilityRole={Platform.OS === "web" ? "adjustable" : undefined}
-          accessibilityLabel="Hue"
-          accessibilityValue={Platform.OS === "web" ? { min: 0, max: 360, now: Math.round(hue * 10) / 10 } : undefined}
-          aria-valuemin={Platform.OS === "web" ? 0 : undefined}
-          aria-valuemax={Platform.OS === "web" ? 360 : undefined}
-          aria-valuenow={Platform.OS === "web" ? Math.round(hue * 10) / 10 : undefined}
-          aria-valuetext={Platform.OS === "web" ? `${Math.round(hue)} degrees` : undefined}
-          tabIndex={Platform.OS === "web" ? 0 : undefined}
-          onKeyDown={Platform.OS === "web" ? onSliderKey("hue") : undefined}
-          onLayout={(e) => setHueW(Math.max(1, e.nativeEvent.layout.width))}
-          style={{ height: 36, borderRadius: 8, backgroundColor: colors.row, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 }}
-        >
-          <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>Hue</Text>
-          <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.slider, justifyContent: "center" }}>
-            <View style={{ position: "absolute", left: `${(hue / 360) * 100}%`, width: 8, height: 16, marginLeft: -4, borderRadius: 1, backgroundColor: colors.fg }} />
-          </View>
-        </View>
-      </GestureDetector>
-      <GestureDetector gesture={opGesture}>
-        <View
-          accessibilityRole={Platform.OS === "web" ? "adjustable" : undefined}
-          accessibilityLabel="Opacity"
-          accessibilityValue={Platform.OS === "web" ? { min: 0, max: 100, now: Math.round(color.a * 100) } : undefined}
-          aria-valuemin={Platform.OS === "web" ? 0 : undefined}
-          aria-valuemax={Platform.OS === "web" ? 100 : undefined}
-          aria-valuenow={Platform.OS === "web" ? Math.round(color.a * 100) : undefined}
-          aria-valuetext={Platform.OS === "web" ? `${Math.round(color.a * 100)} percent` : undefined}
-          tabIndex={Platform.OS === "web" ? 0 : undefined}
-          onKeyDown={Platform.OS === "web" ? onSliderKey("opacity") : undefined}
-          onLayout={(e) => setOpW(Math.max(1, e.nativeEvent.layout.width))}
-          style={{ height: 36, borderRadius: 8, backgroundColor: colors.row, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 10 }}
-        >
-          <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>Opacity</Text>
-          <View style={{ flex: 1, height: 10, borderRadius: 4, overflow: "hidden", justifyContent: "center" }}>
-            <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, flexDirection: "row" }}>
-              {Array.from({ length: 16 }, (_, i) => (
-                <View key={i} style={{ flex: 1, backgroundColor: i % 2 === 0 ? "#d8d8d8" : "#ffffff" }} />
-              ))}
-            </View>
-            <View style={{ position: "absolute", left: `${color.a * 100}%`, width: 8, height: 16, marginLeft: -4, borderRadius: 1, backgroundColor: colors.fg }} />
-          </View>
-        </View>
-      </GestureDetector>
-      <TextInput
-        value={draft}
-        onChangeText={setDraft}
-        onSubmitEditing={() => {
-          const parsed = parseColor(draft);
-          if (!parsed) {
-            setDraft(formatColor(color, format));
-            return;
-          }
-          const detected = detectFormat(draft);
-          setFormat(detected);
-          apply(parsed, detected);
-        }}
-        accessibilityLabel="CSS color"
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={{ height: 32, borderRadius: 8, backgroundColor: colors.row, color: colors.fg, fontFamily: fonts.mono, fontSize: 12, paddingHorizontal: 8 }}
-      />
-    </Animated.View>
+              style: { transform: `translateX(${TABS.findIndex((tab) => tab.id === format) * 100}%)` },
+            }),
+            ...TABS.map((tab) => {
+              const on = tab.id === format;
+              return createElement(
+                "button",
+                {
+                  key: tab.id,
+                  type: "button",
+                  className: "orb-cp-format",
+                  role: "radio",
+                  "aria-checked": on,
+                  "data-active": String(on),
+                  tabIndex: on ? 0 : -1,
+                  onClick: () => {
+                    setFormat(tab.id);
+                    onChange(color, formatColor({ ...color, h: hue }, tab.id));
+                  },
+                },
+                tab.label,
+              );
+            }),
+          ),
+        ),
+        createElement(
+          "div",
+          {
+            className: "orb-cp-plane",
+            role: "group",
+            "aria-label": "Color field; use arrow keys to adjust saturation and lightness",
+            tabIndex: 0,
+            onPointerDown: onFieldPointer,
+            onKeyDown: onFieldKey,
+          },
+          createElement("canvas", {
+            ref: canvasRef,
+            className: "orb-cp-canvas",
+            width: 252,
+            height: 160,
+            "aria-hidden": true,
+          }),
+          createElement("span", {
+            className: "orb-cp-marker",
+            "aria-hidden": true,
+            style: {
+              left: `${ratio * 100}%`,
+              top: `${(1 - color.l) * 100}%`,
+              background: opaque,
+            },
+          }),
+        ),
+        createElement(
+          "div",
+          { className: "orb-cp-tracks" },
+          createElement(
+            "label",
+            { className: "orb-cp-track-row" },
+            createElement("span", null, "Hue"),
+            createElement("input", {
+              className: "orb-cp-track",
+              type: "range",
+              min: 0,
+              max: 360,
+              step: 0.1,
+              value: hue,
+              "aria-label": "Hue",
+              "aria-valuetext": `${Math.round(hue)} degrees`,
+              style: {
+                "--orb-cp-track": hueTrack({ ...color, h: hue }, ratio, space),
+                "--orb-cp-thumb": opaque,
+              },
+              onInput: (event: React.FormEvent<HTMLInputElement>) => {
+                const h = Number(event.currentTarget.value);
+                setHeldHue(h);
+                const l = color.l;
+                const nextRatio = chromaRatio(color, space);
+                apply({ l, c: nextRatio * maxChroma(l, h, space), h, a: color.a });
+              },
+            }),
+          ),
+          createElement(
+            "label",
+            { className: "orb-cp-track-row" },
+            createElement("span", null, "Opacity"),
+            createElement("input", {
+              className: "orb-cp-track orb-cp-op",
+              type: "range",
+              min: 0,
+              max: 100,
+              step: 1,
+              value: Math.round(color.a * 100),
+              "aria-label": "Opacity",
+              "aria-valuetext": `${Math.round(color.a * 100)} percent`,
+              style: {
+                "--orb-cp-track": `linear-gradient(to right, transparent, ${opaque}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
+                "--orb-cp-thumb": `linear-gradient(${withAlpha}, ${withAlpha}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
+              },
+              onInput: (event: React.FormEvent<HTMLInputElement>) => {
+                apply({ l: color.l, c: color.c, h: hue, a: Number(event.currentTarget.value) / 100 });
+              },
+            }),
+          ),
+        ),
+        createElement("input", {
+          ref: cssInputRef,
+          className: "orb-cp-css",
+          type: "text",
+          spellCheck: false,
+          autoComplete: "off",
+          "aria-label": "CSS color",
+          "aria-invalid": cssInvalid ? true : undefined,
+          title: text,
+          value: cssDraft,
+          onInput: (event: React.FormEvent<HTMLInputElement>) => {
+            setCssDraft(event.currentTarget.value);
+            setCssInvalid(false);
+          },
+          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            const value = event.currentTarget.value;
+            if (!commitRef.current(value)) setCssInvalid(true);
+          },
+        }),
+      )
+    : null;
+
+  return createElement(
+    "div",
+    null,
+    createElement(
+      "div",
+      { ref: rowRef, className: "orb-cp-control", "data-open": open ? "true" : "false", "data-testid": "yogesh-orb-color-row" },
+      createElement("span", { className: "orb-cp-label" }, "Color"),
+      createElement(
+        "div",
+        { className: "orb-cp-inputs" },
+        createElement("input", {
+          ref: rowInputRef,
+          className: "orb-cp-value",
+          type: "text",
+          spellCheck: false,
+          autoComplete: "off",
+          "aria-label": "Color color value",
+          "aria-invalid": rowInvalid ? true : undefined,
+          title: text,
+          value: rowDraft,
+          onInput: (event: React.FormEvent<HTMLInputElement>) => {
+            setRowDraft(event.currentTarget.value);
+            rowInvalidRef.current = false;
+            setRowInvalid(false);
+          },
+          onBlur: () => {
+            if (!rowInvalidRef.current) return;
+            rowInvalidRef.current = false;
+            flushSync(() => {
+              setRowDraft(textRef.current);
+              setRowInvalid(false);
+            });
+          },
+          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+            event.stopPropagation();
+            const input = event.currentTarget;
+            if (event.key === "Escape") {
+              event.preventDefault();
+              input.value = text;
+              rowInvalidRef.current = false;
+              setRowDraft(text);
+              setRowInvalid(false);
+              if (open) {
+                closeToSwatch();
+                return;
+              }
+              input.blur();
+              return;
+            }
+            if (event.key === "Enter") {
+              if (commitRef.current(input.value)) input.blur();
+              else {
+                rowInvalidRef.current = true;
+                setRowInvalid(true);
+              }
+            }
+          },
+        }),
+        createElement("button", {
+          ref: swatchRef,
+          type: "button",
+          className: "orb-cp-swatch",
+          "data-testid": "yogesh-orb-color-swatch",
+          "aria-label": "Pick color color",
+          "aria-haspopup": "dialog",
+          "aria-controls": popId,
+          "aria-expanded": open,
+          style: { "--orb-cp-color": swatchColor },
+          onClick: () => onOpenChange(!open),
+        }),
+      ),
+    ),
+    pop && typeof document !== "undefined" ? createPortal(pop, document.body) : null,
   );
 }
 
@@ -1699,15 +2239,30 @@ export function SelectRow<T extends string>({
     </View>
   );
 }
+
 /* FILE src/components/SliderRow.tsx */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Platform, Text, View, type TextStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
 import { runOnJS } from "react-native-reanimated";
 
 import type { OrbLive } from "../orb/OrbView";
 import { fonts, useTheme } from "../theme/theme";
+
+const SLIDER_SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
+const SLIDER_MONO = "GeistMono_500Medium, ui-monospace, monospace";
+
+function injectSmoothing() {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  if (document.getElementById("orb-font-smoothing")) return;
+  const style = document.createElement("style");
+  style.id = "orb-font-smoothing";
+  style.textContent = `[data-testid="yogesh-orb-tuner"],[data-testid="yogesh-orb-tuner"] *,.orb-cp-pop,.orb-cp-pop *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}`;
+  document.head.appendChild(style);
+}
 
 const FILL = { stiffness: 300, damping: 25, mass: 0.8 };
 const BACK = { stiffness: 224, damping: 25.4, mass: 1 };
@@ -1760,7 +2315,11 @@ export function SliderRow({
   /** JS-thread drag flag so a state sync does not clobber the shared value. */
   onDrag?: (active: boolean) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
+  useFonts({ GeistMono_500Medium });
+  useLayoutEffect(() => {
+    injectSmoothing();
+  }, []);
   const [width, setWidth] = useState(1);
   const [focused, setFocused] = useState(false);
   const [labelText, setLabelText] = useState(value.toFixed(decimals));
@@ -1874,9 +2433,14 @@ export function SliderRow({
     },
   );
 
-  const move = (steps: number) => {
-    const next = snap(value + steps * step, min, max, step);
+  const publishNow = (next: number) => {
+    if (live && field) writeLive(live, field, next);
+    setLabelText(next.toFixed(decimals));
     onChange(next);
+  };
+
+  const move = (steps: number) => {
+    publishNow(snap(value + steps * step, min, max, step));
   };
 
   useEffect(() => {
@@ -1884,8 +2448,9 @@ export function SliderRow({
     const onKey = (event: KeyboardEvent) => {
       const key = event.key;
       let steps: number | null = null;
-      if (key === "ArrowRight" || key === "ArrowUp") steps = 1;
-      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -1;
+      const big = event.shiftKey ? 10 : 1;
+      if (key === "ArrowRight" || key === "ArrowUp") steps = big;
+      else if (key === "ArrowLeft" || key === "ArrowDown") steps = -big;
       else if (key === "PageUp") steps = 10;
       else if (key === "PageDown") steps = -10;
       else if (key === "Home") steps = 0;
@@ -1893,13 +2458,13 @@ export function SliderRow({
       else return;
       event.preventDefault();
       event.stopPropagation();
-      if (key === "Home") onChange(min);
-      else if (key === "End") onChange(max);
+      if (key === "Home") publishNow(min);
+      else if (key === "End") publishNow(max);
       else if (steps !== null) move(steps);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [focused, value, min, max, step, onChange]);
+  }, [decimals, field, focused, live, max, min, onChange, step, value]);
 
   const gesture = useMemo(() => {
     const revertIfAbandoned = () => {
@@ -2006,6 +2571,37 @@ export function SliderRow({
     transform: [{ translateX: fill.value * width }, { scaleX: scaleX.value }, { scaleY: scaleY.value }],
   }));
   const marks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+  const web = Platform.OS === "web";
+  const ink = mode === "light" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+  const sliderLabel: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        left: 10,
+        color: ink,
+        fontFamily: SLIDER_SANS,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: -0.5 }],
+      }
+    : { position: "absolute", top: 8, left: 10, color: colors.fg, fontFamily: fonts.regular, fontSize: 13 };
+  const sliderValue: TextStyle = web
+    ? {
+        position: "absolute",
+        top: "50%",
+        right: 12,
+        paddingBottom: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: "transparent",
+        color: ink,
+        fontFamily: SLIDER_MONO,
+        fontSize: 13,
+        fontWeight: "500",
+        lineHeight: 19.5,
+        transform: [{ translateY: "-50%" }, { translateY: 0.5 }],
+      }
+    : { position: "absolute", top: 8, right: 12, color: colors.fg, fontFamily: fonts.mono, fontSize: 13 };
 
   return (
     <GestureDetector gesture={gesture}>
@@ -2024,6 +2620,7 @@ export function SliderRow({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
+        aria-valuetext={labelText}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onLayout={(e) => setWidth(Math.max(1, e.nativeEvent.layout.width))}
@@ -2040,10 +2637,6 @@ export function SliderRow({
             backgroundColor: colors.row,
             overflow: "hidden",
             justifyContent: "center",
-            outlineStyle: focused ? "solid" : undefined,
-            outlineWidth: focused ? 2 : 0,
-            outlineColor: colors.fg,
-            outlineOffset: 2,
           },
           rowStyle,
         ]}
@@ -2056,9 +2649,9 @@ export function SliderRow({
           pointerEvents="none"
           style={[{ position: "absolute", top: 8, width: 3, height: 20, marginLeft: -1.5, borderRadius: 1, backgroundColor: colors.fg }, handleStyle]}
         />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 }} pointerEvents="none">
-          <Text onLayout={(e) => { labelW.value = e.nativeEvent.layout.width; }} style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13 }}>{label}</Text>
-          <Text onLayout={(e) => { valueW.value = e.nativeEvent.layout.width; }} style={{ color: colors.fg, fontFamily: fonts.mono, fontSize: 13 }}>{labelText}</Text>
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+          <Text onLayout={(e) => { labelW.value = e.nativeEvent.layout.width; }} style={sliderLabel}>{label}</Text>
+          <Text onLayout={(e) => { valueW.value = e.nativeEvent.layout.width; }} style={sliderValue}>{labelText}</Text>
         </View>
       </Animated.View>
     </GestureDetector>
@@ -2066,12 +2659,12 @@ export function SliderRow({
 }
 
 /* FILE src/components/Shimmer.tsx */
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
 import { Canvas, LinearGradient, Mask, Rect, Text, useFont, vec } from "@shopify/react-native-skia";
 import { useEffect } from "react";
 import { Text as RNText, type TextStyle } from "react-native";
 import Animated, {
   Easing,
-  useAnimatedStyle,
   useDerivedValue,
   useReducedMotion,
   useSharedValue,
@@ -2079,7 +2672,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
 import { fonts, useTheme } from "../theme/theme";
 
 /** Native sweep. Web keeps the CSS version in Shimmer.web.tsx. Not an orb canvas. */
@@ -2088,15 +2680,9 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const reduced = useReducedMotion();
   const size = typeof style?.fontSize === "number" ? style.fontSize : 14;
   const font = useFont(Geist_400Regular, size);
-  const opacity = useSharedValue(0);
   const shift = useSharedValue(0);
   const width = font ? Math.max(1, Math.ceil(font.getTextWidth(text))) : Math.max(1, Math.ceil(text.length * size * 0.56));
   const height = Math.ceil(size * 1.45);
-
-  useEffect(() => {
-    opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 300 });
-  }, [text, opacity]);
 
   useEffect(() => {
     if (reduced) return;
@@ -2106,20 +2692,17 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
 
   const start = useDerivedValue(() => vec(shift.value, 0));
   const end = useDerivedValue(() => vec(shift.value + width * 2, 0));
-  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   if (reduced || !font) {
     return (
-      <Animated.View style={fade}>
-        <RNText style={[{ color: colors.muted, fontFamily: style?.fontFamily ?? fonts.regular, fontSize: size, fontStyle: style?.fontStyle }, style]}>
-          {text}
-        </RNText>
-      </Animated.View>
+      <RNText style={[{ color: colors.muted, fontFamily: style?.fontFamily ?? fonts.regular, fontSize: size, fontStyle: style?.fontStyle }, style]}>
+        {text}
+      </RNText>
     );
   }
 
   return (
-    <Animated.View style={fade}>
+    <Animated.View>
       <Canvas style={{ width, height }}>
         <Mask mode="alpha" mask={<Text x={0} y={size} text={text} font={font} color="white" />}>
           <Rect x={0} y={0} width={width} height={height}>
@@ -2140,7 +2723,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
 /* FILE src/components/Shimmer.web.tsx */
 import { useEffect } from "react";
 import { Platform, type TextStyle } from "react-native";
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { useTheme, fonts } from "../theme/theme";
 
@@ -2153,43 +2736,40 @@ function injectKeyframes() {
   document.head.appendChild(style);
 }
 
+/** Status label. Full opacity on the first frame. Remount (key by look index) restarts the sweep. */
 export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
-  const opacity = useSharedValue(0);
   useEffect(() => {
     injectKeyframes();
-    opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 300 });
-  }, [text, opacity]);
-  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  }, []);
   const sweep = !reduced;
   return (
-    <Animated.View style={anim}>
-      <span
-        style={{
-          fontFamily: typeof style?.fontFamily === "string" ? style.fontFamily : fonts.regular,
-          fontSize: typeof style?.fontSize === "number" ? style.fontSize : 14,
-          fontStyle: style?.fontStyle,
-          lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "1.65",
-          display: "inline-block",
-          backgroundImage: sweep
-            ? `linear-gradient(90deg, ${colors.muted} 35%, ${colors.fg} 50%, ${colors.muted} 65%)`
-            : undefined,
-          backgroundSize: "200% 100%",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          color: sweep ? "transparent" : colors.muted,
-          animation: sweep ? "orb-shimmer 2s linear infinite" : undefined,
-        }}
-      >
-        {text}
-      </span>
-    </Animated.View>
+    <span
+      style={{
+        fontFamily: typeof style?.fontFamily === "string" ? style.fontFamily : fonts.regular,
+        fontSize: typeof style?.fontSize === "number" ? style.fontSize : 14,
+        fontStyle: style?.fontStyle,
+        lineHeight: typeof style?.lineHeight === "number" ? `${style.lineHeight}px` : "20px",
+        display: "inline-block",
+        opacity: 1,
+        backgroundImage: sweep
+          ? `linear-gradient(90deg, ${colors.muted} 35%, ${colors.fg} 50%, ${colors.muted} 65%)`
+          : undefined,
+        backgroundSize: "200% 100%",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        color: sweep ? "transparent" : colors.muted,
+        animation: sweep ? "orb-shimmer 2s linear infinite" : undefined,
+      }}
+    >
+      {text}
+    </span>
   );
 }
 
 /* FILE src/components/icons.tsx */
+import { createElement } from "react";
 import { Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -2212,11 +2792,26 @@ export function DrayIcon({ color, height = 12 }: { color: string; height?: numbe
   );
 }
 
-export function Chevron({ color, size = 14 }: { color: string; size?: number }) {
+export function Chevron({ color, size = 20 }: { color: string; size?: number }) {
+  if (Platform.OS === "web") {
+    return createElement(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 2.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": true,
+        style: { width: size, height: size, padding: 2, opacity: 0.6, boxSizing: "border-box", color },
+      },
+      createElement("path", { d: "M6 9.5L12 15.5L18 9.5" }),
+    );
+  }
   return (
-    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <Path d="M4 6.5 L8 10.5 L12 6.5" stroke={color} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 9.5L12 15.5L18 9.5" />
     </Svg>
   );
 }
-

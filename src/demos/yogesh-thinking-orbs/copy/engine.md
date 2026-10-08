@@ -1,6 +1,8 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
  * Web loads CanvasKit itself. No custom index.html.
+ * locateFile: (file) => `/${file}` assumes the site root. A sub-path host must change that prefix.
  * Babel: plugins: ['react-native-worklets/plugin']
+ * Mount: put these files under src/ and replace App.tsx with `export { default } from './src/ThinkingOrbs'`.
  * expo ~57.0.23
  * react 19.2.3
  * react-dom 19.2.3
@@ -10,12 +12,9 @@
  * react-native-reanimated 4.5.1
  * react-native-worklets 0.10.1
  * react-native-gesture-handler ~2.32.0
- * react-native-svg 15.15.4
- * expo-linear-gradient ~57.0.2
  * expo-constants ~57.0.18
- * expo-clipboard ~57.0.2
- * react-native-safe-area-context ~5.7.0
  * @expo-google-fonts/geist ^0.4.2
+ * @expo-google-fonts/geist-mono ^0.4.3
  */
 
 /* FILE src/orb/clock.ts */
@@ -52,6 +51,7 @@ export function tick(look: string, now: number, speed: number): number {
  * Copyright (c) 2026 Yogesh. See ./LICENSE.
  */
 
+import { resolveLook } from "./orbProps";
 import { SHAPES, torus, type Pt, type ShapeName } from "./shapes";
 
 export type { ShapeName };
@@ -157,8 +157,9 @@ export type OrbInput = {
 
 const REACH = 24;
 
+/** A known look id. Unknown states become `base`; unknown variants drop to that state's default. */
 export function lookId(state: string, variant?: string): string {
-  return variant && variant !== "default" ? `${state}-${variant}` : state;
+  return resolveLook(state, variant);
 }
 
 export function buildInput(opts: {
@@ -446,6 +447,12 @@ function rewind(t: number, w: number) {
   return k * (fwd - back) + a;
 }
 
+function periodOf(state: string) {
+  "worklet";
+  const period = PERIOD[state];
+  return period === undefined ? 6500 : period;
+}
+
 function yawOf(state: string, t: number) {
   "worklet";
   if (state === "retrying") return rewind(2 * t, TAU / 9000);
@@ -454,7 +461,7 @@ function yawOf(state: string, t: number) {
     const u = turns - Math.floor(turns);
     return (Math.floor(turns) + (1 - (1 - u) ** 3)) * TAU;
   }
-  return (t / PERIOD[state]) * TAU;
+  return (t / periodOf(state)) * TAU;
 }
 
 const RING_TIP = (30 * Math.PI) / 180;
@@ -540,7 +547,7 @@ export function step(input: OrbInput, local: OrbLocal, t: number, tilt: number, 
   const rs = input.rs * dotScale;
   const c = size / 2;
   const R = input.R;
-  const period = PERIOD[state];
+  const period = periodOf(state);
   const yaw = yawOf(state, t);
   const gyro = state === "working-gyro" ? (t / 5000) * TAU : -1;
   const pitch = (((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10 * Math.cos(gyro))) * Math.PI) / 180;
@@ -948,6 +955,121 @@ export function drawOrb(
   }
 }
 
+/* FILE src/orb/orbProps.ts */
+/**
+ * Public orb props aligned with @yogesharc/thinking-orbs 0.1.1 `Orb` / `mountOrb`.
+ * An unknown state falls back to `base`. A variant the state does not have falls back to that state's default.
+ * `color` is not an npm prop (npm paints `currentColor`); the dark store default is `#ffffff`.
+ */
+
+export type OrbStateName =
+  | "base"
+  | "working"
+  | "reasoning"
+  | "searching"
+  | "background"
+  | "retrying"
+  | "compacting"
+  | "waiting";
+
+export const VARIANTS: Record<OrbStateName, readonly string[]> = {
+  base: ["default"],
+  working: ["default", "gyro"],
+  reasoning: ["default", "twins"],
+  searching: ["default", "lighthouse"],
+  background: ["default", "spiral"],
+  retrying: ["default", "surge"],
+  compacting: ["default", "squeeze", "fuse"],
+  waiting: ["default"],
+};
+
+export type KnownLook =
+  | "base"
+  | "working"
+  | "working-gyro"
+  | "reasoning"
+  | "reasoning-twins"
+  | "searching"
+  | "searching-lighthouse"
+  | "background"
+  | "background-spiral"
+  | "retrying"
+  | "retrying-surge"
+  | "compacting"
+  | "compacting-squeeze"
+  | "compacting-fuse"
+  | "waiting";
+
+export const KNOWN_LOOKS: readonly KnownLook[] = [
+  "base",
+  "working",
+  "working-gyro",
+  "reasoning",
+  "reasoning-twins",
+  "searching",
+  "searching-lighthouse",
+  "background",
+  "background-spiral",
+  "retrying",
+  "retrying-surge",
+  "compacting",
+  "compacting-squeeze",
+  "compacting-fuse",
+  "waiting",
+];
+
+const KNOWN = new Set<string>(KNOWN_LOOKS);
+
+export const ORB_DEFAULT_STATE: OrbStateName = "base";
+export const ORB_DEFAULT_SIZE = 20;
+export const ORB_DEFAULT_COLOR = "#ffffff";
+export const ORB_DEFAULT_SPEED = 1;
+export const ORB_DEFAULT_DENSITY = 1;
+export const ORB_DEFAULT_DOT_SIZE = 1;
+export const ORB_DEFAULT_TILT = 20;
+export const ORB_DEFAULT_PAUSED = false;
+
+export function isOrbState(value: string): value is OrbStateName {
+  return Object.prototype.hasOwnProperty.call(VARIANTS, value);
+}
+
+export function isKnownLook(value: string): value is KnownLook {
+  return KNOWN.has(value);
+}
+
+export function resolveLook(state?: string, variant?: string): KnownLook {
+  const which = state !== undefined && isOrbState(state) ? state : ORB_DEFAULT_STATE;
+  const v: readonly string[] = VARIANTS[which];
+  const own = variant !== undefined && variant !== "default" && v.includes(variant);
+  const id = own ? `${which}-${variant}` : which;
+  if (isKnownLook(id)) return id;
+  return ORB_DEFAULT_STATE;
+}
+
+export type OrbPassProps = {
+  state?: string;
+  variant?: string;
+  size?: number;
+  speed?: number;
+  color?: string;
+  paused?: boolean;
+  label?: string;
+  className?: string;
+};
+
+/** Defaults npm applies when `state` / `size` / `paused` are omitted, plus the dark color stand-in. */
+export function normalizeOrbProps(props: OrbPassProps = {}) {
+  return {
+    state: resolveLook(props.state, props.variant),
+    size: props.size ?? ORB_DEFAULT_SIZE,
+    speed: props.speed ?? ORB_DEFAULT_SPEED,
+    color: props.color ?? ORB_DEFAULT_COLOR,
+    paused: props.paused ?? ORB_DEFAULT_PAUSED,
+    label: props.label,
+    className: props.className,
+  };
+}
+
 /* FILE src/color/color.ts */
 /**
  * Color parsing and formatting ported from the live playground's picker
@@ -1069,8 +1191,13 @@ const M_SRGB_TO_P3 = [
 ];
 
 /** Gamma sRGB floats → Display P3 floats. Round only at the call site. */
-function srgbToDisplayP3(rgb: number[]): number[] {
+export function srgbGammaToDisplayP3(rgb: number[]): number[] {
   return dot(M_SRGB_TO_P3, rgb.map(toLinear)).map(toGamma);
+}
+
+/** Gamma Display P3 floats → sRGB floats. Round only at the call site. */
+export function displayP3GammaToSrgb(rgb: number[]): number[] {
+  return dot(M_SRGB_INV, dot(M_P3, rgb.map(toLinear))).map(toGamma);
 }
 
 export function formatColor(color: Oklch, format: ColorFormat): string {
@@ -1078,7 +1205,7 @@ export function formatColor(color: Oklch, format: ColorFormat): string {
   if (format === "oklch") return `oklch(${num(color.l)} ${num(color.c)} ${num(color.h, 2)}${alpha})`;
   if (format === "p3") {
     const srgb = oklchToRgb(clampChroma(color, "srgb"), "srgb").map((v) => clamp(v));
-    const p3 = srgbToDisplayP3(srgb);
+    const p3 = srgbGammaToDisplayP3(srgb);
     return `color(display-p3 ${p3.map((v) => num(v, 5)).join(" ")}${alpha})`;
   }
   const rgb = oklchToRgb(clampChroma(color, "srgb"), "srgb");
@@ -1394,59 +1521,6 @@ export function chatFor(index: number) {
 
 export const USER_PROMPT = "The login page keeps redirecting to itself. Can you fix it?";
 
-/* FILE src/content/snippet.ts */
-import type { RenderName, ShapeName } from "../orb/model";
-
-const DEFAULTS: Record<string, string | number> = { variant: "default", size: 20, speed: 1, density: 1, dotSize: 1, tilt: 20 };
-
-/**
- * Web JSX snippet, verbatim format from the live playground Copy button.
- * Non-default props only, plus shape/render imports and className for a custom color.
- */
-export function orbSnippet(opts: {
-  state: string;
-  variant?: string;
-  size: number;
-  speed: number;
-  density: number;
-  dotSize: number;
-  tilt: number;
-  shape: ShapeName;
-  render: RenderName;
-  color: string;
-  themeDefault: string;
-  flat: boolean;
-}): string {
-  const entries: [string, string | number | undefined][] = [
-    ["state", opts.state],
-    ["variant", opts.variant && opts.variant !== "default" ? opts.variant : "default"],
-    ["speed", opts.speed],
-    ["density", opts.density],
-    ["dotSize", opts.dotSize],
-    ["tilt", opts.flat ? undefined : opts.tilt],
-    ["size", opts.size],
-  ];
-  const props: string[] = [];
-  for (const [key, value] of entries) {
-    if (value === undefined) continue;
-    if (key in DEFAULTS && value === DEFAULTS[key]) continue;
-    props.push(typeof value === "string" ? `${key}="${value}"` : `${key}={${value}}`);
-  }
-  const imports = ['import { Orb } from "@yogesharc/thinking-orbs";'];
-  if (opts.shape !== "sphere") {
-    props.push(`shape={${opts.shape}}`);
-    imports.push(`import { ${opts.shape} } from "@yogesharc/thinking-orbs/shapes";`);
-  }
-  if (opts.render !== "dots") {
-    props.push(`render={${opts.render}}`);
-    imports.push(`import { ${opts.render} } from "@yogesharc/thinking-orbs/renders";`);
-  }
-  if (opts.color.toLowerCase() !== opts.themeDefault.toLowerCase()) {
-    props.push(`className="text-[${opts.color}]"`);
-  }
-  return `${imports.join("\n")}\n\n<Orb ${props.join(" ")} />`;
-}
-
 /* FILE src/orb/LICENSE */
 MIT License
 
@@ -1469,4 +1543,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-

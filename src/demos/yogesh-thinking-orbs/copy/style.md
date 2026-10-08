@@ -1,6 +1,8 @@
 /* Dependencies. Install only these, then run `npx setup-skia-web public`.
  * Web loads CanvasKit itself. No custom index.html.
+ * locateFile: (file) => `/${file}` assumes the site root. A sub-path host must change that prefix.
  * Babel: plugins: ['react-native-worklets/plugin']
+ * Mount: put these files under src/ and replace App.tsx with `export { default } from './src/ThinkingOrbs'`.
  * expo ~57.0.23
  * react 19.2.3
  * react-dom 19.2.3
@@ -10,17 +12,19 @@
  * react-native-reanimated 4.5.1
  * react-native-worklets 0.10.1
  * react-native-gesture-handler ~2.32.0
- * react-native-svg 15.15.4
- * expo-linear-gradient ~57.0.2
  * expo-constants ~57.0.18
- * expo-clipboard ~57.0.2
- * react-native-safe-area-context ~5.7.0
  * @expo-google-fonts/geist ^0.4.2
+ * @expo-google-fonts/geist-mono ^0.4.3
  */
 
 /* FILE src/theme/theme.tsx */
 import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
-import { useFonts } from "@expo-google-fonts/geist/useFonts";
+import { Geist_400Regular_Italic } from "@expo-google-fonts/geist/400Regular_Italic";
+import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium";
+import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold";
+import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono/400Regular";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 
@@ -98,12 +102,13 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 const webSans = 'Geist, "Geist Fallback", system-ui, sans-serif';
+const webRegular = 'Geist_400Regular, Geist, "Geist Fallback", system-ui, sans-serif';
 const webMono = '"Geist Mono", "Geist Mono Fallback"';
 
 export const fonts =
   Platform.OS === "web"
     ? {
-        regular: webSans,
+        regular: webRegular,
         medium: webSans,
         semibold: webSans,
         italic: webSans,
@@ -111,10 +116,10 @@ export const fonts =
       }
     : {
         regular: "Geist_400Regular",
-        medium: "Geist_400Regular",
-        semibold: "Geist_400Regular",
-        italic: "Geist_400Regular",
-        mono: "monospace",
+        medium: "Geist_500Medium",
+        semibold: "Geist_600SemiBold",
+        italic: "Geist_400Regular_Italic",
+        mono: "GeistMono_400Regular",
       };
 
 export function mediumWeight(): { fontWeight: "500" } | Record<string, never> {
@@ -136,6 +141,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useFonts({
     Geist: Geist_400Regular,
     Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_400Regular_Italic,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+    "Geist Mono": GeistMono_400Regular,
   });
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useState(dark.orb);
@@ -170,4 +181,3 @@ export const syntax = {
   tag: "#359bd9",
   attr: "#d8944d",
 };
-
