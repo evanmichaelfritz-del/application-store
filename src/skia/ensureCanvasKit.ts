@@ -3,6 +3,10 @@ export function canvasKitReady(): boolean {
   return true;
 }
 
+export function canvasKitPending(): boolean {
+  return false;
+}
+
 export function ensureCanvasKit(): Promise<void> {
   return Promise.resolve();
 }
