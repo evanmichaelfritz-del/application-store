@@ -129,6 +129,7 @@ export function SelectRow<T extends string>({
   });
   const commitJS = useCallback(() => commitRef.current(false), []);
   const web = Platform.OS === "web";
+  const [triggerHover, setTriggerHover] = useState(false);
   useLayoutEffect(() => {
     if (web) injectOptionStyles();
   }, [web]);
@@ -442,13 +443,23 @@ export function SelectRow<T extends string>({
           aria-expanded={web ? open : undefined}
           collapsable={false}
           onPointerDown={web ? mountOnPress : undefined}
+          onPointerEnter={web ? () => setTriggerHover(true) : undefined}
+          onPointerLeave={web ? () => setTriggerHover(false) : undefined}
           onContextMenu={web ? cancelClosed : undefined}
           onPointerCancel={web ? cancelClosed : undefined}
           onKeyDownCapture={Platform.OS === "web" ? onKeyDownCapture : undefined}
           style={{
             height: 36,
             borderRadius: 8,
-            backgroundColor: open ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : mode === "dark" ? "rgba(255,255,255,0.08)" : colors.row,
+            backgroundColor: open
+              ? mode === "dark"
+                ? "rgba(255,255,255,0.18)"
+                : "rgba(0,0,0,0.10)"
+              : triggerHover && mode === "dark"
+                ? "rgba(255,255,255,0.12)"
+                : mode === "dark"
+                  ? "rgba(255,255,255,0.08)"
+                  : colors.row,
             paddingHorizontal: 12,
             flexDirection: "row",
             alignItems: "center",
