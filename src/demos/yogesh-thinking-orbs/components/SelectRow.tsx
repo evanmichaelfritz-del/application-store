@@ -1,4 +1,5 @@
 import { createElement, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Platform, Pressable, Text, useWindowDimensions, View, type TextStyle, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -55,7 +56,8 @@ const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-test
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"]{background-color:#0000001a;color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;color:#000;outline:2px solid #0000008c;outline-offset:-2px}
-[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}`;
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}
+[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]{transition:background-color .15s ease}`;
 
 function injectOptionStyles() {
   if (typeof document === "undefined") return;
@@ -82,7 +84,7 @@ const OPTION_BOX: ViewStyle = {
 const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
 const OUTSIDE_CLOSE_EVENT: "pointerdown" | "click" = "pointerdown";
-/** Web close only (dismissWeb, driveWebSprings close, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
+/** Web close only (dismissWeb, onEnd web close). Same stiffness, damping, and mass as MENU; energyThreshold is the only difference. Native close stays on MENU. */
 const CLOSE_MENU = { stiffness: MENU.stiffness, damping: MENU.damping, mass: MENU.mass, energyThreshold: 1.8e-7 };
 
 export function SelectRow<T extends string>({
@@ -193,8 +195,12 @@ export function SelectRow<T extends string>({
   const sealJS = useCallback(() => sealRef.current(), []);
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
   const commitOpen = useCallback(() => {
-    commitRef.current(true);
-  }, []);
+    flushSync(() => commitRef.current(true));
+    requestAnimationFrame(() => {
+      shown.value = withSpring(1, MENU);
+      chevron.value = withSpring(1, CHEV);
+    });
+  }, [chevron, shown]);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
       commitRef.current(false);
@@ -232,12 +238,6 @@ export function SelectRow<T extends string>({
       document.removeEventListener(OUTSIDE_CLOSE_EVENT, onOutside);
     };
   }, [dismissWeb, open, web]);
-  const driveWebSprings = useCallback((next: number) => {
-    openSV.value = next;
-    goal.value = next;
-    shown.value = withSpring(next, next === 1 ? MENU : CLOSE_MENU);
-    chevron.value = withSpring(next, CHEV);
-  }, [chevron, goal, openSV, shown]);
   useLayoutEffect(() => {
     openSV.value = open ? 1 : 0;
   }, [open, openSV]);
@@ -302,16 +302,15 @@ export function SelectRow<T extends string>({
           if (!fromPointer) return;
           openSV.value = next;
           goal.value = next;
-          if (next === 0) runOnJS(sealJS)();
-          else runOnJS(unsealPtrJS)();
           if (next === 1) {
-            shown.value = withSpring(1, MENU);
-          } else {
-            shown.value = withSpring(0, CLOSE_MENU);
+            runOnJS(unsealPtrJS)();
+            runOnJS(commitOpen)();
+            return;
           }
-          chevron.value = withSpring(next, CHEV);
-          if (next === 1) runOnJS(commitOpen)();
-          else runOnJS(commitNextFrame)();
+          runOnJS(sealJS)();
+          shown.value = withSpring(0, CLOSE_MENU);
+          chevron.value = withSpring(0, CHEV);
+          runOnJS(commitNextFrame)();
           return;
         }
         spring(next);
@@ -328,7 +327,6 @@ export function SelectRow<T extends string>({
     setActive(index);
     focusOnOpen.current = true;
     unseal();
-    driveWebSprings(1);
     commitOpen();
   };
   const moveTo = (index: number, nodes: HTMLElement[]) => {
