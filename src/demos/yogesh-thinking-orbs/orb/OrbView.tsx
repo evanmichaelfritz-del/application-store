@@ -18,7 +18,7 @@ import {
 import { useSkiaRuntime } from "@/src/skia/liveBudget";
 
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
-import { tick } from "./clock";
+import { clocks, tick } from "./clock";
 import { drawOrb } from "./draw";
 import { buildInput, type OrbInput, type RenderName, type ShapeName } from "./model";
 import { makeLocal, step, type OrbLocal } from "./simulate";
@@ -244,18 +244,25 @@ function OrbCanvas({
     }
   }, [running, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
 
-  // Reduced motion paints from props, not the shared tune, so a slider edit is visible in the same commit.
-  // Entering pause holds the current frame. Later state, size, or colour edits repaint that still.
+  // Reduced motion paints from props at t=0. Entering pause holds the current picture.
+  // A later state, size, or colour edit while paused repaints that same time.
   const wasPaused = useRef(paused);
+  const heldT = useRef(0);
   useLayoutEffect(() => {
+    const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
     const enteredPause = paused && !wasPaused.current;
     wasPaused.current = paused;
-    if (!reduced && (!paused || enteredPause)) return;
-    const tune: OrbLive = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    if (enteredPause && !reduced) {
+      const clock = clocks.value[`${built.state}@${tune.speed}`];
+      heldT.current = clock ? clock.t : heldT.current;
+      return;
+    }
+    if (!reduced && !paused) return;
+    const time = reduced ? 0 : heldT.current;
     const input = built;
     runOnUI(() => {
       "worklet";
-      paint(picture, retire, input, makeLocal(input), tune, 0);
+      paint(picture, retire, input, makeLocal(input), tune, time);
     })();
   }, [reduced, paused, built, color, density, dotSize, picture, retire, size, speed, tilt]);
 

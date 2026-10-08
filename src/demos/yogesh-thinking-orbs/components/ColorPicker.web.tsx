@@ -1,4 +1,5 @@
-import { GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { useFonts } from "expo-font";
 import React, { createElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 
@@ -245,13 +246,14 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     const rect = row.getBoundingClientRect();
     const vh = window.innerHeight;
     const vw = window.innerWidth;
+    const edge = vw < 768 ? 16 : 8;
     let top = rect.top - 32;
-    const maxTop = Math.max(8, vh - 8 - 350);
-    if (top < 8) top = 8;
+    const maxTop = Math.max(edge, vh - edge - 350);
+    if (top < edge) top = edge;
     if (top > maxTop) top = maxTop;
     let left = rect.left - 288;
-    const maxLeft = Math.max(8, vw - 8 - 280);
-    if (left < 8) left = 8;
+    const maxLeft = Math.max(edge, vw - edge - 280);
+    if (left < edge) left = edge;
     if (left > maxLeft) left = maxLeft;
     pop.style.left = `${left}px`;
     pop.style.top = `${top}px`;
@@ -269,7 +271,8 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     }
     place();
     if (!wasOpen.current) {
-      popRef.current?.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]')?.focus({ preventScroll: true });
+      const checked = popRef.current?.querySelector('[role="radio"][aria-checked="true"]');
+      if (checked && isFormatButton(checked)) checked.focus({ preventScroll: true });
     }
     wasOpen.current = true;
     const onPointerDown = (event: globalThis.PointerEvent) => {
@@ -353,7 +356,8 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
       return;
     }
     if (event.key !== "Tab" || !popRef.current) return;
-    const first = popRef.current.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]');
+    const checked = popRef.current.querySelector('[role="radio"][aria-checked="true"]');
+    const first = checked && isFormatButton(checked) ? checked : null;
     const last = cssInputRef.current;
     const leave = (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last);
     if (!leave) return;
