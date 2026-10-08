@@ -352,10 +352,6 @@ export function SliderRow({
             backgroundColor: colors.row,
             overflow: "hidden",
             justifyContent: "center",
-            outlineStyle: focused ? "solid" : undefined,
-            outlineWidth: focused ? 2 : 0,
-            outlineColor: colors.fg,
-            outlineOffset: 2,
           },
           rowStyle,
         ]}

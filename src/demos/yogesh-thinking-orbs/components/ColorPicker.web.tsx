@@ -23,7 +23,6 @@ const TABS: { id: ColorFormat; label: string }[] = [
   { id: "p3", label: "Display P3" },
 ];
 
-const INVALID_TITLE = "Enter a hex, RGB, HSL, OKLCH, or Display P3 color";
 const SANS = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
 const MONO = '"Geist Mono", "Geist Mono Fallback", ui-monospace, monospace';
 
@@ -98,10 +97,10 @@ function injectStyles() {
 .orb-cp-label{color:rgba(255,255,255,.7);flex-shrink:0;font-size:13px;font-weight:500;line-height:19.5px;transform:translateY(-.5px)}
 .orb-cp-control[data-open=true] .orb-cp-label,.orb-cp-control[data-open=true] .orb-cp-value{color:#fffffff2}
 .orb-cp-inputs{flex:1;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:8px}
-.orb-cp-value{width:100%;min-width:0;box-sizing:border-box;color:rgba(255,255,255,.7);text-align:right;text-overflow:ellipsis;background:transparent;border:0;outline:none;padding:4px 0;font:500 13px/19.5px ${MONO};caret-color:rgba(255,255,255,.7)}
+.orb-cp-value{width:100%;min-width:0;height:25px;box-sizing:border-box;color:rgba(255,255,255,.7);text-align:right;text-overflow:ellipsis;background:transparent;border:0;outline:none;padding:4px 0;font:500 13px ${MONO};caret-color:rgba(255,255,255,.7)}
 .orb-cp-value:focus,.orb-cp-control[data-open=true] .orb-cp-value:focus{color:#fff;caret-color:#fff;outline:none;box-shadow:inset 0 -1px 0 0 rgba(255,255,255,.6)}
 .orb-cp-value[aria-invalid=true],.orb-cp-control[data-open=true] .orb-cp-value[aria-invalid=true]{color:#ef7777;caret-color:#ef7777}
-.orb-cp-swatch{box-sizing:border-box;border:1px solid rgba(255,255,255,.26);background-image:linear-gradient(var(--orb-cp-color),var(--orb-cp-color)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%);background-size:auto,8px 8px;cursor:pointer;border-radius:5px;flex:0 0 20px;width:20px;height:20px;padding:0;transition:transform .15s;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.orb-cp-swatch{box-sizing:border-box;border:1px solid rgba(255,255,255,.26);background-color:transparent;background-image:linear-gradient(var(--orb-cp-color),var(--orb-cp-color)),repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%);background-size:auto,8px 8px;background-position:0 0,0 50%;cursor:pointer;border-radius:5px;flex:0 0 20px;width:20px;height:20px;padding:0;transition:transform .15s;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .orb-cp-swatch:hover{transform:scale(1.08)}
 .orb-cp-swatch:focus{outline:none}
 .orb-cp-swatch:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
@@ -127,7 +126,8 @@ function injectStyles() {
 .orb-cp-track::-moz-range-track{height:16px;border:0;border-radius:4px;background:var(--orb-cp-track)}
 .orb-cp-track::-webkit-slider-thumb{-webkit-appearance:none;box-sizing:border-box;width:16px;height:24px;margin-top:-4px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
 .orb-cp-track::-moz-range-thumb{box-sizing:border-box;width:16px;height:24px;border:2px solid #fff;border-radius:5px;background:var(--orb-cp-thumb);background-clip:padding-box;box-shadow:0 2px 4px rgba(0,0,0,.3)}
-.orb-cp-op::-webkit-slider-runnable-track,.orb-cp-op::-moz-range-track,.orb-cp-op::-webkit-slider-thumb,.orb-cp-op::-moz-range-thumb{background-size:auto,8px 8px}
+.orb-cp-track:focus-visible{outline:none}
+[data-testid="yogesh-orb-panel"] [aria-haspopup="listbox"]:focus-visible,[data-testid="yogesh-orb-panel"] [role="slider"]:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:-2px}
 .orb-cp-css{width:100%;height:36px;box-sizing:border-box;border:0;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:0 12px;font:500 13px/19.5px ${MONO};outline:none;caret-color:rgba(255,255,255,.7)}
 .orb-cp-css:focus{color:#fff;caret-color:#fff;outline:none}
 .orb-cp-css[aria-invalid=true]{color:#ef7777;caret-color:#ef7777}
@@ -329,8 +329,9 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
     const last = cssInputRef.current;
     const leave = (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last);
     if (!leave) return;
-    event.preventDefault();
-    closeToSwatch();
+    // Focus the swatch, then let the browser Tab onward. Preventing default is what stopped on the swatch.
+    swatchRef.current?.focus({ preventScroll: true });
+    flushSync(() => onOpenChange(false));
   };
 
   const onFormatKey = (event: KeyboardEvent) => {
@@ -483,7 +484,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
               "aria-label": "Opacity",
               "aria-valuetext": `${Math.round(color.a * 100)} percent`,
               style: {
-                "--orb-cp-track": `linear-gradient(to right, transparent, ${opaque}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%)`,
+                "--orb-cp-track": `linear-gradient(to right, transparent, ${opaque}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
                 "--orb-cp-thumb": `linear-gradient(${withAlpha}, ${withAlpha}), repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 8px 8px`,
               },
               onInput: (event: Event) => {
@@ -500,7 +501,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           autoComplete: "off",
           "aria-label": "CSS color",
           "aria-invalid": cssInvalid ? true : undefined,
-          title: cssInvalid ? INVALID_TITLE : cssDraft,
+          title: text,
           value: cssDraft,
           onInput: (event: Event) => {
             setCssDraft((event.target as HTMLInputElement).value);
@@ -534,7 +535,7 @@ export function ColorPicker({ text, color, open, onOpenChange, onCommit, onChang
           autoComplete: "off",
           "aria-label": "Color color value",
           "aria-invalid": rowInvalid ? true : undefined,
-          title: rowInvalid ? INVALID_TITLE : rowDraft,
+          title: text,
           value: rowDraft,
           onInput: (event: Event) => {
             setRowDraft((event.target as HTMLInputElement).value);
