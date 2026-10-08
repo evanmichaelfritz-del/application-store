@@ -1,9 +1,9 @@
 import { createElement, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, Text, useWindowDimensions, View, type TextStyle, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
-import { fonts, useTheme } from "../theme/theme";
+import { useTheme } from "../theme/theme";
 import { Chevron } from "./icons";
 
 type WebKeyEvent = {
@@ -39,19 +39,22 @@ function keyName(event: WebKeyEvent): string {
   return event.key ?? event.nativeEvent?.key ?? "";
 }
 
+const MENU_FONT = 'system-ui, -apple-system, "SF Pro Display", sans-serif';
+
 /** Dark hover/focus is DialKit `--dial-surface-hover` (#ffffff1f) and `--dial-focus-ring` (#fff9). Selected stays `--dial-surface-active` (#ffffff2e). */
-const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]{background-color:transparent;transition:background-color .15s,color .15s}
+const OPTION_CSS = `[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]{background-color:transparent;color:#ffffffb3;font-family:${MENU_FONT};font-size:13px;font-weight:500;line-height:19.5px;transition:background-color .15s,color .15s}
 [data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-label"]{color:#ffffffb3;opacity:1}
 [data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:hover{background-color:#ffffff1f}
-[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"][aria-selected="true"]{background-color:#ffffff2e}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"][aria-selected="true"]{background-color:#ffffff2e;color:#fffffff2}
 [data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#fffffff2}
-[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:focus-visible{background-color:#ffffff1f;outline:2px solid #fff9;outline-offset:-2px}
+[data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:focus-visible{background-color:#ffffff1f;color:#fff;outline:2px solid #fff9;outline-offset:-2px}
 [data-testid="yogesh-orb-panel"] .orb-select-menu [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#fff;opacity:1}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]{color:#0009}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-label"]{color:#0009}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:hover{background-color:#00000014}
-[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"]{background-color:#0000001a}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"]{background-color:#0000001a;color:#000000e6}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"][aria-selected="true"] [data-testid="orb-select-label"]{color:#000000e6}
-[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;outline:2px solid #0000008c;outline-offset:-2px}
+[data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible{background-color:#00000014;color:#000;outline:2px solid #0000008c;outline-offset:-2px}
 [data-testid="yogesh-orb-panel"] .orb-select-menu.is-light [data-testid="orb-select-option"]:focus-visible [data-testid="orb-select-label"]{color:#000}`;
 
 function injectOptionStyles() {
@@ -62,6 +65,19 @@ function injectOptionStyles() {
   style.textContent = OPTION_CSS;
   document.head.appendChild(style);
 }
+
+const MENU_TEXT: TextStyle = {
+  fontFamily: MENU_FONT,
+  fontSize: 13,
+  fontWeight: "500",
+  lineHeight: 19.5,
+};
+const OPTION_BOX: ViewStyle = {
+  height: 36,
+  borderRadius: 6,
+  paddingVertical: 8,
+  paddingHorizontal: 10,
+};
 
 const MENU = { stiffness: 1218, damping: 69.8, mass: 1 };
 const CHEV = { stiffness: 685, damping: 44.5, mass: 1 };
@@ -108,12 +124,6 @@ export function SelectRow<T extends string>({
       onToggle();
     });
   });
-  commitRef.current = () => {
-    armed.current = true;
-    startTransition(() => {
-      onToggle();
-    });
-  };
   const commitJS = useCallback(() => commitRef.current(), []);
   const web = Platform.OS === "web";
   useLayoutEffect(() => {
@@ -162,15 +172,18 @@ export function SelectRow<T extends string>({
     focusOnOpen.current = true;
   };
   const sealRef = useRef(sealClosed);
-  const unsealRef = useRef(unseal);
   const unsealPtrRef = useRef(unsealForPointer);
   useLayoutEffect(() => {
+    commitRef.current = () => {
+      armed.current = true;
+      startTransition(() => {
+        onToggle();
+      });
+    };
     sealRef.current = sealClosed;
-    unsealRef.current = unseal;
     unsealPtrRef.current = unsealForPointer;
   });
   const sealJS = useCallback(() => sealRef.current(), []);
-  const unsealJS = useCallback(() => unsealRef.current(), []);
   const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
@@ -403,6 +416,12 @@ export function SelectRow<T extends string>({
       }
     }
   };
+  const menuInk = mode === "light" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+  const triggerText: TextStyle = {
+    ...MENU_TEXT,
+    color: menuInk,
+    transform: [{ translateY: -0.5 }],
+  };
   return (
     <View ref={rowRef} onLayout={place} style={{ zIndex: open ? 20 : 1 }}>
       <GestureDetector gesture={tap} touchAction="pan-y">
@@ -426,11 +445,11 @@ export function SelectRow<T extends string>({
             justifyContent: "space-between",
           }}
         >
-          <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, lineHeight: 20 }}>{label}</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, lineHeight: 20 }}>{display}</Text>
+          <Text style={triggerText}>{label}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={triggerText}>{display}</Text>
             <Animated.View style={chevronStyle}>
-              <Chevron color={colors.muted} />
+              <Chevron color={menuInk} />
             </Animated.View>
           </View>
         </View>
@@ -468,8 +487,8 @@ export function SelectRow<T extends string>({
                   const on = option.id === value;
                   const tabbable = open && index === active;
                   return (
-                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center" }}>
-                      <Text testID="orb-select-label" style={{ fontFamily: fonts.regular, fontSize: 13 }}>{option.label}</Text>
+                    <Pressable key={option.id} role="option" tabIndex={tabbable ? 0 : -1} focusable={tabbable} accessibilityState={{ selected: on }} aria-selected={on} testID="orb-select-option" onKeyDown={(event) => onOptionKey(event, index)} onPress={() => { sealClosed(); onPick(option.id); focusTrigger(); }} style={OPTION_BOX}>
+                      <Text testID="orb-select-label" style={MENU_TEXT}>{option.label}</Text>
                     </Pressable>
                   );
                 }),
@@ -477,8 +496,8 @@ export function SelectRow<T extends string>({
             : options.map((option) => {
                 const on = option.id === value;
                 return (
-                  <Pressable key={option.id} accessibilityRole="menuitem" accessibilityState={{ selected: on }} aria-selected={on} onPress={() => onPick(option.id)} style={{ height: 36, borderRadius: 6, paddingHorizontal: 8, justifyContent: "center", backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }}>
-                    <Text style={{ color: colors.fg, fontFamily: fonts.regular, fontSize: 13, opacity: mode === "light" ? (on ? 0.9 : 0.6) : on ? 0.95 : 0.7 }}>{option.label}</Text>
+                  <Pressable key={option.id} accessibilityRole="menuitem" accessibilityState={{ selected: on }} aria-selected={on} onPress={() => onPick(option.id)} style={[OPTION_BOX, { backgroundColor: on ? (mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)") : "transparent" }]}>
+                    <Text style={{ ...MENU_TEXT, color: colors.fg, opacity: mode === "light" ? (on ? 0.9 : 0.6) : on ? 0.95 : 0.7 }}>{option.label}</Text>
                   </Pressable>
                 );
               })}

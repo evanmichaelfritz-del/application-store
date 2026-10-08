@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -20,10 +21,26 @@ export function DrayIcon({ color, height = 12 }: { color: string; height?: numbe
   );
 }
 
-export function Chevron({ color, size = 14 }: { color: string; size?: number }) {
+export function Chevron({ color, size = 20 }: { color: string; size?: number }) {
+  if (Platform.OS === "web") {
+    return createElement(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 2.5,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": true,
+        style: { width: size, height: size, padding: 2, opacity: 0.6, boxSizing: "border-box", color },
+      },
+      createElement("path", { d: "M6 9.5L12 15.5L18 9.5" }),
+    );
+  }
   return (
-    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <Path d="M4 6.5 L8 10.5 L12 6.5" stroke={color} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 9.5L12 15.5L18 9.5" />
     </Svg>
   );
 }

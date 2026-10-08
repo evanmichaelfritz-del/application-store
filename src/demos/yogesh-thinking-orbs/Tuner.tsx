@@ -141,7 +141,7 @@ export function Tuner() {
         open={menu === 'shape'}
         onToggle={() => {
           setPicker(false);
-          setMenu(menu === 'shape' ? null : 'shape');
+          setMenu((current) => (current === 'shape' ? null : 'shape'));
         }}
         onPick={(id) => {
           setShape(id);
@@ -156,7 +156,7 @@ export function Tuner() {
         open={menu === 'render'}
         onToggle={() => {
           setPicker(false);
-          setMenu(menu === 'render' ? null : 'render');
+          setMenu((current) => (current === 'render' ? null : 'render'));
         }}
         onPick={(id) => {
           setRender(id);
