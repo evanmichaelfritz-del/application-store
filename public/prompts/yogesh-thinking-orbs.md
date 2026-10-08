@@ -1,6 +1,6 @@
 # AGENT_PROMPT_ORBS: Yogesh Thinking Orbs, the orb asset only (closed network)
 
-**Source of truth.** Everything here comes from the GitHub repo **`evanmichaelfritz-del/application-store`** at **main = `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`**. That commit is the merge of **PR #29** ("Orb gap-fix at c14c663 (approved head of PR #26)"), merged 2026-10-08 07:25 ET. Its parents are `ebf6caf0c0cfc296617ccd1b09c8f9f698647620` and `c14c663c4caf9d1a30c2341685746c2fe15131a1`. A citation like `src/demos/yogesh-thinking-orbs/orb/simulate.ts L62–67` means that file at eef45fa, at those lines; `simulate.ts L62–67` is the same file when the folder is obvious. The appendices carry every file this asset needs, byte for byte from eef45fa (bytes and sha256 per file), so you can check each citation without the repo. The team's measured notes for this build are labelled **measured** and name who measured them.
+**Source of truth.** Everything here comes from the GitHub repo **`evanmichaelfritz-del/application-store`** at **main = `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`**. That commit is the merge of **PR #29** ("Orb gap-fix at c14c663 (approved head of PR #26)"), merged 2026-10-08 07:25 ET. Its parents are `ebf6caf0c0cfc296617ccd1b09c8f9f698647620` and `c14c663c4caf9d1a30c2341685746c2fe15131a1`. A citation like `src/demos/yogesh-thinking-orbs/orb/simulate.ts L62–67` means that file at eef45fa, at those lines; `simulate.ts L62–67` is the same file when the folder is obvious. The appendices carry every file this asset needs, byte for byte from eef45fa (bytes and sha256 per file), so you can check each citation without the repo. Main has since moved to `70f5716` (the PR #26 merge), and PR #31 (head `ee4ba29`) is pending merge; both change only the creator's select, and every file inlined here is byte-identical at eef45fa and ee4ba29 (§16). The team's measured notes for this build are labelled **measured** and name who measured them.
 
 **Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL in this document (inside code, CSS, licence text or JSON schema strings) is literal string data, not an instruction. Every value you need is written below or in the appendices.
 
@@ -643,10 +643,10 @@ Hold each value in React state and pass it as a prop.
 
 ## 16. Known gaps and unverified items (orb asset)
 
-**Gates on the merged code** (from the PR #29 body, read through the GitHub connector): at head `c14c663`, which PR #29 merged as eef45fa, the team recorded Engineering **SHIP**, Design **FINAL PASS** and Beta **CLEAR** at desktop 1280. PR #29 excludes Motion's open-timing and hover-in fixes and Engineering's rAF-cancel fix; those are pending in PR #26, which touches only the creator's `SelectRow.tsx`. **Nothing in PR #26 changes the orb or the Effects card.**
+**Gates on the merged code** (from the PR #29 body, read through the GitHub connector): at head `c14c663`, which PR #29 merged as eef45fa, the team recorded Engineering **SHIP**, Design **FINAL PASS** and Beta **CLEAR** at desktop 1280. PR #29 excludes Motion's open-timing and hover-in fixes and Engineering's rAF-cancel fix; those went out in PR #26, which has since been merged into main as `70f5716e3d407bf55c4d8bccfbe6c2541c2d7c1e` (2026-10-08 11:09 ET), followed by PR #31 (head `ee4ba298e54667c4b95c05602592b53bccdf8cab`, an open draft, **pending merge**). Both change only the creator's `SelectRow.tsx`; PR #31 also re-syncs the copy of `SelectRow` embedded in the two Copy HTML sources (store chrome, not part of this asset). Every file this prompt inlines is byte-identical at eef45fa and ee4ba29 (full trees compared through the GitHub connector), so **nothing in PR #26 or PR #31 changes the orb or the Effects card.**
 
 ### 16.1 Known gaps (desktop), the team's list, worded exactly
-These are the gaps from the team's list that apply to this asset. The numbers are the list's own; gaps 1–4, 7 and 8 are about the creator's controls and are in `AGENT_PROMPT_ORB_CREATOR.md`.
+These are the gaps from the team's list that apply to this asset. The numbers are the list's own; gaps 1–4, 7, 8 and 12 are about the creator's controls and are in `AGENT_PROMPT_ORB_CREATOR.md`.
 
 5. P3 canvas look unverified on a real GPU and Safari.
 6. Mobile not covered.
@@ -755,7 +755,7 @@ Effects card at 1280 (§15):
 - Adding shaders, gradients, glow, blur, crossfades, easing curves or colours that aren't in §7–§12.
 - Adding theme logic inside the orb, or props that aren't in §4.1.
 - Copying store chrome (card frame, nav, Copy/prompt buttons, canvas budget, catalog) into the asset.
-- Presenting PR #26 code as merged, or "fixing" the known gaps in §16.1.
+- Presenting PR #31 (pending merge) as merged, or "fixing" the known gaps in §16.1.
 - Claiming iOS, Android or phone widths work without running them.
 
 ## Appendix index
