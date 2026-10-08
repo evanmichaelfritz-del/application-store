@@ -130,12 +130,21 @@ export function SelectRow<T extends string>({
   const unseal = () => {
     menuEl()?.removeAttribute("inert");
   };
+  const unsealForPointer = () => {
+    unseal();
+    focusOnOpen.current = true;
+  };
   const sealRef = useRef(sealClosed);
-  sealRef.current = sealClosed;
   const unsealRef = useRef(unseal);
-  unsealRef.current = unseal;
+  const unsealPtrRef = useRef(unsealForPointer);
+  useLayoutEffect(() => {
+    sealRef.current = sealClosed;
+    unsealRef.current = unseal;
+    unsealPtrRef.current = unsealForPointer;
+  });
   const sealJS = useCallback(() => sealRef.current(), []);
   const unsealJS = useCallback(() => unsealRef.current(), []);
+  const unsealPtrJS = useCallback(() => unsealPtrRef.current(), []);
   const commitNextFrame = useCallback(() => {
     requestAnimationFrame(() => {
       commitRef.current();
@@ -244,7 +253,7 @@ export function SelectRow<T extends string>({
           openSV.value = next;
           goal.value = next;
           if (next === 0) runOnJS(sealJS)();
-          else runOnJS(unsealJS)();
+          else runOnJS(unsealPtrJS)();
           if (next === 1) {
             shown.value = withSpring(1, MENU);
           } else {
@@ -257,7 +266,7 @@ export function SelectRow<T extends string>({
         spring(next);
         runOnJS(commitJS)();
       });
-  }, [chevron, commitJS, commitNextFrame, goal, openSV, primary, sealJS, shown, unsealJS, web]);
+  }, [chevron, commitJS, commitNextFrame, goal, openSV, primary, sealJS, shown, unsealPtrJS, web]);
   const menuStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * (aboveSV.value ? 8 : -8) }, { scale: 0.95 + shown.value * 0.05 }],
