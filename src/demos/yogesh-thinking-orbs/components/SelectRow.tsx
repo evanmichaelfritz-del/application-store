@@ -257,6 +257,7 @@ export function SelectRow<T extends string>({
     epoch.current += 1;
     openRef.current = true;
     const delivered = closeDelivered.current;
+    let committed = false;
     if (delivered && committedOpen.current) {
       const gen = epoch.current;
       let countered = false;
@@ -270,8 +271,9 @@ export function SelectRow<T extends string>({
     } else if (delivered || !committedOpen.current) {
       closeDelivered.current = false;
       flushSync(() => commitRef.current(true));
+      committed = true;
     }
-    if (committedOpen.current) focusSelected();
+    if (committedOpen.current && !committed) focusSelected();
     openSV.value = 1;
     goal.value = 1;
     cancelOpenFrame();

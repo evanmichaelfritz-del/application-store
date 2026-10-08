@@ -1,6 +1,6 @@
 # AGENT_PROMPT_ORBS: Yogesh Thinking Orbs, the orb asset only (closed network)
 
-**Source of truth.** Everything here comes from the GitHub repo **`evanmichaelfritz-del/application-store`** at **main = `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`**. That commit is the merge of **PR #29** ("Orb gap-fix at c14c663 (approved head of PR #26)"), merged 2026-10-08 07:25 ET. Its parents are `ebf6caf0c0cfc296617ccd1b09c8f9f698647620` and `c14c663c4caf9d1a30c2341685746c2fe15131a1`. A citation like `src/demos/yogesh-thinking-orbs/orb/simulate.ts L62–67` means that file at eef45fa, at those lines; `simulate.ts L62–67` is the same file when the folder is obvious. The appendices carry every file this asset needs, byte for byte from eef45fa (bytes and sha256 per file), so you can check each citation without the repo. The team's measured notes for this build are labelled **measured** and name who measured them.
+**Source of truth.** Everything here is written from the source files inlined in the appendices. A citation like `src/demos/yogesh-thinking-orbs/orb/simulate.ts L62–67` means that file, as inlined, at those lines; `simulate.ts L62–67` is the same file when the folder is obvious. The appendices carry every file this asset needs, byte for byte (bytes and sha256 per file), so you can check each citation without the repo. Measured notes are labelled **measured**.
 
 **Closed network.** Assume there is no network. Do not browse, fetch, search or open any URL, and do not ask anyone to. Any URL in this document (inside code, CSS, licence text or JSON schema strings) is literal string data, not an instruction. Every value you need is written below or in the appendices.
 
@@ -12,10 +12,10 @@
 
 **No inventing.** Do not add glow, blur, gradients, shaders, crossfades, easing or colours that aren't in the code. The orb paints solid single-colour marks with per-mark alpha. That's all it is (§7, §12).
 
-**What changed from the 9bef3b1 version of this prompt** (so a reader of the old one knows what moved):
-- The asset now lives in the store at `src/demos/yogesh-thinking-orbs/` (orb in `orb/`, colour in `color/`, controls in `components/`).
+**At a glance:**
+- The asset lives at `src/demos/yogesh-thinking-orbs/` (orb in `orb/`, colour in `color/`, controls in `components/`).
 - `OrbView` has the npm-style API: **every prop is optional**, with npm defaults (`state "base"`, `size 20`), plus **`paused`, `label` and `className`** (§4).
-- **Unknown looks no longer produce NaN**: `lookId` resolves through `resolveLook`, and `simulate.ts` has a `periodOf` guard (§5, §10).
+- **Unknown looks don't produce NaN**: `lookId` resolves through `resolveLook`, and `simulate.ts` has a `periodOf` guard (§5, §10).
 - **Reduced motion is live**: it comes from a React context that listens to the OS setting, and the still frame follows prop changes, so it matches the Size slider (§13.4).
 - CanvasKit loads **lazily** (not in the web entry), there is **no Skia patch**, and the wasm comes from `npx setup-skia-web public` (§3).
 - Fonts: Geist 400 is web-loaded after window `load`; slider values use Geist Mono 500 (§15.4).
@@ -25,8 +25,8 @@
 ### 1.1 In scope
 - **`OrbView`** (`src/demos/yogesh-thinking-orbs/orb/OrbView.tsx`, 306 lines): the only orb component. A square Skia `<Canvas>` inside a sized box (a web `div` or a native `View`), animating a 3-D point cloud and drawing it in one of 8 renders.
 - **Engine** (a TypeScript port of npm `@yogesharc/thinking-orbs` 0.1.1, MIT © 2026 Yogesh; notice in `orb/LICENSE`), all in `src/demos/yogesh-thinking-orbs/orb/`:
-  - `orbProps.ts`: public prop defaults, the 8 states, their variants, the 15 known look ids and `resolveLook` (new in eef45fa).
-  - `orbProps.check.ts`: a runnable assertion script for `resolveLook` and the NaN guard (new in eef45fa).
+  - `orbProps.ts`: public prop defaults, the 8 states, their variants, the 15 known look ids and `resolveLook`.
+  - `orbProps.check.ts`: a runnable assertion script for `resolveLook` and the NaN guard.
   - `model.ts`: geometry build (`buildInput`), the renders list, `lookId`.
   - `shapes.ts`: cube, octahedron, tetrahedron and torus point layouts.
   - `simulate.ts`: per-frame motion (`step`), camera, per-state effects, tone grid.
@@ -83,7 +83,7 @@ Imports use the `@/` alias (`OrbView.tsx` L7, L18; `Showcase.tsx` L3), which `ts
 
 ## 3. Dependencies, Skia/CanvasKit setup and wasm loading
 
-### 3.1 Versions (spec from `package.json`, resolved from `package-lock.json`, both at eef45fa)
+### 3.1 Versions (spec from `package.json`, resolved from `package-lock.json`)
 
 | Package | Spec | Resolved | Why this asset needs it |
 |---|---|---|---|
@@ -105,12 +105,12 @@ Imports use the `@/` alias (`OrbView.tsx` L7, L18; `Showcase.tsx` L3), which `ts
 | `babel-preset-expo` | (transitive) | 57.0.12 | the only preset (`babel.config.js` L4) |
 
 - `package.json` has `"engines": { "node": ">=20" }` (L49–51). React Native 0.86.3's own `engines.node` is `^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0` (lockfile).
-- **There is no `patches/` folder and no `patch-package` at eef45fa.** The 9bef3b1 Skia patch (P3 web surface, iOS `setColor4f`) is gone, so Skia 2.6.2 runs unpatched (§12.3).
+- **There is no `patches/` folder and no `patch-package`.** Skia 2.6.2 runs unpatched (§12.3).
 - **Install:** `npm ci` against the lockfile, from an offline cache or internal mirror. If packages aren't available locally, stop and report it. Don't change the Skia version.
 
 ### 3.2 postinstall: the wasm copy
 - `package.json` L47: `"postinstall": "npx setup-skia-web public"`. L46 `export:web` runs the same command before `expo export --platform web`.
-- `setup-skia-web` is the `bin` of `@shopify/react-native-skia` 2.6.2 (`scripts/setup-canvaskit.js` inside the installed package). Its own doc comment says it resolves `canvaskit-wasm/bin/full/canvaskit.wasm` and copies it to `<project>/public/canvaskit.wasm`. For canvaskit-wasm 0.41.0 that file was recorded at **8,076,553 B**, sha256 `eb68c7a7f602d8cb89915352c4471a2d26edfd72000f78202cb1fe32ce1f9dc4`, on the 9bef3b1 build (same package version). It has **not** been re-measured at eef45fa.
+- `setup-skia-web` is the `bin` of `@shopify/react-native-skia` 2.6.2 (`scripts/setup-canvaskit.js` inside the installed package). Its own doc comment says it resolves `canvaskit-wasm/bin/full/canvaskit.wasm` and copies it to `<project>/public/canvaskit.wasm`. For canvaskit-wasm 0.41.0 that file was recorded at **8,076,553 B**, sha256 `eb68c7a7f602d8cb89915352c4471a2d26edfd72000f78202cb1fe32ce1f9dc4`, on an earlier build with the same package version. It has **not** been re-measured for this tree.
 - `public/canvaskit.wasm` is gitignored (`.gitignore` last line, "CanvasKit wasm (copied from canvaskit-wasm for Expo web; too large for git)").
 - `metro.config.js` L6–8 adds `wasm` to `resolver.assetExts`. The rest of that file is store tooling (raw-text imports, a `three` shim) and is not part of this asset.
 
@@ -136,7 +136,7 @@ Imports use the `@/` alias (`OrbView.tsx` L7, L18; `Showcase.tsx` L3), which `ts
 - **Never `setState` per frame.** All per-frame work is in a Reanimated `useFrameCallback` worklet writing a `SharedValue<SkPicture>` (L269–285).
 - **Providers.** `OrbView` needs a `ReduceMotionProvider` above it (it throws otherwise) and an expo-router navigator (`useIsFocused`). `Showcase` also needs `ThemeProvider` (§15.1).
 
-## 4. Public API (exactly as merged at eef45fa)
+## 4. Public API (exactly as inlined)
 
 ### 4.1 `OrbView` props (`OrbView.tsx` L75–101; defaults applied in `OrbCanvas` L198–216 from `orbProps.ts` L65–72)
 
@@ -161,7 +161,7 @@ Imports use the `@/` alias (`OrbView.tsx` L7, L18; `Showcase.tsx` L3), which `ts
 | `live` | `SharedValue<OrbLive>` | `undefined` | none | When set, each frame reads speed, tilt and colour from it on the UI thread instead of from props (L273; §14.3). |
 | `onFrame` | `(uri: string) => void` | `undefined` | none | On **unmount**, receives the last frame as `data:image/png;base64,…` (L139–153). |
 
-`orbProps.ts` also exports `OrbPassProps` and `normalizeOrbProps()` (L91–113), the npm-default normaliser for `state`/`size`/`speed`/`color`/`paused`/`label`/`className`. In eef45fa only `orbProps.check.ts` calls it (L137–140); `OrbView` applies the same defaults directly in its parameter list.
+`orbProps.ts` also exports `OrbPassProps` and `normalizeOrbProps()` (L91–113), the npm-default normaliser for `state`/`size`/`speed`/`color`/`paused`/`label`/`className`. In these files only `orbProps.check.ts` calls it (L137–140); `OrbView` applies the same defaults directly in its parameter list.
 
 ### 4.2 Render logic (`OrbView`, L298–306, exported as `memo`)
 1. `useIsFocused()` false → returns `null` (L299, L303).
@@ -187,12 +187,12 @@ Inside `OrbCanvas`, `running = active && !paused && !reduced` (L220). Only a run
 ## 5. Every state and variant (15 looks) and how unknown ids resolve
 
 ### 5.1 Resolution (`orbProps.ts` L82–89; `model.ts` L112–115)
-`buildInput` calls `lookId(opts.state, opts.variant)` (`model.ts` L126), and at eef45fa `lookId` simply returns `resolveLook(state, variant)` (`model.ts` L112–115). `resolveLook`:
+`buildInput` calls `lookId(opts.state, opts.variant)` (`model.ts` L126), and `lookId` simply returns `resolveLook(state, variant)` (`model.ts` L112–115). `resolveLook`:
 1. `which` = `state` if it is one of the 8 states in `VARIANTS` (`isOrbState`, own-property check, L74–76), else `"base"` (L83).
 2. `own` = `variant` is defined, is not `"default"`, and is in `VARIANTS[which]` (L84–85).
 3. `id = own ? \`${which}-${variant}\` : which` (L86). If `id` is in `KNOWN_LOOKS`, return it; else return `"base"` (L87–88).
 
-Consequences (each asserted in `orbProps.check.ts` L128–135, which I ran with `npx tsx` against the eef45fa files: it prints `orb props ok`):
+Consequences (each asserted in `orbProps.check.ts` L128–135, which I ran with `npx tsx` against the inlined files: it prints `orb props ok`):
 - `resolveLook()` → `base`; `resolveLook("nope")` → `base`.
 - `resolveLook("working-gyro")` → **`base`**: a combined id passed as `state` is **not** a state. Always pass the variant separately.
 - `resolveLook("working", "gyro")` → `working-gyro`; `("working", "nope")` → `working`; `("working", "default")` → `working`; `("compacting", "fuse")` → `compacting-fuse`; `("compacting", "squeeze")` → `compacting-squeeze`.
@@ -221,7 +221,7 @@ Consequences (each asserted in `orbProps.check.ts` L128–135, which I ran with 
 | 13 | `compacting-fuse` | compacting, fuse | Compacting · Fuse | "Compacting context" | 10000 | sweep k=1 + burn §11.3 |
 | 14 | `waiting` | waiting | Waiting | "Waiting for usage limit to reset" | 13000 | comet §11.7 |
 
-- The `—` in the Retrying rows is an em dash, U+2014. `cards.ts` is byte-identical to the 9bef3b1 file.
+- The `—` in the Retrying rows is an em dash, U+2014.
 - The Effects card selects index **1** (Working) on load (`Showcase.tsx` L18). It never shows the status text; that belongs to the creator's status line.
 
 ## 6. Shapes (`src/demos/yogesh-thinking-orbs/orb/shapes.ts`; sphere in `src/demos/yogesh-thinking-orbs/orb/model.ts` L60–86)
@@ -255,7 +255,7 @@ Every shape produces unit-scale model points `[x, y, z]`. `buildInput` asks for 
 - Default: `gap = sqrt(4π²·RING·TUBE/count)`, `nv = max(3, round(2π·TUBE/gap))` tube rings. Ring j (`v = 2πj/nv`) holds `nu = max(3, round(2π(RING + TUBE·cos v)/gap))` points at `u = ((i + (j mod 2)/2)/nu)·2π`.
 - `background-spiral`: 6 strands, 3 turns. `v = (k/6)·2π + 3u`; u advances by `along / hypot(RING + TUBE·cos v, TUBE·3)` with `along = 0.6·sqrt(4π/count)`, until u reaches 2π.
 
-**Computed counts.** These were produced by running the eef45fa `buildInput` with `npx tsx` (code outputs, not live measurements; identical to the 9bef3b1 values because `shapes.ts` is byte-identical and `model.ts` only changed `lookId`). Look `working`, density 1, dotSize 1:
+**Computed counts.** These were produced by running the inlined `buildInput` with `npx tsx` (code outputs, not live measurements). Look `working`, density 1, dotSize 1:
 
 | Shape | count @ size 96 (asked 384) | R @ 96 | count @ size 320 (asked 1280) | background-spiral count @ 96 |
 |---|---|---|---|---|
@@ -294,7 +294,7 @@ Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L16
 
 ## 8. Geometry and sizing (`buildInput`, `src/demos/yogesh-thinking-orbs/orb/model.ts` L117–184)
 
-- `state = lookId(opts.state, opts.variant)` (L126). Since eef45fa `lookId` returns `resolveLook(state, variant)` (`model.ts` L112–115, `orbProps.ts` L82–89), so `state` is always one of the 15 known ids (§5).
+- `state = lookId(opts.state, opts.variant)` (L126). `lookId` returns `resolveLook(state, variant)` (`model.ts` L112–115, `orbProps.ts` L82–89), so `state` is always one of the 15 known ids (§5).
 - `dens = state === "background" ? 1 : 4` (L128). Only plain `background` gets the sparse density; `background-spiral` uses 4.
 - `asked = max(8, round(size·dens·density))` (L129).
 - `R = (size/2)·0.8·(form?.scale ?? 1)` (L131–132).
@@ -303,10 +303,10 @@ Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L16
 - Reasoning looks (count > 1): 24 nearest neighbours per point (`REACH = 24`, L110), stored in a `Float32Array` with −1 in empty slots (L142–149).
 - Mesh: unique 3-nearest pairs (L150–163).
 - `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (L164, L181).
-- `key = "${state}|${shape}|${render}|${size}|${density}|${dotSize}"` (L166). The frame callback now keys the per-orb state with `${input.key}@${tune.speed}` (`OrbView.tsx` L278): a changed key, a changed speed or a changed point count re-creates the per-orb state with `makeLocal` (`OrbView.tsx` L277–283). (On 9bef3b1 the speed was not part of this key.)
+- `key = "${state}|${shape}|${render}|${size}|${density}|${dotSize}"` (L166). The frame callback keys the per-orb state with `${input.key}@${tune.speed}` (`OrbView.tsx` L278): a changed key, a changed speed or a changed point count re-creates the per-orb state with `makeLocal` (`OrbView.tsx` L277–283).
 - The input is memoised on `[state, variant, size, density, dotSize, shape, render]` (`OrbView.tsx` L230–233). **`speed`, `tilt` and `color` never rebuild geometry.**
 
-**Computed sizing** (sphere, dots, density 1, dotSize 1; re-run with `npx tsx` against the eef45fa code, same values as 9bef3b1; cells are `count | rs | g`):
+**Computed sizing** (sphere, dots, density 1, dotSize 1; re-run with `npx tsx` against the inlined code; cells are `count | rs | g`):
 
 | look | size 20 | size 24 | size 96 | size 320 |
 |---|---|---|---|---|
@@ -318,7 +318,7 @@ Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L16
 - Mesh pairs (working, sphere): 675 at size 96, 2391 at size 320.
 - Density at size 320: 0.25 gives 320 points; 3 gives 3840.
 
-**Sizes the store hosts use at eef45fa** (host choices; reproduce them for the same visual contexts):
+**Sizes the store hosts use** (host choices; reproduce them for the same visual contexts):
 - Effects card (`Showcase.tsx`, the reference host in §15): one orb at the card's `size` field, default **320** (`Showcase.tsx` L19), changed by a Size slider 16–480, step 1 (L97).
 - Orb Creator card (`Tuner.tsx`, covered by `AGENT_PROMPT_ORB_CREATOR.md`): stage orb `size={shown}` with `shown = min(size, wide ? maxOrb : min(maxOrb, max(96, width − 32)))`, `maxOrb = max(96, windowH − headerH − 120)`, `headerH = width ≥ 768 ? 48 : 72` (`Tuner.tsx` L73–75), default size 320 (L59); and a **24** px status orb (L400–412).
 
@@ -333,14 +333,14 @@ Grid size `g = max(6, round(sqrt(count)·0.9))`, `cell = size/g` (`model.ts` L16
 - `now = frame.timestamp` from Reanimated `useFrameCallback` (`OrbView.tsx` L275).
 - **Inactive or paused orbs don't tick.** The frame callback returns early when `activeSV` is false (L272), and the callback itself is deactivated with `frameCallback.setActive(running)` (L287–289), where `running = active && !paused && !reduced` (L220). `clock.ts` L6: "A paused orb must not call this." On resume the jump is capped at 100 ms × speed, unless another orb with the same key kept ticking.
 - **Pause holds the frame at the clock's t.** On the render where `paused` turns true (and motion isn't reduced), `OrbCanvas` reads `clocks.value[\`${built.state}@${tune.speed}\`].t` into `heldT` and keeps the current picture (L251–259). Later prop edits while paused repaint one frame at that held t (L260–266; §13.3).
-- **Speed changes switch clocks and reset per-orb state.** A new `speed` is a new clock key (start at t = 0 or resume that key's clock), and since eef45fa it is also part of the per-orb state key `${input.key}@${tune.speed}` (L278), so `makeLocal` runs again (reasoning walks restart). Whether live npm behaves the same on a speed change is **unmeasured**.
+- **Speed changes switch clocks and reset per-orb state.** A new `speed` is a new clock key (start at t = 0 or resume that key's clock), and it is also part of the per-orb state key `${input.key}@${tune.speed}` (L278), so `makeLocal` runs again (reasoning walks restart). Whether live npm behaves the same on a speed change is **unmeasured**.
 - **Loop behaviour.** No look has an end. Everything is periodic in t: yaw laps per `PERIOD` (or 6500 via `periodOf`), plus the per-effect cycles in §11. There is **no crossfade** when the look changes: the input is rebuilt and the local state reset (L235–238), and the next frame draws the new look.
 - **Reduced motion** paints one frame at **t = 0** from props with a fresh `makeLocal` (L247–267), and repaints whenever a prop changes (§13.4).
 
 ## 10. Camera and projection (`src/demos/yogesh-thinking-orbs/orb/simulate.ts` L152–179, L296–311, L387–401)
 
 ### 10.1 Per-frame camera
-- `yaw = yawOf(state, t)` (L163). By default that is `(t / periodOf(state)) · 2π` (L76), where `periodOf` returns `PERIOD[state]`, or **6500** when the id has no entry (L62–67, the NaN guard added in eef45fa): one full turn per PERIOD ms at speed 1.
+- `yaw = yawOf(state, t)` (L163). By default that is `(t / periodOf(state)) · 2π` (L76), where `periodOf` returns `PERIOD[state]`, or **6500** when the id has no entry (L62–67, the NaN guard): one full turn per PERIOD ms at speed 1.
 - `gyro = state === "working-gyro" ? (t/5000)·2π : −1` (L164).
 - `pitch = ((flat ? 0 : tilt) + input.tip + (gyro < 0 ? 0 : 10·cos(gyro))) · π/180` (L165).
   - `tip` is 35 for the torus and 0 otherwise (`model.ts` L170).
@@ -482,22 +482,22 @@ Anything else returns `null`, and **`OrbView` then paints opaque white** (`OrbVi
 - `toExtendedSrgb(c)` (L150–154): clamp chroma into the **Display P3** gamut, then convert to gamma sRGB **without** clamping. Channels can fall outside 0–1.
 - `colorToRgba` uses `toExtendedSrgb` only when `canUseExtendedColor()` is true; otherwise `toSrgb` (`OrbView.tsx` L54–59).
 - Matrices: the OKLab values hard-coded in `color.ts` L30–59. The transfer function is the sRGB piecewise curve (L25–28).
-- New exports at eef45fa, used only by the creator's colour field: `srgbGammaToDisplayP3` (L120–123, renamed from the private `srgbToDisplayP3`) and `displayP3GammaToSrgb` (L125–128). The orb doesn't call them.
+- Exports used only by the creator's colour field: `srgbGammaToDisplayP3` (L120–123) and `displayP3GammaToSrgb` (L125–128). The orb doesn't call them.
 
 ### 12.3 Platform behaviour (`canUseExtendedColor`, `OrbView.tsx` L48–52)
 
-| Platform | Surface | Paint input | Status at eef45fa |
+| Platform | Surface | Paint input | Status |
 |---|---|---|---|
 | Web (desktop target) | stock `@shopify/react-native-skia` 2.6.2 WebGL surface (no patch; software surface if WebGL is missing, §3.3); the canvas is created with `colorSpace="p3"` (`OrbView.tsx` L155) | extended-sRGB floats, unclamped (`canUseExtendedColor()` is true) | **The P3 canvas look is unverified on a real GPU and Safari** (gap 5, §16). Which colour space the stock web surface uses is not established from this tree. |
-| iOS native | `<Canvas colorSpace="p3">` | extended floats (true except Expo Go) | **Unverified.** The `OrbView.tsx` comment at L38–47 still says the iOS path relies on a postinstall patch to `cpp/api/JsiSkPaint.h` that calls `setColor4f`, but **that patch is not in eef45fa** (§3.1). The same comment says stock Skia packs `r*255` with no clamp, so a component above 1 paints black. Mobile is a known gap. |
+| iOS native | `<Canvas colorSpace="p3">` | extended floats (true except Expo Go) | **Unverified.** The `OrbView.tsx` comment at L38–47 still says the iOS path relies on a postinstall patch to `cpp/api/JsiSkPaint.h` that calls `setColor4f`, but **that patch is not in this tree** (§3.1). The same comment says stock Skia packs `r*255` with no clamp, so a component above 1 paints black. Mobile is a known gap. |
 | iOS Expo Go (`StoreClient`) | unpatched binary | `toSrgb` (clamped) | sRGB only; unverified |
 | Android | GL surface | `toSrgb` (clamped) | sRGB only; unverified |
 
 ### 12.4 Light and dark
 **The orb has no theme logic.** It paints exactly the `color` it's given, on a transparent canvas.
 - The Effects card passes `color={colors.orb}` (`Showcase.tsx` L94): **`#ffffff`** in dark (`theme.tsx` L39), **`#171717`** in light (L60).
-- The theme starts dark (`theme.tsx` L134) and **no component in eef45fa calls `toggle`** (L150–155), so the store cards are dark-only in practice. Light values are listed because they are in the code.
-- Computed paint floats (re-run with `npx tsx` against eef45fa `color.ts`; identical to 9bef3b1):
+- The theme starts dark (`theme.tsx` L134) and **no component in these files calls `toggle`** (L150–155), so the store cards are dark-only in practice. Light values are listed because they are in the code.
+- Computed paint floats (re-run with `npx tsx` against the inlined `color.ts`):
   - `#ffffff` → (1, 1, 1); `#fafafa` → (0.98039, 0.98039, 0.98039); `#171717` → (0.0902, 0.0902, 0.0902);
   - `color(display-p3 1 0 0)` → toSrgb (1, 0.20346, 0.15875), toExtendedSrgb (1.09307, −0.22674, −0.15013);
   - `oklch(0.7 0.3 30)` → toSrgb (1, 0.39623, 0.3182), toExtendedSrgb (1.08422, 0.27728, 0.19679).
@@ -585,7 +585,7 @@ Hold each value in React state and pass it as a prop.
 
 ### 14.4 The `live` SharedValue (per-frame tuning during a drag; used by the creator)
 - The host creates `useSharedValue<OrbLive>({ size: shown, speed, density, dotSize, tilt, ...rgba })` with `rgba = canUseExtendedColor() ? toExtendedSrgb(parsed) : toSrgb(parsed)` (`Tuner.tsx` L79, L84).
-- While a slider drags, a worklet writes one field at a time (`writeLive`, `SliderRow.tsx` L40–48), on every pan update (L281), on release (L297) and on tap (L312). Since eef45fa, keyboard and accessibility steps write it too (`publishNow`, L193–197).
+- While a slider drags, a worklet writes one field at a time (`writeLive`, `SliderRow.tsx` L40–48), on every pan update (L281), on release (L297) and on tap (L312). Keyboard and accessibility steps write it too (`publishNow`, L193–197).
 - When not dragging, an effect rewrites the whole object from React state, skipped while `sliding.current` is true (`Tuner.tsx` L100–103).
 - **Effect on the orb:** speed and tilt change on the very next frame, with no React render. Size, density and dotSize change the drawing only when the props catch up (§13.5). A paused or reduced-motion orb ignores `live` and repaints from props (§13.3–13.4).
 
@@ -633,20 +633,18 @@ Hold each value in React state and pass it as a prop.
 - `injectSmoothing()` adds one `<style id="orb-font-smoothing">` that sets `-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale` on `[data-testid="yogesh-orb-tuner"]` and its descendants (and on the creator's `.orb-cp-pop`) (`SliderRow.tsx` L15–22, L77–79).
 
 ### 15.4 Fonts (web)
-- **Geist 400** is loaded by `ThemeProvider` **after window `load`**: if `document.readyState === "complete"` it loads at once, else on `window.addEventListener("load", …, { once: true })`. It dynamically imports `@expo-google-fonts/geist/400Regular` and calls `expo-font` `loadAsync({ Geist_400Regular })` (`theme.tsx` L117–132). Until then the list text renders in the fallbacks of `fonts.regular`. **Measured** by the team: Geist swaps in about 150 ms after paint, about 870 ms on a slow connection (gap 9, §16).
+- **Geist 400** is loaded by `ThemeProvider` **after window `load`**: if `document.readyState === "complete"` it loads at once, else on `window.addEventListener("load", …, { once: true })`. It dynamically imports `@expo-google-fonts/geist/400Regular` and calls `expo-font` `loadAsync({ Geist_400Regular })` (`theme.tsx` L117–132). Until then the list text renders in the fallbacks of `fonts.regular`. **Measured**: Geist swaps in about 150 ms after paint, about 870 ms on a slow connection (gap 9, §16).
 - **Geist Mono 500** (the slider value) loads through `useFonts({ GeistMono_500Medium })` in `SliderRow` (L76) and renders as `GeistMono_500Medium, ui-monospace, monospace` (L13).
 - The slider label uses the system stack (L12), not Geist.
 - `fonts.mono` on web is `"Geist Mono", "Geist Mono Fallback"` (`theme.tsx` L82). The Effects card doesn't use it.
 
 ### 15.5 State and persistence
-`index` and `size` live in `useCardField('yogesh-thinking-orbs', …)` (`cardState.ts` L72–78): a `globalThis` map read through `useSyncExternalStore`. Values survive an unmount/remount on the same page but **not a reload**. For the creator, the team measured that neither the live site nor this build keeps anything across a reload. That wasn't measured separately for the Effects card, but it uses the same mechanism.
+`index` and `size` live in `useCardField('yogesh-thinking-orbs', …)` (`cardState.ts` L72–78): a `globalThis` map read through `useSyncExternalStore`. Values survive an unmount/remount on the same page but **not a reload**. For the creator, it was measured that neither the live site nor this build keeps anything across a reload. That wasn't measured separately for the Effects card, but it uses the same mechanism.
 
 ## 16. Known gaps and unverified items (orb asset)
 
-**Gates on the merged code** (from the PR #29 body, read through the GitHub connector): at head `c14c663`, which PR #29 merged as eef45fa, the team recorded Engineering **SHIP**, Design **FINAL PASS** and Beta **CLEAR** at desktop 1280. PR #29 excludes Motion's open-timing and hover-in fixes and Engineering's rAF-cancel fix; those are pending in PR #26, which touches only the creator's `SelectRow.tsx`. **Nothing in PR #26 changes the orb or the Effects card.**
-
-### 16.1 Known gaps (desktop), the team's list, worded exactly
-These are the gaps from the team's list that apply to this asset. The numbers are the list's own; gaps 1–4, 7 and 8 are about the creator's controls and are in `AGENT_PROMPT_ORB_CREATOR.md`.
+### 16.1 Known gaps (desktop), worded exactly
+These are the gaps that apply to this asset. The numbers are shared with `AGENT_PROMPT_ORB_CREATOR.md`; gaps 1–4, 7, 8 and 12 are about the creator's controls and are in that prompt.
 
 5. P3 canvas look unverified on a real GPU and Safari.
 6. Mobile not covered.
@@ -654,29 +652,22 @@ These are the gaps from the team's list that apply to this asset. The numbers ar
 10. 5 of 16 look-name labels are 1–4 px narrower.
 11. Look-name hit area is the whole row, and the hint has an extra role=navigation wrapper.
 
-Gaps 9–11 concern the look-name list. The Effects card's list (`Showcase.tsx` L38–85) is the same code as the creator's (`Tuner.tsx` L289–342), so they apply here too. The team's list doesn't say which card they were measured on. Reproduce the code as it is; don't "fix" these gaps.
+Gaps 9–11 concern the look-name list. The Effects card's list (`Showcase.tsx` L38–85) is the same code as the creator's (`Tuner.tsx` L289–342), so they apply here too. The gap list doesn't say which card they were measured on. Reproduce the code as it is; don't "fix" these gaps.
 
 ### 16.2 Unverified or unmeasured (orb-specific)
-- **No Skia patch at eef45fa** (§3.1, §12.3). The `OrbView.tsx` comment at L38–47 describes a `JsiSkPaint.h` patch that doesn't exist in this tree. On iOS, extended floats above 1 may clamp or paint black (the same comment says so for stock Skia). Unverified, and covered by gap 6.
+- **No Skia patch in this tree** (§3.1, §12.3). The `OrbView.tsx` comment at L38–47 describes a `JsiSkPaint.h` patch that doesn't exist in this tree. On iOS, extended floats above 1 may clamp or paint black (the same comment says so for stock Skia). Unverified, and covered by gap 6.
 - **Frame-by-frame parity with the live npm orb: unmeasured.** Live draws with SVG (npm 0.1.1); this port draws with Skia from the same maths.
 - **A speed change restarts the clock phase and the per-orb state** (§9). Whether live does the same is unmeasured.
 - **The Size slider's focus style on the Effects card: unmeasured** (§15.3).
-- **`canvaskit.wasm` size at eef45fa: not re-measured.** 8,076,553 B was measured for canvaskit-wasm 0.41.0 on 9bef3b1; eef45fa resolves the same version (§3.2).
+- **`canvaskit.wasm` size: not re-measured for this tree.** 8,076,553 B was measured for canvaskit-wasm 0.41.0 on an earlier build; this tree resolves the same version (§3.2).
 - **The store's light theme is unreachable.** Nothing calls `toggle` (§12.4). Light palette values are documented but never shown.
-- **Native (iOS/Android) has not been run** for this build (gap 6).
-
-### 16.3 Gaps from the 9bef3b1 prompt that eef45fa fixed (removed)
-- "API differs from npm `<Orb>`": fixed. `state`/`size`/`color` are optional with npm defaults, and `paused`, `label` and `className` exist (§4).
-- "Reduced motion is read once at launch": fixed. It's a live context, and the still frame follows props (§13.4).
-- "Unknown look ids produce NaN yaw": fixed by `resolveLook` and `periodOf` (§5.1).
-- The 9bef3b1 site-host items (12-canvas cap, `/` and `/playground` canvas counts, prod `DISPLAY_P3` string, CanvasKit message on load, wasm in native builds) were about the old site and the patched build. They don't apply to this tree. The store's own budget is 6 surfaces (chrome, §3.5).
+- **Native (iOS/Android) has not been run** (gap 6).
 
 ## 17. Parity checklist (numbered; each line has a status)
 
 Status key:
-- **Code**: read in the eef45fa source.
-- **Run**: I computed it by running the eef45fa files with `npx tsx` in a scratch copy.
-- **M-gate**: covered by the team's gates on c14c663 = eef45fa (PR #29 body).
+- **Code**: read in the inlined source.
+- **Run**: computed by running the inlined files with `npx tsx` in a scratch copy.
 - **Gap**: a known gap (§16.1).
 - **Unmeasured**: nobody has measured it; verify it yourself.
 
@@ -684,7 +675,7 @@ Install and serve:
 
 1. `npm ls @shopify/react-native-skia` → **2.6.2**; `canvaskit-wasm` → **0.41.0**; `react-native-reanimated` → **4.5.1**; `react-native-worklets` → **0.10.1**; `expo` → **57.0.23**; `react-native-web` → **0.21.2**. *(Code: lockfile)*
 2. There is no `patches/` folder; `npm ci` runs only `npx setup-skia-web public` as postinstall. *(Code: package.json L47)*
-3. `public/canvaskit.wasm` exists after install and equals `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm`. On 9bef3b1, that file was 8,076,553 B with sha256 `eb68c7a7…1f9dc4` (full value in §3.2). *(Unmeasured at eef45fa)*
+3. `public/canvaskit.wasm` exists after install and equals `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm`. On an earlier build with the same package version, that file was 8,076,553 B with sha256 `eb68c7a7…1f9dc4` (full value in §3.2). *(Unmeasured for this tree)*
 4. After `npx expo export --platform web`, `dist/canvaskit.wasm` exists. *(Code: vercel.json L5–6; Unmeasured)*
 5. Served: `GET /canvaskit.wasm` → 200 with `Content-Type: application/wasm`, never HTML. *(Code: vercel.json L7–15)*
 6. No module importing Skia evaluates before `ensureCanvasKit()` resolves; the web entry doesn't load CanvasKit. *(Code: index.web.tsx L12–13, ensureCanvasKit.web.ts L13–21)*
@@ -701,15 +692,15 @@ API (§4):
 
 Reduced motion (§13.4):
 
-14. Turning the OS reduced-motion setting on **while the page is open** stops every orb at a still frame at t = 0, with no reload. Turning it off resumes motion. *(Code: ReduceMotionContext L17–27; OrbView L220, L287–289. M-gate)*
-15. With reduced motion on, dragging the Effects-card Size slider resizes the still orb, which repaints at t = 0 at the new size. *(Code: L260–267. M-gate)*
+14. Turning the OS reduced-motion setting on **while the page is open** stops every orb at a still frame at t = 0, with no reload. Turning it off resumes motion. *(Code: ReduceMotionContext L17–27; OrbView L220, L287–289)*
+15. With reduced motion on, dragging the Effects-card Size slider resizes the still orb, which repaints at t = 0 at the new size. *(Code: L260–267)*
 
 Colour (§12):
 
 16. `color="nope"` paints white. `#ffffff` → (1, 1, 1); `#171717` → 0.0902 per channel; `#fafafa` → 0.98039. *(Run)*
 17. `color(display-p3 1 0 0)` → (1.09307, −0.22674, −0.15013) on web; (1, 0.20346, 0.15875) on Android or Expo Go. *(Run for the floats; the on-screen P3 look is Gap 5)*
 
-Geometry and motion (§6–§11; all computed with the eef45fa files, identical to 9bef3b1):
+Geometry and motion (§6–§11; all computed with the inlined files):
 
 18. `buildInput` counts (sphere, dots, density 1, dotSize 1) at sizes 20 / 24 / 96 / 320: **80 / 96 / 384 / 1280**. `background`: **20 / 24 / 96 / 320**. `background-spiral`: **105 / 117 / 257 / 486**. *(Run)*
 19. At size 96: `rs` **0.9183** (background **1.8366**); `g` **18** (background 9, background-spiral 14); sphere `R` **38.4**, other shapes **46.08**. *(Run)*
@@ -737,10 +728,10 @@ Geometry and motion (§6–§11; all computed with the eef45fa files, identical 
 
 Effects card at 1280 (§15):
 
-31. Window ≥ 1280 → row layout: padding 32 left / 42 right / 24 vertical, gap 24, list 280 wide, slider 256 wide, orb 320 by default, 15 labels in 14/20 type, "↑ ↓ to switch" hint in 12/16. *(Code: Showcase L25–98. M-gate)*
+31. Window ≥ 1280 → row layout: padding 32 left / 42 right / 24 vertical, gap 24, list 280 wide, slider 256 wide, orb 320 by default, 15 labels in 14/20 type, "↑ ↓ to switch" hint in 12/16. *(Code: Showcase L25–98)*
 32. Working (index 1) is selected on load and is `#fafafa`; the others are `#a1a1a1`. ↑/↓ wraps through the 15 looks except while the slider is focused. *(Code: L18, L56; useArrowKeys.web L4–23)*
 33. Size slider: drag → the orb resizes, with JS publishes at most every 32 ms. Keys ←/→ ±1, Shift ±10, PageUp/PageDown ±10, Home 16, End 480. *(Code: SliderRow L203–224, L282–286)*
-34. Label and value text: system-ui 13/500 at left 10 and Geist Mono 500 13/500 at right 12, both `rgba(255,255,255,0.7)`. *(Code: SliderRow L331–361. M-gate)*
+34. Label and value text: system-ui 13/500 at left 10 and Geist Mono 500 13/500 at right 12, both `rgba(255,255,255,0.7)`. *(Code: SliderRow L331–361)*
 35. Geist 400 loads after window `load`, so the list repaints from the fallback ~150 ms after first paint. *(Gap 9)*
 36. Look-name label widths: 5 of 16 look-name labels are 1–4 px narrower. *(Gap 10)*
 37. Look-name hit area and the hint's `role=navigation` wrapper. *(Gap 11)*
@@ -755,7 +746,7 @@ Effects card at 1280 (§15):
 - Adding shaders, gradients, glow, blur, crossfades, easing curves or colours that aren't in §7–§12.
 - Adding theme logic inside the orb, or props that aren't in §4.1.
 - Copying store chrome (card frame, nav, Copy/prompt buttons, canvas budget, catalog) into the asset.
-- Presenting PR #26 code as merged, or "fixing" the known gaps in §16.1.
+- "Fixing" the known gaps in §16.1.
 - Claiming iOS, Android or phone widths work without running them.
 
 ## Appendix index
@@ -790,13 +781,13 @@ Effects card at 1280 (§15):
 
 `package.json`, `package-lock.json`, `vercel.json` and `metro.config.js` are cited in §3 but not inlined: they are mostly store configuration. The values the asset needs are copied into §3.
 
-## Appendices: verbatim source at eef45fa
+## Appendices: verbatim source
 
-Every file is reproduced exactly as it is at `eef45fa9f0b5c60768756ee3e0b0f2e10de16d30`. The fence is longer than any backtick run inside the file. Line numbers in citations count from line 1 of each block.
+Every file is reproduced byte for byte. The fence is longer than any backtick run inside the file. Line numbers in citations count from line 1 of each block.
 
 ### Appendix 1. `src/demos/yogesh-thinking-orbs/orb/OrbView.tsx`
 
-306 lines, 9672 bytes, sha256 `1c2599ee3b556f3637544706b7a9c88c72a80f9fdeb7aee99ffe9fef800464a8`. Byte-for-byte from eef45fa.
+306 lines, 9672 bytes, sha256 `1c2599ee3b556f3637544706b7a9c88c72a80f9fdeb7aee99ffe9fef800464a8`. Byte for byte.
 
 ```tsx
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
@@ -1109,7 +1100,7 @@ export const OrbView = memo(function OrbView(props: OrbViewProps) {
 
 ### Appendix 2. `src/demos/yogesh-thinking-orbs/orb/orbProps.ts`
 
-113 lines, 3081 bytes, sha256 `8e990c10d0a2048898e8b2c85f34f08da51013414547372760116aaa1d5331e2`. Byte-for-byte from eef45fa.
+113 lines, 3081 bytes, sha256 `8e990c10d0a2048898e8b2c85f34f08da51013414547372760116aaa1d5331e2`. Byte for byte.
 
 ```ts
 /**
@@ -1229,7 +1220,7 @@ export function normalizeOrbProps(props: OrbPassProps = {}) {
 
 ### Appendix 3. `src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts`
 
-58 lines, 2749 bytes, sha256 `d09f070fa130141e39db1653d727df1ca973f2b8a938b72566db04de5d991aff`. Byte-for-byte from eef45fa. Run it with `npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts`; it prints `orb props ok`
+58 lines, 2749 bytes, sha256 `d09f070fa130141e39db1653d727df1ca973f2b8a938b72566db04de5d991aff`. Byte for byte. Run it with `npx tsx src/demos/yogesh-thinking-orbs/orb/orbProps.check.ts`; it prints `orb props ok`
 
 ```ts
 /**
@@ -1294,7 +1285,7 @@ console.log("orb props ok");
 
 ### Appendix 4. `src/demos/yogesh-thinking-orbs/orb/model.ts`
 
-184 lines, 5316 bytes, sha256 `c1bf18fc38db285f308997ff3e56bf7c32b2de27b4b15062be9a8b4470259339`. Byte-for-byte from eef45fa.
+184 lines, 5316 bytes, sha256 `c1bf18fc38db285f308997ff3e56bf7c32b2de27b4b15062be9a8b4470259339`. Byte for byte.
 
 ```ts
 /**
@@ -1485,7 +1476,7 @@ export function buildInput(opts: {
 
 ### Appendix 5. `src/demos/yogesh-thinking-orbs/orb/shapes.ts`
 
-152 lines, 5288 bytes, sha256 `66a83710f294180c1a301f317747519f73d9c6c6314ad36e4d294c1edad35cce`. Byte-for-byte from eef45fa.
+152 lines, 5288 bytes, sha256 `66a83710f294180c1a301f317747519f73d9c6c6314ad36e4d294c1edad35cce`. Byte for byte.
 
 ```ts
 /**
@@ -1644,7 +1635,7 @@ export type ShapeName = "sphere" | keyof typeof SHAPES;
 
 ### Appendix 6. `src/demos/yogesh-thinking-orbs/orb/simulate.ts`
 
-433 lines, 13389 bytes, sha256 `67a78f08b6da4412ac629e8c138d5ffd597f44b3b87db04ca5bf6c8e85b85a65`. Byte-for-byte from eef45fa.
+433 lines, 13389 bytes, sha256 `67a78f08b6da4412ac629e8c138d5ffd597f44b3b87db04ca5bf6c8e85b85a65`. Byte for byte.
 
 ```ts
 /**
@@ -2084,7 +2075,7 @@ export function toneAt(local: OrbLocal, k: number, cell: number) {
 
 ### Appendix 7. `src/demos/yogesh-thinking-orbs/orb/draw.ts`
 
-133 lines, 4279 bytes, sha256 `7d2285248fea2d544a6340d9a9e8d4454615766c765f243b639f0f3fd21cb788`. Byte-for-byte from eef45fa.
+133 lines, 4279 bytes, sha256 `7d2285248fea2d544a6340d9a9e8d4454615766c765f243b639f0f3fd21cb788`. Byte for byte.
 
 ```ts
 /**
@@ -2224,7 +2215,7 @@ export function drawOrb(
 
 ### Appendix 8. `src/demos/yogesh-thinking-orbs/orb/clock.ts`
 
-26 lines, 687 bytes, sha256 `62b73101293bbd0c02a08a759b5ed80d0e1ba0654a4f9f2ae979d93d3fdf0973`. Byte-for-byte from eef45fa.
+26 lines, 687 bytes, sha256 `62b73101293bbd0c02a08a759b5ed80d0e1ba0654a4f9f2ae979d93d3fdf0973`. Byte for byte.
 
 ```ts
 import { makeMutable } from "react-native-reanimated";
@@ -2257,7 +2248,7 @@ export function tick(look: string, now: number, speed: number): number {
 
 ### Appendix 9. `src/demos/yogesh-thinking-orbs/orb/LICENSE`
 
-21 lines, 1063 bytes, sha256 `1c87dcf3935109d8f8dfa2435aa71dfd28164a1f84d0b243030936fd2062ca57`. Byte-for-byte from eef45fa.
+21 lines, 1063 bytes, sha256 `1c87dcf3935109d8f8dfa2435aa71dfd28164a1f84d0b243030936fd2062ca57`. Byte for byte.
 
 ```text
 MIT License
@@ -2285,7 +2276,7 @@ SOFTWARE.
 
 ### Appendix 10. `src/demos/yogesh-thinking-orbs/color/color.ts`
 
-238 lines, 9689 bytes, sha256 `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe`. Byte-for-byte from eef45fa. The orb uses `parseColor`, `toSrgb` and `toExtendedSrgb`; the rest serves the creator’s colour picker
+238 lines, 9689 bytes, sha256 `c9fe5fa7acee4e033f4d4a36fd33cd92c34413aa155a92704ec4530226f517fe`. Byte for byte. The orb uses `parseColor`, `toSrgb` and `toExtendedSrgb`; the rest serves the creator’s colour picker
 
 ```ts
 /**
@@ -2530,7 +2521,7 @@ export function detectFormat(value: string): ColorFormat {
 
 ### Appendix 11. `src/context/ReduceMotionContext.tsx`
 
-46 lines, 1459 bytes, sha256 `7c7229dc2d772ca05bf14db43cbe254e6b7d6de923e610ff19838c54c6a387c1`. Byte-for-byte from eef45fa.
+46 lines, 1459 bytes, sha256 `7c7229dc2d772ca05bf14db43cbe254e6b7d6de923e610ff19838c54c6a387c1`. Byte for byte.
 
 ```tsx
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -2583,7 +2574,7 @@ export function useReduceMotion() {
 
 ### Appendix 12. `src/skia/liveBudget.tsx`
 
-168 lines, 4501 bytes, sha256 `3cb58682fa7f4d40e3df65d472348d3d0c0f1f26b52cc52a6251188e2b0fce68`. Byte-for-byte from eef45fa. The orb needs only L1–28 (`SkiaRuntime`, `SkiaRuntimeContext`, `useSkiaRuntime`); the registration half from L30 on is the store’s canvas budget (chrome), included so the file compiles as is
+168 lines, 4501 bytes, sha256 `3cb58682fa7f4d40e3df65d472348d3d0c0f1f26b52cc52a6251188e2b0fce68`. Byte for byte. The orb needs only L1–28 (`SkiaRuntime`, `SkiaRuntimeContext`, `useSkiaRuntime`); the registration half from L30 on is the store’s canvas budget (chrome), included so the file compiles as is
 
 ```tsx
 import { createContext, useContext } from 'react';
@@ -2758,7 +2749,7 @@ export function registerSkiaCard(id: string, cardId: string, el: HTMLElement, on
 
 ### Appendix 13. `src/demos/yogesh-thinking-orbs/Showcase.tsx`
 
-102 lines, 3771 bytes, sha256 `1f669afd30562b43a27f58b65c10a9deba47a6a5908c1e3aeb8cbdb44fbcfb03`. Byte-for-byte from eef45fa. The Effects-card host (§15)
+102 lines, 3771 bytes, sha256 `1f669afd30562b43a27f58b65c10a9deba47a6a5908c1e3aeb8cbdb44fbcfb03`. Byte for byte. The Effects-card host (§15)
 
 ```tsx
 import { useCallback } from 'react';
@@ -2867,7 +2858,7 @@ export function Showcase() {
 
 ### Appendix 14. `src/skia/ensureCanvasKit.web.ts`
 
-21 lines, 736 bytes, sha256 `78d0afa56535ca1025d52c986e3cd12b551c9369483affb2010e831ddcc1692f`. Byte-for-byte from eef45fa.
+21 lines, 736 bytes, sha256 `78d0afa56535ca1025d52c986e3cd12b551c9369483affb2010e831ddcc1692f`. Byte for byte.
 
 ```ts
 let pending: Promise<void> | null = null;
@@ -2895,7 +2886,7 @@ export function ensureCanvasKit(): Promise<void> {
 
 ### Appendix 15. `src/skia/bootCanvasKit.ts`
 
-44 lines, 1391 bytes, sha256 `06ab8d8cd787f4f04a357162920fbcb808b9cef899b255fa3af1bd97df9f8651`. Byte-for-byte from eef45fa.
+44 lines, 1391 bytes, sha256 `06ab8d8cd787f4f04a357162920fbcb808b9cef899b255fa3af1bd97df9f8651`. Byte for byte.
 
 ```ts
 import { LoadSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
@@ -2946,7 +2937,7 @@ export function bootCanvasKit(): Promise<void> {
 
 ### Appendix 16. `src/skia/ensureCanvasKit.ts`
 
-12 lines, 294 bytes, sha256 `07c0c757607e412caf5d0e42f09ecdd3ca68a0bf0bf71b0b71489c90703206d4`. Byte-for-byte from eef45fa. Native stub
+12 lines, 294 bytes, sha256 `07c0c757607e412caf5d0e42f09ecdd3ca68a0bf0bf71b0b71489c90703206d4`. Byte for byte. Native stub
 
 ```ts
 /** Native Skia is linked. Web replaces this module with `ensureCanvasKit.web.ts`. */
@@ -2965,7 +2956,7 @@ export function ensureCanvasKit(): Promise<void> {
 
 ### Appendix 17. `src/skia/canvasKit.d.ts`
 
-5 lines, 69 bytes, sha256 `05734e669eec654d047d9fe88ae1c10b6266742869373db3c1ea213f7a16e088`. Byte-for-byte from eef45fa.
+5 lines, 69 bytes, sha256 `05734e669eec654d047d9fe88ae1c10b6266742869373db3c1ea213f7a16e088`. Byte for byte.
 
 ```ts
 export {};
@@ -2977,7 +2968,7 @@ declare global {
 
 ### Appendix 18. `src/skia/cardState.ts`
 
-83 lines, 2710 bytes, sha256 `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c`. Byte-for-byte from eef45fa.
+83 lines, 2710 bytes, sha256 `47c0aeff952a1b0d3e2ea08eb1e18f1ddda119739985b8cab62b93309ce8bc0c`. Byte for byte.
 
 ```ts
 import { useCallback, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
@@ -3067,7 +3058,7 @@ export function retainCardState() {
 
 ### Appendix 19. `src/demos/yogesh-thinking-orbs/components/SliderRow.tsx`
 
-416 lines, 15362 bytes, sha256 `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2`. Byte-for-byte from eef45fa.
+416 lines, 15362 bytes, sha256 `9c00d8d535961dbba35c2aae7ef4ce31adc8aa81be665077352b9e1a2a0d3bf2`. Byte for byte.
 
 ```tsx
 import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
@@ -3490,7 +3481,7 @@ export function SliderRow({
 
 ### Appendix 20. `src/demos/yogesh-thinking-orbs/content/cards.ts`
 
-180 lines, 5117 bytes, sha256 `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d`. Byte-for-byte from eef45fa.
+180 lines, 5117 bytes, sha256 `7b484e359e0f372a3380df5280aa4293b5816dbca3b1e279ab9448337b50436d`. Byte for byte.
 
 ```ts
 export type ToolRow = { verb: string; target: string; add?: number; del?: number };
@@ -3677,7 +3668,7 @@ export const USER_PROMPT = "The login page keeps redirecting to itself. Can you 
 
 ### Appendix 21a. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.web.ts`
 
-23 lines, 925 bytes, sha256 `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf`. Byte-for-byte from eef45fa.
+23 lines, 925 bytes, sha256 `c094b70ccf222be52b1de76509c83bd003f4aa198c171617f8ff9c6e011e87cf`. Byte for byte.
 
 ```ts
 import { useEffect } from "react";
@@ -3707,7 +3698,7 @@ export function useArrowKeys(count: number, index: number, onIndex: (index: numb
 
 ### Appendix 21b. `src/demos/yogesh-thinking-orbs/hooks/useArrowKeys.ts`
 
-2 lines, 186 bytes, sha256 `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258`. Byte-for-byte from eef45fa. Native no-op
+2 lines, 186 bytes, sha256 `02fdb54b12d4d5301cbcac45f862b57b7e57e72a27b3fde1d986fec37eb62258`. Byte for byte. Native no-op
 
 ```ts
 /** Native: hardware arrows are a no-op. Web implementation is useArrowKeys.web.ts. */
@@ -3716,7 +3707,7 @@ export function useArrowKeys(_count: number, _index: number, _onIndex: (index: n
 
 ### Appendix 22. `babel.config.js`
 
-7 lines, 155 bytes, sha256 `b88376188d8e9c110ae64b58881df514fcbe30a5cf1257b7b2561ae18560cbfd`. Byte-for-byte from eef45fa.
+7 lines, 155 bytes, sha256 `b88376188d8e9c110ae64b58881df514fcbe30a5cf1257b7b2561ae18560cbfd`. Byte for byte.
 
 ```js
 module.exports = function (api) {
@@ -3730,7 +3721,7 @@ module.exports = function (api) {
 
 ### Appendix 23. `tsconfig.json`
 
-17 lines, 242 bytes, sha256 `e8e9605c3b1a521e797d6d3a5fd271121fdfbd0aab0904be0873469bc0347a77`. Byte-for-byte from eef45fa.
+17 lines, 242 bytes, sha256 `e8e9605c3b1a521e797d6d3a5fd271121fdfbd0aab0904be0873469bc0347a77`. Byte for byte.
 
 ```json
 {
@@ -3754,7 +3745,7 @@ module.exports = function (api) {
 
 ### Appendix 24. `src/demos/yogesh-thinking-orbs/theme/theme.tsx`
 
-176 lines, 4677 bytes, sha256 `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f`. Byte-for-byte from eef45fa.
+176 lines, 4677 bytes, sha256 `3d08daedb8bb47fe858d867c5ebb60c3cd8b80b4382b20db3440f1cff1b6431f`. Byte for byte.
 
 ```tsx
 import { loadAsync } from "expo-font";
