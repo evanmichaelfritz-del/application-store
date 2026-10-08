@@ -5,7 +5,6 @@ import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { getImgFxShaderReady, subscribeImgFxReady } from '@/src/shims/imgFxGate';
-import { paintOrganicStill } from '@/src/shims/organicStill';
 import { colors } from '@/src/theme';
 
 const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
@@ -30,17 +29,51 @@ class WebGlGate extends Component<{ children: ReactNode; fallback: ReactNode }, 
   }
 }
 
+const STILL_URL = '/img-fx/organic-still@2x.png';
+
+/** Sync paint so the card is never white while the 2× still is loading. */
+function paintPlaceholder(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.fillStyle = '#d7d7d7';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#c4c4c4';
+  ctx.beginPath();
+  ctx.arc(w * 0.4, h * 0.46, w * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ececec';
+  ctx.beginPath();
+  ctx.arc(w * 0.68, h * 0.6, w * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function OrganicStill() {
   const ref = useRef<HTMLCanvasElement>(null);
   useLayoutEffect(() => {
     const canvas = ref.current;
-    if (canvas) paintOrganicStill(canvas);
+    if (!canvas) return;
+    paintPlaceholder(canvas);
+    const img = new Image();
+    img.decoding = 'async';
+    let cancelled = false;
+    img.onload = () => {
+      if (cancelled) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = STILL_URL;
+    return () => {
+      cancelled = true;
+    };
   }, []);
   return (
     <canvas
       ref={ref}
-      width={168}
-      height={168}
+      width={336}
+      height={336}
       aria-hidden
       style={{ width: '100%', height: '100%', display: 'block' }}
     />
@@ -56,8 +89,8 @@ function hostElement(node: View | null): HTMLElement | null {
  * Web showcase: img-fx ImageGeneration loader
  * (`npm install img-fx three`).
  *
- * The shader stays unmounted until the card enters the viewport, then links on
- * the GPU before the first draw. Offscreen and hidden tabs pause it in place.
+ * The shader stays unmounted until the card enters the viewport. A static frame
+ * is painted at mount; a real GPU replaces it from a worker once that frame is ready.
  */
 export function ImageGenerationLoaderDemo() {
   const { reduceMotion } = useReduceMotion();

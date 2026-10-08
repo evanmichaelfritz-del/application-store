@@ -1,37 +1,29 @@
 /**
- * Keeps img-fx's pixels, and takes the synchronous GPU readback off the main thread.
+ * Keeps the pixels-organic loader off the main thread.
  *
- * img-fx has one fragment program. Warming every dot-mode path up front compiles
- * that program over and over; on SwiftShader each pass is serial and the card
- * stays blank until the last one finishes. This gate compiles that one program,
- * on an idle slice, and only when CanvasKit is not creating a context.
- *
- * A software GL (SwiftShader, llvmpipe, or a failIfMajorPerformanceCaveat miss)
- * never compiles. The card keeps the static full-resolution frame painted at
- * mount. Hardware stays at full resolution and blits only after a fence, so an
- * animating frame is the same drawImage img-fx would have issued.
+ * img-fx has one 29KB fragment program. Compiling it on the main thread, or
+ * even drawing it once from a worker, blocks every other GL context for
+ * several seconds on a slow GPU. Software GL never compiles: the card keeps
+ * the static frame. A real GPU draws that same preset from a worker, on an
+ * OffscreenCanvas, and the page shows the static frame until the first
+ * present. The present is withheld while CanvasKit is creating a context.
  */
 
 import { canvasKitPending } from '@/src/skia/ensureCanvasKit';
 
-const COMPLETION_STATUS_KHR = 0x91b1;
 const SOFTWARE_GL = /swiftshader|llvmpipe|software/i;
-
-type UniformBag = { u_time?: { value: number } };
+/** img-fx caps the shader buffer at 1.25× and nearest-filters it up to 2×. */
+const SHADER_DPR_CAP = 1.25;
 
 type SceneLike = {
-  traverse: (fn: (obj: { material?: { uniforms?: UniformBag } }) => void) => void;
+  traverse: (fn: (obj: object) => void) => void;
 };
 
 type RendererLike = {
   domElement: HTMLCanvasElement;
   debug: { checkShaderErrors: boolean };
   render: (scene: SceneLike, camera: object) => void;
-  compile: (scene: SceneLike, camera: object) => void;
   getContext: () => WebGL2RenderingContext;
-  setViewport: (x: number, y: number, w: number, h: number) => void;
-  setScissor: (x: number, y: number, w: number, h: number) => void;
-  setScissorTest: (on: boolean) => void;
 };
 
 type ImgFxStats = {
@@ -49,22 +41,6 @@ type GateWindow = typeof globalThis & {
   __imgFxStats?: ImgFxStats;
 };
 
-type GateState = {
-  compileStarted: boolean;
-  compileFinished: boolean;
-  ready: boolean;
-  scene: SceneLike | null;
-  camera: object | null;
-  orig: ((scene: SceneLike, camera: object) => void) | null;
-  renderer: RendererLike | null;
-  glCanvas: HTMLCanvasElement | null;
-};
-
-type PendingBlit = {
-  ctx: CanvasRenderingContext2D;
-  args: Parameters<CanvasRenderingContext2D['drawImage']>;
-};
-
 const stats: ImgFxStats = {
   software: false,
   held: false,
@@ -74,28 +50,14 @@ const stats: ImgFxStats = {
   vendor: '',
 };
 
-const state: GateState = {
-  compileStarted: false,
-  compileFinished: false,
-  ready: false,
-  scene: null,
-  camera: null,
-  orig: null,
-  renderer: null,
-  glCanvas: null,
-};
-
 const imgFxCanvases = new WeakSet<HTMLCanvasElement>();
-const programs = new Set<WebGLProgram>();
-let imgGl: WebGL2RenderingContext | null = null;
-let pollScheduled = false;
 let installed = false;
 let shaderReady = false;
-let fence: WebGLSync | null = null;
-let drew = false;
-let pendingBlit: PendingBlit | null = null;
-const readyListeners = new Set<() => void>();
 let origDraw: CanvasRenderingContext2D['drawImage'] | null = null;
+let worker: Worker | null = null;
+let lastHold: boolean | null = null;
+let origRender: ((scene: SceneLike, camera: object) => void) | null = null;
+const readyListeners = new Set<() => void>();
 
 function gateWindow(): GateWindow {
   return globalThis as GateWindow;
@@ -107,21 +69,6 @@ function useImmediateCopy() {
 
 function holdingStill() {
   return stats.held;
-}
-
-function applyFreeze(scene: SceneLike | null) {
-  const freeze = gateWindow().__imgFxFreezeTime;
-  if (typeof freeze !== 'number' || !scene) return;
-  scene.traverse((obj) => {
-    const time = obj.material?.uniforms?.u_time;
-    if (time) time.value = freeze;
-  });
-}
-
-function emitReady() {
-  if (shaderReady || holdingStill()) return;
-  shaderReady = true;
-  readyListeners.forEach((listener) => listener());
 }
 
 function noteGl(gl: WebGL2RenderingContext) {
@@ -164,160 +111,107 @@ function detectSoftwareGl() {
   releaseGl(gl);
 }
 
-/** True when no draw is in flight. timeout 0 never blocks the main thread. */
-function gpuIdle() {
-  if (!fence || !imgGl) return true;
-  const status = imgGl.clientWaitSync(fence, 0, 0);
-  if (status === imgGl.ALREADY_SIGNALED || status === imgGl.CONDITION_SATISFIED) {
-    imgGl.deleteSync(fence);
-    fence = null;
-    return true;
-  }
-  return false;
+function shaderCanvas(): HTMLCanvasElement | null {
+  const node = document.querySelector('canvas.image-gen-shader');
+  return node instanceof HTMLCanvasElement ? node : null;
 }
 
-function replayBlit() {
-  if (holdingStill() || !pendingBlit || !origDraw || !drew || !gpuIdle()) return;
-  const { ctx, args } = pendingBlit;
-  ctx.save();
-  ctx.globalCompositeOperation = 'copy';
-  ctx.imageSmoothingEnabled = false;
-  origDraw.apply(ctx, args);
-  ctx.restore();
+function cardInView() {
+  const canvas = shaderCanvas();
+  if (!canvas) return false;
+  const rect = canvas.getBoundingClientRect();
+  return rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
 }
 
-function armFence() {
-  if (!imgGl) return;
-  fence = imgGl.fenceSync(imgGl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-  imgGl.flush();
-  drew = true;
-  schedulePoll();
+function shouldHold() {
+  return canvasKitPending() || document.hidden || !cardInView();
 }
 
-function syncViewport(renderer: RendererLike) {
-  const canvas = pendingBlit?.ctx.canvas;
-  const cssW = canvas?.clientWidth || 0;
-  const cssH = canvas?.clientHeight || 0;
-  if (cssW < 1 || cssH < 1) return;
-  renderer.setViewport(0, 0, cssW, cssH);
-  renderer.setScissor(0, 0, cssW, cssH);
-  renderer.setScissorTest(true);
-}
-
-function drawFrame(renderer: RendererLike) {
-  if (holdingStill() || !state.orig || !state.scene || !state.camera || !gpuIdle()) return;
-  replayBlit();
-  syncViewport(renderer);
-  applyFreeze(state.scene);
-  state.orig(state.scene, state.camera);
-  armFence();
-}
-
-function markReady() {
-  if (state.ready || holdingStill()) return;
-  state.ready = true;
-  if (state.renderer) drawFrame(state.renderer);
-  emitReady();
-}
-
-function schedulePoll() {
-  if (pollScheduled || holdingStill()) return;
-  pollScheduled = true;
-  requestAnimationFrame(poll);
-}
-
-function beginCompile() {
-  if (holdingStill() || !state.renderer || !state.scene || !state.camera) return;
-  state.compileStarted = true;
-  const run = () => {
-    if (holdingStill()) return;
-    if (canvasKitPending()) {
-      state.compileStarted = false;
-      schedulePoll();
-      return;
-    }
-    try {
-      state.renderer?.compile(state.scene as SceneLike, state.camera as object);
-    } catch {
-      state.compileFinished = true;
-      markReady();
-      return;
-    }
-    state.compileFinished = true;
-    if (imgGl) stats.khr = !!imgGl.getExtension('KHR_parallel_shader_compile');
-    schedulePoll();
+function targetSize() {
+  const canvas = shaderCanvas();
+  const cssW = canvas?.clientWidth || 168;
+  const cssH = canvas?.clientHeight || cssW;
+  const dpr = Math.min(window.devicePixelRatio || 1, SHADER_DPR_CAP);
+  return {
+    w: Math.max(1, Math.floor(cssW * dpr)),
+    h: Math.max(1, Math.floor(cssH * dpr)),
+    dpr,
   };
-  const idle = window.requestIdleCallback;
-  if (typeof idle === 'function') idle(run, { timeout: 250 });
-  else requestAnimationFrame(run);
 }
 
-function poll() {
-  pollScheduled = false;
-  if (holdingStill()) return;
-  if (!state.ready) {
-    if (!state.compileStarted) {
-      if (canvasKitPending()) {
-        schedulePoll();
-        return;
-      }
-      beginCompile();
-      return;
-    }
-    if (!state.compileFinished) {
-      schedulePoll();
-      return;
-    }
-    const gl = imgGl;
-    const ext = gl?.getExtension('KHR_parallel_shader_compile');
-    if (!gl || !ext || programs.size === 0) {
-      markReady();
-      return;
-    }
-    for (const program of programs) {
-      if (!gl.getProgramParameter(program, COMPLETION_STATUS_KHR)) {
-        schedulePoll();
-        return;
-      }
-    }
-    markReady();
+function paintFrame(bmp: ImageBitmap) {
+  const canvas = shaderCanvas();
+  if (!canvas || !origDraw) {
+    bmp.close();
     return;
   }
-  if (pendingBlit && gpuIdle()) replayBlit();
-  if (fence) schedulePoll();
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bmp.close();
+    return;
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  // ImageBitmap is not an HTMLCanvasElement, so the drawImage patch lets it through.
+  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
 }
 
-function wrappedRender(renderer: RendererLike, scene: SceneLike, camera: object) {
-  state.scene = scene;
-  state.camera = camera;
-  state.renderer = renderer;
+function watchGpu() {
+  if (!worker || holdingStill()) return;
+  const hold = shouldHold();
+  if (hold !== lastHold) {
+    lastHold = hold;
+    worker.postMessage({ type: 'hold', hold });
+    const freeze = gateWindow().__imgFxFreezeTime;
+    if (typeof freeze === 'number') worker.postMessage({ type: 'time', time: freeze });
+  }
+  requestAnimationFrame(watchGpu);
+}
+
+function ensureGpuPath() {
+  if (worker || holdingStill() || typeof Worker !== 'function') return;
+  worker = new Worker('/img-fx/organic-worker.js');
+  worker.onmessage = (ev: MessageEvent<{ bmp?: ImageBitmap }>) => {
+    if (ev.data?.bmp) paintFrame(ev.data.bmp);
+  };
+  const boot = () => {
+    if (!worker) return;
+    if (canvasKitPending()) {
+      requestAnimationFrame(boot);
+      return;
+    }
+    worker.postMessage({ type: 'start', ...targetSize() });
+    lastHold = null;
+    watchGpu();
+  };
+  boot();
+}
+
+function wrappedRender(scene: SceneLike, camera: object) {
   if (holdingStill()) return;
   if (useImmediateCopy()) {
-    if (!state.orig) return;
-    applyFreeze(scene);
-    state.orig(scene, camera);
+    origRender?.(scene, camera);
     return;
   }
-  if (!state.compileStarted) {
-    schedulePoll();
-    return;
-  }
-  if (!state.ready || !state.orig) return;
-  drawFrame(renderer);
+  ensureGpuPath();
 }
 
-/** Wrap an img-fx WebGLRenderer so it does not draw until the program can be used. */
+/** Wrap an img-fx WebGLRenderer so a slow compile never runs on the main thread. */
 export function patchImgFxRenderer(renderer: RendererLike) {
   const canvas = renderer.domElement;
   if (!imgFxCanvases.has(canvas)) return;
   if (!stats.renderer && !stats.caveatFailed) detectSoftwareGl();
-  imgGl = renderer.getContext();
-  noteGl(imgGl);
-  state.orig = renderer.render.bind(renderer);
-  state.renderer = renderer;
-  state.glCanvas = canvas;
+  try {
+    noteGl(renderer.getContext());
+  } catch {
+    /* context already lost */
+  }
   renderer.debug.checkShaderErrors = false;
-  renderer.render = (scene, camera) => wrappedRender(renderer, scene, camera);
+  origRender = renderer.render.bind(renderer);
+  renderer.render = (scene, camera) => wrappedRender(scene, camera);
+  if (!holdingStill() && !useImmediateCopy()) ensureGpuPath();
 }
 
 export function installImgFxGate() {
@@ -351,16 +245,6 @@ export function installImgFxGate() {
     return context;
   } as typeof HTMLCanvasElement.prototype.getContext;
 
-  const origLink = WebGL2RenderingContext.prototype.linkProgram;
-  WebGL2RenderingContext.prototype.linkProgram = function linkProgram(program: WebGLProgram) {
-    origLink.call(this, program);
-    const canvas = this.canvas;
-    if (canvas instanceof HTMLCanvasElement && imgFxCanvases.has(canvas)) {
-      programs.add(program);
-      imgGl = this;
-    }
-  };
-
   origDraw = CanvasRenderingContext2D.prototype.drawImage;
   const savedDraw = origDraw;
   CanvasRenderingContext2D.prototype.drawImage = function drawImage(
@@ -370,9 +254,6 @@ export function installImgFxGate() {
     const source = args[0];
     if (source instanceof HTMLCanvasElement && this.canvas.classList.contains('image-gen-shader')) {
       if (useImmediateCopy()) return savedDraw.apply(this, args);
-      if (holdingStill()) return;
-      pendingBlit = { ctx: this, args };
-      replayBlit();
       return;
     }
     return savedDraw.apply(this, args);
