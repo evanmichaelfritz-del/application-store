@@ -1,25 +1,43 @@
-/* FILE app/playground.tsx */
+/* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Babel: plugins: ['react-native-worklets/plugin']
+ * expo ~57.0.23
+ * react 19.2.3
+ * react-dom 19.2.3
+ * react-native 0.86.3
+ * react-native-web ~0.21.0
+ * @shopify/react-native-skia 2.6.2
+ * react-native-reanimated 4.5.1
+ * react-native-worklets 0.10.1
+ * react-native-gesture-handler ~2.32.0
+ * react-native-svg 15.15.4
+ * expo-linear-gradient ~57.0.2
+ * expo-constants ~57.0.18
+ * expo-clipboard ~57.0.2
+ * react-native-safe-area-context ~5.7.0
+ * @expo-google-fonts/geist ^0.4.2
+ */
+
+/* FILE src/Playground.tsx */
+import "react-native-gesture-handler";
+import "react-native-reanimated";
 import { setStringAsync } from "expo-clipboard";
-import { useFocusEffect } from "expo-router";
-import Head from "expo-router/head";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSharedValue } from "react-native-reanimated";
 
-import { ColorPicker } from "../src/components/ColorPicker";
-import { Header } from "../src/components/Header";
-import { SelectRow } from "../src/components/SelectRow";
-import { Shimmer } from "../src/components/Shimmer";
-import { SliderRow } from "../src/components/SliderRow";
-import { PLAYGROUND } from "../src/content/cards";
-import { orbSnippet } from "../src/content/snippet";
-import { useArrowKeys } from "../src/hooks/useArrowKeys";
-import { parseColor, toExtendedSrgb, toSrgb, type Oklch } from "../src/color/color";
-import { canUseExtendedColor, OrbView, type OrbLive } from "../src/orb/OrbView";
-import { isFlat, RENDERS, type RenderName, type ShapeName } from "../src/orb/model";
-import { fonts, useTheme } from "../src/theme/theme";
+import { ColorPicker } from "./components/ColorPicker";
+import { SelectRow } from "./components/SelectRow";
+import { Shimmer } from "./components/Shimmer";
+import { SliderRow } from "./components/SliderRow";
+import { PLAYGROUND } from "./content/cards";
+import { orbSnippet } from "./content/snippet";
+import { useArrowKeys } from "./hooks/useArrowKeys";
+import { parseColor, toExtendedSrgb, toSrgb, type Oklch } from "./color/color";
+import { canUseExtendedColor, OrbView, type OrbLive } from "./orb/OrbView";
+import { isFlat, RENDERS, type RenderName, type ShapeName } from "./orb/model";
+import { ThemeProvider, fonts, useTheme } from "./theme/theme";
 
 function bindTitle(title: string) {
   return (node: object | null) => {
@@ -56,7 +74,7 @@ const RENDER_LABEL: Record<RenderName, string> = {
   verticalLines: "Vertical Lines",
 };
 
-export default function PlaygroundScreen() {
+function PlaygroundBody() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const wide = width >= 1280;
@@ -102,12 +120,6 @@ export default function PlaygroundScreen() {
     alive.current = false;
     if (timer.current) clearTimeout(timer.current);
   }, []);
-
-  useFocusEffect(useCallback(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, []));
 
   useEffect(() => {
     if (wasFlat.current && !flat) setTilt(20);
@@ -328,11 +340,6 @@ export default function PlaygroundScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.page }}>
-      {Platform.OS === "web" ? (
-        <Head>
-          <title>Playground - Thinking Orbs</title>
-        </Head>
-      ) : null}
       {(menu || picker) && (
         <Pressable
           onPress={() => {
@@ -342,7 +349,6 @@ export default function PlaygroundScreen() {
           style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 4 }}
         />
       )}
-      <Header active={null} />
       {wide ? (
         <View style={{ flex: 1, flexDirection: "row", alignItems: "stretch", paddingLeft: 32, paddingRight: 42, zIndex: 5 }}>
           <View style={{ alignSelf: "center", marginBottom: 8 }}>{list}</View>
@@ -365,6 +371,277 @@ export default function PlaygroundScreen() {
   );
 }
 
+export function PlaygroundScreen() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <PlaygroundBody />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+export default PlaygroundScreen;
+
+/* FILE src/orb/OrbView.tsx */
+import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Platform } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
+
+import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
+import { tick } from "./clock";
+import { drawOrb } from "./draw";
+import { buildInput, type OrbInput, type RenderName, type ShapeName } from "./model";
+import { makeLocal, step, type OrbLocal } from "./simulate";
+
+export type OrbLive = {
+  size: number;
+  speed: number;
+  density: number;
+  dotSize: number;
+  tilt: number;
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+};
+
+/**
+ * Extended-sRGB floats can sit outside 0–1. Stock JsiSkColor::fromValue
+ * (JsiSkColor.h) packs r*255 with no clamp, so a component above 1 paints
+ * black. canUseExtendedColor() is the gate: true only where those floats
+ * survive. Android's GL surface is sRGB, so it always clamps. iOS Expo Go
+ * (ExecutionEnvironment.StoreClient) ships an unpatched Skia binary and
+ * clamps too. Other iOS builds compile cpp/api/JsiSkPaint.h after
+ * postinstall, and that patch calls setColor4f, so they keep the floats.
+ * Web is unchanged.
+ */
+export function canUseExtendedColor(): boolean {
+  if (Platform.OS === "android") return false;
+  if (Platform.OS === "ios") return Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+  return true;
+}
+
+export function colorToRgba(color: string): { r: number; g: number; b: number; a: number } {
+  const parsed = parseColor(color);
+  if (!parsed) return { r: 1, g: 1, b: 1, a: 1 };
+  if (!canUseExtendedColor()) return toSrgb(parsed);
+  return toExtendedSrgb(parsed);
+}
+
+function blankPicture(): SkPicture {
+  const recorder = Skia.PictureRecorder();
+  recorder.beginRecording(Skia.XYWHRect(0, 0, 1, 1));
+  return recorder.finishRecordingAsPicture();
+}
+
+function usePicture() {
+  const initial = useRef<SkPicture | null>(null);
+  if (initial.current === null) initial.current = blankPicture();
+  const picture = useSharedValue<SkPicture>(initial.current);
+  const retire = useSharedValue<SkPicture | null>(null);
+  return { picture, retire };
+}
+
+type Props = {
+  state: string;
+  variant?: string;
+  size: number;
+  speed?: number;
+  density?: number;
+  dotSize?: number;
+  tilt?: number;
+  shape?: ShapeName;
+  render?: RenderName;
+  color: string;
+  /** When false the canvas stays mounted but does not tick. */
+  active?: boolean;
+  /** Playground sliders write here. Landing orbs leave it unset. */
+  live?: SharedValue<OrbLive>;
+  /** Last rasterized frame, for a card that has scrolled its canvas away. */
+  onFrame?: (uri: string) => void;
+};
+
+function paint(
+  picture: SharedValue<SkPicture>,
+  retire: SharedValue<SkPicture | null>,
+  input: OrbInput,
+  local: OrbLocal,
+  tune: OrbLive,
+  time: number,
+) {
+  "worklet";
+  step(input, local, time, tune.tilt, 1);
+  const recorder = Skia.PictureRecorder();
+  const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, input.size, input.size));
+  drawOrb(canvas, input, local, { r: tune.r, g: tune.g, b: tune.b, a: tune.a });
+  const next = recorder.finishRecordingAsPicture();
+  const old = retire.value;
+  retire.value = picture.value;
+  picture.value = next;
+  if (old) old.dispose();
+}
+
+function CanvasHost({
+  size,
+  picture,
+  onFrame,
+}: {
+  size: number;
+  picture: SharedValue<SkPicture>;
+  onFrame?: (uri: string) => void;
+}) {
+  const ref = useCanvasRef();
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
+  useEffect(() => {
+    return () => {
+      const report = onFrameRef.current;
+      const canvas = ref.current;
+      if (!report || !canvas) return;
+      try {
+        const image = canvas.makeImageSnapshot();
+        const b64 = image.encodeToBase64();
+        image.dispose();
+        if (b64) report(`data:image/png;base64,${b64}`);
+      } catch {
+        // The surface can already be gone while the view unmounts.
+      }
+    };
+  }, [ref]);
+  return (
+    <Canvas ref={ref} style={{ width: size, height: size }} pointerEvents="none" colorSpace="p3">
+      <Picture picture={picture} />
+    </Canvas>
+  );
+}
+
+function LiveOrb({
+  state,
+  variant,
+  size,
+  speed = 1,
+  density = 1,
+  dotSize = 1,
+  tilt = 20,
+  shape = "sphere",
+  render = "dots",
+  color,
+  active = true,
+  live,
+  onFrame,
+}: Props) {
+  const { picture, retire } = usePicture();
+  const inputSV = useSharedValue<OrbInput | null>(null);
+  const localSV = useSharedValue<OrbLocal | null>(null);
+  const activeSV = useSharedValue(active);
+  const fallback = useSharedValue<OrbLive>({
+    size,
+    speed,
+    density,
+    dotSize,
+    tilt,
+    ...colorToRgba(color),
+  });
+
+  const built = useMemo(
+    () => buildInput({ state, variant, size, density, dotSize, shape, render }),
+    [state, variant, size, density, dotSize, shape, render],
+  );
+
+  useEffect(() => {
+    inputSV.value = built;
+    localSV.value = null;
+  }, [built, inputSV, localSV]);
+
+  useEffect(() => {
+    activeSV.value = active;
+    if (!live) {
+      fallback.value = { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    }
+  }, [active, color, size, speed, density, dotSize, tilt, live, activeSV, fallback]);
+
+  useFrameCallback((frame) => {
+    "worklet";
+    const input = inputSV.value;
+    if (!input || !activeSV.value) return;
+    const tune = live ? live.value : fallback.value;
+    const look = `${input.state}@${tune.speed}`;
+    const now = frame.timestamp;
+    const t = tick(look, now, tune.speed);
+    let local = localSV.value;
+    if (!local || local.key !== input.key || local.dots.length !== input.count * 6) {
+      local = makeLocal(input);
+      localSV.value = local;
+    }
+    paint(picture, retire, input, local, tune, t);
+  }, true);
+
+  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
+}
+
+function StillOrb({
+  state,
+  variant,
+  size,
+  speed = 1,
+  density = 1,
+  dotSize = 1,
+  tilt = 20,
+  shape = "sphere",
+  render = "dots",
+  color,
+  live,
+  onFrame,
+}: Props) {
+  const { picture, retire } = usePicture();
+  const built = useMemo(
+    () => buildInput({ state, variant, size, density, dotSize, shape, render }),
+    [state, variant, size, density, dotSize, shape, render],
+  );
+
+  useEffect(() => {
+    const tune: OrbLive = live
+      ? live.value
+      : { size, speed, density, dotSize, tilt, ...colorToRgba(color) };
+    const input = built;
+    runOnUI(() => {
+      "worklet";
+      paint(picture, retire, input, makeLocal(input), tune, 0);
+    })();
+  }, [built, color, density, dotSize, live, picture, retire, size, speed, tilt]);
+
+  return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
+}
+
+function useDocumentActive() {
+  const [active, setActive] = useState(true);
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const sync = () => setActive(document.visibilityState !== "hidden");
+      sync();
+      document.addEventListener("visibilitychange", sync);
+      return () => document.removeEventListener("visibilitychange", sync);
+    }
+    const sync = (state: string) => setActive(state === "active");
+    sync(AppState.currentState);
+    const sub = AppState.addEventListener("change", sync);
+    return () => sub.remove();
+  }, []);
+  return active;
+}
+
+export const OrbView = memo(function OrbView(props: Props) {
+  const focused = useDocumentActive();
+  const reduced = useReducedMotion() === true;
+  if (!focused) return null;
+  if (reduced) return <StillOrb {...props} />;
+  return <LiveOrb {...props} />;
+});
 /* FILE src/components/ColorPicker.tsx */
 import { LinearGradient } from "expo-linear-gradient";
 import { createElement, useEffect, useRef, useState } from "react";
@@ -378,7 +655,7 @@ import { fonts, useTheme } from "../theme/theme";
 
 declare module "react-native" {
   interface ViewProps {
-    dataSet?: { arrowKeys?: string };
+    dataSet?: Record<string, string>;
   }
 }
 
@@ -1779,6 +2056,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { Geist_400Regular } from "@expo-google-fonts/geist";
 import { fonts, useTheme } from "../theme/theme";
 
 /** Native sweep. Web keeps the CSS version in Shimmer.web.tsx. Not an orb canvas. */
@@ -1786,7 +2064,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const size = typeof style?.fontSize === "number" ? style.fontSize : 14;
-  const font = useFont(require("../../assets/fonts/Geist-Regular.ttf"), size);
+  const font = useFont(Geist_400Regular, size);
   const opacity = useSharedValue(0);
   const shift = useSharedValue(0);
   const width = font ? Math.max(1, Math.ceil(font.getTextWidth(text))) : Math.max(1, Math.ceil(text.length * size * 0.56));

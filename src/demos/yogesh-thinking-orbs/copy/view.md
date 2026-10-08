@@ -1,9 +1,115 @@
+/* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Babel: plugins: ['react-native-worklets/plugin']
+ * expo ~57.0.23
+ * react 19.2.3
+ * react-dom 19.2.3
+ * react-native 0.86.3
+ * react-native-web ~0.21.0
+ * @shopify/react-native-skia 2.6.2
+ * react-native-reanimated 4.5.1
+ * react-native-worklets 0.10.1
+ * react-native-gesture-handler ~2.32.0
+ * react-native-svg 15.15.4
+ * expo-linear-gradient ~57.0.2
+ * expo-constants ~57.0.18
+ * expo-clipboard ~57.0.2
+ * react-native-safe-area-context ~5.7.0
+ * @expo-google-fonts/geist ^0.4.2
+ */
+
+/* FILE src/ThinkingOrbs.tsx */
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+import { useState } from "react";
+import { Platform, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { SelectRow } from "./components/SelectRow";
+import { OrbView } from "./orb/OrbView";
+import { RENDERS, type RenderName, type ShapeName } from "./orb/model";
+import { ThemeProvider, useTheme } from "./theme/theme";
+
+const SHAPES: { id: ShapeName; label: string }[] = [
+  { id: "sphere", label: "Sphere" },
+  { id: "cube", label: "Cube" },
+  { id: "octahedron", label: "Octahedron" },
+  { id: "tetrahedron", label: "Tetrahedron" },
+  { id: "torus", label: "Torus" },
+];
+
+const RENDER_LABEL: Record<RenderName, string> = {
+  dots: "Dots",
+  crosses: "Crosses",
+  dashes: "Dashes",
+  halftone: "Halftone",
+  lines: "Lines",
+  mesh: "Mesh",
+  squares: "Squares",
+  verticalLines: "Vertical Lines",
+};
+
+function ThinkingOrbsScreen() {
+  const { colors } = useTheme();
+  const [menu, setMenu] = useState<null | "shape" | "render">(null);
+  const [shape, setShape] = useState<ShapeName>("sphere");
+  const [render, setRender] = useState<RenderName>("dots");
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.page, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, padding: 32 }}>
+      <OrbView state="base" size={320} shape={shape} render={render} color={colors.orb} />
+      <View testID="yogesh-orb-panel" role={Platform.OS === "web" ? "complementary" : undefined} style={{ width: 256, gap: 6, zIndex: 5 }}>
+        <SelectRow
+          label="Shape"
+          value={shape}
+          display={SHAPES.find((item) => item.id === shape)?.label ?? "Sphere"}
+          options={SHAPES}
+          open={menu === "shape"}
+          onToggle={() => {
+            setMenu((current) => (current === 'shape' ? null : 'shape'));
+          }}
+          onPick={(id) => {
+            setShape(id);
+            setMenu(null);
+          }}
+        />
+        <SelectRow
+          label="Render"
+          value={render}
+          display={RENDER_LABEL[render]}
+          options={RENDERS.map((id) => ({ id, label: RENDER_LABEL[id] }))}
+          open={menu === "render"}
+          onToggle={() => {
+            setMenu((current) => (current === 'render' ? null : 'render'));
+          }}
+          onPick={(id) => {
+            setRender(id);
+            setMenu(null);
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+export function ThinkingOrbs() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <ThinkingOrbsScreen />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+export default ThinkingOrbs;
+
 /* FILE src/orb/OrbView.tsx */
 import { Canvas, Picture, Skia, useCanvasRef, type SkPicture } from "@shopify/react-native-skia";
-import { memo, useEffect, useMemo, useRef } from "react";
-import { Platform } from "react-native";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Platform } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useIsFocused } from "expo-router";
 import { useFrameCallback, useReducedMotion, useSharedValue, runOnUI, type SharedValue } from "react-native-reanimated";
 
 import { parseColor, toExtendedSrgb, toSrgb } from "../color/color";
@@ -232,8 +338,25 @@ function StillOrb({
   return <CanvasHost size={size} picture={picture} onFrame={onFrame} />;
 }
 
+function useDocumentActive() {
+  const [active, setActive] = useState(true);
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const sync = () => setActive(document.visibilityState !== "hidden");
+      sync();
+      document.addEventListener("visibilitychange", sync);
+      return () => document.removeEventListener("visibilitychange", sync);
+    }
+    const sync = (state: string) => setActive(state === "active");
+    sync(AppState.currentState);
+    const sub = AppState.addEventListener("change", sync);
+    return () => sub.remove();
+  }, []);
+  return active;
+}
+
 export const OrbView = memo(function OrbView(props: Props) {
-  const focused = useIsFocused();
+  const focused = useDocumentActive();
   const reduced = useReducedMotion() === true;
   if (!focused) return null;
   if (reduced) return <StillOrb {...props} />;
@@ -1261,7 +1384,7 @@ import { fonts, useTheme } from "../theme/theme";
 
 declare module "react-native" {
   interface ViewProps {
-    dataSet?: { arrowKeys?: string };
+    dataSet?: Record<string, string>;
   }
 }
 
@@ -1655,6 +1778,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { Geist_400Regular } from "@expo-google-fonts/geist";
 import { fonts, useTheme } from "../theme/theme";
 
 /** Native sweep. Web keeps the CSS version in Shimmer.web.tsx. Not an orb canvas. */
@@ -1662,7 +1786,7 @@ export function Shimmer({ text, style }: { text: string; style?: TextStyle }) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const size = typeof style?.fontSize === "number" ? style.fontSize : 14;
-  const font = useFont(require("../../assets/fonts/Geist-Regular.ttf"), size);
+  const font = useFont(Geist_400Regular, size);
   const opacity = useSharedValue(0);
   const shift = useSharedValue(0);
   const width = font ? Math.max(1, Math.ceil(font.getTextWidth(text))) : Math.max(1, Math.ceil(text.length * size * 0.56));

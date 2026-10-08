@@ -1,3 +1,22 @@
+/* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Babel: plugins: ['react-native-worklets/plugin']
+ * expo ~57.0.23
+ * react 19.2.3
+ * react-dom 19.2.3
+ * react-native 0.86.3
+ * react-native-web ~0.21.0
+ * @shopify/react-native-skia 2.6.2
+ * react-native-reanimated 4.5.1
+ * react-native-worklets 0.10.1
+ * react-native-gesture-handler ~2.32.0
+ * react-native-svg 15.15.4
+ * expo-linear-gradient ~57.0.2
+ * expo-constants ~57.0.18
+ * expo-clipboard ~57.0.2
+ * react-native-safe-area-context ~5.7.0
+ * @expo-google-fonts/geist ^0.4.2
+ */
+
 /* FILE src/orb/clock.ts */
 import { makeMutable } from "react-native-reanimated";
 

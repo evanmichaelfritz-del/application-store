@@ -1,5 +1,30 @@
+/* Dependencies. Install only these, then run `npx setup-skia-web public`.
+ * Babel: plugins: ['react-native-worklets/plugin']
+ * expo ~57.0.23
+ * react 19.2.3
+ * react-dom 19.2.3
+ * react-native 0.86.3
+ * react-native-web ~0.21.0
+ * @shopify/react-native-skia 2.6.2
+ * react-native-reanimated 4.5.1
+ * react-native-worklets 0.10.1
+ * react-native-gesture-handler ~2.32.0
+ * react-native-svg 15.15.4
+ * expo-linear-gradient ~57.0.2
+ * expo-constants ~57.0.18
+ * expo-clipboard ~57.0.2
+ * react-native-safe-area-context ~5.7.0
+ * @expo-google-fonts/geist ^0.4.2
+ */
+
 /* FILE src/theme/theme.tsx */
-import { usePathname } from "expo-router";
+import {
+  Geist_400Regular,
+  Geist_400Regular_Italic,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  useFonts,
+} from "@expo-google-fonts/geist";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 
@@ -93,7 +118,7 @@ export const fonts =
         medium: "Geist_500Medium",
         semibold: "Geist_600SemiBold",
         italic: "Geist_400Regular_Italic",
-        mono: "GeistMono_400Regular",
+        mono: "monospace",
       };
 
 export function mediumWeight(): { fontWeight: "500" } | Record<string, never> {
@@ -112,19 +137,15 @@ type ThemeValue = {
 const Ctx = createContext<ThemeValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const path = usePathname();
+  useFonts({
+    Geist: Geist_400Regular,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_400Regular_Italic,
+  });
   const [mode, setMode] = useState<Mode>("dark");
   const [playgroundColor, setPlaygroundColor] = useState(dark.orb);
-  const [route, setRoute] = useState(path);
-  if (path !== route) {
-    setRoute(path);
-    setMode("dark");
-    setPlaygroundColor((current) => {
-      const c = current.toLowerCase();
-      if (c === dark.orb.toLowerCase() || c === light.orb.toLowerCase()) return dark.orb;
-      return current;
-    });
-  }
   const value = useMemo<ThemeValue>(
     () => ({
       mode,
