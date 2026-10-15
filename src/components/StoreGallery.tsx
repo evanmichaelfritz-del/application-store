@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ViewStyle,
+} from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -11,11 +19,12 @@ import { PageHead } from '@/src/components/PageHead';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { rememberGallery } from '@/src/library/galleryMemory';
+import { recallGalleryScroll, rememberGallery, rememberGalleryScroll } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   EMPTY_FILTERS,
   filtersFromParams,
+  galleryPath,
   matchesGallery,
   replaceGalleryQuery,
   serializeFilters,
@@ -46,16 +55,57 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   const title = typeSlug ? (typeLabel(typeSlug) ?? 'All assets') : 'All assets';
   const total = typeSlug ? typeCount(typeSlug) : totalAssets();
   const items = TRANSITIONS.filter((item) => matchesGallery(item, typeSlug, filters));
+  const galleryUrl = galleryPath(typeSlug, filters);
+  const gridKey = items.map((item) => item.id).join('|');
+  const scrollRef = useRef<ScrollView>(null);
+  const settled = useRef(false);
+  const armed = useRef(false);
+  const acceptScroll = useRef(false);
+  const restoredUrl = useRef<string | null>(null);
+  const seenGrid = useRef(gridKey);
+  if (seenGrid.current !== gridKey) {
+    seenGrid.current = gridKey;
+    settled.current = false;
+  }
+
+  const restoreScroll = useCallback((url: string) => {
+    const y = recallGalleryScroll(url);
+    acceptScroll.current = false;
+    restoredUrl.current = url;
+    scrollRef.current?.scrollTo({ y, animated: false });
+    requestAnimationFrame(() => {
+      if (restoredUrl.current === url) acceptScroll.current = true;
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (settled.current) restoreScroll(galleryUrl);
+  }, [galleryUrl, gridKey, restoreScroll]);
 
   useFocusEffect(
     useCallback(() => {
+      armed.current = true;
+      if (settled.current) restoreScroll(galleryUrl);
       const frame = requestAnimationFrame(() => {
         replaceGalleryQuery(filters);
         rememberGallery(typeSlug, filters);
       });
-      return () => cancelAnimationFrame(frame);
-    }, [filters, typeSlug]),
+      return () => {
+        armed.current = false;
+        cancelAnimationFrame(frame);
+      };
+    }, [filters, galleryUrl, restoreScroll, typeSlug]),
   );
+
+  const onGridSettled = useCallback(() => {
+    settled.current = true;
+    if (armed.current) restoreScroll(galleryUrl);
+  }, [galleryUrl, restoreScroll]);
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!acceptScroll.current || restoredUrl.current !== galleryUrl) return;
+    rememberGalleryScroll(galleryUrl, event.nativeEvent.contentOffset.y);
+  };
 
   const onFilters = (next: GalleryFilters) => {
     setFilters(next);
@@ -73,9 +123,12 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
       <View style={styles.body}>
         {compact ? null : nav}
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.page, phone && styles.pagePhone]}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
         >
           {compact ? nav : null}
           <PageHead title={title} count={total} />
@@ -90,10 +143,11 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
             <EmptyResults onClear={clearFilters} />
           ) : (
             <ProgressiveGrid
-              key={items.map((item) => item.id).join('|')}
+              key={gridKey}
               items={items}
               columns={columns}
               reduceMotion={reduceMotion}
+              onSettled={onGridSettled}
             />
           )}
         </ScrollView>
@@ -119,13 +173,22 @@ function ProgressiveGrid({
   items,
   columns,
   reduceMotion,
+  onSettled,
 }: {
   items: readonly TransitionItem[];
   columns: number;
   reduceMotion: boolean;
+  onSettled: () => void;
 }) {
   const total = items.length;
   const [count, setCount] = useState(() => Math.min(SYNC_COUNT, total));
+  const told = useRef(false);
+
+  useLayoutEffect(() => {
+    if (told.current || count < total) return;
+    told.current = true;
+    onSettled();
+  }, [count, onSettled, total]);
 
   useEffect(() => {
     if (count >= total) return;
