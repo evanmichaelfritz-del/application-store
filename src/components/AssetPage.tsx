@@ -27,7 +27,7 @@ import {
   type AssetProp,
 } from '@/src/library/assetMeta';
 import { creditFor, type AssetCredit } from '@/src/library/credits';
-import { recallGalleryTarget } from '@/src/library/galleryMemory';
+import { galleryBackTarget, recallGalleryTarget } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   ASSET_META,
@@ -139,7 +139,9 @@ function StoreShell({
   const { width } = useWindowDimensions();
   const compact = width < 880;
   const phone = width < 640;
-  const [filters] = useState(() => recallGalleryTarget()?.filters ?? EMPTY_FILTERS);
+  const [filters] = useState(() =>
+    selection ? galleryBackTarget(selection).filters : (recallGalleryTarget()?.filters ?? EMPTY_FILTERS),
+  );
   const nav = <LeftNav typeSlug={selection} filters={filters} compact={compact} idle={idle} />;
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
@@ -302,10 +304,10 @@ function Found({ item }: { item: TransitionItem }) {
 }
 
 function BackLink({ type, label }: { type: ComponentType; label: string }) {
-  const [target] = useState(recallGalleryTarget);
-  const backType = target ? target.type : type;
-  const filters = target ? target.filters : EMPTY_FILTERS;
-  const backLabel = target ? (typeLabel(target.type) ?? 'All assets') : label;
+  const [target] = useState(() => galleryBackTarget(type));
+  const backType = target.type;
+  const filters = target.filters;
+  const backLabel = backType ? (typeLabel(backType) ?? label) : 'All assets';
   const [hover, setHover] = useState(false);
   return (
     <Link href={galleryHref(backType, filters)} asChild>
@@ -412,14 +414,16 @@ function MarkLive({ onLive }: { onLive: () => void }) {
 function AssetPreview({ item }: { item: TransitionItem }) {
   const [mount, setMount] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const [live, setLive] = useState(false);
   const control = previewControl(item.id);
   const fail = useCallback(() => setFailed(true), []);
   const markLive = useCallback(() => setLive(true), []);
+  const waiting = timedOut && !live;
 
   useEffect(() => {
     if (failed || live) return;
-    const timer = setTimeout(() => setFailed(true), PREVIEW_LOAD_MS);
+    const timer = setTimeout(() => setTimedOut(true), PREVIEW_LOAD_MS);
     return () => clearTimeout(timer);
   }, [failed, live, mount]);
 
@@ -431,26 +435,30 @@ function AssetPreview({ item }: { item: TransitionItem }) {
       {failed ? (
         <Unavailable />
       ) : (
-        <PreviewBoundary resetKey={mount} onFail={fail}>
-          <View key={mount} style={item.fullRow ? styles.demoFill : styles.demoCenter}>
-            {item.skia ? (
-              <DeferredSkiaDemo item={item} appearance="frame" onUnavailable={fail} onLive={markLive} />
-            ) : (
-              <>
-                <item.Demo />
-                <MarkLive onLive={markLive} />
-              </>
-            )}
-          </View>
-        </PreviewBoundary>
+        <>
+          <PreviewBoundary resetKey={mount} onFail={fail}>
+            <View key={mount} style={item.fullRow ? styles.demoFill : styles.demoCenter}>
+              {item.skia ? (
+                <DeferredSkiaDemo item={item} appearance="frame" onUnavailable={fail} onLive={markLive} />
+              ) : (
+                <>
+                  <item.Demo />
+                  <MarkLive onLive={markLive} />
+                </>
+              )}
+            </View>
+          </PreviewBoundary>
+          {waiting ? <Unavailable /> : null}
+        </>
       )}
-      {control && !failed ? (
+      {control && !failed && !waiting ? (
         <View style={styles.replay}>
           <BarButton
             label={control === 'reset' ? 'Reset' : 'Replay'}
             icon="refresh-outline"
             onPress={() => {
               setFailed(false);
+              setTimedOut(false);
               setLive(false);
               setMount((value) => value + 1);
             }}
@@ -955,9 +963,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+    zIndex: 4,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: colors.stage,
   },
   unavailableText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.textSubtle },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
