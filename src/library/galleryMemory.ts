@@ -12,6 +12,51 @@ const KEY = 'application-store-gallery';
 /** True only after a gallery mounted in this document. A full load of /a/<slug> starts false. */
 let fromGallery = false;
 
+let historyWatchInstalled = false;
+let historyEpoch = 0;
+let popEpoch = -1;
+let popUrl = '';
+let handlingPop = false;
+
+function browserGalleryUrl(): string {
+  const path = window.location.pathname.replace(/\/$/, '') || '/';
+  return `${path}${window.location.search}`;
+}
+
+/** Browser Back/Forward sets a one-shot arrival. A later pushState cancels it. */
+export function installGalleryPopListener(): void {
+  if (historyWatchInstalled || typeof window === 'undefined') return;
+  historyWatchInstalled = true;
+  window.addEventListener(
+    'popstate',
+    () => {
+      handlingPop = true;
+      historyEpoch += 1;
+      popEpoch = historyEpoch;
+      popUrl = browserGalleryUrl();
+      queueMicrotask(() => {
+        handlingPop = false;
+      });
+    },
+    true,
+  );
+  const push = window.history.pushState.bind(window.history);
+  window.history.pushState = (data: unknown, unused: string, url?: string | URL | null) => {
+    if (!handlingPop) historyEpoch += 1;
+    push(data, unused, url);
+  };
+}
+
+/** The latest history arrival is Back/Forward onto this exact gallery URL. */
+export function isPopArrival(url: string): boolean {
+  return historyEpoch === popEpoch && popUrl === url;
+}
+
+/** Changes on every push or pop, so a kept-alive gallery can tell arrivals apart. */
+export function arrivalStamp(url: string): string {
+  return `${historyEpoch}:${isPopArrival(url) ? 'pop' : 'plain'}:${url}`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -92,6 +137,15 @@ export function rememberGalleryScroll(url: string, y: number) {
 export function recallGalleryScroll(url: string): number {
   const y = readRecord()?.scroll[url];
   return typeof y === 'number' ? y : 0;
+}
+
+/** Drop one gallery URL's scroll. Normal visits and reloads start at the top. */
+export function clearGalleryScroll(url: string) {
+  const current = readRecord();
+  if (!current || current.scroll[url] === undefined) return;
+  const scroll = { ...current.scroll };
+  delete scroll[url];
+  writeRecord({ type: current.type, search: current.search, scroll });
 }
 
 /**
