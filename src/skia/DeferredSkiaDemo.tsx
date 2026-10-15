@@ -61,17 +61,11 @@ function PreviewLive({ onLive }: { onLive: () => void }) {
 export function DeferredSkiaDemo({
   item,
   appearance = 'card',
-  gate = 'near',
-  paused = false,
   onUnavailable,
   onLive,
 }: {
   item: TransitionItem;
   appearance?: 'card' | 'frame';
-  /** `manual` mounts immediately. Gallery cards use it once hover or viewport says play. */
-  gate?: 'near' | 'manual';
-  /** Freeze the clock without unmounting, so a hover-leave can reset a moment later. */
-  paused?: boolean;
   /** Asset preview: CanvasKit / LoadSkiaWeb rejected. */
   onUnavailable?: () => void;
   /** Asset preview: the demo committed, so a load timeout can stand down. */
@@ -81,12 +75,12 @@ export function DeferredSkiaDemo({
   const domId = `skia-${item.id}-${reactId.replace(/:/g, '')}`;
   const ref = useRef<View>(null);
   const canObserve = typeof IntersectionObserver === 'function';
-  const [armed, setArmed] = useState(gate === 'manual' || !canObserve);
+  const [armed, setArmed] = useState(!canObserve);
   const [untracked, setUntracked] = useState(false);
   const [kit, setKit] = useState(canvasKitReady);
 
   useEffect(() => {
-    if (gate === 'manual' || !canObserve) return;
+    if (!canObserve) return;
     const el = hostElement(ref.current, domId);
     if (!el) {
       setUntracked(true);
@@ -94,7 +88,7 @@ export function DeferredSkiaDemo({
       return;
     }
     return registerSkiaCard(reactId, item.id, el, () => setArmed(true));
-  }, [canObserve, domId, gate, item.id, reactId]);
+  }, [canObserve, domId, item.id, reactId]);
 
   useEffect(() => {
     if (!armed) return;
@@ -116,11 +110,11 @@ export function DeferredSkiaDemo({
   const budget = useSyncExternalStore(subscribeSkiaBudget, getSkiaBudget, getSkiaBudget);
   const live = !canObserve || untracked || budget.live.has(reactId);
   const runtime = useMemo(
-    () => ({ mount: live, running: live && !budget.hidden && !paused }),
-    [budget.hidden, live, paused],
+    () => ({ mount: live, running: live && !budget.hidden }),
+    [budget.hidden, live],
   );
   const show = armed && kit;
-  const placeholder = appearance === 'frame' || gate === 'manual' ? <FrameSkeleton /> : <SkiaPlaceholder cardId={item.id} />;
+  const placeholder = appearance === 'frame' ? <FrameSkeleton /> : <SkiaPlaceholder cardId={item.id} />;
   const frameStyle: ViewStyle | undefined =
     appearance === 'frame'
       ? {
@@ -132,7 +126,7 @@ export function DeferredSkiaDemo({
       : undefined;
 
   return (
-    <View id={domId} ref={ref} collapsable={false} style={[frameStyle, gate === 'manual' && styles.manualHost]}>
+    <View id={domId} ref={ref} collapsable={false} style={frameStyle}>
       <SkiaRuntimeContext.Provider value={runtime}>
         {show ? (
           <Suspense fallback={placeholder}>
@@ -156,5 +150,4 @@ const styles = {
     left: 0,
     backgroundColor: '#eeeeef',
   },
-  manualHost: { width: '100%', height: 150, position: 'relative', overflow: 'hidden' },
 } as const;

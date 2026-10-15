@@ -9,14 +9,11 @@ import {
 import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
-import { SkiaPoster } from '@/src/components/AssetStill';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
-import { StillMotion, useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { galleryInteractive } from '@/src/library/assetMeta';
-import { ASSET_META, assetHref, facetLine } from '@/src/library/taxonomy';
-import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
-import { warmSkiaDemo, type TransitionItem } from '../catalog';
+import { assetHref, facetLine } from '@/src/library/taxonomy';
+import { pressableWeb, textWeb } from '@/src/library/webProps';
+import type { TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
 
 type CopyKind = 'html' | 'css' | 'script';
@@ -97,83 +94,6 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     };
   }, [loadLazyPrompt, promptOpen]);
 
-  const { reduceMotion } = useReduceMotion();
-  const interactive = galleryInteractive(item.id);
-  const ambient = ASSET_META[item.id]?.motion === 'ambient-loop';
-  const [cardHover, setCardHover] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [inView, setInView] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const stageRef = useRef<View>(null);
-  const intentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const intending = cardHover || focused;
-  const stageId = `card-stage-${item.id}`;
-
-  useEffect(() => {
-    if (!item.skia || interactive || reduceMotion || !intending) return;
-    warmSkiaDemo(item.id);
-  }, [intending, interactive, item.id, item.skia, reduceMotion]);
-
-  useEffect(() => {
-    if (!ambient || typeof IntersectionObserver !== 'function' || typeof document === 'undefined') return;
-    const node = stageRef.current;
-    const host =
-      typeof HTMLElement !== 'undefined' && node instanceof HTMLElement ? node : document.getElementById(stageId);
-    if (!host) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry) setInView(entry.isIntersecting);
-      },
-      { threshold: 0.25 },
-    );
-    observer.observe(host);
-    return () => observer.disconnect();
-  }, [ambient, stageId]);
-
-  useEffect(() => {
-    if (reduceMotion || interactive) {
-      setPlaying(false);
-      setPaused(false);
-      return;
-    }
-    if (ambient) {
-      setPlaying(inView);
-      setPaused(false);
-      return;
-    }
-    if (intending) {
-      if (resetTimer.current) {
-        clearTimeout(resetTimer.current);
-        resetTimer.current = null;
-        setPaused(false);
-      }
-      if (playing) return;
-      intentTimer.current = setTimeout(() => {
-        setPaused(false);
-        setPlaying(true);
-      }, 300);
-      return () => {
-        if (intentTimer.current) clearTimeout(intentTimer.current);
-      };
-    }
-    if (intentTimer.current) {
-      clearTimeout(intentTimer.current);
-      intentTimer.current = null;
-    }
-    if (!playing) return;
-    setPaused(true);
-    resetTimer.current = setTimeout(() => {
-      setPlaying(false);
-      setPaused(false);
-    }, 150);
-    return () => {
-      if (resetTimer.current) clearTimeout(resetTimer.current);
-    };
-  }, [ambient, inView, intending, interactive, playing, reduceMotion]);
-
   const copyPart = (kind: CopyKind) => {
     setCopied(kind);
     show();
@@ -208,35 +128,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     }, 0);
   };
 
-  const live = playing && !reduceMotion && !interactive;
   const stage = (
     <View>
-      <View
-        ref={stageRef}
-        nativeID={stageId}
-        collapsable={false}
-        style={[styles.stageWrap, styles.stageWrapCompact]}
-      >
-        {item.skia ? (
-          live ? (
-            <DeferredSkiaDemo item={item} gate="manual" paused={paused} />
-          ) : (
-            <View style={styles.poster}>
-              <SkiaPoster id={item.id} box={120} />
-            </View>
-          )
-        ) : live ? (
-          <item.Demo />
-        ) : (
-          <StillMotion>
-            <item.Demo />
-          </StillMotion>
-        )}
-        {interactive ? (
-          <Text style={styles.interactive} testID={`interactive-${item.id}`}>
-            Interactive
-          </Text>
-        ) : null}
+      <View style={[styles.stageWrap, compact && styles.stageWrapCompact]}>
+        {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
         <View style={styles.live}>
           <Text style={styles.liveText}>Showcase</Text>
         </View>
@@ -251,8 +146,6 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           accessibilityRole="link"
           accessibilityLabel={item.title}
           testID={`card-link-${item.id}`}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           {...pressableWeb({ dataSet: { focusRing: 'true' } })}
           style={StyleSheet.flatten([styles.titles, compact && styles.titlesCompact])}
         >
@@ -268,12 +161,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   );
 
   return (
-    <View
-      {...viewWeb({ dataSet: { storeCard: 'true' } })}
-      onPointerEnter={() => setCardHover(true)}
-      onPointerLeave={() => setCardHover(false)}
-      style={[styles.card, cardHover && styles.cardHover]}
-    >
+    <View style={styles.card}>
       {stage}
       {compact ? null : phone ? (
         <View style={styles.actionsPhone}>
@@ -377,24 +265,8 @@ const styles = StyleSheet.create({
     padding: 12,
     ...shadows.card,
   },
-  cardHover: {
-    borderColor: 'rgba(0, 0, 0, 0.12)',
-    ...shadows.material,
-  },
-  stageWrap: { position: 'relative', cursor: 'pointer' },
+  stageWrap: { position: 'relative' },
   stageWrapCompact: { height: 150, overflow: 'hidden', borderRadius: radii.stage },
-  poster: { height: 150, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.stage },
-  interactive: {
-    position: 'absolute',
-    left: 12,
-    bottom: 12,
-    zIndex: 5,
-    fontFamily: fonts.medium,
-    fontWeight: '500',
-    fontSize: 11,
-    lineHeight: 14,
-    color: colors.textSubtle,
-  },
   titlesCompact: { paddingBottom: 2 },
   live: {
     position: 'absolute',
@@ -425,7 +297,7 @@ const styles = StyleSheet.create({
   },
   proText: { fontFamily: fonts.medium, fontSize: 10, color: colors.proFg },
   meta: { paddingHorizontal: 8, paddingTop: 14, paddingBottom: 6, gap: 12 },
-  titles: { minWidth: 0, paddingHorizontal: 8, paddingTop: 14, cursor: 'pointer' },
+  titles: { minWidth: 0, paddingHorizontal: 8, paddingTop: 14 },
   title: {
     fontFamily: fonts.medium,
     fontSize: 13,

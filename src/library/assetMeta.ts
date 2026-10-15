@@ -5,23 +5,6 @@ import { ASSET_META } from '@/src/library/taxonomy';
 /** Static tuners and pickers. Gesture assets are reset separately. */
 const STATEFUL_IDS = ['yogesh-orb-creator', 'orb-state-picker'] as const;
 
-/**
- * These previews wait on their own press. Mounting the demo does not play it,
- * and the press is a menu, a modal, or a tab, so the card does not fire it.
- */
-const PRESS_PLAY_IDS = [
-  'card-resize',
-  'notification-badge',
-  'text-states-swap',
-  'menu-dropdown',
-  'modal-open-close',
-  'page-side-by-side',
-  'icon-swap',
-  'success-check',
-  'error-state-shake',
-  'tabs-sliding',
-] as const;
-
 export type PreviewControl = 'replay' | 'reset';
 
 export function previewControl(id: string): PreviewControl | null {
@@ -29,11 +12,6 @@ export function previewControl(id: string): PreviewControl | null {
   if (!meta || meta.motion === 'ambient-loop') return null;
   if (meta.motion === 'gesture' || STATEFUL_IDS.some((item) => item === id)) return 'reset';
   return 'replay';
-}
-
-/** Gallery card stays on the still and shows the Interactive label. */
-export function galleryInteractive(id: string): boolean {
-  return previewControl(id) === 'reset' || PRESS_PLAY_IDS.some((item) => item === id);
 }
 
 /** Same component type first, then the same verified source, excluding this asset. */
