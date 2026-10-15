@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { Stage } from '@/src/components/Stage';
 import { warmSkiaDemo, type TransitionItem } from '@/src/catalog';
 import { LibdevStage } from '@/src/libdev/LibdevStage';
+import { viewWeb } from '@/src/library/webProps';
 import { retainCardState } from '@/src/skia/cardState';
 import { canvasKitReady, ensureCanvasKit } from '@/src/skia/ensureCanvasKit';
 
@@ -45,8 +46,31 @@ function hostElement(node: View | null, domId: string): HTMLElement | null {
   return document.getElementById(domId);
 }
 
+function FrameSkeleton() {
+  return <View style={styles.frameSkeleton} {...viewWeb({ dataSet: { previewSkeleton: 'true' } })} />;
+}
+
+function PreviewLive({ onLive }: { onLive: () => void }) {
+  useEffect(() => {
+    onLive();
+  }, [onLive]);
+  return null;
+}
+
 /** Mount a Skia demo once it is within 200px, after the shared CanvasKit load. */
-export function DeferredSkiaDemo({ item }: { item: TransitionItem }) {
+export function DeferredSkiaDemo({
+  item,
+  appearance = 'card',
+  onUnavailable,
+  onLive,
+}: {
+  item: TransitionItem;
+  appearance?: 'card' | 'frame';
+  /** Asset preview: CanvasKit / LoadSkiaWeb rejected. */
+  onUnavailable?: () => void;
+  /** Asset preview: the demo committed, so a load timeout can stand down. */
+  onLive?: () => void;
+}) {
   const reactId = useId();
   const domId = `skia-${item.id}-${reactId.replace(/:/g, '')}`;
   const ref = useRef<View>(null);
@@ -68,15 +92,20 @@ export function DeferredSkiaDemo({ item }: { item: TransitionItem }) {
 
   useEffect(() => {
     if (!armed) return;
-    let live = true;
+    let current = true;
     warmSkiaDemo(item.id);
-    ensureCanvasKit().then(() => {
-      if (live) setKit(true);
-    });
+    ensureCanvasKit().then(
+      () => {
+        if (current) setKit(true);
+      },
+      () => {
+        if (current) onUnavailable?.();
+      },
+    );
     return () => {
-      live = false;
+      current = false;
     };
-  }, [armed, item.id]);
+  }, [armed, item.id, onUnavailable]);
 
   const budget = useSyncExternalStore(subscribeSkiaBudget, getSkiaBudget, getSkiaBudget);
   const live = !canObserve || untracked || budget.live.has(reactId);
@@ -85,18 +114,40 @@ export function DeferredSkiaDemo({ item }: { item: TransitionItem }) {
     [budget.hidden, live],
   );
   const show = armed && kit;
+  const placeholder = appearance === 'frame' ? <FrameSkeleton /> : <SkiaPlaceholder cardId={item.id} />;
+  const frameStyle: ViewStyle | undefined =
+    appearance === 'frame'
+      ? {
+          width: '100%',
+          minHeight: 420,
+          alignItems: item.fullRow ? 'stretch' : 'center',
+          justifyContent: item.fullRow ? 'flex-start' : 'center',
+        }
+      : undefined;
 
   return (
-    <View id={domId} ref={ref} collapsable={false}>
+    <View id={domId} ref={ref} collapsable={false} style={frameStyle}>
       <SkiaRuntimeContext.Provider value={runtime}>
         {show ? (
-          <Suspense fallback={<SkiaPlaceholder cardId={item.id} />}>
+          <Suspense fallback={placeholder}>
             <item.Demo />
+            {onLive ? <PreviewLive onLive={onLive} /> : null}
           </Suspense>
         ) : (
-          <SkiaPlaceholder cardId={item.id} />
+          placeholder
         )}
       </SkiaRuntimeContext.Provider>
     </View>
   );
 }
+
+const styles = {
+  frameSkeleton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#eeeeef',
+  },
+} as const;

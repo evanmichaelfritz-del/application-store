@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import {
   loadYogeshOrbCreatorPrompt,
@@ -11,7 +11,7 @@ import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
-import { facetLine } from '@/src/library/taxonomy';
+import { assetHref, facetLine } from '@/src/library/taxonomy';
 import { pressableWeb, textWeb } from '@/src/library/webProps';
 import type { TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
@@ -65,14 +65,13 @@ function ActionButton({
   );
 }
 
-export function TransitionCard({ item }: { item: TransitionItem }) {
+export function TransitionCard({ item, compact = false }: { item: TransitionItem; compact?: boolean }) {
   const { show } = useCopyToast();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const phone = width < 640;
   const touch = width < 880;
   const [copied, setCopied] = useState<CopyKind | null>(null);
-  const [showcase, setShowcase] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
@@ -129,9 +128,9 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
     }, 0);
   };
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.stageWrap}>
+  const stage = (
+    <View>
+      <View style={[styles.stageWrap, compact && styles.stageWrapCompact]}>
         {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
         <View style={styles.live}>
           <Text style={styles.liveText}>Showcase</Text>
@@ -142,61 +141,55 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
           </View>
         ) : null}
       </View>
-      <View style={styles.meta}>
-        <View style={styles.titles}>
-          <Text style={[styles.title, phone && styles.titlePhone]} numberOfLines={1}>
+      <Link href={assetHref(item.id)} asChild>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={item.title}
+          testID={`card-link-${item.id}`}
+          {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+          style={StyleSheet.flatten([styles.titles, compact && styles.titlesCompact])}
+        >
+          <Text style={[styles.title, phone && !compact && styles.titlePhone]} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={phone ? 2 : 1}>
+          <Text style={styles.subtitle} numberOfLines={phone && !compact ? 2 : 1}>
             {facetLine(item.id) ?? item.subtitle}
           </Text>
-        </View>
-        {phone ? (
-          <View style={styles.actionsPhone}>
-            <View style={styles.actionsRow}>
-              <ActionButton style={styles.actionGrow} label="Showcase" onPress={() => setShowcase(true)} />
-              {copyButton('html', styles.actionGrow)}
-            </View>
-            <View style={styles.actionsRow}>
-              {copyButton('css', styles.actionGrow)}
-              {copyButton('script', styles.actionGrow)}
-            </View>
-            <ActionButton
-              style={styles.actionFull}
-              label="Agent prompt"
-              onPress={() => setPromptOpen(true)}
-            />
-          </View>
-        ) : (
-          <View style={styles.actions}>
-            <ActionButton
-              style={touch ? styles.actionTouch : undefined}
-              label="Showcase"
-              onPress={() => setShowcase(true)}
-            />
-            {copyButton('html', touch ? styles.actionTouch : undefined)}
-            {copyButton('css', touch ? styles.actionTouch : undefined)}
-            {copyButton('script', touch ? styles.actionTouch : undefined)}
-            <ActionButton
-              style={touch ? styles.actionTouch : undefined}
-              label="AGENT_PROMPT"
-              onPress={() => setPromptOpen(true)}
-            />
-          </View>
-        )}
-      </View>
+        </Pressable>
+      </Link>
+    </View>
+  );
 
-      <StoreSheet
-        visible={showcase}
-        title={item.title}
-        subtitle="Live showcase"
-        onClose={() => setShowcase(false)}
-      >
-        <View style={styles.showcaseStage}>
-          {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
+  return (
+    <View style={styles.card}>
+      {stage}
+      {compact ? null : phone ? (
+        <View style={styles.actionsPhone}>
+          <View style={styles.actionsRow}>
+            <ShowcaseLink id={item.id} style={styles.actionGrow} />
+            {copyButton('html', styles.actionGrow)}
+          </View>
+          <View style={styles.actionsRow}>
+            {copyButton('css', styles.actionGrow)}
+            {copyButton('script', styles.actionGrow)}
+          </View>
+          <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
         </View>
-      </StoreSheet>
+      ) : (
+        <View style={styles.actions}>
+          <ShowcaseLink id={item.id} style={touch ? styles.actionTouch : undefined} />
+          {copyButton('html', touch ? styles.actionTouch : undefined)}
+          {copyButton('css', touch ? styles.actionTouch : undefined)}
+          {copyButton('script', touch ? styles.actionTouch : undefined)}
+          <ActionButton
+            style={touch ? styles.actionTouch : undefined}
+            label="AGENT_PROMPT"
+            onPress={() => setPromptOpen(true)}
+          />
+        </View>
+      )}
 
+      {compact ? null : (
       <StoreSheet
         visible={promptOpen}
         title="AGENT_PROMPT"
@@ -226,7 +219,40 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
           {loadLazyPrompt ? (lazyPrompt ?? '') : promptFor(item.id)}
         </Text>
       </StoreSheet>
+      )}
     </View>
+  );
+}
+
+function ShowcaseLink({ id, style }: { id: string; style?: StyleProp<ViewStyle> }) {
+  const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Link href={assetHref(id)} asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Showcase"
+        onHoverIn={() => setHover(true)}
+        onHoverOut={() => {
+          setHover(false);
+          setPressed(false);
+        }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+        style={StyleSheet.flatten([
+          styles.action,
+          styles.pointer,
+          style,
+          hover && !pressed && styles.actionHover,
+          pressed && styles.actionPressed,
+        ])}
+      >
+        <Text style={styles.actionText} {...textWeb({ dataSet: { focusRing: 'true' } })}>
+          Showcase
+        </Text>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -240,6 +266,8 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   stageWrap: { position: 'relative' },
+  stageWrapCompact: { height: 150, overflow: 'hidden', borderRadius: radii.stage },
+  titlesCompact: { paddingBottom: 2 },
   live: {
     position: 'absolute',
     top: 10,
@@ -269,7 +297,7 @@ const styles = StyleSheet.create({
   },
   proText: { fontFamily: fonts.medium, fontSize: 10, color: colors.proFg },
   meta: { paddingHorizontal: 8, paddingTop: 14, paddingBottom: 6, gap: 12 },
-  titles: { minWidth: 0 },
+  titles: { minWidth: 0, paddingHorizontal: 8, paddingTop: 14 },
   title: {
     fontFamily: fonts.medium,
     fontSize: 13,
@@ -286,8 +314,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.textSubtle,
   },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  actionsPhone: { gap: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 6 },
+  actionsPhone: { gap: 8, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 6 },
   actionsRow: { flexDirection: 'row', gap: 8 },
   actionGrow: { flex: 1, height: 44, minWidth: 44 },
   actionFull: { height: 44, alignSelf: 'stretch' },

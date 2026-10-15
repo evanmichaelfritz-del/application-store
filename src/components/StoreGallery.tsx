@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ViewStyle,
+} from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { EmptyResults } from '@/src/components/EmptyResults';
 import { FilterBar } from '@/src/components/FilterBar';
@@ -11,13 +19,22 @@ import { PageHead } from '@/src/components/PageHead';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import {
+  arrivalStamp,
+  clearGalleryScroll,
+  isPopArrival,
+  recallGalleryScroll,
+  rememberGallery,
+  rememberGalleryScroll,
+} from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   EMPTY_FILTERS,
+  filtersFromParams,
+  galleryPath,
   matchesGallery,
-  readFilters,
   replaceGalleryQuery,
-  sameFilters,
+  serializeFilters,
   totalAssets,
   typeCount,
   typeLabel,
@@ -34,34 +51,91 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   const phone = width < 640;
   const compact = width < 880;
   const columns = width >= 1180 ? 3 : width >= 880 ? 2 : 1;
-  const [filters, setFilters] = useState<GalleryFilters>(readFilters);
+  const routed = filtersFromParams(useLocalSearchParams());
+  const routedKey = serializeFilters(routed);
+  const [routeKey, setRouteKey] = useState(routedKey);
+  const [filters, setFilters] = useState<GalleryFilters>(routed);
+  if (routeKey !== routedKey) {
+    setRouteKey(routedKey);
+    setFilters(routed);
+  }
   const title = typeSlug ? (typeLabel(typeSlug) ?? 'All assets') : 'All assets';
   const total = typeSlug ? typeCount(typeSlug) : totalAssets();
   const items = TRANSITIONS.filter((item) => matchesGallery(item, typeSlug, filters));
+  const galleryUrl = galleryPath(typeSlug, filters);
+  const gridKey = items.map((item) => item.id).join('|');
+  const navigation = useNavigation();
+  const scrollRef = useRef<ScrollView>(null);
+  const settled = useRef(false);
+  const restoreVisit = useRef(false);
+  const acceptScroll = useRef(false);
+  const restoredUrl = useRef<string | null>(null);
+  const seenArrival = useRef('');
+  const seenGrid = useRef(gridKey);
+  if (seenGrid.current !== gridKey) {
+    seenGrid.current = gridKey;
+    settled.current = false;
+  }
 
-  const syncFromUrl = useCallback(() => {
-    const next = readFilters();
-    setFilters((prev) => (sameFilters(prev, next) ? prev : next));
+  const restoreScroll = useCallback((url: string) => {
+    const y = recallGalleryScroll(url);
+    acceptScroll.current = false;
+    restoredUrl.current = url;
+    scrollRef.current?.scrollTo({ y, animated: false });
+    requestAnimationFrame(() => {
+      if (restoredUrl.current === url) acceptScroll.current = true;
+    });
   }, []);
+
+  const applyArrival = useCallback(() => {
+    if (!navigation.isFocused()) return;
+    const arrival = arrivalStamp(galleryUrl);
+    if (seenArrival.current === arrival) return;
+    seenArrival.current = arrival;
+    if (isPopArrival(galleryUrl)) {
+      restoreVisit.current = true;
+      if (settled.current) restoreScroll(galleryUrl);
+      return;
+    }
+    restoreVisit.current = false;
+    clearGalleryScroll(galleryUrl);
+    acceptScroll.current = false;
+    restoredUrl.current = galleryUrl;
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    requestAnimationFrame(() => {
+      if (restoredUrl.current === galleryUrl && !restoreVisit.current) acceptScroll.current = true;
+    });
+  }, [galleryUrl, navigation, restoreScroll]);
+
+  useLayoutEffect(() => {
+    applyArrival();
+    return navigation.addListener('focus', applyArrival);
+  }, [applyArrival, navigation]);
 
   useFocusEffect(
     useCallback(() => {
-      syncFromUrl();
-      const frame = requestAnimationFrame(() => replaceGalleryQuery(readFilters()));
+      const frame = requestAnimationFrame(() => {
+        replaceGalleryQuery(filters);
+        rememberGallery(typeSlug, filters);
+      });
       return () => cancelAnimationFrame(frame);
-    }, [syncFromUrl]),
+    }, [filters, typeSlug]),
   );
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onPop = () => syncFromUrl();
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [syncFromUrl]);
+  const onGridSettled = useCallback(() => {
+    settled.current = true;
+    if (restoreVisit.current) restoreScroll(galleryUrl);
+  }, [galleryUrl, restoreScroll]);
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!acceptScroll.current || restoredUrl.current !== galleryUrl) return;
+    rememberGalleryScroll(galleryUrl, event.nativeEvent.contentOffset.y);
+  };
 
   const onFilters = (next: GalleryFilters) => {
     setFilters(next);
     replaceGalleryQuery(next);
+    rememberGallery(typeSlug, next);
   };
 
   const clearFilters = () => onFilters(EMPTY_FILTERS);
@@ -74,9 +148,12 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
       <View style={styles.body}>
         {compact ? null : nav}
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.page, phone && styles.pagePhone]}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
         >
           {compact ? nav : null}
           <PageHead title={title} count={total} />
@@ -91,10 +168,11 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
             <EmptyResults onClear={clearFilters} />
           ) : (
             <ProgressiveGrid
-              key={items.map((item) => item.id).join('|')}
+              key={gridKey}
               items={items}
               columns={columns}
               reduceMotion={reduceMotion}
+              onSettled={onGridSettled}
             />
           )}
         </ScrollView>
@@ -120,13 +198,22 @@ function ProgressiveGrid({
   items,
   columns,
   reduceMotion,
+  onSettled,
 }: {
   items: readonly TransitionItem[];
   columns: number;
   reduceMotion: boolean;
+  onSettled: () => void;
 }) {
   const total = items.length;
   const [count, setCount] = useState(() => Math.min(SYNC_COUNT, total));
+  const told = useRef(false);
+
+  useLayoutEffect(() => {
+    if (told.current || count < total) return;
+    told.current = true;
+    onSettled();
+  }, [count, onSettled, total]);
 
   useEffect(() => {
     if (count >= total) return;

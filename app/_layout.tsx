@@ -11,6 +11,9 @@ import { CopyToast } from '@/src/components/CopyToast';
 import { ReducedMotionBridge } from '@/src/components/ReducedMotionBridge';
 import { CopyToastProvider } from '@/src/context/CopyToastContext';
 import { ReduceMotionProvider } from '@/src/context/ReduceMotionContext';
+import { installGalleryPopListener } from '@/src/library/galleryMemory';
+
+installGalleryPopListener();
 
 export { ErrorBoundary } from 'expo-router';
 
