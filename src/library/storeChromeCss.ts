@@ -117,24 +117,13 @@ a[data-focus-ring] {
   left: 0;
   z-index: 80;
 }
-[data-palette-scrim] {
-  opacity: 0;
-  transition: opacity 150ms ease-out;
-}
-[data-palette-scrim][data-shown="1"] {
-  opacity: 1;
-}
+[data-palette-scrim],
 [data-palette-panel] {
-  opacity: 0;
-  transform: scale(0.98);
   transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
+[data-palette-scrim][data-ease="in"],
 [data-palette-panel][data-ease="in"] {
   transition-timing-function: ease-in;
-}
-[data-palette-panel][data-shown="1"] {
-  opacity: 1;
-  transform: scale(1);
 }
 [data-palette-row],
 [data-palette-row] * {

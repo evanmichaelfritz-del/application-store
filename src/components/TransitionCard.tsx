@@ -13,7 +13,7 @@ import { SkiaPoster } from '@/src/components/AssetStill';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { StillMotion, useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { previewControl } from '@/src/library/assetMeta';
+import { galleryInteractive } from '@/src/library/assetMeta';
 import { ASSET_META, assetHref, facetLine } from '@/src/library/taxonomy';
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { warmSkiaDemo, type TransitionItem } from '../catalog';
@@ -98,7 +98,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   }, [loadLazyPrompt, promptOpen]);
 
   const { reduceMotion } = useReduceMotion();
-  const interactive = previewControl(item.id) === 'reset';
+  const interactive = galleryInteractive(item.id);
   const ambient = ASSET_META[item.id]?.motion === 'ambient-loop';
   const [cardHover, setCardHover] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -390,6 +390,7 @@ const styles = StyleSheet.create({
     bottom: 12,
     zIndex: 5,
     fontFamily: fonts.medium,
+    fontWeight: '500',
     fontSize: 11,
     lineHeight: 14,
     color: colors.textSubtle,

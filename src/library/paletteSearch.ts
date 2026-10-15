@@ -174,15 +174,22 @@ function typeOptions(query: string): TypeOption[] {
 function sourceOptions(query: string): SourceOption[] {
   if (!query) return [];
   const hits: SourceOption[] = [];
+  const seen = new Set<string>();
+  const push = (row: SourceOption) => {
+    const key = norm(row.label);
+    if (!key.includes(query) || seen.has(key)) return;
+    seen.add(key);
+    hits.push(row);
+  };
   for (const source of SOURCES) {
     const count = sourceCount(source.slug);
     if (count === 0 || !norm(source.label).includes(query)) continue;
-    hits.push({ kind: 'source', slug: source.slug, label: source.label, count });
+    push({ kind: 'source', slug: source.slug, label: source.label, count });
   }
   for (const author of AUTHORS) {
     const count = authorCount(author.label);
     if (count === 0 || !norm(author.label).includes(query)) continue;
-    hits.push({ kind: 'source', slug: author.source, label: author.label, count });
+    push({ kind: 'source', slug: author.source, label: author.label, count });
   }
   return hits.slice(0, FACET_CAP);
 }

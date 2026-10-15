@@ -61,12 +61,22 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
 
   const groups = useMemo(() => paletteGroups(query, recent, showAll), [query, recent, showAll]);
   const options = useMemo(() => groups.flatMap((group) => group.options), [groups]);
+  const live = useRef({
+    query,
+    options,
+    active,
+    visible,
+    closing,
+  });
+  live.current = { query, options, active, visible, closing };
 
   const openPalette = () => {
     generation.current += 1;
     const current = typeof document === 'undefined' ? null : document.activeElement;
     opener.current = isFocusable(current) ? current : null;
     setRecent(readRecent());
+    live.current.query = '';
+    live.current.active = 0;
     setQuery('');
     setShowAll(false);
     setActive(0);
@@ -126,20 +136,6 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   }, [visible]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.repeat) return;
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
-      if (event.key.toLowerCase() !== 'k') return;
-      event.preventDefault();
-      if (visible && !closing) close();
-      else if (!visible) openPalette();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
-  useEffect(() => {
     setActive(0);
   }, [query]);
 
@@ -193,15 +189,36 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     else router.push({ pathname: '/', params: { source: option.slug } });
   };
 
+  const goRef = useRef(go);
+  const closeRef = useRef(close);
+  const openRef = useRef(openPalette);
+  goRef.current = go;
+  closeRef.current = close;
+  openRef.current = openPalette;
+
   useEffect(() => {
-    if (!visible || typeof window === 'undefined') return;
+    // Capture: the search field stops keydown before a bubble listener on window.
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      const snap = live.current;
+      const command = (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
+      if (command && event.key.toLowerCase() === 'k') {
+        if (event.repeat) return;
         event.preventDefault();
-        if (query.trim()) {
+        if (snap.visible && !snap.closing) closeRef.current();
+        else if (!snap.visible) openRef.current();
+        return;
+      }
+      if (!snap.visible || snap.closing) return;
+      if (event.key === 'Escape') {
+        if (event.repeat) return;
+        event.preventDefault();
+        if (snap.query.trim()) {
+          snap.query = '';
+          snap.active = 0;
           setQuery('');
+          setActive(0);
           inputRef.current?.focus();
-        } else close();
+        } else closeRef.current();
         return;
       }
       if (event.key === 'Tab') {
@@ -209,39 +226,46 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         const input = inputRef.current;
         const clear = clearRef.current;
         const clearHost = isFocusable(clear) ? clear : null;
-        if (query.trim() && clearHost && input) {
-          const onClear = activeElementId() === 'palette-clear';
-          if (event.shiftKey || onClear) input.focus();
+        if (snap.query.trim() && clearHost && input) {
+          if (event.shiftKey || activeElementId() === 'palette-clear') input.focus();
           else clearHost.focus();
-        } else input?.focus();
+        } else if (isFocusable(input)) input.focus();
         return;
       }
-      if (!options.length) return;
+      const count = snap.options.length;
+      if (count === 0) return;
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         const step = event.key === 'ArrowDown' ? 1 : -1;
-        setActive((current) => (current + step + options.length) % options.length);
+        setActive((current) => {
+          const next = (current + step + count) % count;
+          snap.active = next;
+          return next;
+        });
         return;
       }
       if (event.key === 'Home') {
         event.preventDefault();
+        snap.active = 0;
         setActive(0);
         return;
       }
       if (event.key === 'End') {
         event.preventDefault();
-        setActive(options.length - 1);
+        snap.active = count - 1;
+        setActive(count - 1);
         return;
       }
       if (event.key === 'Enter') {
+        if (event.repeat) return;
         event.preventDefault();
-        const option = options[active];
-        if (option) go(option, event.metaKey || event.ctrlKey);
+        const option = snap.options[snap.active];
+        if (option) goRef.current(option, command);
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
 
   const maxHeight = Math.min(480, Math.max(240, height - 240));
   let cursor = 0;
@@ -257,9 +281,12 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
         >
           <Pressable
             accessibilityLabel="Close search"
+            tabIndex={-1}
             onPress={close}
-            {...viewWeb({ dataSet: { paletteScrim: 'true', shown: shown ? '1' : '0' } })}
-            style={styles.scrim}
+            {...viewWeb({
+              dataSet: { paletteScrim: 'true', shown: shown ? '1' : '0', ease: closing ? 'in' : 'out' },
+            })}
+            style={[styles.scrim, { opacity: shown ? 1 : 0 }]}
           />
           <View
             ref={panelRef}
@@ -272,7 +299,12 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
                 ease: closing ? 'in' : 'out',
               },
             })}
-            style={[styles.panel, { maxHeight }, shadows.material]}
+            style={[
+              styles.panel,
+              { maxHeight, opacity: shown ? 1 : 0 },
+              reduceMotion ? null : { transform: [{ scale: shown ? 1 : 0.98 }] },
+              shadows.material,
+            ]}
           >
             <View
               accessibilityLabel="Search assets"
@@ -393,6 +425,7 @@ function PaletteRow({
       testID={`palette-opt-${index}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      tabIndex={-1}
       onPointerMove={onMove}
       onPress={() => onOpen(false)}
       {...pressableWeb({ dataSet: { paletteRow: 'true' } })}

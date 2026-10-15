@@ -5,8 +5,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export const COLLAPSED_DAYS = 3;
 export const COLLAPSED_ITEMS = 4;
-/** View all folds a day past this count into one "Initial library" line. */
-export const LIBRARY_CAP = 8;
 
 export type AddedDay = {
   key: string;

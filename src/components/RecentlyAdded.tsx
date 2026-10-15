@@ -8,7 +8,6 @@ import {
   addedGroups,
   COLLAPSED_DAYS,
   COLLAPSED_ITEMS,
-  LIBRARY_CAP,
   type AddedDay,
 } from '@/src/library/recentlyAdded';
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
@@ -41,6 +40,7 @@ export function RecentlyAdded() {
   const [viewHover, setViewHover] = useState(false);
   const groups = addedGroups();
   const visible = open ? groups : groups.slice(0, COLLAPSED_DAYS);
+  const initialKey = groups.length > 0 ? groups[groups.length - 1].key : '';
   const grown = open || Object.keys(opened).length > 0;
 
   const toggle = () => {
@@ -82,6 +82,7 @@ export function RecentlyAdded() {
             group={group}
             first={index === 0}
             open={open}
+            initial={group.key === initialKey}
             expanded={opened[group.key] === true}
             onMore={() => setOpened((current) => ({ ...current, [group.key]: true }))}
           />
@@ -95,16 +96,18 @@ function DayRow({
   group,
   first,
   open,
+  initial,
   expanded,
   onMore,
 }: {
   group: AddedDay;
   first: boolean;
   open: boolean;
+  initial: boolean;
   expanded: boolean;
   onMore: () => void;
 }) {
-  const library = open && group.items.length > LIBRARY_CAP;
+  const library = open && initial;
   const showAll = open || expanded;
   const items = showAll ? group.items : group.items.slice(0, COLLAPSED_ITEMS);
   const hidden = group.items.length - items.length;
