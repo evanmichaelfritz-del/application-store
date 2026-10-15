@@ -1,48 +1,57 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { countSection } from '@/src/catalog';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { Link } from 'expo-router';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import {
+  galleryHref,
+  totalAssets,
+  typeCount,
+  VISIBLE_TYPES,
+  type ComponentType,
+  type GalleryFilters,
+} from '@/src/library/taxonomy';
+import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
-import { NAV_SECTIONS, type NavSection } from '@/src/sections';
 import { colors, fonts } from '@/src/theme';
 
+type RowKey = 'all' | ComponentType;
 type RowBox = { y: number; height: number };
-type RailHover = NavSection | 'add';
 
 const NAV_ROW_HOVER = '#f1f1f1';
 const NAV_SELECTED = '#e0e0e0';
 const NAV_SELECTED_HOVER = '#d4d4d4';
 
 export function LeftNav({
-  value,
-  onChange,
+  typeSlug,
+  filters,
   compact,
 }: {
-  value: NavSection;
-  onChange: (key: NavSection) => void;
+  typeSlug: string | null;
+  filters: GalleryFilters;
   compact: boolean;
 }) {
   const { reduceMotion } = useReduceMotion();
-  const [boxes, setBoxes] = useState<Partial<Record<NavSection, RowBox>>>({});
-  const [railHover, setRailHover] = useState<RailHover | null>(null);
+  const active: RowKey = VISIBLE_TYPES.find((type) => type.slug === typeSlug)?.slug ?? 'all';
+  const [boxes, setBoxes] = useState<Partial<Record<RowKey, RowBox>>>({});
+  const [railHover, setRailHover] = useState<RowKey | null>(null);
   const pillY = useSharedValue(0);
-  const pillH = useSharedValue(36);
+  const pillH = useSharedValue(32);
 
   useEffect(() => {
-    const box = boxes[value];
+    const box = boxes[active];
     if (!box) return;
     pillY.value = sprung(box.y, springs.layout, reduceMotion);
     pillH.value = sprung(box.height, springs.layout, reduceMotion);
-  }, [boxes, pillH, pillY, reduceMotion, value]);
+  }, [active, boxes, pillH, pillY, reduceMotion]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: pillY.value }],
     height: pillH.value,
   }));
 
-  const onRowLayout = (key: NavSection) => (e: LayoutChangeEvent) => {
+  const onRowLayout = (key: RowKey) => (e: LayoutChangeEvent) => {
     const { y, height } = e.nativeEvent.layout;
     setBoxes((prev) => {
       const last = prev[key];
@@ -53,64 +62,112 @@ export function LeftNav({
 
   return (
     <View
+      {...viewWeb(compact ? {} : { dataSet: { storeSidebar: 'dock' } })}
       style={[styles.rail, compact && styles.railStacked]}
-      accessibilityRole="tablist"
     >
-      <Text style={styles.railEyebrow}>Store</Text>
       <View style={styles.railStack}>
         <Animated.View
-          style={[styles.railPill, railHover === value && styles.railPillHover, pillStyle]}
+          pointerEvents="none"
+          {...viewWeb({ dataSet: { focusRing: 'true' } })}
+          style={[styles.railPill, railHover === active && styles.railPillHover, pillStyle]}
         />
-        {NAV_SECTIONS.map((section) => {
-          const active = section.key === value;
-          const count = countSection(section.key);
-          return (
-            <Pressable
-              key={section.key}
-              onPress={() => onChange(section.key)}
-              onLayout={onRowLayout(section.key)}
-              onHoverIn={() =>
-                setRailHover((current) => (current === section.key ? current : section.key))
-              }
-              onHoverOut={() =>
-                setRailHover((current) => (current === section.key ? null : current))
-              }
-              style={[
-                styles.row,
-                !active && railHover === section.key && styles.rowHover,
-                styles.pointer,
-                { zIndex: 1 },
-              ]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={section.label}
-            >
-              <Text style={[styles.rowLabel, active && styles.labelOn]}>{section.label}</Text>
-              <Text style={[styles.count, active && styles.countOn]}>{count}</Text>
-            </Pressable>
-          );
-        })}
-        <Pressable
-          accessibilityLabel="Add section slot"
-          onHoverIn={() => setRailHover((current) => (current === 'add' ? current : 'add'))}
-          onHoverOut={() => setRailHover((current) => (current === 'add' ? null : current))}
-          style={[styles.rowSlot, railHover === 'add' && styles.rowSlotHover, styles.pointer]}
-        >
-          <Text style={styles.slotLabel}>+ Add</Text>
-        </Pressable>
+        <NavRow
+          label="All assets"
+          count={totalAssets()}
+          active={active === 'all'}
+          hovered={railHover === 'all'}
+          href={galleryHref(null, filters)}
+          testID="nav-count-all"
+          onLayout={onRowLayout('all')}
+          onHoverIn={() => setRailHover((current) => (current === 'all' ? current : 'all'))}
+          onHoverOut={() => setRailHover((current) => (current === 'all' ? null : current))}
+        />
+        <Text style={styles.eyebrow}>Components</Text>
+        {VISIBLE_TYPES.map((type) => (
+          <NavRow
+            key={type.slug}
+            label={type.label}
+            count={typeCount(type.slug)}
+            active={type.slug === active}
+            hovered={railHover === type.slug}
+            href={galleryHref(type.slug, filters)}
+            testID={`nav-count-${type.slug}`}
+            onLayout={onRowLayout(type.slug)}
+            onHoverIn={() => setRailHover((current) => (current === type.slug ? current : type.slug))}
+            onHoverOut={() => setRailHover((current) => (current === type.slug ? null : current))}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
+function NavRow({
+  label,
+  count,
+  active,
+  hovered,
+  href,
+  testID,
+  onLayout,
+  onHoverIn,
+  onHoverOut,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  hovered: boolean;
+  href: ReturnType<typeof galleryHref>;
+  testID: string;
+  onLayout: (event: LayoutChangeEvent) => void;
+  onHoverIn: () => void;
+  onHoverOut: () => void;
+}) {
+  return (
+    <Link href={href} asChild>
+      <Pressable
+        onLayout={onLayout}
+        onHoverIn={onHoverIn}
+        onHoverOut={onHoverOut}
+        accessibilityRole="link"
+        accessibilityLabel={`${label} ${count}`}
+        accessibilityState={{ selected: active }}
+        {...pressableWeb({
+          dataSet: { focusRing: 'true' },
+          'aria-current': active ? 'page' : undefined,
+        })}
+        style={StyleSheet.flatten([
+          styles.row,
+          !active && hovered && styles.rowHover,
+          styles.pointer,
+        ])}
+      >
+        <Text
+          style={[styles.rowLabel, active && styles.labelOn]}
+          numberOfLines={1}
+          {...textWeb({ dataSet: { focusRing: 'true' } })}
+        >
+          {label}
+        </Text>
+        <Text testID={testID} style={[styles.count, active && styles.countOn]} {...textWeb({ dataSet: { focusRing: 'true' } })}>
+          {count}
+        </Text>
+      </Pressable>
+    </Link>
+  );
+}
+
 const styles = StyleSheet.create({
   rail: {
-    width: 220,
-    paddingTop: 8,
-    paddingBottom: 24,
+    width: 240,
+    flexShrink: 0,
+    boxSizing: 'border-box',
+    paddingTop: 16,
+    paddingBottom: 16,
     paddingHorizontal: 12,
     borderRightWidth: 1,
     borderRightColor: colors.cardBorder,
+    backgroundColor: colors.bg,
   },
   railStacked: {
     width: '100%',
@@ -119,14 +176,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 8,
   },
-  railEyebrow: {
+  eyebrow: {
     fontFamily: fonts.medium,
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     color: colors.textFaint,
     paddingHorizontal: 10,
-    marginBottom: 10,
+    marginTop: 16,
+    marginBottom: 6,
   },
   railStack: {
     position: 'relative',
@@ -142,13 +200,15 @@ const styles = StyleSheet.create({
     backgroundColor: NAV_SELECTED_HOVER,
   },
   row: {
-    minHeight: 40,
+    height: 32,
     paddingHorizontal: 10,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+    zIndex: 1,
+    boxSizing: 'border-box',
   },
   rowHover: {
     backgroundColor: NAV_ROW_HOVER,
@@ -157,6 +217,7 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   rowLabel: {
+    flex: 1,
     fontFamily: fonts.medium,
     fontSize: 13,
     color: colors.chipText,
@@ -165,26 +226,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 11,
     color: colors.textFaint,
+    fontVariant: ['tabular-nums'],
   },
   countOn: { color: colors.chipTextActive },
   labelOn: { color: colors.chipTextActive },
-  rowSlot: {
-    minHeight: 40,
-    marginTop: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(0, 0, 0, 0.12)',
-    justifyContent: 'center',
-  },
-  rowSlotHover: {
-    backgroundColor: NAV_ROW_HOVER,
-    borderColor: 'rgba(0, 0, 0, 0.22)',
-  },
-  slotLabel: {
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    color: colors.textFaint,
-  },
 });
