@@ -109,7 +109,11 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
 function cellStyle(columns: number, fullRow: boolean): ViewStyle {
   if (fullRow || columns <= 1) return { width: '100%' };
   const gaps = (columns - 1) * 16;
-  return { width: `calc((100% - ${gaps}px) / ${columns})` as ViewStyle['width'] };
+  // 1280 viewport: 240 sidebar and 32px page padding each side. The grid is 976px,
+  // so this percent matches calc((100% - gaps) / columns) at that width.
+  const gridAt1280 = 976;
+  const share = ((gridAt1280 - gaps) / columns / gridAt1280) * 100;
+  return { width: `${share}%` };
 }
 
 const styles = StyleSheet.create({

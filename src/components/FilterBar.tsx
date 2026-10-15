@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { ComponentRef } from 'react';
 import {
   chipSelected,
   countGallery,
@@ -108,6 +107,22 @@ export function FilterBar({
   );
 }
 
+type KeyEvent = {
+  key: string;
+  preventDefault: () => void;
+};
+
+type KeyTarget = {
+  addEventListener: (type: 'keydown', listener: (event: KeyEvent) => void) => void;
+  removeEventListener: (type: 'keydown', listener: (event: KeyEvent) => void) => void;
+};
+
+function isKeyTarget(node: object | null): node is KeyTarget {
+  if (node === null) return false;
+  if (!('addEventListener' in node) || !('removeEventListener' in node)) return false;
+  return typeof node.addEventListener === 'function' && typeof node.removeEventListener === 'function';
+}
+
 function FilterChip({
   label,
   selected,
@@ -128,9 +143,9 @@ function FilterChip({
   toggleRef.current = onToggle;
 
   useEffect(() => {
-    const el = ref.current as unknown as HTMLElement | null;
-    if (!el || typeof el.addEventListener !== 'function') return;
-    const onKeyDown = (event: KeyboardEvent) => {
+    const el = ref.current;
+    if (!isKeyTarget(el)) return;
+    const onKeyDown = (event: KeyEvent) => {
       if (event.key !== ' ' && event.key !== 'Spacebar') return;
       event.preventDefault();
       toggleRef.current();

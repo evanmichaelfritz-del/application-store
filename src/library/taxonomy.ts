@@ -3,7 +3,7 @@ import { TRANSITIONS, matchesSearch, type TransitionItem } from '@/src/catalog';
 
 /**
  * Component-type gallery metadata for PR 1.
- * `sections` on each catalog item stays as it is so agent prompts and the
+ * `sections` on each catalog item is left unchanged so agent prompts and the
  * playground keep their current copy. This map is the sidebar and chip source.
  *
  * Sources come from mapping.verified.csv. An asset with source_verified=no
@@ -266,7 +266,17 @@ export function galleryPath(typeSlug: string | null, filters: GalleryFilters): s
 }
 
 export function galleryHref(typeSlug: string | null, filters: GalleryFilters): Href {
-  return galleryPath(typeSlug, filters) as Href;
+  const params: Record<string, string> = {};
+  if (filters.motion.length) params.motion = filters.motion.join(',');
+  if (filters.stack.length) params.stack = filters.stack.join(',');
+  if (filters.source.length) params.source = filters.source.join(',');
+  if (filters.status.length) params.status = filters.status.join(',');
+  const q = filters.q.trim();
+  if (q) params.q = q;
+  if (typeSlug) {
+    return { pathname: '/c/[type]', params: { ...params, type: typeSlug } };
+  }
+  return { pathname: '/', params };
 }
 
 export function replaceGalleryQuery(filters: GalleryFilters) {
@@ -322,6 +332,10 @@ export function sameFilters(a: GalleryFilters, b: GalleryFilters): boolean {
   return eq(a.motion, b.motion) && eq(a.stack, b.stack) && eq(a.source, b.source) && eq(a.status, b.status) && a.q === b.q;
 }
 
+function isListedSlug<T extends string>(slug: string, options: readonly { slug: T }[]): slug is T {
+  return options.some((option) => option.slug === slug);
+}
+
 function toggle<T extends string>(selected: readonly T[], value: T, order: readonly T[]): T[] {
   const next = new Set(selected);
   if (next.has(value)) next.delete(value);
@@ -330,16 +344,19 @@ function toggle<T extends string>(selected: readonly T[], value: T, order: reado
 }
 
 export function toggleFilter(filters: GalleryFilters, group: FilterGroup, slug: string): GalleryFilters {
-  if (group === 'motion') {
-    return { ...filters, motion: toggle(filters.motion, slug as Motion, MOTIONS.map((item) => item.slug)) };
+  if (group === 'motion' && isListedSlug(slug, MOTIONS)) {
+    return { ...filters, motion: toggle(filters.motion, slug, MOTIONS.map((item) => item.slug)) };
   }
-  if (group === 'stack') {
-    return { ...filters, stack: toggle(filters.stack, slug as Stack, STACKS.map((item) => item.slug)) };
+  if (group === 'stack' && isListedSlug(slug, STACKS)) {
+    return { ...filters, stack: toggle(filters.stack, slug, STACKS.map((item) => item.slug)) };
   }
-  if (group === 'source') {
-    return { ...filters, source: toggle(filters.source, slug as Source, SOURCES.map((item) => item.slug)) };
+  if (group === 'source' && isListedSlug(slug, SOURCES)) {
+    return { ...filters, source: toggle(filters.source, slug, SOURCES.map((item) => item.slug)) };
   }
-  return { ...filters, status: toggle(filters.status, slug as Status, STATUSES.map((item) => item.slug)) };
+  if (group === 'status' && isListedSlug(slug, STATUSES)) {
+    return { ...filters, status: toggle(filters.status, slug, STATUSES.map((item) => item.slug)) };
+  }
+  return filters;
 }
 
 export function matchesGallery(item: TransitionItem, typeSlug: string | null, filters: GalleryFilters): boolean {
@@ -367,8 +384,9 @@ export function facetLine(id: string): string | null {
 }
 
 export function chipSelected(filters: GalleryFilters, group: FilterGroup, slug: string): boolean {
-  if (group === 'motion') return filters.motion.includes(slug as Motion);
-  if (group === 'stack') return filters.stack.includes(slug as Stack);
-  if (group === 'source') return filters.source.includes(slug as Source);
-  return filters.status.includes(slug as Status);
+  if (group === 'motion' && isListedSlug(slug, MOTIONS)) return filters.motion.includes(slug);
+  if (group === 'stack' && isListedSlug(slug, STACKS)) return filters.stack.includes(slug);
+  if (group === 'source' && isListedSlug(slug, SOURCES)) return filters.source.includes(slug);
+  if (group === 'status' && isListedSlug(slug, STATUSES)) return filters.status.includes(slug);
+  return false;
 }
