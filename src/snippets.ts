@@ -219,7 +219,6 @@ export const SNIPPETS: Record<string, string> = {
   --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
 }
 .t-avatar { transition: transform var(--avatar-dur) var(--avatar-ease-in); }
-.t-avatar.is-hot { transform: translateY(var(--avatar-lift)) scale(var(--avatar-scale)); }
 .t-avatars:not(:hover) .t-avatar { transition-timing-function: var(--avatar-ease-out); }
 @media (prefers-reduced-motion: reduce) {
   .t-avatar { transition: none !important; }

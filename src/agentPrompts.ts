@@ -27,7 +27,7 @@ export type PromptLock = {
 
 const LOCKS: Record<string, PromptLock> = {
   'card-resize': {
-    motion: 'Width/height morph 300ms (tokens.morph). Default spring for layout wrappers: damping 20, stiffness 280.',
+    motion: 'Width/height morph 300ms (tokens.morph).',
     rn: 'Reanimated width/height timing. Copy emits portable CSS `.t-resize`.',
   },
   'number-pop-in': {
@@ -51,7 +51,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-dropdown`. Copy script toggles `.is-open` / `.is-closing` and the trigger label.',
   },
   'confetti-burst': {
-    motion: 'Gravity-ish fall; particles settle on the Celebrate button top (~1.5s). `springs.snap` on rest.',
+    motion:
+      'Gravity-ish fall; particles settle on the Celebrate button top (~1.5s). Horizontal travel uses `springs.default` (damping 20, stiffness 280). Rest uses `springs.snap` (damping 18, stiffness 300).',
     content: 'Button label `Celebrate`. ~12–24 bits. Clamp so pieces do not fall through the button.',
     rn: 'Reanimated particles, not a full physics engine. Copy emits `.t-confetti-piece` tokens.',
   },
@@ -76,7 +77,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-icon`. Copy script toggles `.is-out` on the two layers.',
   },
   'success-check': {
-    motion: 'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1. The check draws a 28px dash after an 80ms delay.',
+    motion:
+      'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1 via `springs.pop` (mass 0.8, damping 12, stiffness 280). The check draws a 28px dash after an 80ms delay, on the same spring.',
     rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
   },
   'avatar-group-hover': {
@@ -114,7 +116,7 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Measure each tab with onLayout. Same pattern as store section chips. Copy emits `.t-tabs-pill`.',
   },
   'drag-drop-physics': {
-    motion: 'Gesture-handler pan + `springs.snap` (damping 18, stiffness 300). Zone radius/fill morph.',
+    motion: 'Gesture-handler pan. Release springs home with `springs.default` (damping 20, stiffness 280). Zone radius/fill morph.',
     content: 'Zone label `Drag & drop it here`.',
     rn: 'Not a full physics engine. Copy emits `.t-drop`.',
   },
@@ -252,17 +254,13 @@ If pieces that should merge look separate, raise blur or reduce gap — bridging
 - Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
 - Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
 
-## Card copy buttons
-
-Keep Showcase and AGENT_PROMPT. Replace a single Copy code button with Copy HTML, Copy CSS, and Copy script. Each button copies one piece of the reference document below (body markup, the style block, the script block). None of them copies the whole document.
-
 ## Deliverable
 
 Ship a **single self-contained HTML document** that matches the tokens above. No imports. No build step.
 
 ## Reference implementation (closed network)
 
-Paste this into a file and open it, or load it in Application Store → Playground:
+Paste this into a file and open it:
 
 \`\`\`html
 ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
@@ -279,7 +277,7 @@ ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
 
 ## Out of scope
 
-Do not recreate the whole Application Store. Do not pull liquid-gooey from npm.
+Do not pull liquid-gooey from npm.
 `;
 }
 
@@ -332,38 +330,21 @@ function buildPrompt(id: string): string {
 
   const parts = previewDocumentParts(id);
   const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
+  const stage = filled(lock.content);
   const blocks = [
     `# AGENT_PROMPT — ${item.title}`,
-    `Closed-network rebuild brief for this Application Store piece. This document is the source of truth.
+    `Closed-network rebuild brief. This document is the source of truth.
 
 - Do not fetch external pages, docs, or product sites.
-- Do not invent demos beyond this piece.
-- The three copy buttons emit the closed-network HTML, CSS, and script that the preview document runs. Do not merge those three into one document.`,
+- Do not invent demos beyond this piece.`,
     `## Piece
 
 - id: \`${item.id}\`
 - title: ${item.title}
-- subtitle: ${item.subtitle}
-- categories: ${item.categories.join(', ')}
-- sections: ${item.sections.join(', ')}
-- pro: ${item.pro ? 'yes — same interactive demo, no paywall' : 'no'}`,
-    `## Stage content
-
-${lock.content ?? 'Use the live Application Store showcase as the stage content. Do not add extra chrome inside the 220px stage.'}`,
-    `## Motion lock
-
-${lock.motion}
-
-Springs (do not churn):
-- layout / default: damping 20, stiffness 280 (layout mass 1)
-- pop: mass 0.8, damping 12, stiffness 280
-- snap: damping 18, stiffness 300
-
-Reduced motion: AccessibilityInfo + in-app toggle → duration 0 / skip springs.`,
+- subtitle: ${item.subtitle}`,
+    stage ? `## Stage content\n\n${stage}` : '',
+    `## Motion lock\n\n${lock.motion}`,
     statesSection(lock.states),
-    `## RN note
-
-${lock.rn}`,
     listSection('Gotchas', lock.gotchas, '- '),
     setupSection(lock.setup),
     `## Copy HTML

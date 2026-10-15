@@ -71,13 +71,29 @@ await esbuild.build({
 const loaded = await import(pathToFileURL(outfile).href);
 const generatedPrompts = loaded.generatedPrompts();
 
+/** Word characters plus a hyphen, so Helixes and SHA-256 are not Helix or SHA. */
+function bannedPhrase(label) {
+  const body = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return { label, pattern: new RegExp(`(?<![A-Za-z0-9_-])${body}(?![A-Za-z0-9_-])`, 'gi') };
+}
+
 const BANNED = [
-  { label: 'Helix', pattern: /Helix/g },
-  { label: 'grok.me', pattern: /grok\.me/g },
-  { label: 'peptide', pattern: /peptide/g },
-  { label: 'Publish product code', pattern: /Publish product code/g },
-  { label: 'Card chrome', pattern: /Card chrome/g },
-  { label: 'SHA', pattern: /(^|[^A-Za-z0-9_])SHA(?![A-Za-z0-9_])/g },
+  bannedPhrase('Helix'),
+  bannedPhrase('grok.me'),
+  bannedPhrase('peptide'),
+  bannedPhrase('Publish product code'),
+  bannedPhrase('Card chrome'),
+  bannedPhrase('SHA'),
+  bannedPhrase('Application Store'),
+  bannedPhrase('rebuild brief for this Application Store piece'),
+  bannedPhrase('The three copy buttons'),
+  bannedPhrase('Use the live Application Store showcase as the stage content'),
+  bannedPhrase('Card copy buttons'),
+  bannedPhrase('load it in Application Store'),
+  bannedPhrase('Do not recreate the whole Application Store'),
+  { label: 'categories field', pattern: /^\s*-\s*categories:/gim },
+  { label: 'sections field', pattern: /^\s*-\s*sections:/gim },
+  { label: 'pro field', pattern: /^\s*-\s*pro:/gim },
 ];
 
 const SECTIONS = [
