@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StillMotion } from '@/src/context/ReduceMotionContext';
 import { viewWeb } from '@/src/library/webProps';
@@ -15,22 +15,15 @@ function MissingIcon({ box }: { box: number }) {
   );
 }
 
-/** Static Skia frame. A missing poster falls back to the missing-preview icon. */
-export function SkiaPoster({ id, box }: { id: string; box: number }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <MissingIcon box={box} />;
-  return (
-    <Image
-      accessibilityIgnoresInvertColors
-      source={{ uri: `/posters/${id}.png` }}
-      resizeMode="contain"
-      onError={() => setFailed(true)}
-      style={{ width: box, height: box, backgroundColor: colors.stage }}
-    />
-  );
+/**
+ * Static Skia frame. Poster files are a later PR, so this does not request
+ * `/posters/<id>.png` until those files exist.
+ */
+export function SkiaPoster({ box }: { id: string; box: number }) {
+  return <MissingIcon box={box} />;
 }
 
-/** 44 or 28 still. Skia uses a poster. Everything else is the demo held at rest. */
+/** 44 or 28 still. Skia shows the poster placeholder. Everything else is the demo held at rest. */
 export function ThumbStill({ item, size }: { item: TransitionItem; size: number }) {
   if (item.skia) return <SkiaPoster id={item.id} box={size} />;
   const scale = size / 200;

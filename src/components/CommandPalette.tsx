@@ -181,7 +181,8 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
     if (option.kind === 'asset') rememberRecent(option.id);
     close();
     if (newTab && typeof window !== 'undefined') {
-      window.open(path, '_blank', 'noopener');
+      const opened = window.open(path, '_blank', 'noopener');
+      if (opened) opened.opener = null;
       return;
     }
     if (option.kind === 'asset') router.push({ pathname: '/a/[slug]', params: { slug: option.id } });
@@ -197,17 +198,24 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   openRef.current = openPalette;
 
   useEffect(() => {
-    // Capture: the search field stops keydown before a bubble listener on window.
+    // Capture: TextInput stops keydown before a bubble listener can see it.
+    const onToggle = (event: KeyboardEvent) => {
+      const command = (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
+      if (!command || event.key.toLowerCase() !== 'k' || event.repeat) return;
+      event.preventDefault();
+      const snap = live.current;
+      if (snap.visible && !snap.closing) closeRef.current();
+      else if (!snap.visible) openRef.current();
+    };
+    window.addEventListener('keydown', onToggle, true);
+    return () => window.removeEventListener('keydown', onToggle, true);
+  }, []);
+
+  useEffect(() => {
+    // Capture, same reason: arrows, Enter, and Esc never reach a bubble listener.
     const onKey = (event: KeyboardEvent) => {
       const snap = live.current;
       const command = (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
-      if (command && event.key.toLowerCase() === 'k') {
-        if (event.repeat) return;
-        event.preventDefault();
-        if (snap.visible && !snap.closing) closeRef.current();
-        else if (!snap.visible) openRef.current();
-        return;
-      }
       if (!snap.visible || snap.closing) return;
       if (event.key === 'Escape') {
         if (event.repeat) return;

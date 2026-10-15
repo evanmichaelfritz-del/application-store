@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "npx setup-skia-web public && npx expo export --platform web && cp dist/index.html dist/404.html",
+  "buildCommand": "node scripts/check-vercel-routes.mjs && npx setup-skia-web public && npx expo export --platform web && cp dist/index.html dist/404.html",
   "outputDirectory": "dist",
   "redirects": [
     {
