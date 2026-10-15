@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, useWindowDimensions, View, type ViewStyle } fro
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { TRANSITIONS } from '@/src/catalog';
+import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { EmptyResults } from '@/src/components/EmptyResults';
 import { FilterBar } from '@/src/components/FilterBar';
 import { LeftNav } from '@/src/components/LeftNav';
@@ -90,21 +90,63 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
           {items.length === 0 ? (
             <EmptyResults onClear={clearFilters} />
           ) : (
-            <View style={styles.grid}>
-              {items.map((item) => (
-                <Animated.View
-                  key={item.id}
-                  layout={layoutTransition(reduceMotion)}
-                  style={[styles.cell, cellStyle(columns, Boolean(item.fullRow))]}
-                >
-                  <TransitionCard item={item} />
-                </Animated.View>
-              ))}
-            </View>
+            <ProgressiveGrid
+              key={items.map((item) => item.id).join('|')}
+              items={items}
+              columns={columns}
+              reduceMotion={reduceMotion}
+            />
           )}
         </ScrollView>
       </View>
     </SafeAreaView>
+  );
+}
+
+const SYNC_COUNT = 12;
+const CHUNK_COUNT = 6;
+
+function scheduleIdle(work: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(() => work(), { timeout: 400 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const timer = setTimeout(work, 16);
+  return () => clearTimeout(timer);
+}
+
+function ProgressiveGrid({
+  items,
+  columns,
+  reduceMotion,
+}: {
+  items: readonly TransitionItem[];
+  columns: number;
+  reduceMotion: boolean;
+}) {
+  const total = items.length;
+  const [count, setCount] = useState(() => Math.min(SYNC_COUNT, total));
+
+  useEffect(() => {
+    if (count >= total) return;
+    return scheduleIdle(() => {
+      setCount((current) => Math.min(total, current + CHUNK_COUNT));
+    });
+  }, [count, total]);
+
+  return (
+    <View style={styles.grid}>
+      {items.slice(0, count).map((item) => (
+        <Animated.View
+          key={item.id}
+          layout={layoutTransition(reduceMotion)}
+          style={[styles.cell, cellStyle(columns, Boolean(item.fullRow))]}
+        >
+          <TransitionCard item={item} />
+        </Animated.View>
+      ))}
+    </View>
   );
 }
 
