@@ -31,7 +31,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Reanimated width/height timing. Copy emits portable CSS `.t-resize`.',
   },
   'number-pop-in': {
-    motion: 'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values.',
+    motion:
+      'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values. Rotate, opacity, and blur use `springs.default` (damping 20, stiffness 280).',
     content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. Spaces are digits in the row.',
     rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
   },
@@ -82,12 +83,14 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
   },
   'avatar-group-hover': {
-    motion: 'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength.',
+    motion:
+      'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength. Lift and scale use `springs.default` (damping 20, stiffness 280).',
     content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
     rn: 'Copy CSS sets the avatar tokens. Copy script writes the distance-weighted transform.',
   },
   'card-stack-hover': {
-    motion: 'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees.',
+    motion:
+      'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees. The spread uses `springs.layout` (damping 20, stiffness 280, mass 1).',
     content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
     rn: 'Copy CSS is `.t-stack-card`. Copy script toggles `.is-spread` on hover and click.',
   },
@@ -97,7 +100,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-shake`. Copy script validates the email and replays `.is-error`.',
   },
   'input-clear-dissolve': {
-    motion: 'Each word leaves over 250ms, blur 2px, translateY −12px, stagger 45ms. Click again restores the words.',
+    motion:
+      'Each word leaves over 250ms, blur 2px, translateY −12px, stagger 45ms. Click again restores the words. The layout change uses `layoutTransition` (`springify` damping 20, stiffness 280).',
     content: '`search` `recent` `files`.',
     rn: 'Copy CSS is `.t-word`. Copy script sets the stagger and toggles `.is-out`.',
   },
@@ -107,7 +111,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-skel` / `.t-content`. Copy script reveals after 900ms and toggles on click.',
   },
   'texts-reveal': {
-    motion: 'Two lines rise 12px over 280ms. The second line waits 50ms.',
+    motion:
+      'Two lines rise 12px over 280ms. The second line waits 50ms. Each line enters with `springify` (damping 20, stiffness 280).',
     content: '`Pull request opened` / `Review requested from 3 teammates`.',
     rn: 'Copy CSS is `.t-line`. Copy script replays by rewriting the lines.',
   },
@@ -132,7 +137,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'The gallery stage uses img-fx when that package is installed. Copy HTML, Copy CSS, and Copy script emit the closed-network canvas mosaic below, which is the preview document. They do not emit an npm install snippet.',
   },
   'tooltip-open-close': {
-    motion: '400ms delay in, travel + fade; out instant.',
+    motion:
+      '400ms delay in, travel + fade; out instant. Travel uses `springs.layout` (damping 20, stiffness 280, mass 1).',
     rn: 'Three triggers: Aa/Edit, ↗/Share, ···/More. The bubble travels by 44px per slot with no delay. Fade-in waits 400ms and lasts 180ms. Hide is instant. Copy CSS is `.t-tt`. Copy script sets `--tt-x`.',
   },
   'tilt-3d': {
