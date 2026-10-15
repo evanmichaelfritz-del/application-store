@@ -11,6 +11,8 @@ import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
+import { facetLine } from '@/src/library/taxonomy';
+import { pressableWeb, textWeb } from '@/src/library/webProps';
 import type { TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
 
@@ -41,6 +43,7 @@ function ActionButton({
       accessibilityLabel={label}
       testID={testID}
       onPress={onPress}
+      {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={(state) => {
         const hover = Boolean((state as { hovered?: boolean }).hovered);
         return [
@@ -55,7 +58,9 @@ function ActionButton({
         ];
       }}
     >
-      <Text style={[styles.actionText, done && styles.actionDoneText]}>{label}</Text>
+      <Text style={[styles.actionText, done && styles.actionDoneText]} {...textWeb({ dataSet: { focusRing: 'true' } })}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -143,7 +148,7 @@ export function TransitionCard({ item }: { item: TransitionItem }) {
             {item.title}
           </Text>
           <Text style={styles.subtitle} numberOfLines={phone ? 2 : 1}>
-            {item.subtitle}
+            {facetLine(item.id) ?? item.subtitle}
           </Text>
         </View>
         {phone ? (
