@@ -1247,15 +1247,16 @@ export function previewDocumentParts(id: string): PreviewParts {
   }
   const source = SOURCES[id];
   if (!source) throw new Error(`Missing preview source for ${id}`);
-  const parts = source.document
-    ? splitPreviewDocument(source.document)
-    : {
-        html: (source.html ?? '').trim(),
-        css: fullCss(id, source.extraCss, source.snippet !== false),
-        script: (source.script ?? '').trim(),
-      };
-  if (!parts.html || !parts.css) throw new Error(`Incomplete preview for ${id}`);
-  return parts;
+  if (source.document) {
+    const parts = splitPreviewDocument(source.document);
+    if (!parts.html || !parts.css) throw new Error(`Incomplete preview for ${id}`);
+    return parts;
+  }
+  const html = (source.html ?? '').trim();
+  const script = (source.script ?? '').trim();
+  const css = fullCss(id, html, script, source.extraCss, source.snippet !== false);
+  if (!html || !css) throw new Error(`Incomplete preview for ${id}`);
+  return { html, css, script };
 }
 
 export function copyTextFor(id: string, kind: 'html' | 'css' | 'script'): string {
@@ -1264,9 +1265,177 @@ export function copyTextFor(id: string, kind: 'html' | 'css' | 'script'): string
   return parts[kind];
 }
 
-function fullCss(id: string, extra: string | undefined, useSnippet: boolean): string {
+function classNames(selector: string): string[] {
+  return [...selector.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((match) => match[1] ?? '');
+}
+
+/** Class tokens keep `-` inside the name, so `aria-label` is not `label` and `orb-controls` is not `controls`. */
+function tokenAppears(name: string, source: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^A-Za-z0-9_-])${escaped}(?:$|[^A-Za-z0-9_-])`).test(source);
+}
+
+function splitSelectors(prelude: string): string[] {
+  const parts: string[] = [];
+  let current = '';
+  let depth = 0;
+  for (const ch of prelude) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) {
+      if (current.trim()) parts.push(current.trim());
+      current = '';
+    } else current += ch;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+function selectorNeeded(selector: string, haystack: string): boolean {
+  const classes = classNames(selector).filter((name) => name.length > 0);
+  if (classes.length === 0) return true;
+  return classes.every((name) => tokenAppears(name, haystack));
+}
+
+type CssBlock = {
+  kind: 'rule' | 'media' | 'keyframes' | 'other';
+  raw: string;
+  prelude: string;
+  body: string;
+  name: string;
+};
+
+function skipCssNoise(css: string, index: number): number {
+  const ch = css[index];
+  if (ch === '"' || ch === "'") {
+    let i = index + 1;
+    while (i < css.length) {
+      if (css[i] === '\\') {
+        i += 2;
+        continue;
+      }
+      if (css[i] === ch) return i + 1;
+      i += 1;
+    }
+    return i;
+  }
+  if (ch === '/' && css[index + 1] === '*') {
+    const end = css.indexOf('*/', index + 2);
+    return end < 0 ? css.length : end + 2;
+  }
+  return index;
+}
+
+function parseBlocks(css: string): CssBlock[] {
+  const blocks: CssBlock[] = [];
+  let i = 0;
+  while (i < css.length) {
+    while (i < css.length && /\s/.test(css[i] ?? '')) i += 1;
+    if (i >= css.length) break;
+    const start = i;
+    let open = -1;
+    while (i < css.length) {
+      const skipped = skipCssNoise(css, i);
+      if (skipped !== i) {
+        i = skipped;
+        continue;
+      }
+      if (css[i] === '{') {
+        open = i;
+        break;
+      }
+      i += 1;
+    }
+    if (open < 0) {
+      const raw = css.slice(start).trim();
+      if (raw) blocks.push({ kind: 'other', raw, prelude: raw, body: '', name: '' });
+      break;
+    }
+    let depth = 1;
+    i = open + 1;
+    while (i < css.length && depth > 0) {
+      const skipped = skipCssNoise(css, i);
+      if (skipped !== i) {
+        i = skipped;
+        continue;
+      }
+      if (css[i] === '{') depth += 1;
+      else if (css[i] === '}') depth -= 1;
+      i += 1;
+    }
+    const raw = css.slice(start, i);
+    const prelude = css.slice(start, open).trim();
+    const body = css.slice(open + 1, i - 1);
+    const frames = /^@keyframes\s+([A-Za-z_][\w-]*)/i.exec(prelude);
+    if (frames) {
+      blocks.push({ kind: 'keyframes', raw, prelude, body, name: frames[1] ?? '' });
+    } else if (/^@(media|supports)\b/i.test(prelude)) {
+      blocks.push({ kind: 'media', raw, prelude, body, name: '' });
+    } else {
+      blocks.push({ kind: 'rule', raw, prelude, body, name: '' });
+    }
+  }
+  return blocks;
+}
+
+function emitRule(block: CssBlock, haystack: string): string | null {
+  const selectors = splitSelectors(block.prelude);
+  const needed = selectors.filter((selector) => selectorNeeded(selector, haystack));
+  if (needed.length === 0) return null;
+  if (needed.length === selectors.length) return block.raw.trim();
+  return `${needed.join(', ')} {${block.body}}`;
+}
+
+/**
+ * Keep a shared sheet's rules only when this asset's HTML or script uses them.
+ * Element, :root, and pseudo-only selectors stay. A class selector stays when
+ * every class token appears. @keyframes stay when a kept rule names them.
+ */
+function filterSheet(css: string, html: string, script: string): string {
+  const haystack = `${html}\n${script}`;
+  const blocks = parseBlocks(css);
+  const kept: { index: number; text: string }[] = [];
+  const referenced: string[] = [];
+
+  blocks.forEach((block, index) => {
+    if (block.kind === 'keyframes') return;
+    if (block.kind === 'other') {
+      kept.push({ index, text: block.raw.trim() });
+      referenced.push(block.raw);
+      return;
+    }
+    if (block.kind === 'media') {
+      const inner = filterSheet(block.body, html, script);
+      if (!inner.trim()) return;
+      const text = inner.trim() === block.body.trim() ? block.raw.trim() : `${block.prelude} {\n${inner}\n}`;
+      kept.push({ index, text });
+      referenced.push(inner);
+      return;
+    }
+    const text = emitRule(block, haystack);
+    if (!text) return;
+    kept.push({ index, text });
+    referenced.push(text);
+  });
+
+  const used = referenced.join('\n');
+  blocks.forEach((block, index) => {
+    if (block.kind === 'keyframes' && block.name && tokenAppears(block.name, used)) {
+      kept.push({ index, text: block.raw.trim() });
+    }
+  });
+
+  kept.sort((a, b) => a.index - b.index);
+  const filtered = kept.map((item) => item.text).join('\n');
+  if (filtered.trim() === css.trim()) return css;
+  return filtered;
+}
+
+function fullCss(id: string, html: string, script: string, extra: string | undefined, useSnippet: boolean): string {
   const motion = useSnippet ? (SNIPPETS[id] ?? '') : '';
-  return [BASE_CSS, motion.trim(), (extra ?? '').trim()].filter(Boolean).join('\n\n');
+  const base = filterSheet(BASE_CSS, html, script);
+  const extraCss = extra === ORB_PREVIEW_CSS ? filterSheet(ORB_PREVIEW_CSS, html, script) : (extra ?? '');
+  return [base, motion.trim(), extraCss.trim()].filter(Boolean).join('\n\n');
 }
 
 function isPreviewKind(section: NavSection): section is PreviewKind {

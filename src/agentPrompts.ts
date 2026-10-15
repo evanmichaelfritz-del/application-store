@@ -5,10 +5,24 @@ import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/pr
 import { ORB_GALLERY_LOCKS } from './demos/thinking-orbs-playground/galleryCopy';
 import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
-type PromptLock = {
+export type PromptState = {
+  name: string;
+  trigger: string;
+  from: string;
+  to: string;
+  duration: string;
+  easing: string;
+  delay: string;
+};
+
+export type PromptLock = {
   motion: string;
   content?: string;
   rn: string;
+  states?: readonly PromptState[];
+  gotchas?: readonly string[];
+  setup?: string;
+  checklist?: readonly string[];
 };
 
 const LOCKS: Record<string, PromptLock> = {
@@ -137,7 +151,7 @@ const LOCKS: Record<string, PromptLock> = {
   gooey: {
     motion: 'Lower tile Gesture.Pan translateX/Y. Snap-back `withSpring` damping 20, stiffness 280, mass 0.85 after SNAP_DRAG 168px. Pink neck ≥16px between tile centers.',
     content: 'Purple tile `#7c2bff` + rose tile `#e11d48` + neck `#ff4ad2`. Tiles 120×148, radius 28, rest offset 28 / 78.',
-    rn: 'Web SHA: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
+    rn: 'Web: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
   },
   'liquid-metal': {
     motion: 'SweepGradient metal ring 3400ms. Stroke = thickness + sin(progress)·1.4. Auto thickness 4.5; send 5.5. Blur 8 on the glow pass.',
@@ -173,7 +187,7 @@ Closed-network rebuild brief. This document is the **only** source of truth.
 - Do **not** \`npm install liquid-gooey\` or any other package for this piece.
 - Do **not** invent demos beyond this piece.
 - Output must run offline as a single HTML file (or equivalent inline HTML/CSS/JS).
-- Stack for Application Store hosting may be Expo/RN, but the **portable recreation** you produce is plain HTML + CSS + JS with an SVG goo filter.
+- The portable recreation is plain HTML + CSS + JS with an SVG goo filter.
 
 ## Goal
 
@@ -265,7 +279,7 @@ ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
 
 ## Out of scope
 
-Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. Not Helix, not grok.me.
+Do not recreate the whole Application Store. Do not pull liquid-gooey from npm.
 `;
 }
 
@@ -274,6 +288,40 @@ const FULL_PROMPTS: Record<string, () => string> = {
   'gooey-plus-menu': buildGooeyPlusPrompt,
   'abrar-overview': () => abrarOverviewPrompt,
 };
+
+function filled(value: string | undefined): string {
+  return value?.trim() ?? '';
+}
+
+function statesSection(states: readonly PromptState[] | undefined): string {
+  if (!states || states.length === 0) return '';
+  const lines = states
+    .filter((state) => filled(state.name))
+    .map((state) => {
+      const from = filled(state.from);
+      const to = filled(state.to);
+      const change = from && to ? `${from} → ${to}` : from || to;
+      const bits = [filled(state.trigger), change, filled(state.duration), filled(state.easing), filled(state.delay)].filter(
+        (bit) => bit.length > 0,
+      );
+      return bits.length ? `- **${filled(state.name)}** — ${bits.join('. ')}` : `- **${filled(state.name)}**`;
+    });
+  if (lines.length === 0) return '';
+  return `## States\n\n${lines.join('\n')}`;
+}
+
+function listSection(title: string, items: readonly string[] | undefined, marker: string): string {
+  if (!items || items.length === 0) return '';
+  const lines = items.map((item) => item.trim()).filter((item) => item.length > 0);
+  if (lines.length === 0) return '';
+  return `## ${title}\n\n${lines.map((item) => `${marker}${item}`).join('\n')}`;
+}
+
+function setupSection(setup: string | undefined): string {
+  const text = filled(setup);
+  if (!text) return '';
+  return `## Setup\n\n${text}`;
+}
 
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
@@ -284,30 +332,25 @@ function buildPrompt(id: string): string {
 
   const parts = previewDocumentParts(id);
   const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
-
-  return `# AGENT_PROMPT — ${item.title}
-
-Closed-network rebuild brief for this Application Store piece. This document is the source of truth.
+  const blocks = [
+    `# AGENT_PROMPT — ${item.title}`,
+    `Closed-network rebuild brief for this Application Store piece. This document is the source of truth.
 
 - Do not fetch external pages, docs, or product sites.
 - Do not invent demos beyond this piece.
-- Not Helix, not grok.me, not peptide / Publish product code.
-- Stack: Expo + TypeScript + React Native for the gallery stage. The three copy buttons emit the closed-network HTML, CSS, and script that the preview document runs. Do not merge those three into one document.
-
-## Piece
+- The three copy buttons emit the closed-network HTML, CSS, and script that the preview document runs. Do not merge those three into one document.`,
+    `## Piece
 
 - id: \`${item.id}\`
 - title: ${item.title}
 - subtitle: ${item.subtitle}
 - categories: ${item.categories.join(', ')}
 - sections: ${item.sections.join(', ')}
-- pro: ${item.pro ? 'yes — same interactive demo, no paywall' : 'no'}
+- pro: ${item.pro ? 'yes — same interactive demo, no paywall' : 'no'}`,
+    `## Stage content
 
-## Stage content
-
-${lock.content ?? 'Use the live Application Store showcase as the stage content. Do not add extra chrome inside the 220px stage.'}
-
-## Motion lock
+${lock.content ?? 'Use the live Application Store showcase as the stage content. Do not add extra chrome inside the 220px stage.'}`,
+    `## Motion lock
 
 ${lock.motion}
 
@@ -316,45 +359,34 @@ Springs (do not churn):
 - pop: mass 0.8, damping 12, stiffness 280
 - snap: damping 18, stiffness 300
 
-Reduced motion: AccessibilityInfo + in-app toggle → duration 0 / skip springs.
+Reduced motion: AccessibilityInfo + in-app toggle → duration 0 / skip springs.`,
+    statesSection(lock.states),
+    `## RN note
 
-## RN note
-
-${lock.rn}
-
-## Copy HTML
+${lock.rn}`,
+    listSection('Gotchas', lock.gotchas, '- '),
+    setupSection(lock.setup),
+    `## Copy HTML
 
 \`\`\`html
 ${parts.html}
-\`\`\`
-
-## Copy CSS
+\`\`\``,
+    `## Copy CSS
 
 \`\`\`css
 ${parts.css}
-\`\`\`
-
-## Copy script
+\`\`\``,
+    `## Copy script
 
 \`\`\`js
 ${scriptText}
-\`\`\`
+\`\`\``,
+    listSection('Checklist', lock.checklist, '- [ ] '),
+    `## Out of scope
 
-## Card chrome (Application Store)
-
-Baseball card: white card, border rgba(0,0,0,0.06), shadow 0 1px 3px rgba(0,0,0,0.04), radius 16. Stage #f9f9f9, radius 14, height ~220px. Page background #fdfdfd. Font Inter.
-
-Each card must support:
-1. Showcase — live demo on the stage
-2. Copy HTML — the markup block above, alone
-3. Copy CSS — the stylesheet block above, alone
-4. Copy script — the script block above, alone. When the preview has no script, that button copies: ${HTML_CSS_ONLY_NOTE}
-5. AGENT_PROMPT — this prompt, revealable and copyable
-
-## Out of scope
-
-Do not invent demos beyond this piece. Not Helix, not grok.me.
-`;
+Do not invent demos beyond this piece.`,
+  ];
+  return blocks.filter((block) => block.trim().length > 0).join('\n\n');
 }
 
 export const AGENT_PROMPTS: Record<string, string> = Object.fromEntries(

@@ -473,7 +473,7 @@ export function Card() {
   --gooey-spring-m: 0.85;
 }
 /* RN: two Views + translate, pink neck bar ≥16px. Snap-back withSpring.
-   Web SHA uses Views (no Skia). */
+   Web uses Views (no Skia). */
 .t-gooey-tile { width: var(--gooey-tile-w); height: var(--gooey-tile-h); border-radius: 28px; }
 .t-gooey-neck { width: var(--gooey-neck); min-height: var(--gooey-neck); background: #ff4ad2; }
 @media (prefers-reduced-motion: reduce) {

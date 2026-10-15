@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "esbuild": "^0.28.2",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -43,8 +44,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 43181",
-    "export:web": "node scripts/check-vercel-routes.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html",
+    "export:web": "node scripts/check-vercel-routes.mjs && node scripts/check-prompts.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html",
     "check:routes": "node scripts/check-vercel-routes.mjs",
+    "check:prompts": "node scripts/check-prompts.mjs",
+    "test": "npm run check:routes && npm run check:prompts",
     "postinstall": "npx setup-skia-web public"
   },
   "engines": {
