@@ -11,6 +11,7 @@ import { PageHead } from '@/src/components/PageHead';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import { rememberGallery } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   EMPTY_FILTERS,
@@ -47,9 +48,13 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   useFocusEffect(
     useCallback(() => {
       syncFromUrl();
-      const frame = requestAnimationFrame(() => replaceGalleryQuery(readFilters()));
+      const frame = requestAnimationFrame(() => {
+        const current = readFilters();
+        replaceGalleryQuery(current);
+        rememberGallery(typeSlug, current);
+      });
       return () => cancelAnimationFrame(frame);
-    }, [syncFromUrl]),
+    }, [syncFromUrl, typeSlug]),
   );
 
   useEffect(() => {
@@ -62,6 +67,7 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   const onFilters = (next: GalleryFilters) => {
     setFilters(next);
     replaceGalleryQuery(next);
+    rememberGallery(typeSlug, next);
   };
 
   const clearFilters = () => onFilters(EMPTY_FILTERS);

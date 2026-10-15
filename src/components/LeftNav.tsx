@@ -27,19 +27,24 @@ export function LeftNav({
   typeSlug,
   filters,
   compact,
+  idle = false,
 }: {
   typeSlug: string | null;
   filters: GalleryFilters;
   compact: boolean;
+  /** Unknown asset pages keep the rail and highlight no row. */
+  idle?: boolean;
 }) {
   const { reduceMotion } = useReduceMotion();
-  const active: RowKey = VISIBLE_TYPES.find((type) => type.slug === typeSlug)?.slug ?? 'all';
+  const matched = VISIBLE_TYPES.find((type) => type.slug === typeSlug)?.slug;
+  const active: RowKey | null = idle ? null : (matched ?? 'all');
   const [boxes, setBoxes] = useState<Partial<Record<RowKey, RowBox>>>({});
   const [railHover, setRailHover] = useState<RowKey | null>(null);
   const pillY = useSharedValue(0);
   const pillH = useSharedValue(32);
 
   useEffect(() => {
+    if (active == null) return;
     const box = boxes[active];
     if (!box) return;
     pillY.value = sprung(box.y, springs.layout, reduceMotion);
@@ -66,11 +71,13 @@ export function LeftNav({
       style={[styles.rail, compact && styles.railStacked]}
     >
       <View style={styles.railStack}>
-        <Animated.View
-          pointerEvents="none"
-          {...viewWeb({ dataSet: { focusRing: 'true' } })}
-          style={[styles.railPill, railHover === active && styles.railPillHover, pillStyle]}
-        />
+        {active == null ? null : (
+          <Animated.View
+            pointerEvents="none"
+            {...viewWeb({ dataSet: { focusRing: 'true' } })}
+            style={[styles.railPill, railHover === active && styles.railPillHover, pillStyle]}
+          />
+        )}
         <NavRow
           label="All assets"
           count={totalAssets()}

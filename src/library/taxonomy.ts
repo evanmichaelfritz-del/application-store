@@ -265,6 +265,10 @@ export function galleryPath(typeSlug: string | null, filters: GalleryFilters): s
   return qs ? `${path}?${qs}` : path;
 }
 
+export function assetHref(slug: string): Href {
+  return { pathname: '/a/[slug]', params: { slug } };
+}
+
 export function galleryHref(typeSlug: string | null, filters: GalleryFilters): Href {
   const params: Record<string, string> = {};
   if (filters.motion.length) params.motion = filters.motion.join(',');

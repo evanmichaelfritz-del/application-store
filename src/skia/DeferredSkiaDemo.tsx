@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { Stage } from '@/src/components/Stage';
 import { warmSkiaDemo, type TransitionItem } from '@/src/catalog';
 import { LibdevStage } from '@/src/libdev/LibdevStage';
+import { viewWeb } from '@/src/library/webProps';
 import { retainCardState } from '@/src/skia/cardState';
 import { canvasKitReady, ensureCanvasKit } from '@/src/skia/ensureCanvasKit';
 
@@ -45,8 +46,18 @@ function hostElement(node: View | null, domId: string): HTMLElement | null {
   return document.getElementById(domId);
 }
 
+function FrameSkeleton() {
+  return <View style={styles.frameSkeleton} {...viewWeb({ dataSet: { previewSkeleton: 'true' } })} />;
+}
+
 /** Mount a Skia demo once it is within 200px, after the shared CanvasKit load. */
-export function DeferredSkiaDemo({ item }: { item: TransitionItem }) {
+export function DeferredSkiaDemo({
+  item,
+  appearance = 'card',
+}: {
+  item: TransitionItem;
+  appearance?: 'card' | 'frame';
+}) {
   const reactId = useId();
   const domId = `skia-${item.id}-${reactId.replace(/:/g, '')}`;
   const ref = useRef<View>(null);
@@ -85,18 +96,33 @@ export function DeferredSkiaDemo({ item }: { item: TransitionItem }) {
     [budget.hidden, live],
   );
   const show = armed && kit;
+  const placeholder = appearance === 'frame' ? <FrameSkeleton /> : <SkiaPlaceholder cardId={item.id} />;
+  const frameStyle: ViewStyle | undefined =
+    appearance === 'frame'
+      ? {
+          width: '100%',
+          minHeight: 420,
+          alignItems: item.fullRow ? 'stretch' : 'center',
+          justifyContent: item.fullRow ? 'flex-start' : 'center',
+        }
+      : undefined;
 
   return (
-    <View id={domId} ref={ref} collapsable={false}>
+    <View id={domId} ref={ref} collapsable={false} style={frameStyle}>
       <SkiaRuntimeContext.Provider value={runtime}>
-        {show ? (
-          <Suspense fallback={<SkiaPlaceholder cardId={item.id} />}>
-            <item.Demo />
-          </Suspense>
-        ) : (
-          <SkiaPlaceholder cardId={item.id} />
-        )}
+        {show ? <Suspense fallback={placeholder}><item.Demo /></Suspense> : placeholder}
       </SkiaRuntimeContext.Provider>
     </View>
   );
 }
+
+const styles = {
+  frameSkeleton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#eeeeef',
+  },
+} as const;

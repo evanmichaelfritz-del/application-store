@@ -43,15 +43,42 @@ const CSS = `
   background: rgba(0, 0, 0, 0.22);
   border-radius: 8px;
 }
+[data-code-text] {
+  white-space: pre;
+  font-family: GeistMono_500Medium, monospace;
+  font-size: 12.5px;
+  line-height: 20px;
+  color: #0d0d0d;
+}
+[data-inline-code] {
+  font-family: GeistMono_500Medium, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  color: #0d0d0d;
+  background-color: #f1f1f1;
+  border-radius: 5px;
+}
+[data-preview-skeleton] {
+  background-color: #eeeeef;
+  animation: store-skeleton-pulse 1200ms ease-in-out infinite;
+}
+@keyframes store-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
 @media (prefers-reduced-motion: reduce) {
   [data-focus-ring],
   [data-focus-ring] * {
     transition-duration: 0ms !important;
   }
+  [data-preview-skeleton] { animation: none !important; }
 }
 html[data-reduce-motion="1"] [data-focus-ring],
 html[data-reduce-motion="1"] [data-focus-ring] * {
   transition-duration: 0ms !important;
+}
+html[data-reduce-motion="1"] [data-preview-skeleton] {
+  animation: none !important;
 }
 `;
 
