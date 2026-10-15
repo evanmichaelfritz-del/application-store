@@ -28,6 +28,7 @@ import {
 } from '@/src/library/assetMeta';
 import { creditFor, type AssetCredit } from '@/src/library/credits';
 import { galleryBackTarget, recallGalleryTarget } from '@/src/library/galleryMemory';
+import { rememberRecent } from '@/src/library/recent';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   ASSET_META,
@@ -120,7 +121,9 @@ export function AssetPage({ slug }: { slug: string }) {
   installStoreChromeCss();
   const item = TRANSITIONS.find((entry) => entry.id === slug) ?? null;
   useEffect(() => {
-    if (typeof document === 'undefined' || !item) return;
+    if (!item) return;
+    rememberRecent(item.id);
+    if (typeof document === 'undefined') return;
     document.title = `${item.title} · Application Store`;
   }, [item]);
   if (!item) return null;

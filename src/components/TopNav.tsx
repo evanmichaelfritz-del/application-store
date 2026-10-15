@@ -1,11 +1,76 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { macShortcut, usePalette } from '@/src/components/CommandPalette';
+import { pressableWeb } from '@/src/library/webProps';
 import { colors, fonts, radii } from '../theme';
 import { useReduceMotion } from '../context/ReduceMotionContext';
 
+function applySearchAria(node: object | null) {
+  if (!node || !('setAttribute' in node)) return;
+  const set = node.setAttribute;
+  if (typeof set !== 'function') return;
+  set.call(node, 'aria-haspopup', 'dialog');
+  set.call(node, 'aria-keyshortcuts', 'Meta+K Control+K');
+}
+
+function SearchLaunch({ compact }: { compact?: boolean }) {
+  const { openPalette } = usePalette();
+  const ref = useRef<View>(null);
+  const [mac, setMac] = useState(false);
+  const [hover, setHover] = useState(false);
+
+  useEffect(() => {
+    setMac(macShortcut());
+    applySearchAria(ref.current);
+  }, []);
+
+  if (compact) {
+    return (
+      <Pressable
+        ref={ref}
+        accessibilityRole="button"
+        accessibilityLabel="Search assets"
+        testID="search-assets"
+        onPress={openPalette}
+        {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+        style={styles.searchIcon}
+      >
+        <Ionicons name="search" size={18} color={colors.textFaint} />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      ref={ref}
+      accessibilityRole="button"
+      accessibilityLabel="Search assets"
+      testID="search-assets"
+      onPress={openPalette}
+      onHoverIn={() => setHover(true)}
+      onHoverOut={() => setHover(false)}
+      {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+      style={[styles.searchBtn, hover && styles.searchBtnHover]}
+    >
+      <Ionicons name="search" size={14} color={colors.textFaint} />
+      <Text style={styles.searchPlaceholder}>Search assets…</Text>
+      <View style={styles.keyRow}>
+        <View style={[styles.keycap, !mac && styles.keycapWide]}>
+          <Text style={styles.keycapText}>{mac ? '⌘' : 'Ctrl'}</Text>
+        </View>
+        <View style={styles.keycap}>
+          <Text style={styles.keycapText}>K</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 export function TopNav() {
+  const { openPalette } = usePalette();
   const { forceReduceMotion, setForceReduceMotion } = useReduceMotion();
   const { width } = useWindowDimensions();
   const phone = width < 640;
@@ -30,14 +95,17 @@ export function TopNav() {
               Application Store
             </Text>
           </View>
-          <Pressable
-            onPress={() => setMenuOpen(true)}
-            style={styles.menuBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Menu"
-          >
-            <Text style={styles.menuGlyph}>⋯</Text>
-          </Pressable>
+          <View style={styles.phoneActions}>
+            <SearchLaunch compact />
+            <Pressable
+              onPress={() => setMenuOpen(true)}
+              style={styles.menuBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Menu"
+            >
+              <Text style={styles.menuGlyph}>⋯</Text>
+            </Pressable>
+          </View>
         </View>
         <Modal
           visible={menuOpen}
@@ -52,6 +120,17 @@ export function TopNav() {
               accessibilityLabel="Close menu"
             />
             <View style={[styles.menuSheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+              <Pressable
+                onPress={() => {
+                  setMenuOpen(false);
+                  openPalette();
+                }}
+                style={styles.menuItem}
+                accessibilityRole="button"
+                accessibilityLabel="Search assets"
+              >
+                <Text style={styles.menuItemText}>Search</Text>
+              </Pressable>
               <Pressable
                 onPress={() => {
                   setMenuOpen(false);
@@ -115,6 +194,7 @@ export function TopNav() {
         <Text style={styles.brand}>Application Store</Text>
       </View>
       <View style={styles.links}>
+        <SearchLaunch />
         <Text style={styles.link}>Master storefront</Text>
         <Link href="/playground" asChild>
           <Pressable
@@ -200,7 +280,48 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   brandPhone: { flexShrink: 1 },
-  links: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
+  links: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  searchBtn: {
+    width: 240,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+    paddingLeft: 10,
+    paddingRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    cursor: 'pointer',
+  },
+  searchBtnHover: { backgroundColor: colors.stage, borderColor: 'rgba(0,0,0,0.12)' },
+  searchPlaceholder: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textFaint,
+  },
+  keyRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  keycap: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: '#f1f1f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keycapWide: { width: 'auto', paddingHorizontal: 4 },
+  keycapText: { fontFamily: fonts.medium, fontSize: 11, lineHeight: 14, color: colors.textMuted },
+  phoneActions: { flexDirection: 'row', alignItems: 'center' },
+  searchIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
   link: {
     fontFamily: fonts.medium,
     fontSize: 13,

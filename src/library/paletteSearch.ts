@@ -1,0 +1,229 @@
+import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { creditFor } from '@/src/library/credits';
+import { newestAssets } from '@/src/library/recentlyAdded';
+import {
+  ASSET_META,
+  SOURCES,
+  VISIBLE_TYPES,
+  typeCount,
+  typeLabel,
+  type Source,
+} from '@/src/library/taxonomy';
+
+const ASSET_CAP = 8;
+const FACET_CAP = 3;
+
+const AUTHORS = [
+  { label: 'Jakub Antalik', source: 'libraries-dev' },
+  { label: 'Yogesh', source: 'yogesh' },
+  { label: 'Abrar Karim', source: 'abrar' },
+] as const;
+
+export type AssetOption = {
+  kind: 'asset';
+  id: string;
+  title: string;
+  typeLabel: string;
+  hint: string | null;
+  mark: { start: number; end: number } | null;
+};
+
+export type TypeOption = {
+  kind: 'type';
+  slug: string;
+  label: string;
+  count: number;
+};
+
+export type SourceOption = {
+  kind: 'source';
+  slug: Source;
+  label: string;
+  count: number;
+};
+
+export type MoreOption = { kind: 'more'; total: number };
+
+export type PaletteOption = AssetOption | TypeOption | SourceOption | MoreOption;
+
+export type PaletteGroup = { heading: string; options: PaletteOption[] };
+
+function norm(value: string): string {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
+}
+
+function sourceLabel(slug: Source | null): string | null {
+  if (!slug) return null;
+  return SOURCES.find((item) => item.slug === slug)?.label ?? null;
+}
+
+function sourceCount(slug: Source): number {
+  return Object.values(ASSET_META).filter((meta) => meta.source === slug).length;
+}
+
+function authorCount(label: string): number {
+  return TRANSITIONS.filter((item) => creditFor(item.id)?.label === label).length;
+}
+
+function markIn(title: string, query: string): { start: number; end: number } | null {
+  const at = title.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
+  if (at < 0) return null;
+  return { start: at, end: at + query.length };
+}
+
+function wordStart(name: string, query: string): boolean {
+  return name.split(/[^a-z0-9]+/).some((part) => part.length > 0 && part.startsWith(query));
+}
+
+function subsequence(name: string, query: string): boolean {
+  let index = 0;
+  for (const ch of name) {
+    if (ch === query[index]) index += 1;
+    if (index >= query.length) return true;
+  }
+  return false;
+}
+
+type Scored = { item: TransitionItem; index: number; rank: number; hint: string | null; mark: { start: number; end: number } | null };
+
+function scoreAsset(item: TransitionItem, index: number, query: string): Scored | null {
+  const name = norm(item.title);
+  const meta = ASSET_META[item.id];
+  const type = typeLabel(meta?.type ?? null);
+  let rank = 0;
+  let hint: string | null = null;
+  let mark: { start: number; end: number } | null = null;
+
+  if (name === query) rank = 1;
+  else if (name.startsWith(query)) rank = 2;
+  else if (wordStart(name, query)) rank = 3;
+  else if (name.includes(query)) rank = 4;
+
+  if (rank > 0) mark = markIn(item.title, query);
+
+  const tags = item.tags ?? [];
+  const exactTag = tags.find((tag) => norm(tag) === query);
+  const prefixTag = tags.find((tag) => norm(tag).startsWith(query));
+  if (rank === 0 && exactTag) {
+    rank = 5;
+    hint = `tag: ${exactTag}`;
+  } else if (rank === 0 && prefixTag) {
+    rank = 6;
+    hint = `tag: ${prefixTag}`;
+  }
+
+  const credit = creditFor(item.id);
+  const listed = sourceLabel(meta?.source ?? null);
+  if (rank === 0 && credit) {
+    const person = !credit.label.includes('.');
+    const authorHit = person && norm(credit.label).includes(query);
+    const sourceHit = listed != null && norm(listed).includes(query);
+    const siteHit = !person && norm(credit.label).includes(query);
+    if (authorHit) {
+      rank = 7;
+      hint = `author: ${credit.label}`;
+    } else if (sourceHit || siteHit) {
+      rank = 7;
+      hint = `source: ${listed ?? credit.label}`;
+    }
+  }
+
+  if (rank === 0 && type && norm(type).includes(query)) rank = 8;
+  if (rank === 0) return null;
+  return { item, index, rank, hint, mark };
+}
+
+function rankAssets(query: string): Scored[] {
+  const scored: Scored[] = [];
+  TRANSITIONS.forEach((item, index) => {
+    const hit = scoreAsset(item, index, query);
+    if (hit) scored.push(hit);
+  });
+  scored.sort((a, b) => a.rank - b.rank || a.index - b.index);
+  if (scored.length >= 3 || query.length < 2) return scored;
+  const seen = new Set(scored.map((hit) => hit.item.id));
+  const fuzzy: Scored[] = [];
+  TRANSITIONS.forEach((item, index) => {
+    if (seen.has(item.id)) return;
+    if (!subsequence(norm(item.title), query)) return;
+    fuzzy.push({ item, index, rank: 9, hint: null, mark: markIn(item.title, query) });
+  });
+  return [...scored, ...fuzzy].sort((a, b) => a.rank - b.rank || a.index - b.index);
+}
+
+function assetOption(hit: Scored): AssetOption {
+  return {
+    kind: 'asset',
+    id: hit.item.id,
+    title: hit.item.title,
+    typeLabel: typeLabel(ASSET_META[hit.item.id]?.type ?? null) ?? '',
+    hint: hit.hint,
+    mark: hit.mark,
+  };
+}
+
+function typeOptions(query: string): TypeOption[] {
+  const hits: TypeOption[] = [];
+  for (const type of VISIBLE_TYPES) {
+    if (query && !norm(type.label).includes(query)) continue;
+    hits.push({ kind: 'type', slug: type.slug, label: type.label, count: typeCount(type.slug) });
+  }
+  return query ? hits.slice(0, FACET_CAP) : hits;
+}
+
+function sourceOptions(query: string): SourceOption[] {
+  if (!query) return [];
+  const hits: SourceOption[] = [];
+  for (const source of SOURCES) {
+    const count = sourceCount(source.slug);
+    if (count === 0 || !norm(source.label).includes(query)) continue;
+    hits.push({ kind: 'source', slug: source.slug, label: source.label, count });
+  }
+  for (const author of AUTHORS) {
+    const count = authorCount(author.label);
+    if (count === 0 || !norm(author.label).includes(query)) continue;
+    hits.push({ kind: 'source', slug: author.source, label: author.label, count });
+  }
+  return hits.slice(0, FACET_CAP);
+}
+
+function assetGroup(heading: string, items: readonly TransitionItem[]): PaletteGroup {
+  return {
+    heading,
+    options: items.map((item) => ({
+      kind: 'asset',
+      id: item.id,
+      title: item.title,
+      typeLabel: typeLabel(ASSET_META[item.id]?.type ?? null) ?? '',
+      hint: null,
+      mark: null,
+    })),
+  };
+}
+
+/** Empty query lists recent opens, or the five newest assets, then every type. */
+export function paletteGroups(query: string, recentIds: readonly string[], showAll: boolean): PaletteGroup[] {
+  const q = norm(query.trim());
+  if (!q) {
+    const recent = recentIds
+      .map((id) => TRANSITIONS.find((item) => item.id === id))
+      .filter((item): item is TransitionItem => item != null)
+      .slice(0, 5);
+    const assets = recent.length > 0 ? assetGroup('Recent', recent) : assetGroup('Recently added', newestAssets(5));
+    const types = typeOptions('');
+    return types.length ? [assets, { heading: 'Types', options: types }] : [assets];
+  }
+
+  const ranked = rankAssets(q);
+  const shown = showAll ? ranked : ranked.slice(0, ASSET_CAP);
+  const assetOptions: PaletteOption[] = shown.map(assetOption);
+  if (!showAll && ranked.length > ASSET_CAP) assetOptions.push({ kind: 'more', total: ranked.length });
+
+  const groups: PaletteGroup[] = [];
+  if (assetOptions.length) groups.push({ heading: 'Assets', options: assetOptions });
+  const types = typeOptions(q);
+  if (types.length) groups.push({ heading: 'Types', options: types });
+  const sources = sourceOptions(q);
+  if (sources.length) groups.push({ heading: 'Sources', options: sources });
+  return groups;
+}

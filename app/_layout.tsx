@@ -5,8 +5,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
+import { PaletteProvider } from '@/src/components/CommandPalette';
 import { CopyToast } from '@/src/components/CopyToast';
 import { ReducedMotionBridge } from '@/src/components/ReducedMotionBridge';
 import { CopyToastProvider } from '@/src/context/CopyToastContext';
@@ -41,9 +43,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ReduceMotionProvider>
         <CopyToastProvider>
-          <ReducedMotionBridge />
-          <Stack screenOptions={{ headerShown: false }} />
-          <CopyToast />
+          <PaletteProvider>
+            <View nativeID="store-app" style={{ flex: 1 }}>
+              <ReducedMotionBridge />
+              <Stack screenOptions={{ headerShown: false }} />
+              <CopyToast />
+            </View>
+          </PaletteProvider>
         </CopyToastProvider>
       </ReduceMotionProvider>
     </GestureHandlerRootView>
