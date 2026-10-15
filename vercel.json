@@ -2,203 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "npx setup-skia-web public && npx expo export --platform web && cp dist/index.html dist/404.html",
+  "buildCommand": "node scripts/check-vercel-routes.mjs && npx setup-skia-web public && npx expo export --platform web && cp dist/index.html dist/404.html",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/playground",
       "destination": "/index.html"
     },
     {
-      "source": "/a/card-resize",
+      "source": "/a/:slug(card-resize|number-pop-in|notification-badge|text-states-swap|menu-dropdown|yogesh-thinking-orbs|confetti-burst|modal-open-close|gooey-plus-menu|page-side-by-side|icon-swap|success-check|avatar-group-hover|card-stack-hover|error-state-shake|input-clear-dissolve|skeleton-reveal|texts-reveal|tabs-sliding|drag-drop-physics|shimmer-text|image-generation-loader|tooltip-open-close|tilt-3d|border-beam|orb-solving|orb-thinking|orb-agent-listening|orb-searching|orb-agent-planning|orb-agent-thinking|orb-working|orb-agent-shaping|gooey|liquid-metal|abrar-overview|preview-tools|orb-state-picker|yogesh-orb-creator)",
       "destination": "/index.html"
     },
     {
-      "source": "/a/number-pop-in",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/notification-badge",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/text-states-swap",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/menu-dropdown",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/yogesh-thinking-orbs",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/confetti-burst",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/modal-open-close",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/gooey-plus-menu",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/page-side-by-side",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/icon-swap",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/success-check",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/avatar-group-hover",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/card-stack-hover",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/error-state-shake",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/input-clear-dissolve",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/skeleton-reveal",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/texts-reveal",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/tabs-sliding",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/drag-drop-physics",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/shimmer-text",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/image-generation-loader",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/tooltip-open-close",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/tilt-3d",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/border-beam",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-solving",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-thinking",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-agent-listening",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-searching",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-agent-planning",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-agent-thinking",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-working",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-agent-shaping",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/gooey",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/liquid-metal",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/abrar-overview",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/preview-tools",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/orb-state-picker",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/a/yogesh-orb-creator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/inputs-pickers",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/buttons",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/menus-overlays",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/cards",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/navigation",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/text-effects",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/backgrounds-shaders",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/loaders",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/c/data-display",
+      "source": "/c/:type(inputs-pickers|buttons|menus-overlays|cards|navigation|text-effects|backgrounds-shaders|loaders|data-display)",
       "destination": "/index.html"
     }
   ],

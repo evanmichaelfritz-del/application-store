@@ -70,26 +70,104 @@ a[data-focus-ring] {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
+[data-added-chevron] {
+  transition: transform 150ms ease-out;
+}
+[data-added-chevron="open"] {
+  transform: rotate(180deg);
+}
+[data-added-view]:hover [data-added-view-label] {
+  color: #0d0d0d;
+}
+[data-added-strip] {
+  overflow: hidden;
+  transition: max-height 150ms ease-out;
+}
+[data-added-strip="closed"] {
+  max-height: 260px;
+}
+[data-added-strip="open"] {
+  max-height: 2400px;
+}
+[data-still-scale] {
+  transform-origin: top left;
+}
+[data-still-scale="0.22"] {
+  transform: scale(0.22);
+}
+[data-still-scale="0.14"] {
+  transform: scale(0.14);
+}
+[data-gallery-skeleton] {
+  background-color: #eeeeef;
+  animation: store-gallery-pulse 1200ms ease-in-out infinite;
+}
+@keyframes store-gallery-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+[data-palette-overlay] {
+  position: fixed !important;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+}
+[data-palette-scrim],
+[data-palette-panel] {
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+[data-palette-scrim][data-ease="in"],
+[data-palette-panel][data-ease="in"] {
+  transition-timing-function: ease-in;
+}
+[data-palette-row],
+[data-palette-row] * {
+  transition: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
   [data-focus-ring],
   [data-focus-ring] * {
     transition-duration: 0ms !important;
   }
-  [data-preview-skeleton] { animation: none !important; }
+  [data-preview-skeleton],
+  [data-gallery-skeleton] { animation: none !important; }
+  [data-added-chevron],
+  [data-added-strip],
+  [data-palette-scrim],
+  [data-palette-panel] {
+    transition-duration: 0ms !important;
+  }
+  [data-palette-panel] { transform: none !important; }
 }
 html[data-reduce-motion="1"] [data-focus-ring],
 html[data-reduce-motion="1"] [data-focus-ring] * {
   transition-duration: 0ms !important;
 }
-html[data-reduce-motion="1"] [data-preview-skeleton] {
+html[data-reduce-motion="1"] [data-preview-skeleton],
+html[data-reduce-motion="1"] [data-gallery-skeleton] {
   animation: none !important;
+}
+html[data-reduce-motion="1"] [data-added-chevron],
+html[data-reduce-motion="1"] [data-added-strip],
+html[data-reduce-motion="1"] [data-palette-scrim],
+html[data-reduce-motion="1"] [data-palette-panel] {
+  transition-duration: 0ms !important;
+}
+html[data-reduce-motion="1"] [data-palette-panel] {
+  transform: none !important;
 }
 `;
 
 /** Metro web ignores +html.tsx, so the gallery chrome CSS is injected once. */
 export function installStoreChromeCss() {
   if (typeof document === 'undefined') return;
-  if (document.getElementById('store-chrome-css')) return;
+  const existing = document.getElementById('store-chrome-css');
+  if (existing) {
+    if (existing.textContent !== CSS) existing.textContent = CSS;
+    return;
+  }
   const style = document.createElement('style');
   style.id = 'store-chrome-css';
   style.textContent = CSS;

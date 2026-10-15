@@ -16,6 +16,7 @@ import { EmptyResults } from '@/src/components/EmptyResults';
 import { FilterBar } from '@/src/components/FilterBar';
 import { LeftNav } from '@/src/components/LeftNav';
 import { PageHead } from '@/src/components/PageHead';
+import { RecentlyAdded } from '@/src/components/RecentlyAdded';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
@@ -28,8 +29,10 @@ import {
   rememberGalleryScroll,
 } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
+import { viewWeb } from '@/src/library/webProps';
 import {
   EMPTY_FILTERS,
+  filtersActive,
   filtersFromParams,
   galleryPath,
   matchesGallery,
@@ -42,7 +45,7 @@ import {
   type GalleryFilters,
 } from '@/src/library/taxonomy';
 import { layoutTransition } from '@/src/motion';
-import { colors } from '@/src/theme';
+import { colors, radii } from '@/src/theme';
 
 export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   installStoreChromeCss();
@@ -139,6 +142,11 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   };
 
   const clearFilters = () => onFilters(EMPTY_FILTERS);
+  const showStrip = typeSlug == null && !filtersActive(filters);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(true);
+  }, []);
 
   const nav = <LeftNav typeSlug={typeSlug} filters={filters} compact={compact} />;
 
@@ -157,6 +165,7 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
         >
           {compact ? nav : null}
           <PageHead title={title} count={total} />
+          {ready ? (showStrip ? <RecentlyAdded /> : null) : showStrip ? <StripSkeleton /> : null}
           <FilterBar
             typeSlug={typeSlug}
             typeName={typeSlug ? title : null}
@@ -164,16 +173,20 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
             filters={filters}
             onChange={onFilters}
           />
-          {items.length === 0 ? (
-            <EmptyResults onClear={clearFilters} />
+          {ready ? (
+            items.length === 0 ? (
+              <EmptyResults onClear={clearFilters} />
+            ) : (
+              <ProgressiveGrid
+                key={gridKey}
+                items={items}
+                columns={columns}
+                reduceMotion={reduceMotion}
+                onSettled={onGridSettled}
+              />
+            )
           ) : (
-            <ProgressiveGrid
-              key={gridKey}
-              items={items}
-              columns={columns}
-              reduceMotion={reduceMotion}
-              onSettled={onGridSettled}
-            />
+            <GridSkeleton columns={columns} />
           )}
         </ScrollView>
       </View>
@@ -237,6 +250,39 @@ function ProgressiveGrid({
   );
 }
 
+function bone(style: ViewStyle) {
+  return <View style={style} {...viewWeb({ dataSet: { gallerySkeleton: 'true' } })} />;
+}
+
+function StripSkeleton() {
+  return (
+    <View style={styles.skelSection} testID="gallery-skeleton">
+      {bone(styles.skelHeader)}
+      {[0, 1, 2].map((row) => (
+        <View key={row} style={styles.skelRow}>
+          {[0, 1, 2].map((col) => (
+            <View key={col}>{bone(styles.skelItem)}</View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function GridSkeleton({ columns }: { columns: number }) {
+  return (
+    <View style={styles.grid} testID="gallery-grid-skeleton">
+      {Array.from({ length: 6 }, (_, index) => (
+        <View key={index} style={[styles.cell, cellStyle(columns, false), styles.skelCard]}>
+          {bone(styles.skelStage)}
+          {bone(styles.skelBarWide)}
+          {bone(styles.skelBarNarrow)}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function cellStyle(columns: number, fullRow: boolean): ViewStyle {
   if (fullRow || columns <= 1) return { width: '100%' };
   const gaps = (columns - 1) * 16;
@@ -272,4 +318,19 @@ const styles = StyleSheet.create({
   cell: {
     maxWidth: '100%',
   },
+  skelSection: { marginBottom: 24, gap: 12 },
+  skelHeader: { width: 120, height: 14, borderRadius: 6 },
+  skelRow: { flexDirection: 'row', gap: 8 },
+  skelItem: { width: 180, height: 56, borderRadius: 12 },
+  skelCard: {
+    backgroundColor: colors.card,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: 12,
+    gap: 10,
+  },
+  skelStage: { height: 150, borderRadius: radii.stage },
+  skelBarWide: { width: '60%', height: 12, borderRadius: 6 },
+  skelBarNarrow: { width: '40%', height: 12, borderRadius: 6 },
 });

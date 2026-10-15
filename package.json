@@ -43,7 +43,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 43181",
-    "export:web": "npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html",
+    "export:web": "node scripts/check-vercel-routes.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html",
+    "check:routes": "node scripts/check-vercel-routes.mjs",
     "postinstall": "npx setup-skia-web public"
   },
   "engines": {

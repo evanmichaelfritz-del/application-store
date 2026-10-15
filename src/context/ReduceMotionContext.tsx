@@ -44,3 +44,18 @@ export function useReduceMotion() {
   if (!ctx) throw new Error('useReduceMotion must be used inside ReduceMotionProvider');
   return ctx;
 }
+
+/** Resting frame for a preview. Demos that read this context skip their motion. */
+export function StillMotion({ children }: { children: ReactNode }) {
+  const parent = useReduceMotion();
+  const value = useMemo(
+    () => ({
+      reduceMotion: true,
+      systemReduceMotion: parent.systemReduceMotion,
+      forceReduceMotion: true,
+      setForceReduceMotion: parent.setForceReduceMotion,
+    }),
+    [parent.setForceReduceMotion, parent.systemReduceMotion],
+  );
+  return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
+}
