@@ -47,6 +47,8 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   useFocusEffect(
     useCallback(() => {
       syncFromUrl();
+      const frame = requestAnimationFrame(() => replaceGalleryQuery(readFilters()));
+      return () => cancelAnimationFrame(frame);
     }, [syncFromUrl]),
   );
 
