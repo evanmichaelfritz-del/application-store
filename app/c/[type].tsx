@@ -1,4 +1,5 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import NotFound from '../+not-found';
 import { StoreGallery } from '@/src/components/StoreGallery';
 import { isComponentType } from '@/src/library/taxonomy';
 
@@ -16,8 +17,6 @@ export default function TypeGallery() {
   // still renders, and the pathname then names the asset — reading it here
   // redirected Back onto `/` and dropped the filtered screen.
   const slug = firstString(useLocalSearchParams().type);
-  if (!isComponentType(slug)) {
-    return <Redirect href="/" />;
-  }
+  if (!isComponentType(slug)) return <NotFound />;
   return <StoreGallery typeSlug={slug} />;
 }

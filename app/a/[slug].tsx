@@ -1,4 +1,6 @@
 import { usePathname } from 'expo-router';
+import NotFound from '../+not-found';
+import { TRANSITIONS } from '@/src/catalog';
 import { AssetPage } from '@/src/components/AssetPage';
 
 function readSlug(pathname: string): string {
@@ -12,5 +14,7 @@ function readSlug(pathname: string): string {
 
 export default function AssetRoute() {
   const pathname = usePathname();
-  return <AssetPage slug={readSlug(pathname)} />;
+  const slug = readSlug(pathname);
+  if (!TRANSITIONS.some((entry) => entry.id === slug)) return <NotFound />;
+  return <AssetPage slug={slug} />;
 }
