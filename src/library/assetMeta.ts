@@ -26,7 +26,7 @@ export function relatedItems(id: string): TransitionItem[] {
   return [...sameType, ...sameSource].slice(0, 3);
 }
 
-export const ADDED_LABEL = 'Oct 14, 2026';
+export { addedOn } from '@/src/library/addedDates';
 
 type PropRow = {
   name: string;

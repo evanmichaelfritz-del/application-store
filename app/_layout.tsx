@@ -11,6 +11,7 @@ import { CopyToast } from '@/src/components/CopyToast';
 import { ReducedMotionBridge } from '@/src/components/ReducedMotionBridge';
 import { CopyToastProvider } from '@/src/context/CopyToastContext';
 import { ReduceMotionProvider } from '@/src/context/ReduceMotionContext';
+import { installGalleryBackFix } from '@/src/library/galleryHistory';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -31,6 +32,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
+
+  useEffect(() => installGalleryBackFix(), []);
 
   if (!loaded) return null;
 

@@ -15,7 +15,7 @@ import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { codeSlot, loadAssetPrompt, promptIsLazy, readyPrompt, type CodeKind } from '@/src/library/assetCopy';
 import {
-  ADDED_LABEL,
+  addedOn,
   gapsFor,
   installFor,
   parityFor,
@@ -747,7 +747,7 @@ function PromptBody({ id }: { id: string }) {
 }
 
 function PropsBlock({ rows }: { rows: readonly AssetProp[] }) {
-  if (!rows.length) return <Text style={styles.quiet}>This asset takes no props.</Text>;
+  if (!rows.length) return <Text style={styles.quiet}>Props not documented yet</Text>;
   return (
     <View style={styles.table}>
       <View style={styles.propHead}>
@@ -788,6 +788,7 @@ function PropsBlock({ rows }: { rows: readonly AssetProp[] }) {
 function Details({ item, credit }: { item: TransitionItem; credit: AssetCredit | null }) {
   const meta = ASSET_META[item.id];
   const stack = STACKS.find((entry) => entry.slug === meta.stack)?.label ?? '';
+  const added = addedOn(item.id);
   return (
     <View style={styles.details}>
       <DetailRow label="Author" last={false}>
@@ -809,9 +810,11 @@ function Details({ item, credit }: { item: TransitionItem; credit: AssetCredit |
       <DetailRow label="Stack" last={false}>
         <Text style={styles.valueText}>{stack}</Text>
       </DetailRow>
-      <DetailRow label="Added" last={false}>
-        <Text style={styles.valueText}>{ADDED_LABEL}</Text>
-      </DetailRow>
+      {added ? (
+        <DetailRow label="Added" last={false}>
+          <Text style={styles.valueText}>{added}</Text>
+        </DetailRow>
+      ) : null}
       <DetailRow label="Parity" last={false}>
         <ParityValue parity={parityFor(item.id)} />
       </DetailRow>
