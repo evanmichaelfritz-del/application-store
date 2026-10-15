@@ -179,6 +179,7 @@ function Found({ item }: { item: TransitionItem }) {
   const { copied, mark } = useCopied();
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
+  const [codeReady, setCodeReady] = useState(false);
   const kind = CODE_TABS.find((entry) => entry.id === tab)?.kind ?? 'html';
   const tabs = useMemo(
     () => CODE_TABS.filter((entry) => entry.kind !== 'css' || codeSlot(item.id, 'css').trim().length > 0),
@@ -276,7 +277,11 @@ function Found({ item }: { item: TransitionItem }) {
           active={activeTab}
           kind={activeKind}
           copied={copied === 'slot'}
-          onChange={setTab}
+          defer={!codeReady}
+          onChange={(next) => {
+            setCodeReady(true);
+            setTab(next);
+          }}
           onCopy={() => {
             mark('slot');
             const text = codeSlot(item.id, activeKind);
@@ -352,26 +357,32 @@ function BarButton({
   style?: StyleProp<ViewStyle>;
 }) {
   const primary = tone === 'primary' || done;
+  const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
   const control = (
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
       accessibilityLabel={label}
       testID={testID}
       onPress={onPress}
-      {...pressableWeb({ dataSet: { focusRing: 'true' } })}
-      style={(state) => {
-        const hover = Boolean((state as { hovered?: boolean }).hovered);
-        return [
-          styles.button,
-          styles.pointer,
-          primary ? styles.buttonPrimary : styles.buttonSecondary,
-          hover && primary && styles.buttonPrimaryHover,
-          hover && !primary && styles.buttonSecondaryHover,
-          state.pressed && primary && styles.buttonPrimaryPressed,
-          state.pressed && !primary && styles.buttonSecondaryPressed,
-          style,
-        ];
+      onHoverIn={() => setHover(true)}
+      onHoverOut={() => {
+        setHover(false);
+        setPressed(false);
       }}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+      style={StyleSheet.flatten([
+        styles.button,
+        styles.pointer,
+        primary ? styles.buttonPrimary : styles.buttonSecondary,
+        hover && !pressed && primary && styles.buttonPrimaryHover,
+        hover && !pressed && !primary && styles.buttonSecondaryHover,
+        pressed && primary && styles.buttonPrimaryPressed,
+        pressed && !primary && styles.buttonSecondaryPressed,
+        style,
+      ])}
     >
       {icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null}
       <Text style={[styles.buttonText, primary && styles.buttonTextOn]}>{label}</Text>
@@ -513,6 +524,7 @@ function CodePanel({
   active,
   kind,
   copied,
+  defer,
   onChange,
   onCopy,
 }: {
@@ -521,6 +533,7 @@ function CodePanel({
   active: CodeTabId;
   kind: CodeKind;
   copied: boolean;
+  defer: boolean;
   onChange: (id: CodeTabId) => void;
   onCopy: () => void;
 }) {
@@ -529,7 +542,7 @@ function CodePanel({
       <CodeTabs tabs={tabs} active={active} onChange={onChange} />
       <View style={styles.codeBlock}>
         <ScrollView style={styles.codeScroll} contentContainerStyle={styles.codePad}>
-          <CodeBody key={kind} id={id} kind={kind} />
+          <CodeBody key={kind} id={id} kind={kind} defer={defer} />
         </ScrollView>
         <Pressable
           accessibilityRole="button"
@@ -634,19 +647,24 @@ function CodeTabs({
   );
 }
 
-const CodeBody = memo(function CodeBody({ id, kind }: { id: string; kind: CodeKind }) {
+const CodeBody = memo(function CodeBody({ id, kind, defer }: { id: string; kind: CodeKind; defer: boolean }) {
   const domId = `asset-code-${kind}`;
   const ref = useRef<View>(null);
   const [body, setBody] = useState('');
   useEffect(() => {
-    return scheduleIdle(() => {
+    const apply = () => {
       try {
         setBody(codeSlot(id, kind));
       } catch {
         setBody('');
       }
-    });
-  }, [id, kind]);
+    };
+    if (!defer) {
+      apply();
+      return;
+    }
+    return scheduleIdle(apply);
+  }, [defer, id, kind]);
   useLayoutEffect(() => {
     const node = hostElement(ref.current, domId);
     if (!node || !body) return;
@@ -912,6 +930,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    alignSelf: 'flex-start',
   },
   buttonPrimary: { backgroundColor: colors.text, borderColor: colors.text },
   buttonPrimaryHover: { backgroundColor: '#4a4a4a', borderColor: '#4a4a4a' },

@@ -5,6 +5,10 @@ const CSS = `
   transition-duration: 150ms;
   transition-timing-function: ease-out;
 }
+a[data-focus-ring] {
+  color: inherit;
+  text-decoration: none;
+}
 [data-focus-ring]:focus {
   outline: none;
 }
