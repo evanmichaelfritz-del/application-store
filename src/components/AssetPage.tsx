@@ -120,10 +120,10 @@ export function AssetPage({ slug }: { slug: string }) {
   installStoreChromeCss();
   const item = TRANSITIONS.find((entry) => entry.id === slug) ?? null;
   useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.title = item ? `${item.title} · Application Store` : 'Asset not found · Application Store';
+    if (typeof document === 'undefined' || !item) return;
+    document.title = `${item.title} · Application Store`;
   }, [item]);
-  if (!item) return <Missing slug={slug} />;
+  if (!item) return null;
   return <Found item={item} />;
 }
 
@@ -158,20 +158,6 @@ function StoreShell({
         </ScrollView>
       </View>
     </SafeAreaView>
-  );
-}
-
-function Missing({ slug }: { slug: string }) {
-  return (
-    <StoreShell selection={null} idle>
-      <Text style={styles.title} accessibilityRole="header" testID="asset-missing">
-        Asset not found
-      </Text>
-      <Text style={styles.missingLine} testID="asset-missing-copy">
-        No asset at /a/{slug}.
-      </Text>
-      <BarButton label="Browse all assets" href="/" testID="browse-all" />
-    </StoreShell>
   );
 }
 
@@ -922,14 +908,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   subtitleTight: { marginBottom: 10 },
-  missingLine: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textMuted,
-    marginTop: 8,
-    marginBottom: 16,
-  },
   chip: {
     alignSelf: 'flex-start',
     height: 22,

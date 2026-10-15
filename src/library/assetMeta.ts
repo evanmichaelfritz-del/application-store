@@ -1,4 +1,5 @@
 import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { ASSET_GAPS } from '@/src/library/assetGaps';
 import { ASSET_META } from '@/src/library/taxonomy';
 
 /** Static tuners and pickers. Gesture assets are reset separately. */
@@ -38,13 +39,11 @@ type PropRow = {
 
 type PropEntry = { id: string; props: readonly PropRow[] };
 type InstallEntry = { id: string; line: string; deps: readonly string[] };
-type GapEntry = { id: string; gaps: readonly string[] };
 type ParityEntry = { id: string; sha: string; href: string };
 
-/** No catalog asset publishes a prop table, install line, gap, or parity record yet. */
+/** No catalog asset publishes a prop table, install line, or parity record yet. */
 const PROP_ENTRIES: readonly PropEntry[] = [];
 const INSTALL_ENTRIES: readonly InstallEntry[] = [];
-const GAP_ENTRIES: readonly GapEntry[] = [];
 const PARITY_ENTRIES: readonly ParityEntry[] = [];
 
 export type AssetProp = PropRow;
@@ -61,7 +60,7 @@ export function installFor(id: string): AssetInstall | null {
 }
 
 export function gapsFor(id: string): readonly string[] {
-  return GAP_ENTRIES.find((entry) => entry.id === id)?.gaps ?? [];
+  return ASSET_GAPS[id] ?? [];
 }
 
 export function parityFor(id: string): AssetParity | null {
