@@ -1,4 +1,4 @@
-import { Component, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentRef, type ReactNode } from 'react';
+import { Component, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,10 +27,11 @@ import {
   type AssetProp,
 } from '@/src/library/assetMeta';
 import { creditFor, type AssetCredit } from '@/src/library/credits';
-import { recallGallery } from '@/src/library/galleryMemory';
+import { recallGalleryTarget } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   ASSET_META,
+  EMPTY_FILTERS,
   galleryHref,
   STACKS,
   typeLabel,
@@ -138,7 +139,7 @@ function StoreShell({
   const { width } = useWindowDimensions();
   const compact = width < 880;
   const phone = width < 640;
-  const [filters] = useState(recallGallery);
+  const [filters] = useState(() => recallGalleryTarget()?.filters ?? EMPTY_FILTERS);
   const nav = <LeftNav typeSlug={selection} filters={filters} compact={compact} idle={idle} />;
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
@@ -301,10 +302,13 @@ function Found({ item }: { item: TransitionItem }) {
 }
 
 function BackLink({ type, label }: { type: ComponentType; label: string }) {
-  const [filters] = useState(recallGallery);
+  const [target] = useState(recallGalleryTarget);
+  const backType = target ? target.type : type;
+  const filters = target ? target.filters : EMPTY_FILTERS;
+  const backLabel = target ? (typeLabel(target.type) ?? 'All assets') : label;
   const [hover, setHover] = useState(false);
   return (
-    <Link href={galleryHref(type, filters)} asChild>
+    <Link href={galleryHref(backType, filters)} asChild>
       <Pressable
         accessibilityRole="link"
         testID="asset-back"
@@ -313,7 +317,7 @@ function BackLink({ type, label }: { type: ComponentType; label: string }) {
         {...pressableWeb({ dataSet: { focusRing: 'true' } })}
         style={StyleSheet.flatten([styles.back, styles.pointer])}
       >
-        <Text style={[styles.backText, hover && styles.backTextHover]}>← {label}</Text>
+        <Text style={[styles.backText, hover && styles.backTextHover]}>← {backLabel}</Text>
       </Pressable>
     </Link>
   );
@@ -396,10 +400,29 @@ function BarButton({
   );
 }
 
+const PREVIEW_LOAD_MS = 8000;
+
+function MarkLive({ onLive }: { onLive: () => void }) {
+  useEffect(() => {
+    onLive();
+  }, [onLive]);
+  return null;
+}
+
 function AssetPreview({ item }: { item: TransitionItem }) {
   const [mount, setMount] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [live, setLive] = useState(false);
   const control = previewControl(item.id);
+  const fail = useCallback(() => setFailed(true), []);
+  const markLive = useCallback(() => setLive(true), []);
+
+  useEffect(() => {
+    if (failed || live) return;
+    const timer = setTimeout(() => setFailed(true), PREVIEW_LOAD_MS);
+    return () => clearTimeout(timer);
+  }, [failed, live, mount]);
+
   return (
     <View
       testID="asset-preview"
@@ -408,12 +431,16 @@ function AssetPreview({ item }: { item: TransitionItem }) {
       {failed ? (
         <Unavailable />
       ) : (
-        <PreviewBoundary
-          resetKey={mount}
-          onFail={() => setFailed(true)}
-        >
+        <PreviewBoundary resetKey={mount} onFail={fail}>
           <View key={mount} style={item.fullRow ? styles.demoFill : styles.demoCenter}>
-            {item.skia ? <DeferredSkiaDemo item={item} appearance="frame" /> : <item.Demo />}
+            {item.skia ? (
+              <DeferredSkiaDemo item={item} appearance="frame" onUnavailable={fail} onLive={markLive} />
+            ) : (
+              <>
+                <item.Demo />
+                <MarkLive onLive={markLive} />
+              </>
+            )}
           </View>
         </PreviewBoundary>
       )}
@@ -424,6 +451,7 @@ function AssetPreview({ item }: { item: TransitionItem }) {
             icon="refresh-outline"
             onPress={() => {
               setFailed(false);
+              setLive(false);
               setMount((value) => value + 1);
             }}
             testID="asset-replay"
@@ -918,7 +946,16 @@ const styles = StyleSheet.create({
   demoFill: { width: '100%', minHeight: 420 },
   replay: { position: 'absolute', top: 12, right: 12, zIndex: 6 },
   replayButton: { height: 28 },
-  unavailable: { alignItems: 'center', justifyContent: 'center', gap: 8 },
+  unavailable: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   unavailableText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.textSubtle },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   button: {

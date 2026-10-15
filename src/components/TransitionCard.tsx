@@ -129,35 +129,35 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   };
 
   const stage = (
-    <Link href={assetHref(item.id)} asChild>
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={item.title}
-        testID={`card-link-${item.id}`}
-        {...pressableWeb({ dataSet: { focusRing: 'true' } })}
-        style={styles.stageLink}
-      >
-        <View style={[styles.stageWrap, compact && styles.stageWrapCompact]}>
-          {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
-          <View style={styles.live}>
-            <Text style={styles.liveText}>Showcase</Text>
-          </View>
-          {item.pro ? (
-            <View style={styles.pro}>
-              <Text style={styles.proText}>Pro</Text>
-            </View>
-          ) : null}
+    <View>
+      <View style={[styles.stageWrap, compact && styles.stageWrapCompact]}>
+        {item.skia ? <DeferredSkiaDemo item={item} /> : <item.Demo />}
+        <View style={styles.live}>
+          <Text style={styles.liveText}>Showcase</Text>
         </View>
-        <View style={[styles.titles, compact && styles.titlesCompact]}>
+        {item.pro ? (
+          <View style={styles.pro}>
+            <Text style={styles.proText}>Pro</Text>
+          </View>
+        ) : null}
+      </View>
+      <Link href={assetHref(item.id)} asChild>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={item.title}
+          testID={`card-link-${item.id}`}
+          {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+          style={StyleSheet.flatten([styles.titles, compact && styles.titlesCompact])}
+        >
           <Text style={[styles.title, phone && !compact && styles.titlePhone]} numberOfLines={1}>
             {item.title}
           </Text>
           <Text style={styles.subtitle} numberOfLines={phone && !compact ? 2 : 1}>
             {facetLine(item.id) ?? item.subtitle}
           </Text>
-        </View>
-      </Pressable>
-    </Link>
+        </Pressable>
+      </Link>
+    </View>
   );
 
   return (
@@ -265,7 +265,6 @@ const styles = StyleSheet.create({
     padding: 12,
     ...shadows.card,
   },
-  stageLink: { alignSelf: 'stretch' },
   stageWrap: { position: 'relative' },
   stageWrapCompact: { height: 150, overflow: 'hidden', borderRadius: radii.stage },
   titlesCompact: { paddingBottom: 2 },

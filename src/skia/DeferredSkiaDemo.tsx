@@ -50,13 +50,26 @@ function FrameSkeleton() {
   return <View style={styles.frameSkeleton} {...viewWeb({ dataSet: { previewSkeleton: 'true' } })} />;
 }
 
+function PreviewLive({ onLive }: { onLive: () => void }) {
+  useEffect(() => {
+    onLive();
+  }, [onLive]);
+  return null;
+}
+
 /** Mount a Skia demo once it is within 200px, after the shared CanvasKit load. */
 export function DeferredSkiaDemo({
   item,
   appearance = 'card',
+  onUnavailable,
+  onLive,
 }: {
   item: TransitionItem;
   appearance?: 'card' | 'frame';
+  /** Asset preview: CanvasKit / LoadSkiaWeb rejected. */
+  onUnavailable?: () => void;
+  /** Asset preview: the demo committed, so a load timeout can stand down. */
+  onLive?: () => void;
 }) {
   const reactId = useId();
   const domId = `skia-${item.id}-${reactId.replace(/:/g, '')}`;
@@ -79,15 +92,20 @@ export function DeferredSkiaDemo({
 
   useEffect(() => {
     if (!armed) return;
-    let live = true;
+    let current = true;
     warmSkiaDemo(item.id);
-    ensureCanvasKit().then(() => {
-      if (live) setKit(true);
-    });
+    ensureCanvasKit().then(
+      () => {
+        if (current) setKit(true);
+      },
+      () => {
+        if (current) onUnavailable?.();
+      },
+    );
     return () => {
-      live = false;
+      current = false;
     };
-  }, [armed, item.id]);
+  }, [armed, item.id, onUnavailable]);
 
   const budget = useSyncExternalStore(subscribeSkiaBudget, getSkiaBudget, getSkiaBudget);
   const live = !canObserve || untracked || budget.live.has(reactId);
@@ -110,7 +128,14 @@ export function DeferredSkiaDemo({
   return (
     <View id={domId} ref={ref} collapsable={false} style={frameStyle}>
       <SkiaRuntimeContext.Provider value={runtime}>
-        {show ? <Suspense fallback={placeholder}><item.Demo /></Suspense> : placeholder}
+        {show ? (
+          <Suspense fallback={placeholder}>
+            <item.Demo />
+            {onLive ? <PreviewLive onLive={onLive} /> : null}
+          </Suspense>
+        ) : (
+          placeholder
+        )}
       </SkiaRuntimeContext.Provider>
     </View>
   );

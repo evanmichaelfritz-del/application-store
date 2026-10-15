@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { EmptyResults } from '@/src/components/EmptyResults';
 import { FilterBar } from '@/src/components/FilterBar';
@@ -15,10 +15,10 @@ import { rememberGallery } from '@/src/library/galleryMemory';
 import { installStoreChromeCss } from '@/src/library/storeChromeCss';
 import {
   EMPTY_FILTERS,
+  filtersFromParams,
   matchesGallery,
-  readFilters,
   replaceGalleryQuery,
-  sameFilters,
+  serializeFilters,
   totalAssets,
   typeCount,
   typeLabel,
@@ -35,34 +35,27 @@ export function StoreGallery({ typeSlug }: { typeSlug: ComponentType | null }) {
   const phone = width < 640;
   const compact = width < 880;
   const columns = width >= 1180 ? 3 : width >= 880 ? 2 : 1;
-  const [filters, setFilters] = useState<GalleryFilters>(readFilters);
+  const routed = filtersFromParams(useLocalSearchParams());
+  const routedKey = serializeFilters(routed);
+  const [routeKey, setRouteKey] = useState(routedKey);
+  const [filters, setFilters] = useState<GalleryFilters>(routed);
+  if (routeKey !== routedKey) {
+    setRouteKey(routedKey);
+    setFilters(routed);
+  }
   const title = typeSlug ? (typeLabel(typeSlug) ?? 'All assets') : 'All assets';
   const total = typeSlug ? typeCount(typeSlug) : totalAssets();
   const items = TRANSITIONS.filter((item) => matchesGallery(item, typeSlug, filters));
 
-  const syncFromUrl = useCallback(() => {
-    const next = readFilters();
-    setFilters((prev) => (sameFilters(prev, next) ? prev : next));
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
-      syncFromUrl();
       const frame = requestAnimationFrame(() => {
-        const current = readFilters();
-        replaceGalleryQuery(current);
-        rememberGallery(typeSlug, current);
+        replaceGalleryQuery(filters);
+        rememberGallery(typeSlug, filters);
       });
       return () => cancelAnimationFrame(frame);
-    }, [syncFromUrl, typeSlug]),
+    }, [filters, typeSlug]),
   );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onPop = () => syncFromUrl();
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [syncFromUrl]);
 
   const onFilters = (next: GalleryFilters) => {
     setFilters(next);

@@ -244,6 +244,27 @@ export function readFilters(): GalleryFilters {
   return parseGallerySearch(window.location.search);
 }
 
+function joinedParam(value: string | string[] | undefined): string | null {
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return null;
+  const parts: string[] = [];
+  for (const part of value) {
+    if (typeof part === 'string' && part.length > 0) parts.push(part);
+  }
+  return parts.length > 0 ? parts.join(',') : null;
+}
+
+/** Gallery filters from the route, not `window.location` (that lags a navigation). */
+export function filtersFromParams(params: { [key: string]: string | string[] | undefined }): GalleryFilters {
+  return {
+    motion: pick(joinedParam(params.motion), MOTIONS.map((item) => item.slug)),
+    stack: pick(joinedParam(params.stack), STACKS.map((item) => item.slug)),
+    source: pick(joinedParam(params.source), SOURCES.map((item) => item.slug)),
+    status: pick(joinedParam(params.status), STATUSES.map((item) => item.slug)),
+    q: joinedParam(params.q) ?? '',
+  };
+}
+
 function encodeList(values: readonly string[]): string {
   return values.map((value) => encodeURIComponent(value)).join(',');
 }
