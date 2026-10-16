@@ -22,16 +22,18 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'yogesh-orb-creator') return loadYogeshOrbCreatorPrompt();
   if (id === 'border-beam') return loadPublicPrompt('/prompts/border-beam.md');
   if (id === 'liquid-metal') return loadPublicPrompt('/prompts/liquid-metal.md');
+  if (id === 'gooey') return loadPublicPrompt('/prompts/gooey.md');
   return Promise.resolve(promptFor(id));
 }
 
 export function promptIsLazy(id: string): boolean {
-  return id === 'yogesh-thinking-orbs' || id === 'yogesh-orb-creator' || id === 'border-beam' || id === 'liquid-metal';
+  return id === 'yogesh-thinking-orbs' || id === 'yogesh-orb-creator' || id === 'border-beam' || id === 'liquid-metal' || id === 'gooey';
 }
 
 const PARITY_SCRIPT: Record<string, string> = {
   'border-beam': '/parity/border-beam.js',
   'liquid-metal': '/parity/liquid-metal.js',
+  gooey: '/parity/gooey.js',
 };
 
 /** The runnable component is a public file. The preview iframe only carries a loader. */

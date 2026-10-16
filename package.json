@@ -22,7 +22,7 @@
     "expo-symbols": "~57.0.3",
     "expo-web-browser": "~57.0.3",
     "img-fx": "^0.5.1",
-    "liquid-gooey": "^0.2.1",
+    "liquid-gooey": "0.2.2",
     "metal-fx": "2.0.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",

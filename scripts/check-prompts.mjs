@@ -123,6 +123,7 @@ const publicPrompt = {
   'yogesh-orb-creator': readFileSync(join(root, 'public/prompts/yogesh-orb-creator.md'), 'utf8'),
   'border-beam': readFileSync(join(root, 'public/prompts/border-beam.md'), 'utf8'),
   'liquid-metal': readFileSync(join(root, 'public/prompts/liquid-metal.md'), 'utf8'),
+  gooey: readFileSync(join(root, 'public/prompts/gooey.md'), 'utf8'),
 };
 
 function missingSections(text) {
@@ -164,5 +165,66 @@ if (warnings.length) {
 console.log(`banned hits: ${hits.length}`);
 if (hits.length) {
   for (const line of hits) console.error(`  ${line}`);
+  process.exit(1);
+}
+
+/**
+ * A prompt that pastes package source under ## Component must carry that
+ * package's LICENSE (and NOTICE, when the package ships one) above the code
+ * fence. The frozen creator, orbs, and Abrar prompts are exempt so this rule
+ * never requires editing them.
+ */
+const FROZEN_PROMPTS = new Set([
+  join(root, 'public/prompts/yogesh-orb-creator.md'),
+  join(root, 'public/prompts/yogesh-thinking-orbs.md'),
+  join(root, 'src/demos/abrar-overview/AGENT_PROMPT.md'),
+]);
+
+const PACKAGE_SOURCE = [
+  { file: join(root, 'public/prompts/gooey.md'), pkg: 'liquid-gooey', notice: false },
+  { file: join(root, 'public/prompts/border-beam.md'), pkg: 'border-beam', notice: false },
+  { file: join(root, 'public/prompts/liquid-metal.md'), pkg: 'metal-fx', notice: true },
+];
+
+function packageSourceIndex(text) {
+  const heading = text.search(/^## Component\b/m);
+  if (heading < 0) return -1;
+  const fence = text.slice(heading).search(/```(?:js|javascript)\n/);
+  if (fence < 0) return -1;
+  return heading + fence;
+}
+
+const licenseHits = [];
+const mapped = new Set(PACKAGE_SOURCE.map((item) => item.file));
+const promptFiles = [];
+walk(join(root, 'public/prompts'), promptFiles);
+walk(join(root, 'src/demos'), promptFiles);
+
+for (const file of promptFiles) {
+  if (FROZEN_PROMPTS.has(file)) continue;
+  const text = readFileSync(file, 'utf8');
+  if (packageSourceIndex(text) < 0) continue;
+  if (!mapped.has(file)) licenseHits.push(`${file}: embeds package source without a LICENSE mapping`);
+}
+
+for (const item of PACKAGE_SOURCE) {
+  const text = readFileSync(item.file, 'utf8');
+  const start = packageSourceIndex(text);
+  if (start < 0) {
+    licenseHits.push(`${item.file}: ## Component is missing its js block`);
+    continue;
+  }
+  const before = text.slice(0, start);
+  const license = readFileSync(join(root, 'node_modules', item.pkg, 'LICENSE'), 'utf8');
+  if (!before.includes(license)) licenseHits.push(`${item.file}: LICENSE for ${item.pkg} is missing above the code block`);
+  if (item.notice) {
+    const notice = readFileSync(join(root, 'node_modules', item.pkg, 'NOTICE'), 'utf8');
+    if (!before.includes(notice)) licenseHits.push(`${item.file}: NOTICE for ${item.pkg} is missing above the code block`);
+  }
+}
+
+console.log(`license hits: ${licenseHits.length}`);
+if (licenseHits.length) {
+  for (const line of licenseHits) console.error(`  ${line}`);
   process.exit(1);
 }

@@ -38,6 +38,11 @@ const targets = [
     outfile: 'public/parity/liquid-metal.js',
     header: licenseHeader('metal-fx', 'NOTICE'),
   },
+  {
+    entry: 'src/demos/gooey/mount.tsx',
+    outfile: 'public/parity/gooey.js',
+    header: licenseHeader('liquid-gooey'),
+  },
 ];
 
 for (const target of targets) {

@@ -88,11 +88,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Generic template prompt (4189 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
   ],
-  'gooey': [
-    'Generic template prompt (5812 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
-  ],
+  gooey: [],
   'input-clear-dissolve': [
     'Generic template prompt (4336 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
