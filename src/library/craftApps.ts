@@ -8,7 +8,7 @@ export const CRAFT_CATEGORY_LABEL = 'Open-source apps';
 export const CRAFT_LICENSE = 'Dual MIT / Apache-2.0';
 export const EARLY_ALPHA = 'early-alpha';
 /** FilmCraft repo root `.mcp.json`. */
-export const FILMCRAFT_MCP = "{\n  \"mcpServers\": {\n    \"filmcraft\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--bridge\", \"127.0.0.1:9876\"]\n    },\n    \"filmcraft-headless\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--demo\"]\n    }\n  }\n}";
+export const FILMCRAFT_MCP = "{\n  \"mcpServers\": {\n    \"filmcraft\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--bridge\", \"127.0.0.1:9876\"]\n    },\n    \"filmcraft-headless\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--demo\"]\n    }\n  }\n}\n";
 
 /** EffectCraft repo root `.mcp.json`. */
 export const EFFECTCRAFT_MCP = "{\n  \"mcpServers\": {\n    \"effectcraft\": {\n      \"command\": \"cargo\",\n      \"args\": [\"run\", \"--quiet\", \"--release\", \"-p\", \"effectcraft-cli\", \"--\", \"mcp\", \"--demo\"]\n    },\n    \"effectcraft-app\": {\n      \"command\": \"cargo\",\n      \"args\": [\"run\", \"--quiet\", \"--release\", \"-p\", \"effectcraft-cli\", \"--\", \"mcp\", \"--bridge\", \"9877\"]\n    }\n  }\n}\n";

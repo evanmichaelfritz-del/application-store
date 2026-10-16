@@ -1,9 +1,31 @@
+/*!MIT License
+
+Copyright (c) 2026 Jakub Antalik
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 /* Organic loader, off the main thread.
 
    The full img-fx program is one 29KB fragment. Its first draw blocks other
    GL contexts for seconds on a slow GPU, so this file keeps the pixels-organic
    light path (effect 22, dot mode 1) and loops the blur taps. The photo
-   reveal (shaderColor4 mask, pixel dissolve, 2.2s hold, 320ms fade) runs
+   reveal (shaderColor4 mask, pixel dissolve, 2000ms hold, 300ms fade) runs
    here too. The page only blits the finished bitmap. */
 const VERT = `#version 300 es
 precision highp float;
@@ -295,6 +317,7 @@ let canvas = null;
 let hold = true;
 let timer = 0;
 let t0 = 0;
+let frameT0 = 0;
 let frozen = null;
 let cssW = 168;
 let cssH = 168;
@@ -307,14 +330,14 @@ let uOut = null;
 let uRes = null;
 
 const PRESET_BG = '#f5f5f5';
-const CARD_BG = '#ffffff';
+const CARD_BG = '#f5f5f5';
 const REVEAL_SEC = 3;
 const PIX_SEC = 2.55;
-const HOLD_MS = 2200;
-const FADE_MS = 320;
+const HOLD_MS = 2000;
+const FADE_MS = 300;
 const SOFTNESS = 0.5;
 const SAMPLE = 64;
-const COLOR4 = [1, 1, 1];
+const COLOR4 = [0.961, 0.961, 0.961];
 
 let images = [];
 let running = false;
@@ -517,6 +540,7 @@ function boot(w, h, dpr, cssWidth, cssHeight, dispW, dispH) {
   gl.disable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
   t0 = performance.now();
+  frameT0 = performance.now();
   ensure2d();
 }
 function drawShader(dotMode, fill, outMode) {
@@ -675,7 +699,7 @@ function scheduleIdle(delayMs) {
   if (!running || paused) return;
   setPhase('idle');
   currentImage = null;
-  const ms = delayMs == null ? (1.2 + Math.random() * 1.2) * 1000 : delayMs;
+  const ms = delayMs == null ? (2 + Math.random() * 2) * 1000 : delayMs;
   clearRevealTimer();
   revealTimer = setTimeout(() => {
     revealTimer = 0;
@@ -787,7 +811,7 @@ function present() {
     if (fade.shaderOpacity > 0) drawShader(1, 0.18, 0);
     outCtx.globalCompositeOperation = 'source-over';
     outCtx.globalAlpha = 1;
-    outCtx.fillStyle = '#ffffff';
+    outCtx.fillStyle = CARD_BG;
     outCtx.fillRect(0, 0, displayW, displayH);
     if (fade.shaderOpacity > 0) {
       outCtx.globalAlpha = fade.shaderOpacity;
@@ -805,7 +829,7 @@ function present() {
   } catch (err) {
     postMessage({ type: 'error', message: String(err && err.message ? err.message : err) });
   }
-  timer = setTimeout(present, 100);
+  timer = setTimeout(present, 100 - ((performance.now() - frameT0) % 100));
 }
 self.onmessage = (ev) => {
   const msg = ev.data || {};
