@@ -222,7 +222,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'border-beam': {
     motion:
-      'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. Strength starts at 70% (`strength={0.7}`). pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+      'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
       'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
     rn: 'Web CSS from `border-beam@1.4.1`. Theme is pinned dark. `active` starts true. Colorful and mono are the page colors.',
@@ -252,9 +252,9 @@ const LOCKS: Record<string, PromptLock> = {
       'sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
     ],
     setup:
-      'Peer is React. The module is `border-beam@1.4.1`. Strength default on the page slider is 70 (`sites/beam/src/App.tsx`). The MIT text and the React LICENSE sit in front of the bundle.',
+      'Peer is React. The module is `border-beam@1.4.1`. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
     checklist: [
-      'Default size is md, color is colorful, theme is dark, strength is 0.7.',
+      'Default size is md, color is colorful, theme is dark, strength is 1.',
       'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card.',
       'The chat measures 348×122 and the send control measures 28×28.',
     ],
@@ -286,7 +286,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'Effective composer strength is 0.9 × 0.9 = 0.81 at the source start (`useState(90)` in demo/App.tsx, then `strength * 0.9` in Examples.tsx).',
+      'Effective composer strength is 0.9 × 0.9 = 0.81 (`STRENGTH = 90` in sites/home/src/metal.tsx, then `strength * 0.9` in metal-examples-v2.tsx). The strength slider and silver/gold are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo.',
       'The card mounts running, like the Examples hero. The original playground starts paused (`Playground.tsx` line 77 is `useState(true)`).',
       'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
       'Do not recolor the child to `#111111`.',

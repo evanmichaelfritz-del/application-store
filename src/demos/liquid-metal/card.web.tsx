@@ -4,16 +4,20 @@ import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'me
 /**
  * metal-fx@2.0.11. The libraries.dev composer is the specimen: a 40×40 circle
  * send, variant circle, innerShadow, useMetalBend, and a reflection on the
- * Auto chip. App.tsx stores strength as 90 and Examples multiplies by 0.9, so
- * the circle receives 0.81. The card mounts running, like the Examples hero
- * (that row does not pass paused). Playground.tsx line 77 starts paused
- * (`useState(true)`); that pause is the page control. The 140×40 strength-1
- * button is the package default.
+ * Auto chip. sites/home/src/metal.tsx stores STRENGTH as 90 and
+ * metal-examples-v2 multiplies by 0.9, so the circle receives 0.81. The
+ * strength slider and silver/gold presets are Studio-locked on libraries.dev
+ * and live on the metal-fx package demo. The card mounts running, like the
+ * Examples hero (that row does not pass paused). Playground.tsx line 77
+ * starts paused (`useState(true)`); that pause is the page control. The
+ * 140×40 strength-1 button is the package default.
  * Light theme is a package option. Child text stays #f8f8f8.
  */
 
 const PRESETS: readonly MetalFxPreset[] = ['chromatic', 'silver', 'gold'];
 const PACKAGE_OPTION = 'package option, not on the original';
+const STUDIO_LOCKED =
+  'package option: Studio-locked on libraries.dev; live on the metal-fx package demo';
 const PAGE_STRENGTH = 90;
 
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
@@ -86,18 +90,20 @@ function Chip({
   tokens,
   onPress,
   packageOption,
+  hint,
 }: {
   label: string;
   on: boolean;
   tokens: Tokens;
   onPress: () => void;
   packageOption?: boolean;
+  hint?: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={on}
-      title={packageOption ? PACKAGE_OPTION : undefined}
+      title={hint ?? (packageOption ? PACKAGE_OPTION : undefined)}
       onClick={onPress}
       style={{
         height: 26,
@@ -254,7 +260,14 @@ export function LiquidMetalCard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ControlRow label="Preset" tokens={tokens}>
           {PRESETS.map((option) => (
-            <Chip key={option} label={option} on={preset === option} tokens={tokens} onPress={() => setPreset(option)} />
+            <Chip
+              key={option}
+              label={option}
+              on={preset === option}
+              tokens={tokens}
+              hint={option === 'chromatic' ? undefined : STUDIO_LOCKED}
+              onPress={() => setPreset(option)}
+            />
           ))}
         </ControlRow>
         <ControlRow label="Specimen" tokens={tokens}>
@@ -289,6 +302,7 @@ export function LiquidMetalCard() {
             step={1}
             value={pageStrength}
             aria-label="Effect strength"
+            title={STUDIO_LOCKED}
             onChange={(event) => {
               const next = event.target.valueAsNumber;
               if (Number.isFinite(next)) setPageStrength(next);
@@ -298,9 +312,13 @@ export function LiquidMetalCard() {
           <span style={{ fontFamily: FONT, fontSize: 11, color: tokens.controlText }}>
             {specimen === 'composer' ? `${pageStrength}% × 0.9 = ${circleStrength.toFixed(2)}` : '1.00'}
           </span>
+          <span style={{ flexBasis: '100%', fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
+            {STUDIO_LOCKED}
+          </span>
         </ControlRow>
         <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
-          140×40 strength-1 button: package default, {PACKAGE_OPTION}. Light theme: {PACKAGE_OPTION}
+          140×40 strength-1 button: package default, {PACKAGE_OPTION}. Light theme: {PACKAGE_OPTION}. silver, gold:{' '}
+          {STUDIO_LOCKED}
         </span>
       </div>
     </div>

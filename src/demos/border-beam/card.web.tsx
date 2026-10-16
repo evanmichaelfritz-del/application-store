@@ -3,9 +3,10 @@ import { BorderBeam, type BorderBeamColorVariant, type BorderBeamSize, type Bord
 
 /**
  * border-beam@1.4.1. The libraries.dev page offers md, line, pulse-inner, and
- * pulse-outside, colorful and mono, and dark only. sites/beam/src/App.tsx
- * starts the strength slider at 70. sm, the other six color variants, and
- * light are package options.
+ * pulse-outside, colorful and mono, and dark only. libraries.dev passes no
+ * strength (package default 1) and has no strength control. The slider is a
+ * package option; border-beam's own site starts at 70%. sm, the other six
+ * color variants, and light are package options.
  */
 
 const PAGE_SIZES: readonly BorderBeamSize[] = ['md', 'line', 'pulse-inner', 'pulse-outside'];
@@ -13,6 +14,8 @@ const PACKAGE_SIZES: readonly BorderBeamSize[] = ['sm'];
 const PAGE_COLORS: readonly BorderBeamColorVariant[] = ['colorful', 'mono'];
 const PACKAGE_COLORS: readonly BorderBeamColorVariant[] = ['ocean', 'sunset', 'forest', 'candy', 'ice', 'gold'];
 const PACKAGE_OPTION = 'package option, not on the original';
+const STRENGTH_OPTION =
+  "package option, not on the original (border-beam's own site starts at 70%)";
 
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
 const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
@@ -356,7 +359,7 @@ export function BorderBeamCard() {
   const [colorVariant, setColorVariant] = useState<BorderBeamColorVariant>('colorful');
   const [theme, setTheme] = useState<Exclude<BorderBeamTheme, 'auto'>>('dark');
   const [active, setActive] = useState(true);
-  const [strength, setStrength] = useState(70);
+  const [strength, setStrength] = useState(100);
   const tokens = theme === 'dark' ? DARK : LIGHT;
   const shell: CSSProperties = {
     width: '100%',
@@ -429,6 +432,7 @@ export function BorderBeamCard() {
             step={1}
             value={strength}
             aria-label="Effect strength"
+            title={STRENGTH_OPTION}
             onChange={(event) => {
               const next = event.target.valueAsNumber;
               if (Number.isFinite(next)) setStrength(next);
@@ -436,6 +440,9 @@ export function BorderBeamCard() {
             style={{ width: 120, accentColor: tokens.controlOnText }}
           />
           <span style={{ fontFamily: FONT, fontSize: 11, color: tokens.controlText }}>{strength}%</span>
+          <span style={{ flexBasis: '100%', fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
+            {STRENGTH_OPTION}
+          </span>
         </ControlRow>
         <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
           sm, ocean, sunset, forest, candy, ice, gold, light: {PACKAGE_OPTION}

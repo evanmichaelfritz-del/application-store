@@ -4,7 +4,7 @@ Recreate Border Beam from `border-beam@1.4.1` (MIT, Jakub Antalik). The componen
 
 ## Piece
 
-The libraries.dev page (`sites/home/src/beam.tsx`) offers `md`, `line`, `pulse-inner`, and `pulse-outside`, colors `colorful` and `mono`, and theme dark only. `sites/beam/src/App.tsx` line 369 starts the strength slider at 70, so the beam receives `strength={0.7}`. The chat example on that page runs (`active` true). The playground stage on libraries.dev starts with `active` false; this specimen follows the example row and starts running.
+The libraries.dev page (`sites/home/src/beam.tsx`) offers `md`, `line`, `pulse-inner`, and `pulse-outside`, colors `colorful` and `mono`, and theme dark only. libraries.dev passes no strength (package default 1); the 70% slider is from the separate border-beam site. The chat example on that page runs (`active` true). The playground stage on libraries.dev starts with `active` false; this specimen follows the example row and starts running.
 
 - `md` wraps the chat field, 348×122, radius 20, placeholder `Build anything...`, chips Agent and Auto, a 28×28 send control. The inner div sets `boxSizing: 'border-box'` so the 122px height includes the `7px 7px 8px` padding, and the send control sets `boxSizing: 'border-box'` so its `28×28` box includes `padding: 0 8px`.
 - `line` wraps a search shell 366×42, outer radius 64, and passes `borderRadius` 20 so the beam follows the inner field. The package duration fallback for `line` is already 3.1.
@@ -21,7 +21,7 @@ Dark stage `#171717`. Light stage `#f6f6f6` when that package option is selected
 | `size` | `md`, `line`, `pulse-inner`, `pulse-outside`. Page default `md` | package also has `sm` (package option, not on the original) |
 | `colorVariant` | `colorful`, `mono`. Page default `colorful` | `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold` (package option, not on the original) |
 | `theme` | dark only | `light` and `auto` (light is a package option, not on the original). This specimen pins `dark` or `light` |
-| `strength` | slider default 70% (`App.tsx` line 369), passed as `0.7` | package default is `1` |
+| `strength` | libraries.dev passes no strength | package default `1`. This specimen starts at `1` |
 | `active` | example row runs; playground starts paused | package default `true`. This specimen starts `true` |
 
 | Prop | Values | Package fallback |
@@ -88,7 +88,7 @@ Duration fallback, from the component:
 
 Hue range: `U = o === "line" ? Math.min(n, 13) : n` with `n = 30`. Line travel therefore caps at 13 degrees. Other sizes use 30.
 
-Brightness: `b ?? F.brightness ?? 1.3`. Saturation: `g ?? F.saturation`. Strength writes `--beam-strength` clamped with `Math.max(0, Math.min(1, f))`. The page passes `0.7`.
+Brightness: `b ?? F.brightness ?? 1.3`. Saturation: `g ?? F.saturation`. Strength writes `--beam-strength` clamped with `Math.max(0, Math.min(1, f))`. libraries.dev passes no strength (package default 1); the 70% slider is from the separate border-beam site.
 
 `pulse-outside` scales its glow from the child box against a 350×140 reference, clamped between 0.35 and 4, and writes `--pulse-glow-sx` and `--pulse-glow-sy`.
 
@@ -112,7 +112,7 @@ Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/ind
 
 ## Checklist
 
-- [ ] Page defaults: `size` `md`, `colorVariant` `colorful`, `theme` `dark`, `strength` `0.7`, `active` `true`.
+- [ ] Page defaults: `size` `md`, `colorVariant` `colorful`, `theme` `dark`, `strength` `1`, `active` `true`.
 - [ ] `sm`, `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold`, and light are labelled package option, not on the original.
 - [ ] Duration is 1.96 for `md` and `sm`, 3.1 for `line`, and 2.3 for `pulse-inner` and `pulse-outside`.
 - [ ] `hueRange` is 30, and `line` caps it with `Math.min(n, 13)`.

@@ -4,7 +4,7 @@ Recreate the liquid-metal ring from `metal-fx@2.0.11` (MIT, Jakub Antalik). The 
 
 ## Piece
 
-The specimen is the composer `libraries.dev/metal` renders, from `packages/metal-fx/demo/components/Examples.tsx` (mounted by `demo/App.tsx`) and the same markup on `sites/home/src/examples/metal-examples-v2.tsx`.
+The specimen is the composer `libraries.dev/metal` renders, from `sites/home/src/examples/metal-examples-v2.tsx` (rendered by `sites/home/src/metal.tsx`).
 
 The composer is 448px wide, `max-width: 100%`, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The placeholder is `Build anything...` at 14px / 16px, 70% of the row width. The bottom row is a 36×36 plus, a spacer, Agent and Auto chips (36px tall, radius 50), and a 40×40 circle send button. Circle fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`, radius 50%. `box-sizing: border-box` keeps the circle at 40×40 including its 1px border.
 
@@ -18,15 +18,15 @@ The composer is 448px wide, `max-width: 100%`, radius 20, background `rgba(29, 2
 - `reflectionTargets={[autoChipRef]}` unless No Reflection is on
 - `strength={strength * 0.9}`
 
-Effective strength: `demo/App.tsx` stores the slider as `useState(90)` and passes `strength / 100` (`0.9`) into `Examples`. `Examples.tsx` then sets `strength={strength * 0.9}`. `0.9 × 0.9 = 0.81`. `sites/home/src/metal.tsx` uses the same product (`STRENGTH = 90`, then `strength * 0.9`).
+Effective strength: `sites/home/src/metal.tsx` stores `STRENGTH = 90` and passes `STRENGTH / 100` (`0.9`) into the examples. `sites/home/src/examples/metal-examples-v2.tsx` then sets `strength={strength * 0.9}`. `0.9 × 0.9 = 0.81`. The strength slider is Studio-locked on libraries.dev and live on the metal-fx package demo, where it also starts at 90.
 
-Start state: this card mounts running, like the Examples hero composer. `Examples.tsx` does not pass `paused`, so that row auto-plays. The Pause control stays, and it defaults unpaused. The original playground is separate page-control behaviour: `packages/metal-fx/demo/components/Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`, so that playground starts paused.
+Start state: this card mounts running, like the Examples hero composer. `sites/home/src/examples/metal-examples-v2.tsx` does not pass `paused`, so that row auto-plays. The Pause control stays, and it defaults unpaused. The original playground is separate page-control behaviour: `packages/metal-fx/demo/components/Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`, so that playground starts paused.
 
 No Glow and No Reflection start off (`disableGlow` false, `disableReflection` false), matching the playground.
 
 The 140×40 radius-20 `Upgrade to Pro` button at `strength={1}` and `variant="button"` stays only as the package default. It is labelled package default, and it is a package option, not on the original composer. Child text stays `#f8f8f8` in both themes. The previous `#111111` light-theme text override is dropped.
 
-Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the original. Presets `chromatic`, `silver`, and `gold` are the playground color control. Page default preset is `chromatic`.
+Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the original. Presets are Studio-locked on libraries.dev (package option). Page default preset is `chromatic`.
 
 ## States
 
@@ -34,7 +34,7 @@ Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the 
 | --- | --- | --- |
 | specimen | composer | 40×40 circle, `innerShadow`, bend, reflection on Auto |
 | `paused` | running | Card mounts running like the Examples hero. `Playground.tsx` line 77 is `useState(true)` and that playground starts paused |
-| page strength | `90` | `demo/App.tsx` `useState(90)`. Circle receives `0.81` |
+| page strength | `90` | `sites/home/src/metal.tsx` `STRENGTH = 90`. Circle receives `0.81`. The slider is Studio-locked on libraries.dev and live on the metal-fx package demo |
 | `disableGlow` | `false` | No Glow toggle |
 | `disableReflection` | `false` | No Reflection toggle clears `reflectionTargets` |
 | package default | off | 140×40, `variant="button"`, `strength={1}` |
@@ -96,8 +96,8 @@ Uniforms written each frame include `u_colorTint`, `u_repetition`, `u_softness`,
 
 ## Gotchas
 
-- The card mounts running, like the Examples hero. `Examples.tsx` does not pass `paused`. The original playground starts paused: `Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`. That pause is page-control behaviour. The card still has a Pause control, default unpaused.
-- Composer strength is `0.9 × 0.9 = 0.81` (`useState(90)` in `demo/App.tsx`, then `strength * 0.9` in `Examples.tsx`). The package default strength is `1`, used only by the labelled 140×40 button.
+- The card mounts running, like the Examples hero. `sites/home/src/examples/metal-examples-v2.tsx` does not pass `paused`. The original playground starts paused: `Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`. That pause is page-control behaviour. The card still has a Pause control, default unpaused.
+- Composer strength is `0.9 × 0.9 = 0.81` (`STRENGTH = 90` in `sites/home/src/metal.tsx`, then `strength * 0.9` in `sites/home/src/examples/metal-examples-v2.tsx`). The strength slider and silver/gold presets are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo. The package default strength is `1`, used only by the labelled 140×40 button.
 - `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas. Do not add a second fallback.
 - Copies share one GL context. Do not mount the component twice in the same tick (a strict double-invoke tears the shared renderer down). This card does not wrap `MetalFx` in `StrictMode`.
 - `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")` and updates on `change`. Pin `dark` or `light` when a control chooses the theme.
