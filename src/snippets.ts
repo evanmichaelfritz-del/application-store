@@ -219,7 +219,6 @@ export const SNIPPETS: Record<string, string> = {
   --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
 }
 .t-avatar { transition: transform var(--avatar-dur) var(--avatar-ease-in); }
-.t-avatar.is-hot { transform: translateY(var(--avatar-lift)) scale(var(--avatar-scale)); }
 .t-avatars:not(:hover) .t-avatar { transition-timing-function: var(--avatar-ease-out); }
 @media (prefers-reduced-motion: reduce) {
   .t-avatar { transition: none !important; }
@@ -473,7 +472,7 @@ export function Card() {
   --gooey-spring-m: 0.85;
 }
 /* RN: two Views + translate, pink neck bar ≥16px. Snap-back withSpring.
-   Web SHA uses Views (no Skia). */
+   Web uses Views (no Skia). */
 .t-gooey-tile { width: var(--gooey-tile-w); height: var(--gooey-tile-h); border-radius: 28px; }
 .t-gooey-neck { width: var(--gooey-neck); min-height: var(--gooey-neck); background: #ff4ad2; }
 @media (prefers-reduced-motion: reduce) {

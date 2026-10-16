@@ -5,19 +5,34 @@ import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/pr
 import { ORB_GALLERY_LOCKS } from './demos/thinking-orbs-playground/galleryCopy';
 import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
-type PromptLock = {
+export type PromptState = {
+  name: string;
+  trigger: string;
+  from: string;
+  to: string;
+  duration: string;
+  easing: string;
+  delay: string;
+};
+
+export type PromptLock = {
   motion: string;
   content?: string;
   rn: string;
+  states?: readonly PromptState[];
+  gotchas?: readonly string[];
+  setup?: string;
+  checklist?: readonly string[];
 };
 
 const LOCKS: Record<string, PromptLock> = {
   'card-resize': {
-    motion: 'Width/height morph 300ms (tokens.morph). Default spring for layout wrappers: damping 20, stiffness 280.',
+    motion: 'Width/height morph 300ms (tokens.morph).',
     rn: 'Reanimated width/height timing. Copy emits portable CSS `.t-resize`.',
   },
   'number-pop-in': {
-    motion: 'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values.',
+    motion:
+      'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values. Rotate, opacity, and blur use `springs.default` (damping 20, stiffness 280).',
     content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. Spaces are digits in the row.',
     rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
   },
@@ -37,7 +52,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-dropdown`. Copy script toggles `.is-open` / `.is-closing` and the trigger label.',
   },
   'confetti-burst': {
-    motion: 'Gravity-ish fall; particles settle on the Celebrate button top (~1.5s). `springs.snap` on rest.',
+    motion:
+      'Gravity-ish fall; particles settle on the Celebrate button top (~1.5s). Horizontal travel uses `springs.default` (damping 20, stiffness 280). Rest uses `springs.snap` (damping 18, stiffness 300).',
     content: 'Button label `Celebrate`. ~12–24 bits. Clamp so pieces do not fall through the button.',
     rn: 'Reanimated particles, not a full physics engine. Copy emits `.t-confetti-piece` tokens.',
   },
@@ -62,16 +78,19 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-icon`. Copy script toggles `.is-out` on the two layers.',
   },
   'success-check': {
-    motion: 'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1. The check draws a 28px dash after an 80ms delay.',
+    motion:
+      'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1 via `springs.pop` (mass 0.8, damping 12, stiffness 280). The check draws a 28px dash after an 80ms delay, on the same spring.',
     rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
   },
   'avatar-group-hover': {
-    motion: 'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength.',
+    motion:
+      'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength. Lift and scale use `springs.default` (damping 20, stiffness 280).',
     content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
     rn: 'Copy CSS sets the avatar tokens. Copy script writes the distance-weighted transform.',
   },
   'card-stack-hover': {
-    motion: 'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees.',
+    motion:
+      'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees. The spread uses `springs.layout` (damping 20, stiffness 280, mass 1).',
     content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
     rn: 'Copy CSS is `.t-stack-card`. Copy script toggles `.is-spread` on hover and click.',
   },
@@ -81,7 +100,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-shake`. Copy script validates the email and replays `.is-error`.',
   },
   'input-clear-dissolve': {
-    motion: 'Each word leaves over 250ms, blur 2px, translateY −12px, stagger 45ms. Click again restores the words.',
+    motion:
+      'Each word leaves over 250ms, blur 2px, translateY −12px, stagger 45ms. Click again restores the words. The layout change uses `layoutTransition` (`springify` damping 20, stiffness 280).',
     content: '`search` `recent` `files`.',
     rn: 'Copy CSS is `.t-word`. Copy script sets the stagger and toggles `.is-out`.',
   },
@@ -91,7 +111,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Copy CSS is `.t-skel` / `.t-content`. Copy script reveals after 900ms and toggles on click.',
   },
   'texts-reveal': {
-    motion: 'Two lines rise 12px over 280ms. The second line waits 50ms.',
+    motion:
+      'Two lines rise 12px over 280ms. The second line waits 50ms. Each line enters with `springify` (damping 20, stiffness 280).',
     content: '`Pull request opened` / `Review requested from 3 teammates`.',
     rn: 'Copy CSS is `.t-line`. Copy script replays by rewriting the lines.',
   },
@@ -100,7 +121,7 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Measure each tab with onLayout. Same pattern as store section chips. Copy emits `.t-tabs-pill`.',
   },
   'drag-drop-physics': {
-    motion: 'Gesture-handler pan + `springs.snap` (damping 18, stiffness 300). Zone radius/fill morph.',
+    motion: 'Gesture-handler pan. Release springs home with `springs.default` (damping 20, stiffness 280). Zone radius/fill morph.',
     content: 'Zone label `Drag & drop it here`.',
     rn: 'Not a full physics engine. Copy emits `.t-drop`.',
   },
@@ -116,7 +137,8 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'The gallery stage uses img-fx when that package is installed. Copy HTML, Copy CSS, and Copy script emit the closed-network canvas mosaic below, which is the preview document. They do not emit an npm install snippet.',
   },
   'tooltip-open-close': {
-    motion: '400ms delay in, travel + fade; out instant.',
+    motion:
+      '400ms delay in, travel + fade; out instant. Travel uses `springs.layout` (damping 20, stiffness 280, mass 1).',
     rn: 'Three triggers: Aa/Edit, ↗/Share, ···/More. The bubble travels by 44px per slot with no delay. Fade-in waits 400ms and lasts 180ms. Hide is instant. Copy CSS is `.t-tt`. Copy script sets `--tt-x`.',
   },
   'tilt-3d': {
@@ -137,7 +159,7 @@ const LOCKS: Record<string, PromptLock> = {
   gooey: {
     motion: 'Lower tile Gesture.Pan translateX/Y. Snap-back `withSpring` damping 20, stiffness 280, mass 0.85 after SNAP_DRAG 168px. Pink neck ≥16px between tile centers.',
     content: 'Purple tile `#7c2bff` + rose tile `#e11d48` + neck `#ff4ad2`. Tiles 120×148, radius 28, rest offset 28 / 78.',
-    rn: 'Web SHA: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
+    rn: 'Web: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
   },
   'liquid-metal': {
     motion: 'SweepGradient metal ring 3400ms. Stroke = thickness + sin(progress)·1.4. Auto thickness 4.5; send 5.5. Blur 8 on the glow pass.',
@@ -173,7 +195,7 @@ Closed-network rebuild brief. This document is the **only** source of truth.
 - Do **not** \`npm install liquid-gooey\` or any other package for this piece.
 - Do **not** invent demos beyond this piece.
 - Output must run offline as a single HTML file (or equivalent inline HTML/CSS/JS).
-- Stack for Application Store hosting may be Expo/RN, but the **portable recreation** you produce is plain HTML + CSS + JS with an SVG goo filter.
+- The portable recreation is plain HTML + CSS + JS with an SVG goo filter.
 
 ## Goal
 
@@ -238,17 +260,13 @@ If pieces that should merge look separate, raise blur or reduce gap — bridging
 - Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
 - Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
 
-## Card copy buttons
-
-Keep Showcase and AGENT_PROMPT. Replace a single Copy code button with Copy HTML, Copy CSS, and Copy script. Each button copies one piece of the reference document below (body markup, the style block, the script block). None of them copies the whole document.
-
 ## Deliverable
 
 Ship a **single self-contained HTML document** that matches the tokens above. No imports. No build step.
 
 ## Reference implementation (closed network)
 
-Paste this into a file and open it, or load it in Application Store → Playground:
+Paste this into a file and open it:
 
 \`\`\`html
 ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
@@ -265,7 +283,7 @@ ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
 
 ## Out of scope
 
-Do not recreate the whole Application Store. Do not pull liquid-gooey from npm. Not Helix, not grok.me.
+Do not pull liquid-gooey from npm.
 `;
 }
 
@@ -274,6 +292,40 @@ const FULL_PROMPTS: Record<string, () => string> = {
   'gooey-plus-menu': buildGooeyPlusPrompt,
   'abrar-overview': () => abrarOverviewPrompt,
 };
+
+function filled(value: string | undefined): string {
+  return value?.trim() ?? '';
+}
+
+function statesSection(states: readonly PromptState[] | undefined): string {
+  if (!states || states.length === 0) return '';
+  const lines = states
+    .filter((state) => filled(state.name))
+    .map((state) => {
+      const from = filled(state.from);
+      const to = filled(state.to);
+      const change = from && to ? `${from} → ${to}` : from || to;
+      const bits = [filled(state.trigger), change, filled(state.duration), filled(state.easing), filled(state.delay)].filter(
+        (bit) => bit.length > 0,
+      );
+      return bits.length ? `- **${filled(state.name)}** — ${bits.join('. ')}` : `- **${filled(state.name)}**`;
+    });
+  if (lines.length === 0) return '';
+  return `## States\n\n${lines.join('\n')}`;
+}
+
+function listSection(title: string, items: readonly string[] | undefined, marker: string): string {
+  if (!items || items.length === 0) return '';
+  const lines = items.map((item) => item.trim()).filter((item) => item.length > 0);
+  if (lines.length === 0) return '';
+  return `## ${title}\n\n${lines.map((item) => `${marker}${item}`).join('\n')}`;
+}
+
+function setupSection(setup: string | undefined): string {
+  const text = filled(setup);
+  if (!text) return '';
+  return `## Setup\n\n${text}`;
+}
 
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
@@ -284,77 +336,44 @@ function buildPrompt(id: string): string {
 
   const parts = previewDocumentParts(id);
   const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
-
-  return `# AGENT_PROMPT — ${item.title}
-
-Closed-network rebuild brief for this Application Store piece. This document is the source of truth.
+  const stage = filled(lock.content);
+  const blocks = [
+    `# AGENT_PROMPT — ${item.title}`,
+    `Closed-network rebuild brief. This document is the source of truth.
 
 - Do not fetch external pages, docs, or product sites.
-- Do not invent demos beyond this piece.
-- Not Helix, not grok.me, not peptide / Publish product code.
-- Stack: Expo + TypeScript + React Native for the gallery stage. The three copy buttons emit the closed-network HTML, CSS, and script that the preview document runs. Do not merge those three into one document.
-
-## Piece
+- Do not invent demos beyond this piece.`,
+    `## Piece
 
 - id: \`${item.id}\`
 - title: ${item.title}
-- subtitle: ${item.subtitle}
-- categories: ${item.categories.join(', ')}
-- sections: ${item.sections.join(', ')}
-- pro: ${item.pro ? 'yes — same interactive demo, no paywall' : 'no'}
-
-## Stage content
-
-${lock.content ?? 'Use the live Application Store showcase as the stage content. Do not add extra chrome inside the 220px stage.'}
-
-## Motion lock
-
-${lock.motion}
-
-Springs (do not churn):
-- layout / default: damping 20, stiffness 280 (layout mass 1)
-- pop: mass 0.8, damping 12, stiffness 280
-- snap: damping 18, stiffness 300
-
-Reduced motion: AccessibilityInfo + in-app toggle → duration 0 / skip springs.
-
-## RN note
-
-${lock.rn}
-
-## Copy HTML
+- subtitle: ${item.subtitle}`,
+    stage ? `## Stage content\n\n${stage}` : '',
+    `## Motion lock\n\n${lock.motion}`,
+    statesSection(lock.states),
+    listSection('Gotchas', lock.gotchas, '- '),
+    setupSection(lock.setup),
+    `## Copy HTML
 
 \`\`\`html
 ${parts.html}
-\`\`\`
-
-## Copy CSS
+\`\`\``,
+    `## Copy CSS
 
 \`\`\`css
 ${parts.css}
-\`\`\`
-
-## Copy script
+\`\`\``,
+    `## Copy script
 
 \`\`\`js
 ${scriptText}
-\`\`\`
+\`\`\``,
+    listSection('Checklist', lock.checklist, '- [ ] '),
+    `## Out of scope
 
-## Card chrome (Application Store)
-
-Baseball card: white card, border rgba(0,0,0,0.06), shadow 0 1px 3px rgba(0,0,0,0.04), radius 16. Stage #f9f9f9, radius 14, height ~220px. Page background #fdfdfd. Font Inter.
-
-Each card must support:
-1. Showcase — live demo on the stage
-2. Copy HTML — the markup block above, alone
-3. Copy CSS — the stylesheet block above, alone
-4. Copy script — the script block above, alone. When the preview has no script, that button copies: ${HTML_CSS_ONLY_NOTE}
-5. AGENT_PROMPT — this prompt, revealable and copyable
-
-## Out of scope
-
-Do not invent demos beyond this piece. Not Helix, not grok.me.
-`;
+Do not invent demos beyond this piece.`,
+  ];
+  return blocks.filter((block) => block.trim().length > 0).join('\n\n');
 }
 
 export const AGENT_PROMPTS: Record<string, string> = Object.fromEntries(
