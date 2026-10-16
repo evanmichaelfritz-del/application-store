@@ -20,7 +20,7 @@ The composer is 448px wide, `max-width: 100%`, radius 20, background `rgba(29, 2
 
 Effective strength: `demo/App.tsx` stores the slider as `useState(90)` and passes `strength / 100` (`0.9`) into `Examples`. `Examples.tsx` then sets `strength={strength * 0.9}`. `0.9 × 0.9 = 0.81`. `sites/home/src/metal.tsx` uses the same product (`STRENGTH = 90`, then `strength * 0.9`).
 
-Start state: `packages/metal-fx/demo/components/Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`. The comment there says the playground starts paused so the page loads quietly, while the surrounding Examples keep auto-playing (they do not pass `paused`). This card follows that playground start state and mounts paused. Press Play to run the shared frame loop.
+Start state: this card mounts running, like the Examples hero composer. `Examples.tsx` does not pass `paused`, so that row auto-plays. The Pause control stays, and it defaults unpaused. The original playground is separate page-control behaviour: `packages/metal-fx/demo/components/Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`, so that playground starts paused.
 
 No Glow and No Reflection start off (`disableGlow` false, `disableReflection` false), matching the playground.
 
@@ -33,7 +33,7 @@ Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the 
 | Control | Source start | Notes |
 | --- | --- | --- |
 | specimen | composer | 40×40 circle, `innerShadow`, bend, reflection on Auto |
-| `paused` | `true` | `Playground.tsx` line 77, `useState(true)`. Examples omit `paused` and keep running |
+| `paused` | running | Card mounts running like the Examples hero. `Playground.tsx` line 77 is `useState(true)` and that playground starts paused |
 | page strength | `90` | `demo/App.tsx` `useState(90)`. Circle receives `0.81` |
 | `disableGlow` | `false` | No Glow toggle |
 | `disableReflection` | `false` | No Reflection toggle clears `reflectionTargets` |
@@ -45,7 +45,7 @@ Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the 
 | `variant` | `button`, `circle` | `button` (package default). The page composer passes `circle` |
 | `theme` | `dark`, `light`, `auto` | `auto`. This specimen pins `dark`. Light is a package option, not on the original |
 | `strength` | 0..1 | package default `1`. Composer effective value is `0.81` |
-| `paused` | `true` holds the last frame | package default `false`. This card starts `true` |
+| `paused` | `true` holds the last frame | package default `false`. This card mounts running. The original playground starts paused |
 | `glowGain` | glow multiplier | `1` |
 | `scale` | pixel-constant multiplier | `1` |
 | `innerShadow` | `true` uses the design rim | off unless passed. The composer passes it |
@@ -96,7 +96,7 @@ Uniforms written each frame include `u_colorTint`, `u_repetition`, `u_softness`,
 
 ## Gotchas
 
-- Start paused. The source line is `Playground.tsx` 77: `const [paused, setPaused] = useState(true)`. The Examples composer does not pass `paused`, so that hero row on the demo page keeps running. This card uses the playground start state.
+- The card mounts running, like the Examples hero. `Examples.tsx` does not pass `paused`. The original playground starts paused: `Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`. That pause is page-control behaviour. The card still has a Pause control, default unpaused.
 - Composer strength is `0.9 × 0.9 = 0.81` (`useState(90)` in `demo/App.tsx`, then `strength * 0.9` in `Examples.tsx`). The package default strength is `1`, used only by the labelled 140×40 button.
 - `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas. Do not add a second fallback.
 - Copies share one GL context. Do not mount the component twice in the same tick (a strict double-invoke tears the shared renderer down). This card does not wrap `MetalFx` in `StrictMode`.
@@ -116,7 +116,7 @@ Peer is React 18 or newer. The published module is `metal-fx@2.0.11` `dist/index
 
 - [ ] The specimen is the composer: 40×40 circle, `variant="circle"`, `innerShadow`, `useMetalBend(sendRef)`, `reflectionTargets` on the Auto chip.
 - [ ] Effective strength at the source start is `0.81` (`0.9 × 0.9`).
-- [ ] Start state is paused, from `Playground.tsx` line 77 (`useState(true)`). Say that the Examples row does not pass `paused`.
+- [ ] The card mounts running, like the Examples hero (`paused` false). The original playground starts paused (`Playground.tsx` line 77, `useState(true)`).
 - [ ] No Glow and No Reflection start off.
 - [ ] The 140×40 strength-1 button is labelled package default and is a package option, not on the original.
 - [ ] Light theme is a package option, not on the original. Child text stays `#f8f8f8`.

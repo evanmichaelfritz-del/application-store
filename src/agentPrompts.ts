@@ -261,33 +261,33 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'liquid-metal': {
     motion:
-      'Page strength starts at 90 and the composer circle multiplies by 0.9, so the ring receives 0.81. `Playground.tsx` line 77 starts paused: `const [paused, setPaused] = useState(true)`.',
+      'Page strength starts at 90 and the composer circle multiplies by 0.9, so the ring receives 0.81. The card mounts running, like the Examples hero. The original playground starts paused (`Playground.tsx` line 77, `useState(true)`).',
     content:
       'Composer, 448 wide, radius 20, placeholder `Build anything...`, plus, Agent, Auto, and a 40×40 circle send. `variant` is `circle`, `innerShadow` is on, `useMetalBend(sendRef)` bends the ring, and `reflectionTargets` is the Auto chip. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
-    rn: 'WebGL2 from `metal-fx@2.0.11`. Theme is pinned dark. No Glow and No Reflection start off. The hero examples omit `paused`; this card follows the playground and starts paused.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Theme is pinned dark. No Glow and No Reflection start off. The card mounts running. The original playground starts paused.',
     states: [
       {
-        name: 'paused',
-        trigger: 'mount',
-        from: 'playground start',
-        to: 'last frame held',
-        duration: 'until Play',
-        easing: '',
-        delay: '`useState(true)` at Playground.tsx:77',
-      },
-      {
         name: 'running',
-        trigger: 'Play',
-        from: 'held frame',
+        trigger: 'mount',
+        from: 'Examples hero',
         to: 'shared rAF',
         duration: 'speed 1, gold dark 0.85',
         easing: '',
         delay: 'circle strength is pageStrength / 100 * 0.9',
       },
+      {
+        name: 'paused',
+        trigger: 'Pause',
+        from: 'running',
+        to: 'last frame held',
+        duration: 'until Play',
+        easing: '',
+        delay: 'the original playground starts paused; this card does not',
+      },
     ],
     gotchas: [
       'Effective composer strength is 0.9 × 0.9 = 0.81 at the source start (`useState(90)` in demo/App.tsx, then `strength * 0.9` in Examples.tsx).',
-      'The card starts paused because Playground.tsx line 77 is `useState(true)`. The Examples composer does not pass `paused`.',
+      'The card mounts running, like the Examples hero. The original playground starts paused (`Playground.tsx` line 77 is `useState(true)`).',
       'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
       'Do not recolor the child to `#111111`.',
     ],
@@ -295,7 +295,7 @@ const LOCKS: Record<string, PromptLock> = {
       'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
     checklist: [
       'The specimen is the composer with a 40×40 circle, `innerShadow`, strength 0.81, `useMetalBend`, and a reflection on Auto.',
-      'Start state is paused, from Playground.tsx line 77.',
+      'The card mounts running. The original playground starts paused.',
       'The 140×40 strength-1 button is labelled package default.',
     ],
   },

@@ -5,8 +5,10 @@ import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'me
  * metal-fx@2.0.11. The libraries.dev composer is the specimen: a 40×40 circle
  * send, variant circle, innerShadow, useMetalBend, and a reflection on the
  * Auto chip. App.tsx stores strength as 90 and Examples multiplies by 0.9, so
- * the circle receives 0.81. Playground.tsx line 77 starts paused
- * (`useState(true)`). The 140×40 strength-1 button is the package default.
+ * the circle receives 0.81. The card mounts running, like the Examples hero
+ * (that row does not pass paused). Playground.tsx line 77 starts paused
+ * (`useState(true)`); that pause is the page control. The 140×40 strength-1
+ * button is the package default.
  * Light theme is a package option. Child text stays #f8f8f8.
  */
 
@@ -129,7 +131,7 @@ export function LiquidMetalCard() {
   const [specimen, setSpecimen] = useState<Specimen>('composer');
   const [theme, setTheme] = useState<Exclude<MetalFxTheme, 'auto'>>('dark');
   const [pageStrength, setPageStrength] = useState(PAGE_STRENGTH);
-  const [paused, setPaused] = useState(true);
+  const [paused, setPaused] = useState(false);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
   const sendRef = useRef<HTMLDivElement>(null);
