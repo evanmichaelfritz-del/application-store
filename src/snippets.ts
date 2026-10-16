@@ -397,10 +397,7 @@ export function Card() {
 /* Presets: pixels-organic | pixels-mechanic | sweep-gradient
  * Manual: ref.triggerReveal() / triggerHide() / triggerRegenerate()
  */
-.t-img-fx-card { background: #f5f5f5; }
-@media (prefers-reduced-motion: reduce) {
-  /* Pass paused / disable autoReveal in the React tree. */
-}`,
+.t-img-fx-card { background: #f5f5f5; }`,
 
   'tooltip-open-close': `:root {
   --tt-in-dur: 180ms;

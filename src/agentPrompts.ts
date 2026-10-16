@@ -133,7 +133,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'image-generation-loader': {
     motion:
-      'pixels-organic light mosaic. `boot` sets `u_effect` 22 and `u_dotMode` 1. `CARD_BG` is `#f5f5f5`. `startAuto` waits `Math.random() * 1500`. `scheduleIdle` waits `(2 + Math.random() * 2) * 1000`. `paintReveal` uses `easeOutCubic` for `REVEAL_SEC` (3) and `PIX_SEC` (2.55). `finishReveal` holds `HOLD_MS` (2000) unless `holdMode` is `manual`. `beginHide` fades for `FADE_MS` (300). The Reveal button posts `reveal` or `hide`. `prefers-reduced-motion: reduce` sets `var reduce`, and `var auto = live && !reduce` is posted as `{ type: \'auto\', on: auto }`.',
+      'pixels-organic light mosaic. `boot` sets `u_effect` 22 and `u_dotMode` 1. `CARD_BG` is `#f5f5f5`. `startAuto` waits `Math.random() * 1500`. `scheduleIdle` waits `(2 + Math.random() * 2) * 1000`. `paintReveal` uses `easeOutCubic` for `REVEAL_SEC` (3) and `PIX_SEC` (2.55). `finishReveal` holds `HOLD_MS` (2000) unless `holdMode` is `manual`. `beginHide` fades for `FADE_MS` (300). The Reveal button posts `reveal` or `hide`. img-fx 0.5.1 has no reduced-motion handling; autoReveal keeps cycling.',
     content:
       'Card is `168px` by `168px` with `border-radius: 20px` and `background: #f5f5f5`. Photos are `/img-fx/1.png`, `/img-fx/2.png`, `/img-fx/3.png`. Button label `Reveal`.',
     rn: 'Copy HTML, Copy CSS, and Copy script are this document. The script starts a Worker from `WORKER_SOURCE`, which is the pixels-organic program.',
@@ -176,7 +176,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      '`setTimeout(present, 100)` schedules the next frame.',
+      '`frameT0 = performance.now()` at boot. `setTimeout(present, 100 - ((performance.now() - frameT0) % 100))` schedules the next frame.',
       '`manualReveal` returns while `paused` is true.',
       'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`.',
       'Leaving pause during `visible`, when `holdMode` is not `manual`, waits `Math.min(HOLD_MS, 500)`.',
@@ -190,7 +190,6 @@ const LOCKS: Record<string, PromptLock> = {
       'Reveal resolves one pool photo through the `shaderColor4` mask.',
       'Hold is `HOLD_MS` 2000. Fade is `FADE_MS` 300.',
       'The Reveal button posts `reveal` for `manual` and `hide` when the phase is `reveal`, `visible`, or `hide`.',
-      '`prefers-reduced-motion: reduce` leaves `auto` off.',
     ],
   },
   'tooltip-open-close': {

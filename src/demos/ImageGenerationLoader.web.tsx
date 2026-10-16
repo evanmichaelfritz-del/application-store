@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { StyleSheet, View } from 'react-native';
 import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
-import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { canvasKitPending } from '@/src/skia/ensureCanvasKit';
 
 const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
@@ -68,12 +67,10 @@ function imageActive(phase: LoaderPhase) {
  */
 function WorkerLoader({
   inViewRef,
-  reduceRef,
   workerRef,
   onPhase,
 }: {
   inViewRef: MutableRefObject<boolean>;
-  reduceRef: MutableRefObject<boolean>;
   workerRef: MutableRefObject<Worker | null>;
   onPhase: (phase: LoaderPhase) => void;
 }) {
@@ -135,7 +132,7 @@ function WorkerLoader({
       if (dead) return;
       const live = inViewRef.current && !document.hidden && !canvasKitPending();
       const hold = !live;
-      const auto = live && !reduceRef.current;
+      const auto = live;
       if (hold !== lastHold) {
         lastHold = hold;
         worker.postMessage({ type: 'hold', hold });
@@ -189,7 +186,7 @@ function WorkerLoader({
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
     };
-  }, [inViewRef, reduceRef, workerRef]);
+  }, [inViewRef, workerRef]);
 
   return (
     <div data-testid="img-fx-loader" style={{ position: 'relative', width: '100%', height: '100%', ...cardStyle }}>
@@ -221,7 +218,6 @@ function WorkerLoader({
  * The worker is the closed-network program. Copy runs that same source.
  */
 export function ImageGenerationLoaderDemo() {
-  const { reduceMotion } = useReduceMotion();
   const hostRef = useRef<View>(null);
   const workerRef = useRef<Worker | null>(null);
   const canObserve = typeof IntersectionObserver === 'function';
@@ -230,9 +226,7 @@ export function ImageGenerationLoaderDemo() {
   const [tabHidden, setTabHidden] = useState(false);
   const [phase, setPhase] = useState<LoaderPhase>('idle');
   const inViewRef = useRef(inView);
-  const reduceRef = useRef(reduceMotion);
   inViewRef.current = inView && !tabHidden;
-  reduceRef.current = reduceMotion;
 
   useLayoutEffect(() => {
     preloadMosaicStill();
@@ -270,7 +264,7 @@ export function ImageGenerationLoaderDemo() {
     <Stage>
       <View ref={hostRef} style={styles.wrap} collapsable={false}>
         {seen ? (
-          <WorkerLoader inViewRef={inViewRef} reduceRef={reduceRef} workerRef={workerRef} onPhase={setPhase} />
+          <WorkerLoader inViewRef={inViewRef} workerRef={workerRef} onPhase={setPhase} />
         ) : (
           <div style={cardStyle} />
         )}

@@ -1,3 +1,25 @@
+/*!MIT License
+
+Copyright (c) 2026 Jakub Antalik
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 /* Organic loader, off the main thread.
 
    The full img-fx program is one 29KB fragment. Its first draw blocks other
@@ -295,6 +317,7 @@ let canvas = null;
 let hold = true;
 let timer = 0;
 let t0 = 0;
+let frameT0 = 0;
 let frozen = null;
 let cssW = 168;
 let cssH = 168;
@@ -314,7 +337,7 @@ const HOLD_MS = 2000;
 const FADE_MS = 300;
 const SOFTNESS = 0.5;
 const SAMPLE = 64;
-const COLOR4 = [1, 1, 1];
+const COLOR4 = [0.961, 0.961, 0.961];
 
 let images = [];
 let running = false;
@@ -517,6 +540,7 @@ function boot(w, h, dpr, cssWidth, cssHeight, dispW, dispH) {
   gl.disable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
   t0 = performance.now();
+  frameT0 = performance.now();
   ensure2d();
 }
 function drawShader(dotMode, fill, outMode) {
@@ -805,7 +829,7 @@ function present() {
   } catch (err) {
     postMessage({ type: 'error', message: String(err && err.message ? err.message : err) });
   }
-  timer = setTimeout(present, 100);
+  timer = setTimeout(present, 100 - ((performance.now() - frameT0) % 100));
 }
 self.onmessage = (ev) => {
   const msg = ev.data || {};
