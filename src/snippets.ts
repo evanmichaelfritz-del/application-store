@@ -381,11 +381,12 @@ export function Card() {
     <ImageGeneration
       preset="pixels-organic"
       theme="light"
-      cardBg="#ffffff"
+      cardBg="#f5f5f5"
       images={['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png']}
       autoReveal
-      revealDelayRange={[1.2, 2.4]}
-      revealHoldMs={2200}
+      revealDelayRange={[2, 4]}
+      revealHoldMs={2000}
+      revealFadeOutMs={300}
       borderRadius={20}
     >
       <div className="t-img-fx-card" style={{ width: 168, height: 168, borderRadius: 20 }} />
@@ -396,7 +397,7 @@ export function Card() {
 /* Presets: pixels-organic | pixels-mechanic | sweep-gradient
  * Manual: ref.triggerReveal() / triggerHide() / triggerRegenerate()
  */
-.t-img-fx-card { background: #fff; }
+.t-img-fx-card { background: #f5f5f5; }
 @media (prefers-reduced-motion: reduce) {
   /* Pass paused / disable autoReveal in the React tree. */
 }`,

@@ -14,6 +14,7 @@ import { YOGESH_CREATOR_CSS, YOGESH_CREATOR_HTML, YOGESH_CREATOR_SCRIPT } from '
 import { YOGESH_ORB_CSS, YOGESH_ORB_HTML, YOGESH_ORB_SCRIPT } from '@/src/demos/yogesh-thinking-orbs/copySlots';
 import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 import { ORB_PREVIEW_CSS, orbCard, orbPickerSource } from '@/src/closedNetwork/orbCopy';
+import { imageGenerationLoaderScript } from '@/src/closedNetwork/organicLoaderSource';
 
 export type PreviewKind = 'transitions' | 'effects';
 
@@ -504,54 +505,10 @@ const SOURCES: Record<string, Source> = {
 </div>`,
     extraCss: `.t-img-fx-card {
   width: 168px; height: 168px; border-radius: 20px; overflow: hidden;
-  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  background: #f5f5f5;
 }
 canvas { display: block; width: 168px; height: 168px; }`,
-    script: `(function () {
-  var canvas = document.getElementById('mosaic');
-  var ctx = canvas.getContext('2d');
-  var cells = 12;
-  var cw = 168 / cells;
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function color(i, j, reveal) {
-    var x = i / cells;
-    var y = j / cells;
-    var n = Math.abs(Math.sin(i * 12.9898 + j * 78.233) * 43758.5453);
-    n = n - Math.floor(n);
-    var r = Math.floor((80 + 140 * x) * reveal + 180 * (1 - reveal) * n);
-    var g = Math.floor((90 + 100 * y) * reveal + 170 * (1 - reveal) * n);
-    var b = Math.floor((210 - 70 * x) * reveal + 160 * (1 - reveal) * n);
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-  }
-  function paint(progress) {
-    ctx.clearRect(0, 0, 168, 168);
-    var j, i, order, t, size, jitter;
-    for (j = 0; j < cells; j++) {
-      for (i = 0; i < cells; i++) {
-        order = ((i * 7 + j * 3) % (cells * cells)) / (cells * cells);
-        t = reduce ? 1 : Math.max(0, Math.min(1, (progress - order) / 0.28));
-        size = cw * (0.55 + 0.45 * t);
-        jitter = (1 - t) * 7;
-        ctx.globalAlpha = 0.4 + 0.6 * t;
-        ctx.fillStyle = color(i, j, t);
-        ctx.fillRect(i * cw + jitter, j * cw + jitter * 0.4, size, size);
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-  var start = null;
-  function loop(now) {
-    if (start == null) start = now;
-    var p = Math.min(1, (now - start) / 1500);
-    paint(p);
-    if (p < 1 && !reduce) requestAnimationFrame(loop);
-  }
-  document.getElementById('reveal').addEventListener('click', function () {
-    start = null;
-    requestAnimationFrame(loop);
-  });
-  requestAnimationFrame(loop);
-})();`,
+    script: imageGenerationLoaderScript(),
     snippet: false,
   },
   'confetti-burst': {

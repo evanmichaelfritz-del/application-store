@@ -54,11 +54,6 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Live is a dark stage with a moving magenta/violet beam on a prompt bar and Search pill; Copy is a light theme with a static-looking pink outline (ambient motion detected, but the colour and theme differ).',
     'Unused .trigger. Template prompt.',
   ],
-  'image-generation-loader': [
-    'Live stage is a WebGL mosaic resolving a photo; Copy renders a coloured CSS dot-grid gradient and no photo. Different look.',
-    'Template prompt with no shader code, no GL setup and no gotchas.',
-    'Original (transitions.dev "Image generation placeholder", Pro): "dot noise wakes, then resolves into the image". Copy does not resolve into an image.',
-  ],
   'drag-drop-physics': [
     'Live has a blue "Image" chip under the zone; Copy has a black "Photo" tile.',
     'Unused .col/.trigger. Template prompt.',

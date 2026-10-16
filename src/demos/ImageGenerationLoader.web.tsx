@@ -1,40 +1,25 @@
-import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MutableRefObject, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ImageGeneration, type ImageGenerationHandle } from 'img-fx';
 import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { decideImgFxPath, getImgFxShaderReady, subscribeImgFxReady } from '@/src/shims/imgFxGate';
 import { canvasKitPending } from '@/src/skia/ensureCanvasKit';
-import { colors } from '@/src/theme';
 
 const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
 const MOSAIC_STILL = '/img-fx/organic-still@2x.png';
-const SOFT_STILL = '/img-fx/organic-still-soft@2x.png';
+/** pixels-organic light preset `cardBg`. */
+const CARD_BG = '#f5f5f5';
 
 const cardStyle: CSSProperties = {
   width: 168,
   height: 168,
   borderRadius: 20,
-  background: colors.card,
+  background: CARD_BG,
 };
-
-class WebGlGate extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  componentDidCatch() {
-    /* WebGL unavailable */
-  }
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
 
 let mosaicStill: HTMLImageElement | null = null;
 
-/** Start the 2× still fetch as soon as the worker path is chosen, off the bundle. */
+/** Start the 2× still fetch as soon as the card mounts, off the bundle. */
 function preloadMosaicStill(): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
   if (!mosaicStill) {
@@ -56,53 +41,14 @@ function drawMosaicStill(canvas: HTMLCanvasElement) {
   return true;
 }
 
-/** Sync paint so the card is never white while the 2× still is loading. */
+/** Sync paint so the card is never empty while the 2× still is loading. */
 function paintPlaceholder(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const w = canvas.width;
   const h = canvas.height;
-  ctx.fillStyle = '#d7d7d7';
+  ctx.fillStyle = CARD_BG;
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#c4c4c4';
-  ctx.beginPath();
-  ctx.arc(w * 0.4, h * 0.46, w * 0.22, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#ececec';
-  ctx.beginPath();
-  ctx.arc(w * 0.68, h * 0.6, w * 0.18, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function OrganicStill({ src }: { src: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useLayoutEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    paintPlaceholder(canvas);
-    const img = new Image();
-    img.decoding = 'async';
-    let cancelled = false;
-    img.onload = () => {
-      if (cancelled) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    };
-    img.src = src;
-    return () => {
-      cancelled = true;
-    };
-  }, [src]);
-  return (
-    <canvas
-      ref={ref}
-      width={336}
-      height={336}
-      aria-hidden
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
-  );
 }
 
 function hostElement(node: View | null): HTMLElement | null {
@@ -117,8 +63,8 @@ function imageActive(phase: LoaderPhase) {
 }
 
 /**
- * Real GPU: img-fx never mounts, so the page creates no img-fx WebGL context.
- * The worker compiles the organic field and runs the photo reveal.
+ * The page creates no img-fx WebGL context. The worker compiles the
+ * pixels-organic light field and runs the photo reveal.
  */
 function WorkerLoader({
   inViewRef,
@@ -271,33 +217,26 @@ function WorkerLoader({
 }
 
 /**
- * Web showcase: img-fx ImageGeneration loader
- * (`npm install img-fx three`).
- *
- * Software GL paints the held still and does not compile. A real GPU draws
- * the same preset, including the photo reveal, from a worker.
+ * Web showcase of the pixels-organic light mosaic.
+ * The worker is the closed-network program. Copy runs that same source.
  */
 export function ImageGenerationLoaderDemo() {
   const { reduceMotion } = useReduceMotion();
-  const path = useState(decideImgFxPath)[0];
-  const ref = useRef<ImageGenerationHandle>(null);
   const hostRef = useRef<View>(null);
   const workerRef = useRef<Worker | null>(null);
   const canObserve = typeof IntersectionObserver === 'function';
   const [seen, setSeen] = useState(!canObserve);
   const [inView, setInView] = useState(!canObserve);
   const [tabHidden, setTabHidden] = useState(false);
-  const [revealLatched, setRevealLatched] = useState(false);
   const [phase, setPhase] = useState<LoaderPhase>('idle');
-  const shaderReady = useSyncExternalStore(subscribeImgFxReady, getImgFxShaderReady, () => false);
   const inViewRef = useRef(inView);
   const reduceRef = useRef(reduceMotion);
   inViewRef.current = inView && !tabHidden;
   reduceRef.current = reduceMotion;
 
   useLayoutEffect(() => {
-    if (path === 'worker') preloadMosaicStill();
-  }, [path]);
+    preloadMosaicStill();
+  }, []);
 
   useEffect(() => {
     if (!canObserve) return;
@@ -327,82 +266,19 @@ export function ImageGenerationLoaderDemo() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
-  useEffect(() => {
-    if (path === 'worker') return;
-    if (!reduceMotion && shaderReady && inView && !tabHidden) setRevealLatched(true);
-  }, [inView, path, reduceMotion, shaderReady, tabHidden]);
-
-  const fallback = (
-    <div
-      style={{
-        ...cardStyle,
-        display: 'grid',
-        placeItems: 'center',
-        border: '1px solid rgba(0,0,0,.06)',
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: 13,
-        color: '#0d0d0d',
-      }}
-    >
-      Generating…
-    </div>
-  );
-
-  // Pause without toggling autoReveal: img-fx's autoReveal effect calls stop(),
-  // which clears a reveal that's already on screen. The latch keeps that effect
-  // stable once the shader has actually started in view.
-  const paused = reduceMotion || !inView || tabHidden || !shaderReady;
-  const autoReveal = revealLatched;
-
   return (
     <Stage>
       <View ref={hostRef} style={styles.wrap} collapsable={false}>
-        {path === 'worker' ? (
-          seen ? (
-            <WorkerLoader inViewRef={inViewRef} reduceRef={reduceRef} workerRef={workerRef} onPhase={setPhase} />
-          ) : (
-            <div style={cardStyle} />
-          )
+        {seen ? (
+          <WorkerLoader inViewRef={inViewRef} reduceRef={reduceRef} workerRef={workerRef} onPhase={setPhase} />
         ) : (
-          <WebGlGate fallback={fallback}>
-            {seen ? (
-              <ImageGeneration
-                ref={ref}
-                preset="pixels-organic"
-                theme="light"
-                cardBg={colors.card}
-                images={IMAGES}
-                autoReveal={autoReveal}
-                paused={paused}
-                revealDelayRange={[1.2, 2.4]}
-                revealHoldMs={2200}
-                revealFadeOutMs={320}
-                borderRadius={20}
-                pixelScale={1}
-                data-testid="img-fx-loader"
-                style={{ display: 'block', lineHeight: 0 }}
-              >
-                <div className="t-img-fx-card" style={cardStyle}>
-                  <OrganicStill src={SOFT_STILL} />
-                </div>
-              </ImageGeneration>
-            ) : (
-              <div style={cardStyle} />
-            )}
-          </WebGlGate>
+          <div style={cardStyle} />
         )}
       </View>
       <AnimateButton
         label="Reveal"
         onPress={() => {
-          if (path === 'worker') {
-            workerRef.current?.postMessage({ type: imageActive(phase) ? 'hide' : 'reveal' });
-            return;
-          }
-          const h = ref.current;
-          if (!h) return;
-          if (h.isImageActive()) h.triggerHide();
-          else h.triggerReveal({ hold: 'manual' });
+          workerRef.current?.postMessage({ type: imageActive(phase) ? 'hide' : 'reveal' });
         }}
       />
     </Stage>

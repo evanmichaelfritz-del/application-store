@@ -132,9 +132,66 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Base line plus a duplicate highlight line. Measure the full string width and lay the highlight line out at that width (nowrap, flex-shrink 0). The ~72px window only clips that line and translates from -window to the measured width; the inner line counter-translates so the visible slice is that part of the phrase. A window-sized text box wraps to "Gene" and the sweep never reaches the rest of the phrase. Copy emits `.t-shimmer`: inline-block, fit-content, background-size 300%, no-repeat, background-position 100% → 0% over 1200ms so the 50% peak travels the whole line.',
   },
   'image-generation-loader': {
-    motion: 'img-fx WebGL mosaic (`pixels-organic`). Auto-reveal loop: idle 1.2–2.4s → reveal → hold 2200ms → fade 320ms. Manual Reveal toggles hold:manual / hide. Reduced motion → paused, no autoReveal.',
-    content: '168×168 card, radius 20, light theme, cardBg `#ffffff`. Image pool `/img-fx/1.png` `/img-fx/2.png` `/img-fx/3.png`. Label button `Reveal`.',
-    rn: 'The gallery stage uses img-fx when that package is installed. Copy HTML, Copy CSS, and Copy script emit the closed-network canvas mosaic below, which is the preview document. They do not emit an npm install snippet.',
+    motion:
+      'pixels-organic light mosaic. `boot` sets `u_effect` 22 and `u_dotMode` 1. `CARD_BG` is `#f5f5f5`. `startAuto` waits `Math.random() * 1500`. `scheduleIdle` waits `(2 + Math.random() * 2) * 1000`. `paintReveal` uses `easeOutCubic` for `REVEAL_SEC` (3) and `PIX_SEC` (2.55). `finishReveal` holds `HOLD_MS` (2000) unless `holdMode` is `manual`. `beginHide` fades for `FADE_MS` (300). The Reveal button posts `reveal` or `hide`. `prefers-reduced-motion: reduce` sets `var reduce`, and `var auto = live && !reduce` is posted as `{ type: \'auto\', on: auto }`.',
+    content:
+      'Card is `168px` by `168px` with `border-radius: 20px` and `background: #f5f5f5`. Photos are `/img-fx/1.png`, `/img-fx/2.png`, `/img-fx/3.png`. Button label `Reveal`.',
+    rn: 'Copy HTML, Copy CSS, and Copy script are this document. The script starts a Worker from `WORKER_SOURCE`, which is the pixels-organic program.',
+    states: [
+      {
+        name: 'idle',
+        trigger: '`scheduleIdle` and `startAuto`',
+        from: 'shader opacity 1',
+        to: 'overlay opacity 0',
+        duration: '`Math.random() * 1500` on the first wait',
+        easing: '',
+        delay: '`(2 + Math.random() * 2) * 1000` after that',
+      },
+      {
+        name: 'reveal',
+        trigger: '`beginReveal`',
+        from: 'mosaic',
+        to: 'photo',
+        duration: '`REVEAL_SEC` 3 and `PIX_SEC` 2.55',
+        easing: '`easeOutCubic`',
+        delay: '`SOFTNESS` 0.5 and `COLOR4`',
+      },
+      {
+        name: 'visible',
+        trigger: '`finishReveal`',
+        from: 'reveal done',
+        to: 'shader opacity 0',
+        duration: '`HOLD_MS` 2000',
+        easing: '',
+        delay: 'no timer when `holdMode` is `manual`',
+      },
+      {
+        name: 'hide',
+        trigger: '`beginHide`',
+        from: 'overlay opacity 1',
+        to: 'overlay opacity 0',
+        duration: '`FADE_MS` 300',
+        easing: '`(now - hideStart) / FADE_MS`',
+        delay: '`scheduleIdle` when `continueAuto`',
+      },
+    ],
+    gotchas: [
+      '`setTimeout(present, 100)` schedules the next frame.',
+      '`manualReveal` returns while `paused` is true.',
+      'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`.',
+      'Leaving pause during `visible`, when `holdMode` is not `manual`, waits `Math.min(HOLD_MS, 500)`.',
+      'An empty photo list retries `beginReveal` after 500.',
+      '`REF_DIM` is `320.0`. Host `cssW` falls back to 168.',
+    ],
+    setup:
+      'The worker canvas is `OffscreenCanvas`. `getContext(\'webgl2\'` uses `alpha: true`, `premultipliedAlpha: false`, `antialias: false`, `powerPreference: \'high-performance\'`, and `preserveDrawingBuffer: true`. Photos use `fetch` and `createImageBitmap`. Shader `dpr` is `Math.min(window.devicePixelRatio || 1, 1.25)`. Display `canvasDpr` is `Math.min(window.devicePixelRatio || 1, 2)`.',
+    checklist: [
+      'Idle is the pixels-organic light field: `u_effect` 22, `u_dotMode` 1, `CARD_BG` `#f5f5f5`.',
+      'Reveal resolves one pool photo through the `shaderColor4` mask.',
+      'Hold is `HOLD_MS` 2000. Fade is `FADE_MS` 300.',
+      'The Reveal button posts `reveal` for `manual` and `hide` when the phase is `reveal`, `visible`, or `hide`.',
+      '`prefers-reduced-motion: reduce` leaves `auto` off.',
+    ],
   },
   'tooltip-open-close': {
     motion:
