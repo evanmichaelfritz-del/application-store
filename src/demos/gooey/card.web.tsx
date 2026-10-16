@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { MELT_A, MELT_B } from './meltPhotos';
 import { Liquid } from 'liquid-gooey';
 
 /**
@@ -9,6 +10,7 @@ import { Liquid } from 'liquid-gooey';
  */
 
 const PRO_LOCKED = 'Pro-locked on the original';
+const BOUNCE_HINT = `${PRO_LOCKED}; teaser only; not wired on the original`;
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
 const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
 
@@ -93,8 +95,10 @@ const CSS = `
   background: transparent; display: grid; place-items: center; cursor: pointer;
   color: var(--gd-ink, #fbfbfb); -webkit-tap-highlight-color: transparent;
 }
+.as-gooey .pm-btn:focus-visible { outline: 2px solid #ededed; outline-offset: 2px; }
 .as-gooey .pm-sat { pointer-events: none; }
 .as-gooey .pm-open .pm-sat { pointer-events: auto; }
+.as-gooey .pm-open .pm-sat:hover { background: rgba(255, 255, 255, 0.06); }
 .as-gooey .pm-sat-icon {
   display: grid; place-items: center; opacity: 0; filter: blur(2px);
   transition: opacity 120ms ease, filter 120ms ease;
@@ -123,11 +127,14 @@ const CSS = `
   position: absolute; left: 14px; top: 30px; width: 24px; height: 24px; border-radius: 50%;
   cursor: grab; touch-action: none; user-select: none;
 }
+.as-gooey .sl-thumb:focus-visible { outline: 2px solid #ededed; outline-offset: 4px; }
 .as-gooey .dgc { width: 100%; max-width: 640px; height: 210px; position: relative; margin: 0 auto; }
 .as-gooey .dgc-card {
   position: absolute; left: 50%; top: 50%; width: 261px; height: 46px; margin: -23px 0 0 -130.5px;
   border-radius: 54px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px;
   color: var(--gd-ink, #fbfbfb); cursor: grab; touch-action: none; user-select: none; box-sizing: border-box;
+  font-family: Inter, Inter_500Medium, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
 }
 .as-gooey .dgc-chip {
   flex: none; width: 32px; height: 32px; border-radius: 40px; background: rgba(255, 255, 255, 0.06);
@@ -135,7 +142,7 @@ const CSS = `
 }
 .as-gooey .dgc-chip svg { width: 16px; height: 16px; display: block; }
 .as-gooey .dgc-title { font-size: 13px; font-weight: 500; white-space: nowrap; }
-.as-gooey .dgc-count { font-size: 13px; opacity: 0.5; white-space: nowrap; }
+.as-gooey .dgc-count { font-size: 13px; font-weight: 400; opacity: 0.5; white-space: nowrap; }
 .as-gooey .dgc-card > * {
   --dgc-k: calc(var(--dgc-cb, 0) * var(--dgc-arc, 1));
   transform: translate(calc(var(--lg-bend-x, 0px) * var(--dgc-k) * 2.4), calc(var(--lg-bend-y, 0px) * var(--dgc-k) * 2.4))
@@ -153,6 +160,7 @@ const CSS = `
   position: absolute; border-radius: 16px; overflow: hidden; cursor: grab; touch-action: none; user-select: none;
 }
 .as-gooey .mp-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.as-gooey .sl-thumb:active, .as-gooey .dgc-card:active, .as-gooey .mp-card:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   .as-gooey .pm-plus, .as-gooey .pm-sat-icon { transition: none !important; }
   .as-gooey .pm-anticipating [data-gooey-svg], .as-gooey .pm-anticipating .pm-main { animation: none !important; }
@@ -534,8 +542,8 @@ function MeltSpecimen() {
   const stageStyle: CSSProperties = { width: 'min(100%, 420px)', height: MELT_STAGE_H };
   return (
     <Liquid key="melt" className="mp" style={stageStyle} ref={stageRef} data-testid="gooey-melt">
-      <MeltCard src="/gooey/melt-a.jpg" pos={a} setPos={setA} stageRef={stageRef} />
-      <MeltCard src="/gooey/melt-b.jpg" pos={b} setPos={setB} stageRef={stageRef} />
+      <MeltCard src={MELT_A} pos={a} setPos={setA} stageRef={stageRef} />
+      <MeltCard src={MELT_B} pos={b} setPos={setB} stageRef={stageRef} />
     </Liquid>
   );
 }
@@ -572,15 +580,15 @@ export function GooeyCard() {
           <>
             <Slider label="Goo blur" value={blur} min={0} max={16} step={0.5} onChange={setBlur} />
             <Slider label="Contrast" value={contrast} min={4} max={40} step={1} onChange={setContrast} />
+            <Slider label="Waviness" value={waviness} min={0} max={8} step={0.5} hint={PRO_LOCKED} onChange={setWaviness} />
           </>
         ) : null}
-        <Slider label="Waviness" value={waviness} min={0} max={8} step={0.5} hint={PRO_LOCKED} onChange={setWaviness} />
         <Row label="Fill">
           {FILLS_LOCKED.map((option) => (
             <Chip key={option.id} label={option.label} on={fillChoice === option.id} hint={PRO_LOCKED} onPress={() => setFillChoice(option.id)} />
           ))}
         </Row>
-        <Slider label="Bounce" value={bounce} min={0} max={1} step={0.05} hint={PRO_LOCKED} onChange={setBounce} />
+        <Slider label="Bounce" value={bounce} min={0} max={1} step={0.05} hint={BOUNCE_HINT} onChange={setBounce} />
         <Slider label="Stagger" value={stagger} min={0} max={200} step={5} hint={PRO_LOCKED} onChange={setStagger} />
         <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: '#8b8b8b' }}>
           Waviness, Fill, Bounce, and Stagger: {PRO_LOCKED}. Goo blur and Contrast are the public playground sliders.

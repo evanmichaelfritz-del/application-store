@@ -60,7 +60,7 @@ The examples row does not render melt. The public playground effect switch does 
 - two cards 84×84, radius 16
 - melt knobs line 687: blur 7, contrast 40, reach 0.8, fade 17, warp 0, mix 1, mixBlur 8, gravity 1.9, waviness 12
 - those match `IMAGE_MELT_DEFAULTS` (dist lines 157–167)
-- photos are the page files `sites/home/public/images/melt-a.jpg` and `melt-b.jpg`
+- photos are the page files `sites/home/public/images/melt-a.jpg` and `melt-b.jpg`, embedded as data URIs with those exact bytes
 
 ### Public sliders and locked rows
 
@@ -80,13 +80,15 @@ The page pins theme dark (`GooeyStudio` default, line 670). There is no theme sw
 | morph open | `false` | `MorphDemo` line 197 |
 | blur | `6` | group default line 661; public slider |
 | contrast | `18` | group default line 661; public slider |
-| waviness | `0` | Pro-locked teaser. Passed on morph, move, and bend |
+| waviness | `0` | Pro-locked teaser. Passed on morph, move, and bend. Hidden on melt |
 | fill | Surface | `#202020` morph and bend, `#525252` move. Pro-locked |
-| bounce | `0.5` | Pro-locked teaser. Never passed. Shape is not this specimen |
+| bounce | `0.5` | Pro-locked teaser. Hint adds "teaser only; not wired on the original". Never passed |
 | stagger | `40` | Pro-locked open stagger. Close stagger stays 0 |
 | move thumb | `84` | `MoveDemo` line 299 |
 | bend position | `0, 0` | `BendDemo` line 363 |
 | melt knobs | image-melt defaults | not the group blur/contrast |
+
+Interaction states, copied from examples.css and prefixed `.as-gooey`: line 505 `.pm-btn:focus-visible` is `outline: 2px solid #ededed; outline-offset: 2px`; line 508 `.pm-open .pm-sat:hover` is `background: rgba(255, 255, 255, 0.06)`; line 576 `.sl-thumb:active`, line 607 `.dgc-card:active`, and line 654 `.mp-card:active` are `cursor: grabbing`; line 577 `.sl-thumb:focus-visible` is `outline: 2px solid #ededed; outline-offset: 4px`. Bend `.dgc-title` is Inter 13px weight 500 (examples.css line 620). `.dgc-count` is 13px (line 621) at the page weight 400.
 
 | Prop | Values | Package default |
 | --- | --- | --- |
@@ -139,6 +141,28 @@ Peer is React 18 or newer. The published module is `liquid-gooey@0.2.2`. `sites/
 - [ ] The component source below is unmodified `liquid-gooey@0.2.2`.
 
 ## Component
+
+MIT License
+
+Copyright (c) 2026 Jakub
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ```js
 // src/Gooey.tsx
