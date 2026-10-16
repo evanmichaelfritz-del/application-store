@@ -123,6 +123,7 @@ const publicPrompt = {
   'yogesh-orb-creator': readFileSync(join(root, 'public/prompts/yogesh-orb-creator.md'), 'utf8'),
   'border-beam': readFileSync(join(root, 'public/prompts/border-beam.md'), 'utf8'),
   'liquid-metal': readFileSync(join(root, 'public/prompts/liquid-metal.md'), 'utf8'),
+  gooey: readFileSync(join(root, 'public/prompts/gooey.md'), 'utf8'),
 };
 
 function missingSections(text) {

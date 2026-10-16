@@ -780,80 +780,13 @@ canvas { display: block; width: 168px; height: 168px; }`,
   'orb-agent-shaping': orbCard({ motionsource: 'msAgentShaping', size: 20, label: 'shaping...', agent: true }),
   'orb-state-picker': orbPickerSource(),
   gooey: {
-    html: `<div class="gooey" id="stage">
-  <div class="t-gooey-tile anchor" id="anchor"></div>
-  <div class="t-gooey-neck" id="neck"></div>
-  <div class="t-gooey-tile drag" id="drag"></div>
-</div>`,
-    extraCss: `.gooey { position: relative; width: 280px; height: 280px; touch-action: none; }
-.t-gooey-tile { position: absolute; left: 70px; top: 16px; }
-.anchor { background: #7c2bff; }
-.drag { background: #e11d48; cursor: grab; }
-.t-gooey-neck {
-  position: absolute; left: 122px; top: 90px; transform-origin: 8px 0;
-  border-radius: 8px; z-index: 0;
-}
-.t-gooey-tile { z-index: 1; }`,
+    snippet: false,
+    html: `<div id="parity-root"></div>`,
+    extraCss: `#parity-root { width: 452px; }`,
     script: `(function () {
-  var stage = document.getElementById('stage');
-  var drag = document.getElementById('drag');
-  var neck = document.getElementById('neck');
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function num(name, fallback) {
-    var n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
-    return Number.isFinite(n) ? n : fallback;
-  }
-  var homeX = num('--gooey-rest-x', 28);
-  var homeY = num('--gooey-rest-y', 78);
-  var x = homeX;
-  var y = homeY;
-  var vx = 0;
-  var vy = 0;
-  var dragging = false;
-  function place() {
-    drag.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-    var dist = Math.max(num('--gooey-neck', 16), Math.hypot(x, y));
-    var angle = Math.atan2(y, x) * 180 / Math.PI;
-    neck.style.height = dist + 'px';
-    neck.style.transform = 'rotate(' + (angle - 90) + 'deg)';
-  }
-  function spring() {
-    if (dragging || reduce) return;
-    var k = num('--gooey-spring-k', 280);
-    var d = num('--gooey-spring-d', 20);
-    var m = num('--gooey-spring-m', 0.85);
-    var dt = 0.016;
-    vx = (vx + ((homeX - x) * k) / m * dt) * Math.exp(-d * dt);
-    vy = (vy + ((homeY - y) * k) / m * dt) * Math.exp(-d * dt);
-    x += vx * dt;
-    y += vy * dt;
-    place();
-    if (Math.hypot(homeX - x, homeY - y) > 0.6 || Math.hypot(vx, vy) > 0.6) requestAnimationFrame(spring);
-    else { x = homeX; y = homeY; vx = 0; vy = 0; place(); }
-  }
-  drag.addEventListener('pointerdown', function (e) {
-    dragging = true;
-    drag.setPointerCapture(e.pointerId);
-    vx = 0;
-    vy = 0;
-  });
-  drag.addEventListener('pointermove', function (e) {
-    if (!dragging) return;
-    var b = stage.getBoundingClientRect();
-    var px = (e.clientX - b.left) * (280 / b.width);
-    var py = (e.clientY - b.top) * (280 / b.height);
-    x = px - 130;
-    y = py - 90;
-    place();
-  });
-  function end() {
-    if (!dragging) return;
-    dragging = false;
-    spring();
-  }
-  drag.addEventListener('pointerup', end);
-  drag.addEventListener('pointercancel', end);
-  place();
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/gooey.js';
+  document.body.appendChild(s);
 })();`,
   },
   'abrar-overview': {

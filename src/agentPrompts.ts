@@ -208,9 +208,44 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Skia Canvas 44×44 per orb. AI skills tag. Copy emits `.t-orb`.',
   },
   gooey: {
-    motion: 'Lower tile Gesture.Pan translateX/Y. Snap-back `withSpring` damping 20, stiffness 280, mass 0.85 after SNAP_DRAG 168px. Pink neck ≥16px between tile centers.',
-    content: 'Purple tile `#7c2bff` + rose tile `#e11d48` + neck `#ff4ad2`. Tiles 120×148, radius 28, rest offset 28 / 78.',
-    rn: 'Web: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
+    motion:
+      'The page has no idle loop. Morph opens in 550ms with cubic-bezier(0.34, 1.56, 0.64, 1) and stagger 40ms, and closes in 250ms with cubic-bezier(0.22, 1, 0.36, 1). Move follows the thumb with springiness 0.5, wobble 0.5, stretch 0.6, trail 0.35. Bend drops home in 400ms with cubic-bezier(0.34, 1.40, 0.64, 1).',
+    content:
+      'Default is the closed morph plus menu: 200×140, buttons 40×40, fill #202020, blur 6, contrast 18, waviness 0. Move is the 240×80 slider with a 24×24 thumb at translateX 84px and fill #525252. Bend is the 261×46 card. Melt is two 84×84 photos. Waviness, Fill, Bounce, and Stagger are Pro-locked on the original.',
+    rn: 'SVG filter from `liquid-gooey@0.2.2`. The page is dark. The public playground starts on morph. Goo blur and Contrast are the public sliders. There is no play/pause control.',
+    states: [
+      {
+        name: 'closed',
+        trigger: 'mount',
+        from: 'satellites stacked',
+        to: 'plus menu',
+        duration: 'held until click',
+        easing: '',
+        delay: 'useState(false) in MorphDemo',
+      },
+      {
+        name: 'open',
+        trigger: 'plus click',
+        from: 'origin',
+        to: 'satellite offsets',
+        duration: '550ms',
+        easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        delay: '40ms stagger',
+      },
+    ],
+    gotchas: [
+      'Morph, move, bend, and melt do not share props. Melt does not take the group blur, contrast, fill, or waviness.',
+      'Waviness, Fill, Bounce, and Stagger are Pro-locked on the original and stay selectable.',
+      'Bounce stays off the morph items at 0.5. Moving it turns on morph shape.',
+      'The plus menu mounts closed. The playground starts on morph with the same group defaults.',
+    ],
+    setup:
+      'Peer is React. The module is `liquid-gooey@0.2.2`. The MIT text and the React LICENSE sit in front of the bundle.',
+    checklist: [
+      'The default specimen is the closed morph plus menu, 200×140, fill #202020, blur 6, contrast 18.',
+      'Move, bend, and melt keep their own props.',
+      'Waviness, Fill, Bounce, and Stagger are labelled Pro-locked on the original.',
+    ],
   },
   ...ORB_LOCKS,
   'preview-tools': {
