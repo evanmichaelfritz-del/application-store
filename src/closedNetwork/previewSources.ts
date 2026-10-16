@@ -863,7 +863,7 @@ canvas { display: block; width: 168px; height: 168px; }`,
   'liquid-metal': {
     snippet: false,
     html: `<div id="parity-root"></div>`,
-    extraCss: `#parity-root { width: min(480px, 100%); }`,
+    extraCss: `#parity-root { width: 504px; }`,
     script: `(function () {
   var s = document.createElement('script');
   s.src = location.origin + '/parity/liquid-metal.js';
