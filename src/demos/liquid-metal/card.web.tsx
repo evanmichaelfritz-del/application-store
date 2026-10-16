@@ -2,15 +2,11 @@ import { useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref
 import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'metal-fx';
 
 /**
- * metal-fx@2.0.11. The libraries.dev composer is the specimen: a 40×40 circle
- * send, variant circle, innerShadow, useMetalBend, and a reflection on the
- * Auto chip. sites/home/src/metal.tsx stores STRENGTH as 90 and
- * metal-examples-v2 multiplies by 0.9, so the circle receives 0.81. The
- * strength slider and silver/gold presets are Studio-locked on libraries.dev
- * and live on the metal-fx package demo. The card mounts running, like the
- * Examples hero (that row does not pass paused). Playground.tsx line 77
- * starts paused (`useState(true)`); that pause is the page control. The
- * 140×40 strength-1 button is the package default.
+ * metal-fx@2.0.11. Each libraries.dev row keeps its own props.
+ * Default is the v1 Agent/Auto composer (metal-examples.tsx lines 87–99):
+ * preset gold, reflection on Auto, no innerShadow, no useMetalBend, running,
+ * strength STRENGTH/100 * 0.9. The v2 composer (metal-examples-v2.tsx) and the
+ * search+circle playground (metal.tsx CircleStageV2) are separate specimens.
  * Light theme is a package option. Child text stays #f8f8f8.
  */
 
@@ -23,7 +19,14 @@ const PAGE_STRENGTH = 90;
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
 const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
 
-type Specimen = 'composer' | 'package';
+type Specimen = 'composer' | 'v2' | 'playground' | 'package';
+
+const ROW_PRESET: Record<Specimen, MetalFxPreset> = {
+  composer: 'gold',
+  v2: 'chromatic',
+  playground: 'chromatic',
+  package: 'chromatic',
+};
 
 type Tokens = {
   stage: string;
@@ -72,6 +75,15 @@ function ArrowUpIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <line x1="12" y1="19" x2="12" y2="5" />
       <polyline points="5 12 12 5 19 12" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8b8b8b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" />
+      <path d="m16 16-3.5-3.5" />
     </svg>
   );
 }
@@ -132,20 +144,213 @@ function ControlRow({ label, tokens, children }: { label: string; tokens: Tokens
   );
 }
 
+const circleFace = (cursor: 'default' | 'pointer'): CSSProperties => ({
+  boxSizing: 'border-box',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 40,
+  height: 40,
+  padding: 0,
+  border: `1px solid ${FACE_BORDER}`,
+  borderRadius: '50%',
+  background: FACE,
+  boxShadow: 'inset 0 0 50px 0 rgba(255, 255, 255, 0.02)',
+  color: FACE_FG,
+  cursor,
+});
+
+function ChatShell({ short, children }: { short: boolean; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        width: 448,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        borderRadius: 20,
+        background: 'rgba(29, 29, 29, 0.7)',
+        padding: '20px 16px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div
+        style={{
+          width: short ? '70%' : '100%',
+          marginBottom: 16,
+          fontFamily: FONT,
+          fontSize: 14,
+          lineHeight: '16px',
+          color: '#4e4e4e',
+        }}
+      >
+        Build anything...
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{children}</div>
+    </div>
+  );
+}
+
+function PlusButton() {
+  return (
+    <div
+      style={{
+        width: 36,
+        height: 36,
+        minWidth: 36,
+        borderRadius: '50%',
+        background: CHIP_BG,
+        boxShadow: CHIP_SHADOW,
+        color: '#caccd2',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <PlusIcon />
+    </div>
+  );
+}
+
+function GoldComposer({ preset, theme, strength }: { preset: MetalFxPreset; theme: Exclude<MetalFxTheme, 'auto'>; strength: number }) {
+  const autoChipRef = useRef<HTMLDivElement>(null);
+  const autoTargets = useMemo(() => [autoChipRef], []);
+  return (
+    <ChatShell short={false}>
+      <PlusButton />
+      <div style={{ flex: 1 }} />
+      <ComposerChip label="Agent" />
+      <ComposerChip label="Auto" chipRef={autoChipRef} />
+      <MetalFx preset={preset} variant="circle" theme={theme} reflectionTargets={autoTargets} strength={strength}>
+        <button type="button" aria-label="Send" style={circleFace('pointer')}>
+          <ArrowUpIcon />
+        </button>
+      </MetalFx>
+    </ChatShell>
+  );
+}
+
+function V2Composer({ preset, theme, strength }: { preset: MetalFxPreset; theme: Exclude<MetalFxTheme, 'auto'>; strength: number }) {
+  const autoChipRef = useRef<HTMLDivElement>(null);
+  const sendRef = useRef<HTMLDivElement>(null);
+  useMetalBend(sendRef);
+  const autoTargets = useMemo(() => [autoChipRef], []);
+  return (
+    <ChatShell short>
+      <PlusButton />
+      <div style={{ flex: 1 }} />
+      <ComposerChip label="Agent" />
+      <ComposerChip label="Auto" chipRef={autoChipRef} />
+      <MetalFx
+        ref={sendRef}
+        preset={preset}
+        variant="circle"
+        theme={theme}
+        reflectionTargets={autoTargets}
+        innerShadow
+        strength={strength}
+      >
+        <button type="button" aria-label="Send" style={circleFace('default')}>
+          <ArrowUpIcon />
+        </button>
+      </MetalFx>
+    </ChatShell>
+  );
+}
+
+function PlaygroundCircle({
+  preset,
+  theme,
+  strength,
+  paused,
+  disableGlow,
+  disableReflection,
+}: {
+  preset: MetalFxPreset;
+  theme: Exclude<MetalFxTheme, 'auto'>;
+  strength: number;
+  paused: boolean;
+  disableGlow: boolean;
+  disableReflection: boolean;
+}) {
+  const searchRef = useRef<HTMLLabelElement>(null);
+  const sendRef = useRef<HTMLDivElement>(null);
+  useMetalBend(sendRef);
+  const searchTargets = useMemo(() => [searchRef], []);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <label
+        ref={searchRef}
+        style={{
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: 180,
+          height: 40,
+          borderRadius: 999,
+          padding: '10px 8px 10px 12px',
+          background: FACE,
+          border: `1px solid ${FACE_BORDER}`,
+          boxShadow: 'inset 0 0 50px 0 rgba(255, 255, 255, 0.02)',
+          color: FACE_FG,
+          fontFamily: FONT_MED,
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      >
+        <SearchIcon />
+        <input
+          type="search"
+          placeholder="Search"
+          aria-label="Search"
+          readOnly
+          tabIndex={-1}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 0,
+            background: 'transparent',
+            font: 'inherit',
+            color: 'inherit',
+            outline: 'none',
+          }}
+        />
+      </label>
+      <MetalFx
+        ref={sendRef}
+        preset={preset}
+        variant="circle"
+        theme={theme}
+        strength={strength}
+        paused={paused}
+        disableGlow={disableGlow}
+        innerShadow
+        reflectionTargets={disableReflection ? undefined : searchTargets}
+      >
+        <button type="button" aria-label="Send" style={circleFace('default')}>
+          <ArrowUpIcon />
+        </button>
+      </MetalFx>
+    </div>
+  );
+}
+
 export function LiquidMetalCard() {
-  const [preset, setPreset] = useState<MetalFxPreset>('chromatic');
+  const [preset, setPreset] = useState<MetalFxPreset>('gold');
   const [specimen, setSpecimen] = useState<Specimen>('composer');
   const [theme, setTheme] = useState<Exclude<MetalFxTheme, 'auto'>>('dark');
   const [pageStrength, setPageStrength] = useState(PAGE_STRENGTH);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
-  const sendRef = useRef<HTMLDivElement>(null);
-  const autoChipRef = useRef<HTMLDivElement>(null);
-  useMetalBend(sendRef);
-  const autoTargets = useMemo(() => [autoChipRef], []);
   const tokens = theme === 'dark' ? DARK : LIGHT;
   const circleStrength = (pageStrength / 100) * 0.9;
+  const livePaused = specimen === 'playground' && paused;
+  const choose = (next: Specimen) => {
+    setSpecimen(next);
+    setPreset(ROW_PRESET[next]);
+  };
   const shell: CSSProperties = {
     width: '100%',
     boxSizing: 'border-box',
@@ -156,79 +361,23 @@ export function LiquidMetalCard() {
     flexDirection: 'column',
     gap: 14,
   };
-  const circleFace: CSSProperties = {
-    boxSizing: 'border-box',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-    padding: 0,
-    border: `1px solid ${FACE_BORDER}`,
-    borderRadius: '50%',
-    background: FACE,
-    boxShadow: 'inset 0 0 50px 0 rgba(255, 255, 255, 0.02)',
-    color: FACE_FG,
-    cursor: 'default',
-  };
   return (
-    <div data-testid="liquid-metal-card" data-theme={theme} data-paused={paused ? 'true' : 'false'} style={shell}>
+    <div data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} style={shell}>
       <div style={{ minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-        {specimen === 'composer' ? (
-          <div
-            style={{
-              width: 448,
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              borderRadius: 20,
-              background: 'rgba(29, 29, 29, 0.7)',
-              padding: '20px 16px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ width: '70%', marginBottom: 16, fontFamily: FONT, fontSize: 14, lineHeight: '16px', color: '#4e4e4e' }}>
-              Build anything...
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  minWidth: 36,
-                  borderRadius: '50%',
-                  background: CHIP_BG,
-                  boxShadow: CHIP_SHADOW,
-                  color: '#caccd2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <PlusIcon />
-              </div>
-              <div style={{ flex: 1 }} />
-              <ComposerChip label="Agent" />
-              <ComposerChip label="Auto" chipRef={autoChipRef} />
-              <MetalFx
-                ref={sendRef}
-                preset={preset}
-                variant="circle"
-                theme={theme}
-                reflectionTargets={disableReflection ? undefined : autoTargets}
-                innerShadow
-                strength={circleStrength}
-                paused={paused}
-                disableGlow={disableGlow}
-              >
-                <button type="button" aria-label="Send" style={circleFace}>
-                  <ArrowUpIcon />
-                </button>
-              </MetalFx>
-            </div>
-          </div>
-        ) : (
-          <MetalFx preset={preset} variant="button" theme={theme} strength={1} paused={paused} disableGlow={disableGlow}>
+        {specimen === 'composer' ? <GoldComposer preset={preset} theme={theme} strength={circleStrength} /> : null}
+        {specimen === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} /> : null}
+        {specimen === 'playground' ? (
+          <PlaygroundCircle
+            preset={preset}
+            theme={theme}
+            strength={circleStrength}
+            paused={paused}
+            disableGlow={disableGlow}
+            disableReflection={disableReflection}
+          />
+        ) : null}
+        {specimen === 'package' ? (
+          <MetalFx preset={preset} variant="button" theme={theme} strength={1}>
             <button
               type="button"
               style={{
@@ -255,7 +404,7 @@ export function LiquidMetalCard() {
               Upgrade to Pro
             </button>
           </MetalFx>
-        )}
+        ) : null}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ControlRow label="Preset" tokens={tokens}>
@@ -271,19 +420,22 @@ export function LiquidMetalCard() {
           ))}
         </ControlRow>
         <ControlRow label="Specimen" tokens={tokens}>
-          <Chip label="composer" on={specimen === 'composer'} tokens={tokens} onPress={() => setSpecimen('composer')} />
-          <Chip
-            label="package default"
-            on={specimen === 'package'}
-            tokens={tokens}
-            packageOption
-            onPress={() => setSpecimen('package')}
-          />
+          <Chip label="composer" on={specimen === 'composer'} tokens={tokens} onPress={() => choose('composer')} />
+          <Chip label="v2" on={specimen === 'v2'} tokens={tokens} onPress={() => choose('v2')} />
+          <Chip label="playground" on={specimen === 'playground'} tokens={tokens} onPress={() => choose('playground')} />
+          <Chip label="package default" on={specimen === 'package'} tokens={tokens} packageOption onPress={() => choose('package')} />
         </ControlRow>
         <ControlRow label="Theme" tokens={tokens}>
           <Chip label="dark" on={theme === 'dark'} tokens={tokens} onPress={() => setTheme('dark')} />
           <Chip label="light" on={theme === 'light'} tokens={tokens} packageOption onPress={() => setTheme('light')} />
-          <Chip label={paused ? 'Play' : 'Pause'} on={!paused} tokens={tokens} onPress={() => setPaused((value) => !value)} />
+          <Chip
+            label={livePaused ? 'Play' : 'Pause'}
+            on={!livePaused}
+            tokens={tokens}
+            onPress={() => {
+              if (specimen === 'playground') setPaused((value) => !value);
+            }}
+          />
         </ControlRow>
         <ControlRow label="Options" tokens={tokens}>
           <Chip label="No Glow" on={disableGlow} tokens={tokens} onPress={() => setDisableGlow((value) => !value)} />
@@ -310,7 +462,7 @@ export function LiquidMetalCard() {
             style={{ width: 120, accentColor: tokens.controlOnText }}
           />
           <span style={{ fontFamily: FONT, fontSize: 11, color: tokens.controlText }}>
-            {specimen === 'composer' ? `${pageStrength}% × 0.9 = ${circleStrength.toFixed(2)}` : '1.00'}
+            {specimen === 'package' ? '1.00' : `${pageStrength}% × 0.9 = ${circleStrength.toFixed(2)}`}
           </span>
           <span style={{ flexBasis: '100%', fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
             {STUDIO_LOCKED}

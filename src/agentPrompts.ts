@@ -224,8 +224,8 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
-      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
-    rn: 'Web CSS from `border-beam@1.4.1`. Theme is pinned dark. `active` starts true. Colorful and mono are the page colors.',
+      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the icon example on the page. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+    rn: 'Web CSS from `border-beam@1.4.1`. Dark on the page; light is a package option. `active` starts true. Colorful and mono are the page colors. sm is shown.',
     states: [
       {
         name: 'travel',
@@ -249,7 +249,7 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'The chat inner div uses `boxSizing: \'border-box\'` so the live box stays 348×122 and the send control stays 28×28.',
       '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
-      'sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
+      'sm is the icon example on the page. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
     ],
     setup:
       'Peer is React. The module is `border-beam@1.4.1`. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
@@ -261,10 +261,10 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'liquid-metal': {
     motion:
-      'Page strength starts at 90 and the composer circle multiplies by 0.9, so the ring receives 0.81. The card mounts running, like the Examples hero. The original playground starts paused (`Playground.tsx` line 77, `useState(true)`).',
+      'The gold composer mounts running with no bend. The v2 row also runs, with `useMetalBend`. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). Each of those rows receives strength 0.81.',
     content:
-      'Composer, 448 wide, radius 20, placeholder `Build anything...`, plus, Agent, Auto, and a 40×40 circle send. `variant` is `circle`, `innerShadow` is on, `useMetalBend(sendRef)` bends the ring, and `reflectionTargets` is the Auto chip. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
-    rn: 'WebGL2 from `metal-fx@2.0.11`. Theme is pinned dark. No Glow and No Reflection start off. The card mounts running. The original playground starts paused.',
+      'Default is the gold Agent/Auto composer: `preset="gold"`, reflection on Auto, no `innerShadow`, no `useMetalBend` (`metal-examples.tsx` lines 87–99). The v2 row is separate: `chromatic`, `innerShadow`, bend, reflection on Auto. The playground is Search + a 40×40 circle, `chromatic`, `innerShadow`, bend, reflection on Search. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The gold composer mounts running. The playground starts paused.',
     states: [
       {
         name: 'running',
@@ -273,29 +273,30 @@ const LOCKS: Record<string, PromptLock> = {
         to: 'shared rAF',
         duration: 'speed 1, gold dark 0.85',
         easing: '',
-        delay: 'circle strength is pageStrength / 100 * 0.9',
+        delay: 'gold composer has no bend',
       },
       {
         name: 'paused',
-        trigger: 'Pause',
-        from: 'running',
+        trigger: 'playground',
+        from: 'useState(true)',
         to: 'last frame held',
         duration: 'until Play',
         easing: '',
-        delay: 'the original playground starts paused; this card does not',
+        delay: 'metal.tsx line 237; the gold composer does not pass paused',
       },
     ],
     gotchas: [
-      'Effective composer strength is 0.9 × 0.9 = 0.81 (`STRENGTH = 90` in sites/home/src/metal.tsx, then `strength * 0.9` in metal-examples-v2.tsx). The strength slider and silver/gold are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo.',
-      'The card mounts running, like the Examples hero. The original playground starts paused (`Playground.tsx` line 77 is `useState(true)`).',
+      'Gold composer (`metal-examples.tsx` lines 87–99): preset gold, reflection on Auto, no innerShadow, no useMetalBend, running, strength 0.81.',
+      'v2 row (`metal-examples-v2.tsx` line 59 and lines 87–95): chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'Playground (`metal.tsx` CircleStageV2 lines 169 and 177–186, paused at line 237): Search reflection, innerShadow, useMetalBend, starts paused, strength 0.81.',
       'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
       'Do not recolor the child to `#111111`.',
     ],
     setup:
       'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
     checklist: [
-      'The specimen is the composer with a 40×40 circle, `innerShadow`, strength 0.81, `useMetalBend`, and a reflection on Auto.',
-      'The card mounts running. The original playground starts paused.',
+      'The default specimen is the gold composer: no innerShadow, no useMetalBend, reflection on Auto, running, strength 0.81.',
+      'The playground circle is a separate row and starts paused. The v2 row is a separate row and runs with innerShadow and bend.',
       'The 140×40 strength-1 button is labelled package default.',
     ],
   },

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 function block(text, leadingNewline) {
+  if (text.includes('*/')) throw new Error('licence text contains */');
   const body = text.endsWith('\n') ? text : `${text}\n`;
   return leadingNewline ? `/*!\n${body}*/\n` : `/*!${body}*/\n`;
 }

@@ -2,18 +2,18 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { BorderBeam, type BorderBeamColorVariant, type BorderBeamSize, type BorderBeamTheme } from 'border-beam';
 
 /**
- * border-beam@1.4.1. The libraries.dev page offers md, line, pulse-inner, and
- * pulse-outside, colorful and mono, and dark only. libraries.dev passes no
- * strength (package default 1) and has no strength control. The slider is a
- * package option; border-beam's own site starts at 70%. sm, the other six
- * color variants, and light are package options.
+ * border-beam@1.4.1. libraries.dev shows md, sm (the icon example), line,
+ * pulse-inner, and pulse-outside, plus colorful and mono. Ocean, Sunset,
+ * Forest, Candy, Ice, and Gold are Pro-locked on that page. Light theme is
+ * absent there. libraries.dev passes no strength (package default 1). The
+ * slider is a package option; border-beam's own site starts at 70%.
  */
 
-const PAGE_SIZES: readonly BorderBeamSize[] = ['md', 'line', 'pulse-inner', 'pulse-outside'];
-const PACKAGE_SIZES: readonly BorderBeamSize[] = ['sm'];
+const PAGE_SIZES: readonly BorderBeamSize[] = ['md', 'sm', 'line', 'pulse-inner', 'pulse-outside'];
 const PAGE_COLORS: readonly BorderBeamColorVariant[] = ['colorful', 'mono'];
-const PACKAGE_COLORS: readonly BorderBeamColorVariant[] = ['ocean', 'sunset', 'forest', 'candy', 'ice', 'gold'];
+const PRO_LOCKED_COLORS: readonly BorderBeamColorVariant[] = ['ocean', 'sunset', 'forest', 'candy', 'ice', 'gold'];
 const PACKAGE_OPTION = 'package option, not on the original';
+const PRO_LOCKED = 'Pro-locked on the original';
 const STRENGTH_OPTION =
   "package option, not on the original (border-beam's own site starts at 70%)";
 
@@ -314,18 +314,20 @@ function Chip({
   tokens,
   onPress,
   packageOption,
+  hint,
 }: {
   label: string;
   on: boolean;
   tokens: Tokens;
   onPress: () => void;
   packageOption?: boolean;
+  hint?: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={on}
-      title={packageOption ? PACKAGE_OPTION : undefined}
+      title={hint ?? (packageOption ? PACKAGE_OPTION : undefined)}
       onClick={onPress}
       style={{
         height: 26,
@@ -400,21 +402,18 @@ export function BorderBeamCard() {
           {PAGE_SIZES.map((option) => (
             <Chip key={option} label={option} on={size === option} tokens={tokens} onPress={() => setSize(option)} />
           ))}
-          {PACKAGE_SIZES.map((option) => (
-            <Chip key={option} label={option} on={size === option} tokens={tokens} packageOption onPress={() => setSize(option)} />
-          ))}
         </ControlRow>
         <ControlRow label="Color" tokens={tokens}>
           {PAGE_COLORS.map((option) => (
             <Chip key={option} label={option} on={colorVariant === option} tokens={tokens} onPress={() => setColorVariant(option)} />
           ))}
-          {PACKAGE_COLORS.map((option) => (
+          {PRO_LOCKED_COLORS.map((option) => (
             <Chip
               key={option}
               label={option}
               on={colorVariant === option}
               tokens={tokens}
-              packageOption
+              hint={PRO_LOCKED}
               onPress={() => setColorVariant(option)}
             />
           ))}
@@ -445,7 +444,7 @@ export function BorderBeamCard() {
           </span>
         </ControlRow>
         <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
-          sm, ocean, sunset, forest, candy, ice, gold, light: {PACKAGE_OPTION}
+          ocean, sunset, forest, candy, ice, gold: {PRO_LOCKED}. light: {PACKAGE_OPTION}
         </span>
       </div>
     </div>
