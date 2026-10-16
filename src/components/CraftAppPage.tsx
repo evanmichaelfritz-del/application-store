@@ -11,6 +11,7 @@ import {
   CRAFT_CATEGORY_SLUG,
   CRAFT_LICENSE,
   EARLY_ALPHA,
+  EFFECTCRAFT_MCP,
   FILMCRAFT_MCP,
   craftBySlug,
   downloadsOf,
@@ -106,11 +107,13 @@ export function CraftAppPage({ slug }: { slug: string }) {
 
 function BotSection({ app }: { app: CraftApp }) {
   if (app.bot !== 'mcp') return null;
+  const config = app.slug === 'film-craft' ? FILMCRAFT_MCP : app.slug === 'effect-craft' ? EFFECTCRAFT_MCP : null;
+  if (config == null) return null;
   return (
     <View testID="craft-bot">
       <Text style={styles.section}>How a bot drives it</Text>
       <View style={styles.code}>
-        <Text {...textWeb({ dataSet: { codeText: 'true' } })}>{FILMCRAFT_MCP}</Text>
+        <Text {...textWeb({ dataSet: { codeText: 'true' } })}>{config}</Text>
       </View>
     </View>
   );
