@@ -17,11 +17,11 @@
       "destination": "/index.html"
     },
     {
-      "source": "/a/:slug(card-resize|number-pop-in|notification-badge|text-states-swap|menu-dropdown|yogesh-thinking-orbs|confetti-burst|modal-open-close|gooey-plus-menu|page-side-by-side|icon-swap|success-check|avatar-group-hover|card-stack-hover|error-state-shake|input-clear-dissolve|skeleton-reveal|texts-reveal|tabs-sliding|drag-drop-physics|shimmer-text|image-generation-loader|tooltip-open-close|tilt-3d|border-beam|orb-solving|orb-thinking|orb-agent-listening|orb-searching|orb-agent-planning|orb-agent-thinking|orb-working|orb-agent-shaping|gooey|liquid-metal|abrar-overview|preview-tools|orb-state-picker|yogesh-orb-creator)",
+      "source": "/a/:slug(card-resize|number-pop-in|notification-badge|text-states-swap|menu-dropdown|yogesh-thinking-orbs|confetti-burst|modal-open-close|gooey-plus-menu|page-side-by-side|icon-swap|success-check|avatar-group-hover|card-stack-hover|error-state-shake|input-clear-dissolve|skeleton-reveal|texts-reveal|tabs-sliding|drag-drop-physics|shimmer-text|image-generation-loader|tooltip-open-close|tilt-3d|border-beam|orb-solving|orb-thinking|orb-agent-listening|orb-searching|orb-agent-planning|orb-agent-thinking|orb-working|orb-agent-shaping|gooey|liquid-metal|abrar-overview|preview-tools|orb-state-picker|yogesh-orb-creator|art-craft|photo-craft|vector-craft|film-craft|light-craft|pdf-craft|effect-craft|design-craft|word-craft|grid-craft|deck-craft|cad-craft|sound-craft|fig-craft|craft-launcher)",
       "destination": "/index.html"
     },
     {
-      "source": "/c/:type(inputs-pickers|buttons|menus-overlays|cards|navigation|text-effects|backgrounds-shaders|loaders|data-display)",
+      "source": "/c/:type(inputs-pickers|buttons|menus-overlays|cards|navigation|text-effects|backgrounds-shaders|loaders|data-display|apps)",
       "destination": "/index.html"
     }
   ],

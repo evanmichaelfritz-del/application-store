@@ -1,6 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import NotFound from '../+not-found';
+import { AppsGallery } from '@/src/components/AppsGallery';
 import { StoreGallery } from '@/src/components/StoreGallery';
+import { CRAFT_CATEGORY_SLUG } from '@/src/library/craftApps';
 import { isComponentType } from '@/src/library/taxonomy';
 
 function firstString(value: string | string[] | undefined): string {
@@ -17,6 +19,7 @@ export default function TypeGallery() {
   // still renders, and the pathname then names the asset — reading it here
   // redirected Back onto `/` and dropped the filtered screen.
   const slug = firstString(useLocalSearchParams().type);
+  if (slug === CRAFT_CATEGORY_SLUG) return <AppsGallery />;
   if (!isComponentType(slug)) return <NotFound />;
   return <StoreGallery typeSlug={slug} />;
 }
