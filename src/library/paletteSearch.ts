@@ -1,4 +1,5 @@
 import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { CRAFT_APPS, CRAFT_CATEGORY_LABEL, CRAFT_CATEGORY_SLUG } from '@/src/library/craftApps';
 import { creditFor } from '@/src/library/credits';
 import { newestAssets } from '@/src/library/recentlyAdded';
 import {
@@ -168,7 +169,46 @@ function typeOptions(query: string): TypeOption[] {
     if (query && !norm(type.label).includes(query)) continue;
     hits.push({ kind: 'type', slug: type.slug, label: type.label, count: typeCount(type.slug) });
   }
+  if (!query || norm(CRAFT_CATEGORY_LABEL).includes(query)) {
+    hits.push({
+      kind: 'type',
+      slug: CRAFT_CATEGORY_SLUG,
+      label: CRAFT_CATEGORY_LABEL,
+      count: CRAFT_APPS.length,
+    });
+  }
   return query ? hits.slice(0, FACET_CAP) : hits;
+}
+
+type CraftHit = {
+  id: string;
+  title: string;
+  index: number;
+  rank: number;
+  mark: { start: number; end: number } | null;
+};
+
+function rankCraft(query: string): CraftHit[] {
+  const hits: CraftHit[] = [];
+  CRAFT_APPS.forEach((app, index) => {
+    const name = norm(app.title);
+    let rank = 0;
+    if (name === query) rank = 1;
+    else if (name.startsWith(query)) rank = 2;
+    else if (wordStart(name, query)) rank = 3;
+    else if (name.includes(query)) rank = 4;
+    else if (norm(app.description).includes(query)) rank = 8;
+    if (rank === 0 && query.length >= 2 && subsequence(name, query)) rank = 9;
+    if (rank === 0) return;
+    hits.push({
+      id: app.slug,
+      title: app.title,
+      index: TRANSITIONS.length + index,
+      rank,
+      mark: markIn(app.title, query),
+    });
+  });
+  return hits;
 }
 
 function sourceOptions(query: string): SourceOption[] {
@@ -221,9 +261,23 @@ export function paletteGroups(query: string, recentIds: readonly string[], showA
     return types.length ? [assets, { heading: 'Types', options: types }] : [assets];
   }
 
-  const ranked = rankAssets(q);
+  const ranked = [
+    ...rankAssets(q).map((hit) => ({ rank: hit.rank, index: hit.index, option: assetOption(hit) })),
+    ...rankCraft(q).map((hit) => ({
+      rank: hit.rank,
+      index: hit.index,
+      option: {
+        kind: 'asset' as const,
+        id: hit.id,
+        title: hit.title,
+        typeLabel: CRAFT_CATEGORY_LABEL,
+        hint: null,
+        mark: hit.mark,
+      },
+    })),
+  ].sort((a, b) => a.rank - b.rank || a.index - b.index);
   const shown = showAll ? ranked : ranked.slice(0, ASSET_CAP);
-  const assetOptions: PaletteOption[] = shown.map(assetOption);
+  const assetOptions: PaletteOption[] = shown.map((hit) => hit.option);
   if (!showAll && ranked.length > ASSET_CAP) assetOptions.push({ kind: 'more', total: ranked.length });
 
   const groups: PaletteGroup[] = [];

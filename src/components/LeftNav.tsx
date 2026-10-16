@@ -4,7 +4,9 @@ import type { LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Link } from 'expo-router';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import { CRAFT_APPS, CRAFT_CATEGORY_LABEL, CRAFT_CATEGORY_SLUG } from '@/src/library/craftApps';
 import {
+  EMPTY_FILTERS,
   galleryHref,
   totalAssets,
   typeCount,
@@ -16,7 +18,7 @@ import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
 import { colors, fonts } from '@/src/theme';
 
-type RowKey = 'all' | ComponentType;
+type RowKey = 'all' | 'apps' | ComponentType;
 type RowBox = { y: number; height: number };
 
 const NAV_ROW_HOVER = '#f1f1f1';
@@ -37,7 +39,7 @@ export function LeftNav({
 }) {
   const { reduceMotion } = useReduceMotion();
   const matched = VISIBLE_TYPES.find((type) => type.slug === typeSlug)?.slug;
-  const active: RowKey | null = idle ? null : (matched ?? 'all');
+  const active: RowKey | null = idle ? null : typeSlug === CRAFT_CATEGORY_SLUG ? 'apps' : (matched ?? 'all');
   const [boxes, setBoxes] = useState<Partial<Record<RowKey, RowBox>>>({});
   const [railHover, setRailHover] = useState<RowKey | null>(null);
   const pillY = useSharedValue(0);
@@ -88,6 +90,17 @@ export function LeftNav({
           onLayout={onRowLayout('all')}
           onHoverIn={() => setRailHover((current) => (current === 'all' ? current : 'all'))}
           onHoverOut={() => setRailHover((current) => (current === 'all' ? null : current))}
+        />
+        <NavRow
+          label={CRAFT_CATEGORY_LABEL}
+          count={CRAFT_APPS.length}
+          active={active === 'apps'}
+          hovered={railHover === 'apps'}
+          href={galleryHref(CRAFT_CATEGORY_SLUG, EMPTY_FILTERS)}
+          testID="nav-count-apps"
+          onLayout={onRowLayout('apps')}
+          onHoverIn={() => setRailHover((current) => (current === 'apps' ? current : 'apps'))}
+          onHoverOut={() => setRailHover((current) => (current === 'apps' ? null : current))}
         />
         <Text style={styles.eyebrow}>Components</Text>
         {VISIBLE_TYPES.map((type) => (
