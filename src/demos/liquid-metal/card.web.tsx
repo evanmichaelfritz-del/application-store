@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'metal-fx';
 
 /**
- * metal-fx@2.0.11. Each libraries.dev row keeps its own props.
- * Default is the v1 Agent/Auto composer (metal-examples.tsx lines 87–99):
- * preset gold, reflection on Auto, no innerShadow, no useMetalBend, running,
- * strength STRENGTH/100 * 0.9. The v2 composer (metal-examples-v2.tsx) and the
- * search+circle playground (metal.tsx CircleStageV2) are separate specimens.
+ * metal-fx@2.0.11. libraries.dev/metal opens on family v2
+ * (metal.tsx:233 useState<Family>("v2"), :258 renders MetalExamplesV2).
+ * The card default is that composer: chromatic, 40×40 circle, Auto reflection,
+ * innerShadow, useMetalBend, strength 0.81, running
+ * (metal-examples-v2.tsx:59, :87-94). The Live mode New pill is a later row
+ * at strength 0.72. The playground circle starts paused. The v1 gold row is
+ * metal-fx@1.0.4 and is not rendered here.
  * Light theme is a package option. Child text stays #f8f8f8.
  */
 
@@ -19,10 +21,9 @@ const PAGE_STRENGTH = 90;
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
 const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
 
-type Specimen = 'composer' | 'v2' | 'playground' | 'package';
+type Specimen = 'v2' | 'playground' | 'package';
 
 const ROW_PRESET: Record<Specimen, MetalFxPreset> = {
-  composer: 'gold',
   v2: 'chromatic',
   playground: 'chromatic',
   package: 'chromatic',
@@ -212,24 +213,6 @@ function PlusButton() {
   );
 }
 
-function GoldComposer({ preset, theme, strength }: { preset: MetalFxPreset; theme: Exclude<MetalFxTheme, 'auto'>; strength: number }) {
-  const autoChipRef = useRef<HTMLDivElement>(null);
-  const autoTargets = useMemo(() => [autoChipRef], []);
-  return (
-    <ChatShell short={false}>
-      <PlusButton />
-      <div style={{ flex: 1 }} />
-      <ComposerChip label="Agent" />
-      <ComposerChip label="Auto" chipRef={autoChipRef} />
-      <MetalFx preset={preset} variant="circle" theme={theme} reflectionTargets={autoTargets} strength={strength}>
-        <button type="button" aria-label="Send" style={circleFace('pointer')}>
-          <ArrowUpIcon />
-        </button>
-      </MetalFx>
-    </ChatShell>
-  );
-}
-
 function V2Composer({ preset, theme, strength }: { preset: MetalFxPreset; theme: Exclude<MetalFxTheme, 'auto'>; strength: number }) {
   const autoChipRef = useRef<HTMLDivElement>(null);
   const sendRef = useRef<HTMLDivElement>(null);
@@ -242,6 +225,7 @@ function V2Composer({ preset, theme, strength }: { preset: MetalFxPreset; theme:
       <ComposerChip label="Agent" />
       <ComposerChip label="Auto" chipRef={autoChipRef} />
       <MetalFx
+        key="v2"
         ref={sendRef}
         preset={preset}
         variant="circle"
@@ -318,6 +302,7 @@ function PlaygroundCircle({
         />
       </label>
       <MetalFx
+        key="playground"
         ref={sendRef}
         preset={preset}
         variant="circle"
@@ -337,13 +322,23 @@ function PlaygroundCircle({
 }
 
 export function LiquidMetalCard() {
-  const [preset, setPreset] = useState<MetalFxPreset>('gold');
-  const [specimen, setSpecimen] = useState<Specimen>('composer');
+  const [preset, setPreset] = useState<MetalFxPreset>('chromatic');
+  const [specimen, setSpecimen] = useState<Specimen>('v2');
+  const [slot, setSlot] = useState<Specimen | null>('v2');
   const [theme, setTheme] = useState<Exclude<MetalFxTheme, 'auto'>>('dark');
   const [pageStrength, setPageStrength] = useState(PAGE_STRENGTH);
   const [paused, setPaused] = useState(true);
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
+  useEffect(() => {
+    if (slot === specimen) return;
+    setSlot(null);
+  }, [specimen, slot]);
+  useEffect(() => {
+    if (slot !== null) return;
+    const id = requestAnimationFrame(() => setSlot(specimen));
+    return () => cancelAnimationFrame(id);
+  }, [slot, specimen]);
   const tokens = theme === 'dark' ? DARK : LIGHT;
   const circleStrength = (pageStrength / 100) * 0.9;
   const livePaused = specimen === 'playground' && paused;
@@ -364,9 +359,8 @@ export function LiquidMetalCard() {
   return (
     <div data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} style={shell}>
       <div style={{ minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-        {specimen === 'composer' ? <GoldComposer preset={preset} theme={theme} strength={circleStrength} /> : null}
-        {specimen === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} /> : null}
-        {specimen === 'playground' ? (
+        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} /> : null}
+        {slot === 'playground' ? (
           <PlaygroundCircle
             preset={preset}
             theme={theme}
@@ -376,8 +370,8 @@ export function LiquidMetalCard() {
             disableReflection={disableReflection}
           />
         ) : null}
-        {specimen === 'package' ? (
-          <MetalFx preset={preset} variant="button" theme={theme} strength={1}>
+        {slot === 'package' ? (
+          <MetalFx key="package" preset={preset} variant="button" theme={theme} strength={1}>
             <button
               type="button"
               style={{
@@ -420,7 +414,6 @@ export function LiquidMetalCard() {
           ))}
         </ControlRow>
         <ControlRow label="Specimen" tokens={tokens}>
-          <Chip label="composer" on={specimen === 'composer'} tokens={tokens} onPress={() => choose('composer')} />
           <Chip label="v2" on={specimen === 'v2'} tokens={tokens} onPress={() => choose('v2')} />
           <Chip label="playground" on={specimen === 'playground'} tokens={tokens} onPress={() => choose('playground')} />
           <Chip label="package default" on={specimen === 'package'} tokens={tokens} packageOption onPress={() => choose('package')} />

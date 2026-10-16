@@ -7,7 +7,7 @@ Recreate Border Beam from `border-beam@1.4.1` (MIT, Jakub Antalik). The componen
 The libraries.dev page (`sites/home/src/beam.tsx`) shows `md`, `sm`, `line`, `pulse-inner`, and `pulse-outside`, colors `colorful` and `mono`, and theme dark only. `sm` is the icon example (`size="sm"` around `MockIconButton`, lines 131–133). Ocean, Sunset, Forest, Candy, Ice, and Gold are `COLORS_LOCKED` (line 71): Pro-locked on the original. libraries.dev passes no strength (package default 1); the 70% slider is from the separate border-beam site. The chat example on that page runs (`active` true). The playground stage on libraries.dev starts with `active` false; this specimen follows the example row and starts running.
 
 - `md` wraps the chat field, 348×122, radius 20, placeholder `Build anything...`, chips Agent and Auto, a 28×28 send control. The inner div sets `boxSizing: 'border-box'` so the 122px height includes the `7px 7px 8px` padding, and the send control sets `boxSizing: 'border-box'` so its `28×28` box includes `padding: 0 8px`.
-- `sm` wraps the icon example, a 36×36 button, radius 20, with a 12×12 square of radius 2. It is on the original page, not a package-only option.
+- `sm` wraps the icon example, a 36×36 button, radius 20, with a 12×12 square of radius 2 (`beam.tsx` line 131). Small is Pro-locked in the playground (beam.tsx:57). It stays selectable.
 - `line` wraps a search shell 366×42, outer radius 64, and passes `borderRadius` 20 so the beam follows the inner field. The package duration fallback for `line` is already 3.1.
 - `pulse-inner` and `pulse-outside` wrap the page demo card: width 250, padding `24px 26px`, radius 16, background `#1d1d1d`, three bars (10px title at 55% width, 8px full, 8px at 78% width) with 10px gaps. That content is 94px tall. `pulse-outside` also passes `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.
 
@@ -19,7 +19,7 @@ Dark stage `#171717`. Light stage `#f6f6f6` when that package option is selected
 
 | Control | On the original page | Package default |
 | --- | --- | --- |
-| `size` | `md`, `sm`, `line`, `pulse-inner`, `pulse-outside`. Page default `md`. `sm` is the icon example | |
+| `size` | `md`, `sm`, `line`, `pulse-inner`, `pulse-outside`. Page default `md`. `sm` is the live 36×36 example and is Pro-locked in the playground (beam.tsx:57) | |
 | `colorVariant` | `colorful`, `mono`. Page default `colorful` | `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold` are Pro-locked on the original |
 | `theme` | dark only | `light` and `auto` (light is a package option, not on the original). This specimen pins `dark` or `light` |
 | `strength` | libraries.dev passes no strength | package default `1`. This specimen starts at `1` |
@@ -114,7 +114,7 @@ Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/ind
 ## Checklist
 
 - [ ] Page defaults: `size` `md`, `colorVariant` `colorful`, `theme` `dark`, `strength` `1`, `active` `true`.
-- [ ] `sm` is the icon example on the page. `ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` are labelled Pro-locked on the original. Light is a package option, not on the original.
+- [ ] Small is Pro-locked in the playground (beam.tsx:57). The live 36×36 icon example stays. `ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` are labelled Pro-locked on the original. Light is a package option, not on the original.
 - [ ] Duration is 1.96 for `md` and `sm`, 3.1 for `line`, and 2.3 for `pulse-inner` and `pulse-outside`.
 - [ ] `hueRange` is 30, and `line` caps it with `Math.min(n, 13)`.
 - [ ] `mono` forces static colors.

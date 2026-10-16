@@ -224,8 +224,8 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
-      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the icon example on the page. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
-    rn: 'Web CSS from `border-beam@1.4.1`. Dark on the page; light is a package option. `active` starts true. Colorful and mono are the page colors. sm is shown.',
+      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the live 36×36 icon example and is Pro-locked in the playground. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+    rn: 'Web CSS from `border-beam@1.4.1`. Dark on the page; light is a package option. `active` starts true. Colorful and mono are the page colors. Small is Pro-locked in the playground and stays selectable.',
     states: [
       {
         name: 'travel',
@@ -249,7 +249,7 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'The chat inner div uses `boxSizing: \'border-box\'` so the live box stays 348×122 and the send control stays 28×28.',
       '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
-      'sm is the icon example on the page. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+      'Small is Pro-locked in the playground (beam.tsx:57). The live 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
     ],
     setup:
       'Peer is React. The module is `border-beam@1.4.1`. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
@@ -261,19 +261,19 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'liquid-metal': {
     motion:
-      'The gold composer mounts running with no bend. The v2 row also runs, with `useMetalBend`. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). Each of those rows receives strength 0.81.',
+      'The card opens on the v2 composer, which runs with `useMetalBend`. The Live mode New pill is a later row at 0.72. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). The v2 circle and the playground receive strength 0.81.',
     content:
-      'Default is the gold Agent/Auto composer: `preset="gold"`, reflection on Auto, no `innerShadow`, no `useMetalBend` (`metal-examples.tsx` lines 87–99). The v2 row is separate: `chromatic`, `innerShadow`, bend, reflection on Auto. The playground is Search + a 40×40 circle, `chromatic`, `innerShadow`, bend, reflection on Search. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
-    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The gold composer mounts running. The playground starts paused.',
+      'Default is the v2 composer: chromatic, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, strength 0.81, running (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). The Live mode New pill is `MetalBadge` at 0.72. The playground is Search plus a 40×40 circle and starts paused. The v1 gold row is `metal-fx@1.0.4` and is not rendered. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The v2 composer mounts running. The playground starts paused. The next specimen mounts only after the previous `MetalFx` unmounts.',
     states: [
       {
         name: 'running',
         trigger: 'mount',
-        from: 'Examples hero',
+        from: 'v2 composer',
         to: 'shared rAF',
-        duration: 'speed 1, gold dark 0.85',
+        duration: 'speed 1',
         easing: '',
-        delay: 'gold composer has no bend',
+        delay: 'useMetalBend on the send circle',
       },
       {
         name: 'paused',
@@ -282,22 +282,23 @@ const LOCKS: Record<string, PromptLock> = {
         to: 'last frame held',
         duration: 'until Play',
         easing: '',
-        delay: 'metal.tsx line 237; the gold composer does not pass paused',
+        delay: 'metal.tsx line 237; the v2 composer does not pass paused',
       },
     ],
     gotchas: [
-      'Gold composer (`metal-examples.tsx` lines 87–99): preset gold, reflection on Auto, no innerShadow, no useMetalBend, running, strength 0.81.',
-      'v2 row (`metal-examples-v2.tsx` line 59 and lines 87–95): chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'v2 composer (`metal-examples-v2.tsx` line 59 and lines 87–94, opened by `metal.tsx` lines 233 and 258): chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'Live mode New pill (`metal-examples-v2.tsx` line 108): MetalBadge multiplies page strength 0.9 by metalOpacity 0.8, so the pill is 0.72. It is not the composer circle.',
       'Playground (`metal.tsx` CircleStageV2 lines 169 and 177–186, paused at line 237): Search reflection, innerShadow, useMetalBend, starts paused, strength 0.81.',
+      'The v1 gold row is metal-fx@1.0.4 and is not rendered on this card.',
       'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
       'Do not recolor the child to `#111111`.',
     ],
     setup:
       'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
     checklist: [
-      'The default specimen is the gold composer: no innerShadow, no useMetalBend, reflection on Auto, running, strength 0.81.',
-      'The playground circle is a separate row and starts paused. The v2 row is a separate row and runs with innerShadow and bend.',
-      'The 140×40 strength-1 button is labelled package default.',
+      'The default specimen is the v2 composer: chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'The Live mode New pill is 0.72. The playground circle is a separate row and starts paused.',
+      'The 140×40 strength-1 button is labelled package default. The v1 gold row is not rendered.',
     ],
   },
 };

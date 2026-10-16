@@ -4,35 +4,27 @@ Recreate the liquid-metal ring from `metal-fx@2.0.11` (MIT, Jakub Antalik). The 
 
 ## Piece
 
-The card default is the Agent/Auto composer. The v2 composer and the search+circle playground are separate rows. Do not blend their props.
+libraries.dev/metal opens on family v2 (`metal.tsx` line 233 `useState<Family>("v2")`, line 258 renders `MetalExamplesV2`). The card default is that v2 composer. The Live mode New pill and the playground are later rows. Do not blend their props. The v1 gold row is `metal-fx@1.0.4` and is not rendered.
 
-### Gold composer (card default)
+### v2 composer (card default)
 
-`sites/home/src/examples/metal-examples.tsx` lines 87–99, shown by `sites/home/src/metal.tsx` when `family === "v1"` (line 258). That file imports `MetalFx` from `metal-fx-v1`. This card passes the same props to `metal-fx@2.0.11`:
+`sites/home/src/examples/metal-examples-v2.tsx` line 59 and lines 87–94, shown because `family` starts at `"v2"` (`metal.tsx` lines 233 and 258):
 
-- `preset="gold"`
-- `variant="circle"`
-- `theme="dark"` (light is a package option, not on the original)
-- `reflectionTargets={[autoChipRef]}`
-- `strength={strength * 0.9}`
-
-It does not pass `innerShadow`. It does not pass `paused`. It does not call `useMetalBend`. The row auto-plays. The chat is 448px wide, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The v1 placeholder (`.mx-chat-input`) is full width, not the v2 70% field. Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
-
-`sites/home/src/metal.tsx` line 25 is `const STRENGTH = 90`. Line 258 passes `strength={STRENGTH / 100}`. The row then multiplies by `0.9`, so this circle receives `0.81`. That product is this row's strength only. It is not innerShadow and it is not bend.
-
-### v2 composer (separate row)
-
-`sites/home/src/examples/metal-examples-v2.tsx` line 59 and lines 87–95, shown when `family === "v2"` (`metal.tsx` line 258):
-
-- `useMetalBend(sendRef)`
+- `useMetalBend(sendRef)` (line 59)
 - `preset="chromatic"`
 - `variant="circle"`
 - `theme="dark"`
-- `reflectionTargets={[autoChipRef]}`
+- `reflectionTargets={[autoChipRef]}` (Auto)
 - `innerShadow`
 - `strength={strength * 0.9}` (`0.81` at `STRENGTH = 90`)
 
-It does not pass `paused`, so this row auto-plays. The placeholder is 70% (`.mx-chat-input--short`). Reflection stays on Auto. This is not the gold composer and not the playground.
+It does not pass `paused`, so this row runs. The chat is 448px wide, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The placeholder is 70% (`.mx-chat-input--short`). Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
+
+`sites/home/src/metal.tsx` line 25 is `const STRENGTH = 90`. Line 258 passes `strength={STRENGTH / 100}`. The circle then multiplies by `0.9`, so it receives `0.81`.
+
+### Live mode New pill
+
+`metal-examples-v2.tsx` line 108, after the composer: `<MetalBadge strength={strength} theme="dark">New</MetalBadge>`. The page strength into that file is `STRENGTH / 100` (`0.9`). `MetalBadge` multiplies by `metalOpacity` `0.8`, so the pill receives `0.72`. This is the Live mode row. It is not the 40×40 composer circle.
 
 ### Playground circle (separate row)
 
@@ -48,35 +40,39 @@ It does not pass `paused`, so this row auto-plays. The placeholder is 70% (`.mx-
 - `innerShadow`
 - `reflectionTargets` is the Search label, not Auto
 
-The search field is 180×40. The circle is 40×40. `innerShadow` and `useMetalBend` belong to this row and to the v2 composer. They do not belong to the gold composer. No Glow and No Reflection are this row's controls.
+The search field is 180×40. The circle is 40×40. This row starts paused. No Glow and No Reflection are this row's controls. The Pause control changes only this specimen.
+
+### v1 family row (not rendered)
+
+`sites/home/src/examples/metal-examples.tsx` lines 87–99 render gold when Version is v1 (`metal.tsx` line 258). That file imports `MetalFx` from `metal-fx-v1`, which `sites/home/package.json` line 19 aliases to `npm:metal-fx@1.0.4`. This card does not render that row. It is a different package from `metal-fx@2.0.11`.
 
 The 140×40 radius-20 `Upgrade to Pro` button at `strength={1}` and `variant="button"` stays only as the package default. It is labelled package default, and it is a package option, not on the original. Child text stays `#f8f8f8` in both themes.
 
-Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the original. Presets are Studio-locked on libraries.dev (package option). The gold composer's preset is `gold`. The v2 composer and the playground preset are `chromatic`.
+Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the original. Silver and gold preset chips are Studio-locked on libraries.dev (package option). The v2 composer and the playground preset are `chromatic`.
 
 ## States
 
 | Control | Source start | Notes |
 | --- | --- | --- |
-| specimen | gold composer | `metal-examples.tsx` 87–99. `preset="gold"`, reflection on Auto, no `innerShadow`, no bend, running, strength `0.81` |
-| v2 row | separate | `metal-examples-v2.tsx` 59 and 87–95. `chromatic`, `innerShadow`, `useMetalBend`, reflection on Auto, running, strength `0.81` |
-| playground | separate | `metal.tsx` `CircleStageV2` 169 and 177–186. Search + circle, `chromatic`, `innerShadow`, `useMetalBend`, reflection on Search, starts paused (`useState(true)` line 237), strength `0.81` |
-| `paused` | running on the gold composer | The gold composer and the v2 row omit `paused`. The playground starts paused |
-| page strength | `90` | `metal.tsx` line 25 `STRENGTH = 90`, then each of those three rows uses `strength * 0.9` |
+| specimen | v2 composer | `metal.tsx` 233 and 258, `metal-examples-v2.tsx` 59 and 87–94. `chromatic`, `innerShadow`, `useMetalBend`, reflection on Auto, running, strength `0.81` |
+| Live mode New pill | `0.72` | `metal-examples-v2.tsx` 108. `MetalBadge` multiplies page strength `0.9` by `metalOpacity` `0.8` |
+| playground | paused | `metal.tsx` `CircleStageV2` 169 and 177–186. Search + circle, `chromatic`, `innerShadow`, `useMetalBend`, reflection on Search, starts paused (`useState(true)` line 237), strength `0.81` |
+| `paused` | running on the v2 composer | The v2 composer omits `paused`. The playground starts paused |
+| page strength | `90` | `metal.tsx` line 25 `STRENGTH = 90`. The v2 circle and the playground use `strength * 0.9` (`0.81`). The New pill is `0.72` |
 | `disableGlow` | `false` | Playground control only (`CircleStageV2`) |
 | `disableReflection` | `false` | Playground control only. Clears the Search reflection |
 | package default | off | 140×40, `variant="button"`, `strength={1}` |
 
 | Prop | Values | Default in the package |
 | --- | --- | --- |
-| `preset` | `chromatic`, `silver`, `gold` | package default `chromatic`. Gold composer passes `gold`. v2 and playground pass `chromatic` |
-| `variant` | `button`, `circle` | `button` (package default). The three page rows pass `circle` |
+| `preset` | `chromatic`, `silver`, `gold` | package default `chromatic`. v2 and playground pass `chromatic`. silver and gold are Studio-locked package options |
+| `variant` | `button`, `circle` | `button` (package default). The v2 composer and the playground pass `circle` |
 | `theme` | `dark`, `light`, `auto` | `auto`. These rows pin `dark`. Light is a package option, not on the original |
-| `strength` | 0..1 | package default `1`. Each page row above is `0.81` at the source start |
-| `paused` | `true` holds the last frame | package default `false`. Gold composer and v2 omit it. Playground starts `true` |
+| `strength` | 0..1 | package default `1`. The v2 circle and the playground are `0.81`. The New pill is `0.72` |
+| `paused` | `true` holds the last frame | package default `false`. The v2 composer omits it. Playground starts `true` |
 | `glowGain` | glow multiplier | `1` |
 | `scale` | pixel-constant multiplier | `1` |
-| `innerShadow` | `true` uses the design rim | off unless passed. Gold composer omits it. v2 and the playground pass it |
+| `innerShadow` | `true` uses the design rim | off unless passed. The v2 composer and the playground pass it |
 
 `button` maps to kind `pill` with `shaderScale` 1.6 (`ma`) and `ringCssPx` 1. `circle` uses `shaderScale` 1.3 (`pa`) and `ringCssPx` 2. Reference size constants are `fa = 140` and `ha = 40`. `strength` does not stop the shader; it scales the alpha painted onto the child.
 
@@ -124,15 +120,17 @@ Uniforms written each frame include `u_colorTint`, `u_repetition`, `u_softness`,
 
 ## Gotchas
 
-- The gold composer (`metal-examples.tsx` lines 87–99) mounts running. It does not pass `paused`, `innerShadow`, or `useMetalBend`. The v2 row (`metal-examples-v2.tsx` line 59 and lines 87–95) also omits `paused` and does pass `innerShadow` and `useMetalBend`. The playground (`metal.tsx` line 237) is `useState(true)`, so that row starts paused. The Pause control changes only the playground specimen.
-- Each of those three rows uses `strength * 0.9` after `STRENGTH = 90` (`metal.tsx` lines 25 and 258, and `CircleStageV2`), so each receives `0.81`. Do not attach the playground's `innerShadow` or bend to the gold composer. The strength slider and silver/gold preset chips are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo. The package default strength is `1`, used only by the labelled 140×40 button.
+- The card default is the v2 composer (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). It omits `paused` and passes `innerShadow` and `useMetalBend`, so it mounts running at `0.81`. The Live mode New pill (`metal-examples-v2.tsx` line 108) is `0.72` (`0.9 × 0.8`) and is not that circle. The playground (`metal.tsx` line 237) is `useState(true)`, so that row starts paused. The Pause control changes only the playground specimen.
+- The v2 circle and the playground use `strength * 0.9` after `STRENGTH = 90` (`metal.tsx` lines 25 and 258, and `CircleStageV2`), so each receives `0.81`. Do not give the New pill the circle's `0.81`, and do not give the composer the pill's `0.72`. The strength slider and silver/gold preset chips are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo. The package default strength is `1`, used only by the labelled 140×40 button.
+- The v1 family row (`metal-examples.tsx` lines 87–99) is gold on `metal-fx-v1` (`npm:metal-fx@1.0.4`) when Version is v1. This card does not render it.
 - `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas. Do not add a second fallback.
 - Copies share one GL context. Do not mount the component twice in the same tick (a strict double-invoke tears the shared renderer down). This card does not wrap `MetalFx` in `StrictMode`.
 - `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")` and updates on `change`. Pin `dark` or `light` when a control chooses the theme.
 - Circle radius is `Math.min(width, height) / 2`. Button radius is the child's computed `borderTopLeftRadius`, capped at half the shorter side.
 - `normalizeHostStyles` defaults to true and clears the child's outer border, outline, and box-shadow so they do not sit under the ring.
-- Reflections render only in the resolved dark theme. The gold composer and the v2 row pass the Auto chip. The playground passes the Search label. No Reflection clears that prop on the playground row only.
-- `useMetalBend(sendRef)` is on the v2 row and on `CircleStageV2`. The gold composer does not call it. The 140×40 package default does not attach that ref.
+- Reflections render only in the resolved dark theme. The v2 composer passes the Auto chip. The playground passes the Search label. No Reflection clears that prop on the playground row only.
+- `useMetalBend(sendRef)` is on the v2 composer and on `CircleStageV2`. The 140×40 package default does not attach that ref.
+- Switching specimens unmounts the current `MetalFx` before the next one mounts. Two copies in the same tick tear down the shared renderer and the next copy paints one frame and stops.
 - Do not set the child text to `#111111`. Both themes keep `#f8f8f8` on `#1d1d1d`.
 - The shader source is unmodified Paper `liquidMetal`. Do not retune the GLSL.
 
@@ -142,10 +140,10 @@ Peer is React 18 or newer. The published module is `metal-fx@2.0.11` `dist/index
 
 ## Checklist
 
-- [ ] The default specimen is the gold composer: `preset="gold"`, reflection on Auto, no `innerShadow`, no `useMetalBend`, running (`metal-examples.tsx` lines 87–99).
-- [ ] The v2 row is separate: `chromatic`, `innerShadow`, `useMetalBend`, reflection on Auto, running, strength `0.81` (`metal-examples-v2.tsx` line 59 and lines 87–95).
+- [ ] The default specimen is the v2 composer: `preset="chromatic"`, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, running, strength `0.81` (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94).
+- [ ] The Live mode New pill is `0.72` (`metal-examples-v2.tsx` line 108). It is not the composer circle.
 - [ ] The playground row is separate: Search + circle, `chromatic`, `innerShadow`, `useMetalBend`, reflection on Search, starts paused (`metal.tsx` line 237 `useState(true)`), strength `0.81`.
-- [ ] Effective strength on each of those three rows is `0.81` (`0.9 × 0.9`). The gold composer does not take `innerShadow` or bend.
+- [ ] The v1 gold row (`metal-fx-v1` / `metal-fx@1.0.4`) is not rendered.
 - [ ] No Glow and No Reflection start off.
 - [ ] The 140×40 strength-1 button is labelled package default and is a package option, not on the original.
 - [ ] Light theme is a package option, not on the original. Child text stays `#f8f8f8`.

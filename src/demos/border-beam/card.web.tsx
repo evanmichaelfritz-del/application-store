@@ -3,10 +3,12 @@ import { BorderBeam, type BorderBeamColorVariant, type BorderBeamSize, type Bord
 
 /**
  * border-beam@1.4.1. libraries.dev shows md, sm (the icon example), line,
- * pulse-inner, and pulse-outside, plus colorful and mono. Ocean, Sunset,
- * Forest, Candy, Ice, and Gold are Pro-locked on that page. Light theme is
- * absent there. libraries.dev passes no strength (package default 1). The
- * slider is a package option; border-beam's own site starts at 70%.
+ * pulse-inner, and pulse-outside, plus colorful and mono. Small is
+ * Pro-locked in the playground (beam.tsx:57) and still a live 36×36 example
+ * (beam.tsx:131). Ocean, Sunset, Forest, Candy, Ice, and Gold are Pro-locked
+ * on that page. Light theme is absent there. libraries.dev passes no
+ * strength (package default 1). The slider is a package option;
+ * border-beam's own site starts at 70%.
  */
 
 const PAGE_SIZES: readonly BorderBeamSize[] = ['md', 'sm', 'line', 'pulse-inner', 'pulse-outside'];
@@ -400,7 +402,14 @@ export function BorderBeamCard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ControlRow label="Size" tokens={tokens}>
           {PAGE_SIZES.map((option) => (
-            <Chip key={option} label={option} on={size === option} tokens={tokens} onPress={() => setSize(option)} />
+            <Chip
+              key={option}
+              label={option}
+              on={size === option}
+              tokens={tokens}
+              hint={option === 'sm' ? PRO_LOCKED : undefined}
+              onPress={() => setSize(option)}
+            />
           ))}
         </ControlRow>
         <ControlRow label="Color" tokens={tokens}>
@@ -444,7 +453,7 @@ export function BorderBeamCard() {
           </span>
         </ControlRow>
         <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
-          ocean, sunset, forest, candy, ice, gold: {PRO_LOCKED}. light: {PACKAGE_OPTION}
+          sm: {PRO_LOCKED}. ocean, sunset, forest, candy, ice, gold: {PRO_LOCKED}. light: {PACKAGE_OPTION}
         </span>
       </div>
     </div>
