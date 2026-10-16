@@ -69,7 +69,7 @@ The examples row does not render melt. The public playground effect switch does 
 
 The public playground (`isPublic` branch, lines 825–895) shows Effect, and for every effect except melt the sliders Goo blur (0–16, step 0.5, start 6) and Contrast (4–40, step 1, start 18).
 
-`StudioTeaser` (lines 888–895) is presentation only: pointer-events off. Its rows are Waviness 0, Fill Surface / Light / Sky, Bounce 0.5, Stagger 40ms. Those four stay selectable and are labelled Pro-locked on the original. Surface fill keeps the per-effect dark fill. Light is `#e9e9e9`. Sky is `#7cd4ff`. They override morph, move, and bend only. Melt ignores them.
+`StudioTeaser` (lines 888–895) sits outside every effect branch, so its rows render on melt the same as on morph, move, and bend. It is presentation only: pointer-events off. Its rows are Waviness 0, Fill Surface / Light / Sky, Bounce 0.5, Stagger 40ms. Those four stay visible and selectable on every effect, including melt, and are labelled Pro-locked on the original. Surface fill keeps the per-effect dark fill. Light is `#e9e9e9`. Sky is `#7cd4ff`. They override morph, move, and bend only. Melt ignores the group values.
 
 Bounce is never passed. `morph.shape` switches `Liquid.Item` to `ObservedItem`, which sets `display: contents` (dist lines 2370–2371) and drops `.pm-slot`. The plus-menu travel is `MirroredItem` x/y (dist lines 2182–2185). `mapMorphSprings` runs only when `shape` is true (dist lines 2481–2484). The teaser row is not wired in `GooeyStudio`. Stagger changes only `openStagger`. The close stagger stays 0.
 
@@ -83,7 +83,7 @@ The page pins theme dark (`GooeyStudio` default, line 670). There is no theme sw
 | morph open | `false` | `MorphDemo` line 197 |
 | blur | `6` | group default line 661; public slider |
 | contrast | `18` | group default line 661; public slider |
-| waviness | `0` | Pro-locked teaser, shown for every effect. Passed on morph, move, and bend. Melt does not take it |
+| waviness | `0` | Pro-locked on the original. The row stays visible on melt, same as Fill, Bounce, and Stagger. Passed on morph, move, and bend. Melt does not take the group value |
 | fill | Surface | `#202020` morph and bend, `#525252` move. Pro-locked |
 | bounce | `0.5` | Pro-locked teaser. Hint adds "teaser only; not wired on the original". Never passed |
 | stagger | `40` | Pro-locked open stagger. Close stagger stays 0 |
@@ -120,7 +120,7 @@ Morph open 550ms, close 250ms, open stagger 40ms, close stagger 0, icon 180ms af
 - The card default is the closed morph menu. Move, bend, and melt are other specimens. Do not give the menu the slider thumb, the drag card, or the melt photos.
 - Melt does not receive the group `blur`, `contrast`, `fill`, `shadow`, or `waviness`.
 - Group blur 6 and contrast 18 are the example defaults and the playground's starting sliders. They are not melt's 7 and 40.
-- Waviness, Fill, Bounce, and Stagger are Pro-locked on the original. Goo blur and Contrast are on the public playground.
+- Waviness, Fill, Bounce, and Stagger stay visible on every effect, including melt, and are Pro-locked on the original. Goo blur and Contrast are on the public playground and are omitted when the effect is melt.
 - Bounce 0.5 is the teaser value and is never passed. Shape would drop the slot position.
 - Fill Light `#e9e9e9` and Sky `#7cd4ff` are locked fill overrides. They are not a theme switch.
 - Switching effects remounts that effect (`key` on each `Liquid`) so the next gesture still runs. Two copies of one effect are not mounted together.
@@ -140,8 +140,8 @@ Copy loads Inter at weights 400 and 500 from `https://fonts.gstatic.com/s/inter/
 - [ ] Move is separate: 240×80, thumb 24×24 at `translateX(84px)`, fill `#525252`, springiness 0.5, wobble 0.5, stretch 0.6, trail 0.35.
 - [ ] Bend is separate: card 261×46, vertical 0.6, horizontal 0.35, content 0.3, release 400ms.
 - [ ] Melt is separate: 84×84 photos, blur 7, contrast 40, and no group fill.
-- [ ] Waviness, Fill, Bounce, and Stagger are labelled Pro-locked on the original and stay selectable.
-- [ ] Goo blur and Contrast are hidden on melt.
+- [ ] Waviness, Fill, Bounce, and Stagger stay visible on melt, stay selectable, and are labelled Pro-locked on the original.
+- [ ] Goo blur and Contrast are the public sliders and are omitted when the effect is melt.
 - [ ] A host without the four effects blended still matches the first paint.
 - [ ] The component source below is unmodified `liquid-gooey@0.2.2`.
 

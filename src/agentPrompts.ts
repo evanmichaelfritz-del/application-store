@@ -211,7 +211,7 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'The page has no idle loop. Morph opens in 550ms with cubic-bezier(0.34, 1.56, 0.64, 1) and stagger 40ms, and closes in 250ms with cubic-bezier(0.22, 1, 0.36, 1). Move follows the thumb with springiness 0.5, wobble 0.5, stretch 0.6, trail 0.35. Bend drops home in 400ms with cubic-bezier(0.34, 1.40, 0.64, 1).',
     content:
-      'Default is the closed morph plus menu: 200×140, buttons 40×40, fill #202020, blur 6, contrast 18, waviness 0. Move is the 240×80 slider with a 24×24 thumb at translateX 84px and fill #525252. Bend is the 261×46 card. Melt is two 84×84 photos. The original page uses different photos. These are CC0: warm sunset by W.carter, https://commons.wikimedia.org/wiki/File:Sunset_over_Trommekilen_from_Norrkila_6.jpg ; cool sea by Joselodos, https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg . Waviness, Fill, Bounce, and Stagger are Pro-locked on the original.',
+      'Default is the closed morph plus menu: 200×140, buttons 40×40, fill #202020, blur 6, contrast 18, waviness 0. Move is the 240×80 slider with a 24×24 thumb at translateX 84px and fill #525252. Bend is the 261×46 card. Melt is two 84×84 photos. The original page uses different photos. These are CC0: warm sunset by W.carter, https://commons.wikimedia.org/wiki/File:Sunset_over_Trommekilen_from_Norrkila_6.jpg ; cool sea by Joselodos, https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg . The Waviness row stays visible on melt and is Pro-locked, same as Fill, Bounce, and Stagger.',
     rn: 'SVG filter from `liquid-gooey@0.2.2`. The page is dark. The public playground starts on morph. Goo blur and Contrast are the public sliders. There is no play/pause control. The native card still runs the old tile demo. Copy loads Inter weights 400 and 500 from the Google Fonts latin woff2 (OFL, not embedded).',
     states: [
       {
@@ -234,8 +234,8 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'Morph, move, bend, and melt do not share props. Melt does not take the group blur, contrast, fill, or waviness.',
-      'Waviness, Fill, Bounce, and Stagger are Pro-locked on the original and stay selectable.',
+      'Morph, move, bend, and melt do not share props. Melt does not take the group blur, contrast, fill, or waviness. The Waviness row stays on screen for melt.',
+      'Waviness, Fill, Bounce, and Stagger are Pro-locked on the original, stay visible on melt, and stay selectable.',
       'Bounce stays off the morph items. Shape would replace the x/y travel.',
       'The plus menu mounts closed. The playground starts on morph with the same group defaults.',
     ],
@@ -244,7 +244,7 @@ const LOCKS: Record<string, PromptLock> = {
     checklist: [
       'The default specimen is the closed morph plus menu, 200×140, fill #202020, blur 6, contrast 18.',
       'Move, bend, and melt keep their own props.',
-      'Waviness, Fill, Bounce, and Stagger are labelled Pro-locked on the original.',
+      'The Waviness row stays visible on melt and is labelled Pro-locked on the original, same as Fill, Bounce, and Stagger.',
     ],
   },
   ...ORB_LOCKS,
