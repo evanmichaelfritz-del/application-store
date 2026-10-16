@@ -13,6 +13,7 @@ import { PREVIEW_TOOLS_CSS, PREVIEW_TOOLS_HTML, PREVIEW_TOOLS_SCRIPT } from '@/s
 import { YOGESH_CREATOR_CSS, YOGESH_CREATOR_HTML, YOGESH_CREATOR_SCRIPT } from '@/src/demos/yogesh-orb-creator/copySlots';
 import { YOGESH_ORB_CSS, YOGESH_ORB_HTML, YOGESH_ORB_SCRIPT } from '@/src/demos/yogesh-thinking-orbs/copySlots';
 import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
+import { ORB_PREVIEW_CSS, orbCard, orbPickerSource } from '@/src/closedNetwork/orbCopy';
 
 export type PreviewKind = 'transitions' | 'effects';
 
@@ -65,204 +66,6 @@ button.trigger {
   cursor: pointer;
 }
 .col { display: flex; flex-direction: column; align-items: center; gap: 18px; }`;
-
-const ORB_PREVIEW_CSS = `.pill, .chip {
-  display: flex; align-items: center; background: #fff; border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(23,24,28,.08);
-}
-.pill { gap: 10px; padding: 10px 18px 10px 12px; }
-.chip { gap: 6px; padding: 6px 12px 6px 8px; }
-.label { font-size: 15px; font-weight: 600; }
-.agent { font-size: 13px; font-weight: 600; }
-.muted { color: #8a8a8a; font-weight: 500; }
-.picker { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 380px; }
-.controls button {
-  appearance: none; border: 1px solid rgba(0,0,0,.08); background: #fff; color: #17181c;
-  border-radius: 999px; padding: 6px 10px; font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
-}
-.controls button.is-on { background: #17181c; color: #fff; }
-.controls button:disabled { opacity: .38; cursor: not-allowed; }
-canvas { display: block; }`;
-
-/** Closed-network canvas for one split orb card. Copy HTML, CSS, and script use this document, not the React install snippet. */
-function orbPreviewScript(picker: boolean): string {
-  return `(function () {
-  var card = document.getElementById('orb-card');
-  var canvas = document.getElementById('orb');
-  var ctx = canvas.getContext('2d');
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var paused = false;
-  var start = performance.now();
-  function mode() { return card.getAttribute('data-mode') || 'solving'; }
-  function size() { return Number(card.getAttribute('data-size')) || canvas.width; }
-  function resize() {
-    var s = size();
-    if (canvas.width !== s) { canvas.width = s; canvas.height = s; }
-  }
-  function dots(cx, cy, r, t) {
-    var n = 48, i;
-    for (i = 0; i < n; i++) {
-      var phi = Math.acos(1 - 2 * (i + 0.5) / n);
-      var theta = Math.PI * (1 + Math.sqrt(5)) * i + t * Math.PI * 2 / 9;
-      var sp = Math.sin(phi);
-      var dz = sp * Math.sin(theta);
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(23,24,28,' + (0.28 + 0.72 * (dz + 1) / 2) + ')';
-      ctx.arc(cx + sp * Math.cos(theta) * r, cy + Math.cos(phi) * r, Math.max(1, r * 0.06), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  function ring(cx, cy, r, t) {
-    var breathe = 0.82 + 0.18 * Math.sin(t * 2.4);
-    ctx.beginPath();
-    ctx.strokeStyle = '#17181c';
-    ctx.lineWidth = Math.max(1.5, r * 0.12);
-    ctx.arc(cx, cy, r * breathe, t, t + Math.PI * 1.35);
-    ctx.stroke();
-  }
-  function listen(cx, cy, r, t) {
-    var i;
-    for (i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(23,24,28,' + (0.35 + 0.2 * i) + ')';
-      ctx.lineWidth = Math.max(1, r * 0.1);
-      ctx.arc(cx, cy, r * (0.35 + i * 0.22), -0.8 + Math.sin(t * 3 + i) * 0.15, 0.8 + Math.sin(t * 3 + i) * 0.15);
-      ctx.stroke();
-    }
-  }
-  function orbit(cx, cy, r, t) {
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(23,24,28,.2)';
-    ctx.lineWidth = 1;
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-    var a = t * 2.2;
-    ctx.beginPath();
-    ctx.fillStyle = '#17181c';
-    ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.55, Math.max(1.5, r * 0.16), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  function ribbon(cx, cy, r, t) {
-    ctx.beginPath();
-    ctx.strokeStyle = '#17181c';
-    ctx.lineWidth = Math.max(1.5, r * 0.14);
-    ctx.moveTo(cx - r, cy);
-    var x;
-    for (x = -r; x <= r; x += 2) {
-      ctx.lineTo(cx + x, cy + Math.sin(x / r * Math.PI * 2 + t * 4) * r * 0.35);
-    }
-    ctx.stroke();
-  }
-  function metal(cx, cy, r, t) {
-    var g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(0.45, '#c5d0e4');
-    g.addColorStop(1, '#6a7386');
-    ctx.beginPath();
-    ctx.fillStyle = g;
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.translate(cx, cy);
-    ctx.rotate(t * Math.PI * 2 / 7.2);
-    ctx.fillStyle = 'rgba(255,255,255,.5)';
-    ctx.fillRect(-r, -r * 0.12, r * 2, r * 0.24);
-    ctx.restore();
-  }
-  function morph(cx, cy, r, t) {
-    ctx.beginPath();
-    ctx.fillStyle = '#17181c';
-    var i;
-    for (i = 0; i <= 40; i++) {
-      var a = (i / 40) * Math.PI * 2;
-      var wobble = 1 + 0.22 * Math.sin(a * 3 + t * 2.5);
-      var x = cx + Math.cos(a) * r * wobble;
-      var y = cy + Math.sin(a) * r * wobble;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.fill();
-  }
-  function connect(cx, cy, r, t) {
-    var i;
-    for (i = 0; i < 2; i++) {
-      var a = t * (i ? -2.4 : 1.8);
-      ctx.beginPath();
-      ctx.fillStyle = i ? '#6a7386' : '#17181c';
-      ctx.arc(cx + Math.cos(a) * r * 0.45, cy + Math.sin(a) * r * 0.45, Math.max(1.5, r * 0.22), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  function paint(t) {
-    resize();
-    var s = canvas.width;
-    var cx = s / 2, cy = s / 2, r = s * 0.34;
-    ctx.clearRect(0, 0, s, s);
-    var m = mode();
-    if (m === 'solving') dots(cx, cy, r, t);
-    else if (m === 'breathing') ring(cx, cy, r, t);
-    else if (m === 'listening') listen(cx, cy, r, t);
-    else if (m === 'searching') orbit(cx, cy, r, t);
-    else if (m === 'composing') ribbon(cx, cy, r, t);
-    else if (m === 'working') metal(cx, cy, r, t);
-    else if (m === 'shaping') morph(cx, cy, r, t);
-    else if (m === 'connecting') connect(cx, cy, r, t);
-    else dots(cx, cy, r, t);
-  }
-  function frame(now) {
-    var t = reduce || paused ? 0.4 : (now - start) / 1000;
-    paint(t);
-    if (!reduce && !paused) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-  ${picker ? `var controls = document.getElementById('orb-controls');
-  function mark() {
-    var buttons = controls.querySelectorAll('button');
-    var i;
-    for (i = 0; i < buttons.length; i++) {
-      var b = buttons[i];
-      var on = (b.getAttribute('data-orb-state') && b.getAttribute('data-orb-state') === mode())
-        || (b.getAttribute('data-orb-size') && Number(b.getAttribute('data-orb-size')) === size());
-      b.classList.toggle('is-on', !!on);
-    }
-  }
-  controls.addEventListener('click', function (e) {
-    var b = e.target.closest('button');
-    if (!b || b.disabled) return;
-    if (b.id === 'orb-pause') {
-      paused = !paused;
-      b.textContent = paused ? 'Play' : 'Pause';
-      if (!paused) { start = performance.now(); requestAnimationFrame(frame); }
-      else paint(0.4);
-      return;
-    }
-    if (b.getAttribute('data-orb-state')) card.setAttribute('data-mode', b.getAttribute('data-orb-state'));
-    if (b.getAttribute('data-orb-size')) card.setAttribute('data-size', b.getAttribute('data-orb-size'));
-    mark();
-    if (reduce || paused) paint(0.4);
-  });
-  mark();` : ''}
-})();`;
-}
-
-function orbCard(mode: string, size: number, label: string, agent: boolean): Source {
-  const text = agent
-    ? `<span class="agent"><span class="muted">Agent </span>${label}</span>`
-    : `<span class="label">${label}</span>`;
-  return {
-    snippet: false,
-    html: `<div class="${agent ? 'chip' : 'pill'}" id="orb-card" data-mode="${mode}" data-size="${size}">
-  <canvas id="orb" width="${size}" height="${size}" aria-label="${agent ? `Agent ${label}` : label}"></canvas>
-  ${text}
-</div>`,
-    extraCss: ORB_PREVIEW_CSS,
-    script: orbPreviewScript(false),
-  };
-}
 
 const SOURCES: Record<string, Source> = {
   'card-resize': {
@@ -1044,37 +847,15 @@ canvas { display: block; width: 168px; height: 168px; }`,
   .beam-spin { animation: none !important; }
 }`,
   },
-  'orb-solving': orbCard('solving', 64, 'Solving....', false),
-  'orb-thinking': orbCard('breathing', 64, 'Thinking....', false),
-  'orb-agent-listening': orbCard('listening', 20, 'listening...', true),
-  'orb-searching': orbCard('searching', 64, 'Searching....', false),
-  'orb-agent-planning': orbCard('composing', 20, 'planning...', true),
-  'orb-agent-thinking': orbCard('breathing', 20, 'thinking...', true),
-  'orb-working': orbCard('working', 64, 'Working....', false),
-  'orb-agent-shaping': orbCard('shaping', 20, 'shaping...', true),
-  'orb-state-picker': {
-    snippet: false,
-    html: `<div class="picker" id="orb-card" data-mode="listening" data-size="64">
-  <canvas id="orb" width="64" height="64" aria-label="Orb state picker"></canvas>
-  <div class="controls" id="orb-controls">
-    <button type="button" data-orb-state="working">Working</button>
-    <button type="button" data-orb-state="searching">Searching</button>
-    <button type="button" data-orb-state="solving">Solving</button>
-    <button type="button" data-orb-state="listening">Listening</button>
-    <button type="button" data-orb-state="connecting">Connecting</button>
-    <button type="button" data-orb-state="composing">Composing</button>
-    <button type="button" data-orb-state="breathing">Breathing</button>
-    <button type="button" disabled>Weaving</button>
-    <button type="button" disabled>Shaping</button>
-    <button type="button" data-orb-size="64">64px</button>
-    <button type="button" data-orb-size="20">20px</button>
-    <button type="button" disabled>32px</button>
-    <button type="button" id="orb-pause">Pause</button>
-  </div>
-</div>`,
-    extraCss: ORB_PREVIEW_CSS,
-    script: orbPreviewScript(true),
-  },
+  'orb-solving': orbCard({ state: 'solving', size: 64, label: 'Solving....', agent: false }),
+  'orb-thinking': orbCard({ motionsource: 'msThinking', size: 64, label: 'Thinking....', agent: false }),
+  'orb-agent-listening': orbCard({ state: 'listening', size: 20, label: 'listening...', agent: true }),
+  'orb-searching': orbCard({ state: 'searching', size: 64, label: 'Searching....', agent: false }),
+  'orb-agent-planning': orbCard({ motionsource: 'msAgentPlanning', size: 20, label: 'planning...', agent: true }),
+  'orb-agent-thinking': orbCard({ motionsource: 'msAgentThinking', size: 20, label: 'thinking...', agent: true }),
+  'orb-working': orbCard({ state: 'working', size: 64, label: 'Working....', agent: false }),
+  'orb-agent-shaping': orbCard({ motionsource: 'msAgentShaping', size: 20, label: 'shaping...', agent: true }),
+  'orb-state-picker': orbPickerSource(),
   gooey: {
     html: `<div class="gooey" id="stage">
   <div class="t-gooey-tile anchor" id="anchor"></div>

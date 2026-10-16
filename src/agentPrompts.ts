@@ -2,7 +2,7 @@ import abrarOverviewPrompt from './demos/abrar-overview/AGENT_PROMPT.md';
 import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
-import { ORB_GALLERY_LOCKS } from './demos/thinking-orbs-playground/galleryCopy';
+import { ORB_LOCKS } from '@/src/closedNetwork/orbLocks';
 import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
 
 export type PromptState = {
@@ -166,15 +166,7 @@ const LOCKS: Record<string, PromptLock> = {
     content: 'Auto pill + circular send `↑`. Metal colors `#5CE1FF #FF4ECD #FFD166 #7CFFB2 #7AA2FF`.',
     rn: 'Skia RoundedRect stroke + SweepGradient. Copy emits `.t-metal`.',
   },
-  'orb-solving': ORB_GALLERY_LOCKS.solving,
-  'orb-thinking': ORB_GALLERY_LOCKS.thinking,
-  'orb-agent-listening': ORB_GALLERY_LOCKS['agent-listening'],
-  'orb-searching': ORB_GALLERY_LOCKS.searching,
-  'orb-agent-planning': ORB_GALLERY_LOCKS['agent-planning'],
-  'orb-agent-thinking': ORB_GALLERY_LOCKS['agent-thinking'],
-  'orb-working': ORB_GALLERY_LOCKS.working,
-  'orb-agent-shaping': ORB_GALLERY_LOCKS['agent-shaping'],
-  'orb-state-picker': ORB_GALLERY_LOCKS['state-picker'],
+  ...ORB_LOCKS,
   'preview-tools': {
     motion:
       'A cream pill 84px tall, radius 42, gradient #fbfaf9 to #f1efec. Closed, the same pill scales to 0.667 and the held tool peeks from the top at 42px wide. Open, it widens and seats pencil, pen, fineliner, marker, highlighter, brush, fountain, and eraser. Each tool is a 30 by 88 shaded drawing, sunk with margin-bottom -20px and translateY(6px). The active tool uses translateY(-12px). A 26px conic color wheel swaps those tools for 26px radius-8 swatches. Marks are filled outline rings. Pencil is size 1 graphite at 0.85 alpha. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is a flat size 28 #fff01f multiply swipe at 0.75 alpha. Brush is size 14 and tapers at the lift. Fountain is size 8 with a 45 degree nib at 0.85 contrast. Eraser is size 28 destination-out. Alignment draws 1px #9B5CFF boxes, full-width lines at each control top, center, and bottom, and vertical lines across the row. Annotate lets a click on a control open a note card on that control. Copy writes markdown with label, selector, note, and box.',
