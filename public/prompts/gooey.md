@@ -60,7 +60,10 @@ The examples row does not render melt. The public playground effect switch does 
 - two cards 84×84, radius 16
 - melt knobs line 687: blur 7, contrast 40, reach 0.8, fade 17, warp 0, mix 1, mixBlur 8, gravity 1.9, waviness 12
 - those match `IMAGE_MELT_DEFAULTS` (dist lines 157–167)
-- photos are the page files `sites/home/public/images/melt-a.jpg` and `melt-b.jpg`, embedded as data URIs with those exact bytes
+- the original page uses different photos (`sites/home/public/images/melt-a.jpg` and `melt-b.jpg`)
+- these cards use two CC0 landscapes, cropped to those pixel sizes (512×447 and 403×512) and embedded as data URIs
+- warm, 512×447: Sunset over Trommekilen from Norrkila, W.carter, own work, CC0, https://commons.wikimedia.org/wiki/File:Sunset_over_Trommekilen_from_Norrkila_6.jpg
+- cool, 403×512: Calm sea, San Antonio, Ibiza, Joselodos, own work, CC0, https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg
 
 ### Public sliders and locked rows
 
@@ -80,7 +83,7 @@ The page pins theme dark (`GooeyStudio` default, line 670). There is no theme sw
 | morph open | `false` | `MorphDemo` line 197 |
 | blur | `6` | group default line 661; public slider |
 | contrast | `18` | group default line 661; public slider |
-| waviness | `0` | Pro-locked teaser. Passed on morph, move, and bend. Hidden on melt |
+| waviness | `0` | Pro-locked teaser, shown for every effect. Passed on morph, move, and bend. Melt does not take it |
 | fill | Surface | `#202020` morph and bend, `#525252` move. Pro-locked |
 | bounce | `0.5` | Pro-locked teaser. Hint adds "teaser only; not wired on the original". Never passed |
 | stagger | `40` | Pro-locked open stagger. Close stagger stays 0 |
@@ -127,6 +130,8 @@ Morph open 550ms, close 250ms, open stagger 40ms, close stagger 0, icon 180ms af
 ## Setup
 
 Peer is React 18 or newer. The published module is `liquid-gooey@0.2.2`. `sites/home/package.json` depends on `liquid-gooey` as `*` (the workspace package at 0.2.2). There is no npm alias. The package MIT text is the first comment on any redistributed copy, followed by the React `LICENSE` verbatim. `react-dom`'s `LICENSE` is the same file, so it is not repeated. The package ships no NOTICE.
+
+Copy loads Inter at weights 400 and 500 from `https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2` (the Google Fonts latin subset of Inter, a variable font, OFL). The file is not embedded. The face is declared in the Copy CSS as `@font-face` with `font-weight: 400 500`.
 
 ## Checklist
 

@@ -580,9 +580,9 @@ export function GooeyCard() {
           <>
             <Slider label="Goo blur" value={blur} min={0} max={16} step={0.5} onChange={setBlur} />
             <Slider label="Contrast" value={contrast} min={4} max={40} step={1} onChange={setContrast} />
-            <Slider label="Waviness" value={waviness} min={0} max={8} step={0.5} hint={PRO_LOCKED} onChange={setWaviness} />
           </>
         ) : null}
+        <Slider label="Waviness" value={waviness} min={0} max={8} step={0.5} hint={PRO_LOCKED} onChange={setWaviness} />
         <Row label="Fill">
           {FILLS_LOCKED.map((option) => (
             <Chip key={option.id} label={option.label} on={fillChoice === option.id} hint={PRO_LOCKED} onPress={() => setFillChoice(option.id)} />
