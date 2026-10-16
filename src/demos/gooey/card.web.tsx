@@ -268,14 +268,12 @@ function MorphSpecimen({
   waviness,
   fill,
   stagger,
-  bounce,
 }: {
   blur: number;
   contrast: number;
   waviness: number;
   fill: string;
   stagger: number;
-  bounce: number;
 }) {
   const [open, setOpen] = useState(false);
   const [anticipating, setAnticipating] = useState(false);
@@ -300,7 +298,6 @@ function MorphSpecimen({
   vars['--pm-anticip-dur'] = `${ANTICIP_DUR}ms`;
   vars['--pm-icon-dur'] = `${ICON_DUR}ms`;
   vars['--gd-ink'] = inkFor(fill);
-  const morph = bounce === 0.5 ? undefined : { shape: true, bounce };
   return (
     <Liquid
       key="morph"
@@ -321,7 +318,6 @@ function MorphSpecimen({
           y={open ? satellite.y * SPREAD : 0}
           transition={{ duration: phase.dur, ease: phase.ease }}
           delay={index * phase.stagger}
-          morph={morph}
         >
           <button type="button" className="pm-btn pm-sat" aria-label={satellite.label} tabIndex={open ? 0 : -1} onClick={toggle}>
             <span className="pm-sat-icon" style={{ transitionDelay: open ? `${ICON_DELAY + index * phase.stagger}ms` : '0ms' }}>
@@ -330,7 +326,7 @@ function MorphSpecimen({
           </button>
         </Liquid.Item>
       ))}
-      <Liquid.Item className="pm-slot" morph={morph}>
+      <Liquid.Item className="pm-slot">
         <button type="button" className="pm-btn pm-main" aria-expanded={open} aria-label={open ? 'Close menu' : 'Open menu'} onClick={toggle}>
           <span className="pm-plus">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
@@ -560,7 +556,7 @@ export function GooeyCard() {
     <div className="as-gooey" data-testid="gooey-card" data-effect={effect} style={{ width: '100%', boxSizing: 'border-box', background: '#171717', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ minHeight: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {effect === 'morph' && surface ? (
-          <MorphSpecimen blur={blur} contrast={contrast} waviness={waviness} fill={surface} stagger={stagger} bounce={bounce} />
+          <MorphSpecimen blur={blur} contrast={contrast} waviness={waviness} fill={surface} stagger={stagger} />
         ) : null}
         {effect === 'move' && surface ? <MoveSpecimen blur={blur} contrast={contrast} waviness={waviness} fill={surface} /> : null}
         {effect === 'bend' && surface ? <BendSpecimen blur={blur} contrast={contrast} waviness={waviness} fill={surface} /> : null}

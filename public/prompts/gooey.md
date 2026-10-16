@@ -25,7 +25,7 @@ The page has no idle loop and no play/pause control (`studio/gooey.tsx` lines 70
 - close anticipation 5px over 700ms when `anticipDist > 0`
 - plus glyph rotates 45deg over 250ms when open
 
-The morph items do not pass `morph`. Shape physics stay off. Bounce at 0.5 is the package default and is not passed.
+The morph items do not pass `morph`. Shape physics stay off. Bounce is the teaser value 0.5 and is never passed, at 0.5 or at any other slider value.
 
 ### Move (separate specimen)
 
@@ -68,7 +68,7 @@ The public playground (`isPublic` branch, lines 825–895) shows Effect, and for
 
 `StudioTeaser` (lines 888–895) is presentation only: pointer-events off. Its rows are Waviness 0, Fill Surface / Light / Sky, Bounce 0.5, Stagger 40ms. Those four stay selectable and are labelled Pro-locked on the original. Surface fill keeps the per-effect dark fill. Light is `#e9e9e9`. Sky is `#7cd4ff`. They override morph, move, and bend only. Melt ignores them.
 
-Bounce at 0.5 is not passed. Moving it passes `morph={{ shape: true, bounce }}` on the morph items, which is the package shape spring (`mapMorphSprings`, dist lines 2400–2415). Stagger changes only `openStagger`. The close stagger stays 0.
+Bounce is never passed. `morph.shape` switches `Liquid.Item` to `ObservedItem`, which sets `display: contents` (dist lines 2370–2371) and drops `.pm-slot`. The plus-menu travel is `MirroredItem` x/y (dist lines 2182–2185). `mapMorphSprings` runs only when `shape` is true (dist lines 2481–2484). The teaser row is not wired in `GooeyStudio`. Stagger changes only `openStagger`. The close stagger stays 0.
 
 The page pins theme dark (`GooeyStudio` default, line 670). There is no theme switch on the public page. The package has no theme prop. Light in the teaser is a fill, not a theme.
 
@@ -82,7 +82,7 @@ The page pins theme dark (`GooeyStudio` default, line 670). There is no theme sw
 | contrast | `18` | group default line 661; public slider |
 | waviness | `0` | Pro-locked teaser. Passed on morph, move, and bend |
 | fill | Surface | `#202020` morph and bend, `#525252` move. Pro-locked |
-| bounce | `0.5` | Pro-locked. Omitted from the morph items until it changes |
+| bounce | `0.5` | Pro-locked teaser. Never passed. Shape is not this specimen |
 | stagger | `40` | Pro-locked open stagger. Close stagger stays 0 |
 | move thumb | `84` | `MoveDemo` line 299 |
 | bend position | `0, 0` | `BendDemo` line 363 |
@@ -116,7 +116,7 @@ Morph open 550ms, close 250ms, open stagger 40ms, close stagger 0, icon 180ms af
 - Melt does not receive the group `blur`, `contrast`, `fill`, `shadow`, or `waviness`.
 - Group blur 6 and contrast 18 are the example defaults and the playground's starting sliders. They are not melt's 7 and 40.
 - Waviness, Fill, Bounce, and Stagger are Pro-locked on the original. Goo blur and Contrast are on the public playground.
-- Bounce 0.5 matches the package and is omitted. A different bounce turns morph shape on.
+- Bounce 0.5 is the teaser value and is never passed. Shape would drop the slot position.
 - Fill Light `#e9e9e9` and Sky `#7cd4ff` are locked fill overrides. They are not a theme switch.
 - Switching effects remounts that effect (`key` on each `Liquid`) so the next gesture still runs. Two copies of one effect are not mounted together.
 - Child buttons stay transparent. The liquid fill is the surface. Do not paint the buttons `#7c2bff` or `#e11d48`.

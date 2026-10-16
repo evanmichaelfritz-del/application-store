@@ -236,7 +236,7 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'Morph, move, bend, and melt do not share props. Melt does not take the group blur, contrast, fill, or waviness.',
       'Waviness, Fill, Bounce, and Stagger are Pro-locked on the original and stay selectable.',
-      'Bounce stays off the morph items at 0.5. Moving it turns on morph shape.',
+      'Bounce stays off the morph items. Shape would replace the x/y travel.',
       'The plus menu mounts closed. The playground starts on morph with the same group defaults.',
     ],
     setup:
