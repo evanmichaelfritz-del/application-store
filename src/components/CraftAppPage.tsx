@@ -7,7 +7,6 @@ import { Link } from 'expo-router';
 import { LeftNav } from '@/src/components/LeftNav';
 import { TopNav } from '@/src/components/TopNav';
 import {
-  CLI_UNDOCUMENTED,
   CRAFT_CATEGORY_LABEL,
   CRAFT_CATEGORY_SLUG,
   CRAFT_LICENSE,
@@ -89,6 +88,9 @@ export function CraftAppPage({ slug }: { slug: string }) {
           <Text style={styles.notice} testID="craft-notice">
             {app.notice}
           </Text>
+          <ExternalLink href={app.noticeUrl} testID="craft-notice-link">
+            {app.noticeUrl}
+          </ExternalLink>
           {web.length === 1 ? (
             <DownloadButton label="Download web build" url={web[0].url} testID="craft-web" />
           ) : null}
@@ -103,18 +105,13 @@ export function CraftAppPage({ slug }: { slug: string }) {
 }
 
 function BotSection({ app }: { app: CraftApp }) {
-  if (app.bot === 'none') return null;
-  const body = app.bot === 'mcp' ? FILMCRAFT_MCP : CLI_UNDOCUMENTED;
+  if (app.bot !== 'mcp') return null;
   return (
     <View testID="craft-bot">
       <Text style={styles.section}>How a bot drives it</Text>
-      {app.bot === 'mcp' ? (
-        <View style={styles.code}>
-          <Text {...textWeb({ dataSet: { codeText: 'true' } })}>{body}</Text>
-        </View>
-      ) : (
-        <Text style={styles.bodyText}>{body}</Text>
-      )}
+      <View style={styles.code}>
+        <Text {...textWeb({ dataSet: { codeText: 'true' } })}>{FILMCRAFT_MCP}</Text>
+      </View>
     </View>
   );
 }
@@ -263,13 +260,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 28,
     marginBottom: 4,
-  },
-  bodyText: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.text,
-    marginTop: 8,
   },
   code: {
     marginTop: 8,

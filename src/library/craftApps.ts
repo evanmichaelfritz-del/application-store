@@ -7,8 +7,6 @@ export const CRAFT_CATEGORY_SLUG = 'apps';
 export const CRAFT_CATEGORY_LABEL = 'Open-source apps';
 export const CRAFT_LICENSE = 'Dual MIT / Apache-2.0';
 export const EARLY_ALPHA = 'early-alpha';
-export const CLI_UNDOCUMENTED = 'CLI available, commands not yet documented here';
-
 /** FilmCraft repo root `.mcp.json`, the only confirmed bot-control config. */
 export const FILMCRAFT_MCP = "{\n  \"mcpServers\": {\n    \"filmcraft\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--bridge\", \"127.0.0.1:9876\"]\n    },\n    \"filmcraft-headless\": {\n      \"command\": \"target/release/filmcraft-cli\",\n      \"args\": [\"mcp\", \"--demo\"]\n    }\n  }\n}";
 
@@ -22,6 +20,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/artcraft/releases/tag/artcraft-v0.41.0",
     publishedOn: "Sep 26, 2026",
     notice: "ArtCraft\nCopyright (c) 2026 ArtCraft Team and the ArtCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos are trademarks of the ArtCraft Team. They are not covered\nby the license above.",
+    noticeUrl: "https://github.com/storytold/artcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "ArtCraft_0.41.0_universal.dmg",
@@ -55,6 +54,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/photocraft/releases/tag/v0.9.0",
     publishedOn: "Oct 14, 2026",
     notice: "PhotoCraft\nCopyright (c) 2026 ArtCraft Team and the PhotoCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/photocraft/blob/main/NOTICE",
     downloads: [
       {
         name: "photocraft-0.9.0-freebsd-x86_64.tar.gz",
@@ -172,7 +172,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "vector-craft",
@@ -183,6 +183,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/vectorcraft/releases/tag/v0.11.0",
     publishedOn: "Oct 14, 2026",
     notice: "VectorCraft\nCopyright (c) 2026 ArtCraft Team and the VectorCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/vectorcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "vectorcraft-0.11.0-freebsd-x86_64.tar.gz",
@@ -290,7 +291,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "film-craft",
@@ -301,6 +302,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/filmcraft/releases/tag/v0.8.0",
     publishedOn: "Oct 14, 2026",
     notice: "FilmCraft\nCopyright (c) 2026 ArtCraft Team and the FilmCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/filmcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "filmcraft-0.8.0-freebsd-x86_64.tar.gz",
@@ -429,6 +431,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/lightcraft/releases/tag/v0.8.0",
     publishedOn: "Oct 14, 2026",
     notice: "LightCraft\nCopyright (c) 2026 ArtCraft Team and the LightCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/lightcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "lightcraft-0.8.0-freebsd-x86_64.tar.gz",
@@ -536,7 +539,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "pdf-craft",
@@ -547,6 +550,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/pdfcraft/releases/tag/v0.8.0",
     publishedOn: "Oct 14, 2026",
     notice: "PdfCraft\nCopyright (c) 2026 ArtCraft Team and the PdfCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/pdfcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "pdfcraft-0.8.0-freebsd-x86_64.tar.gz",
@@ -674,7 +678,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "effect-craft",
@@ -685,6 +689,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/effectcraft/releases/tag/v0.10.0",
     publishedOn: "Oct 14, 2026",
     notice: "EffectCraft\nCopyright (c) 2026 ArtCraft Team and the EffectCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/effectcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "effectcraft-0.10.0-freebsd-x86_64.tar.gz",
@@ -802,7 +807,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "design-craft",
@@ -813,6 +818,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/designcraft/releases/tag/v0.8.0",
     publishedOn: "Oct 14, 2026",
     notice: "DesignCraft\nCopyright (c) 2026 ArtCraft Team and the DesignCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/designcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "designcraft-0.8.0-freebsd-x86_64.tar.gz",
@@ -930,7 +936,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "word-craft",
@@ -941,6 +947,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/wordcraft/releases/tag/v0.7.0",
     publishedOn: "Oct 14, 2026",
     notice: "WordCraft\nCopyright (c) 2026 ArtCraft Team and the WordCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/wordcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "wordcraft-0.7.0-freebsd-x86_64.tar.gz",
@@ -1058,7 +1065,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "grid-craft",
@@ -1069,6 +1076,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/gridcraft/releases/tag/v0.7.0",
     publishedOn: "Oct 14, 2026",
     notice: "GridCraft\nCopyright (c) 2026 ArtCraft Team and the GridCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/gridcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "gridcraft-0.7.0-freebsd-x86_64.tar.gz",
@@ -1186,7 +1194,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "deck-craft",
@@ -1197,6 +1205,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/deckcraft/releases/tag/v0.7.0",
     publishedOn: "Oct 14, 2026",
     notice: "DeckCraft\nCopyright (c) 2026 ArtCraft Team and the DeckCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/deckcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "deckcraft-0.7.0-freebsd-x86_64.tar.gz",
@@ -1314,7 +1323,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "cad-craft",
@@ -1325,6 +1334,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/cadcraft/releases/tag/v0.7.0",
     publishedOn: "Oct 14, 2026",
     notice: "CADCraft\nCopyright (c) 2026 ArtCraft Team and the CADCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/cadcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "cadcraft-0.7.0-freebsd-x86_64.tar.gz",
@@ -1442,7 +1452,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "sound-craft",
@@ -1453,6 +1463,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/soundcraft/releases/tag/v0.7.0",
     publishedOn: "Oct 14, 2026",
     notice: "SoundCraft\nCopyright (c) 2026 ArtCraft Team and the SoundCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/soundcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "soundcraft-0.7.0-freebsd-x86_64.tar.gz",
@@ -1570,7 +1581,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "fig-craft",
@@ -1581,6 +1592,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/figcraft/releases/tag/v0.6.0",
     publishedOn: "Oct 14, 2026",
     notice: "FigCraft\nCopyright (c) 2026 ArtCraft Team and the FigCraft contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are\nnot open source and are not covered by the license above; their terms are in\ndocs/brand/LICENSE-brand.txt.",
+    noticeUrl: "https://github.com/storytold/figcraft/blob/main/NOTICE",
     downloads: [
       {
         name: "figcraft-0.6.0-freebsd-x86_64.tar.gz",
@@ -1698,7 +1710,7 @@ export const CRAFT_APPS = [
         kind: "web"
       }
     ],
-    bot: "cli"
+    bot: "none"
   },
   {
     slug: "craft-launcher",
@@ -1709,6 +1721,7 @@ export const CRAFT_APPS = [
     releaseUrl: "https://github.com/storytold/craft-launcher/releases/tag/v0.4.1",
     publishedOn: "Oct 13, 2026",
     notice: "ArtCraft Launcher\nCopyright (c) 2026 ArtCraft Team and the ArtCraft Launcher contributors.\nLicensed under the MIT License or the Apache License, Version 2.0, at your option\n(LICENSE-MIT, LICENSE-APACHE).\n\nThe ArtCraft name, wordmark, logo and \"A\" mark (docs/brand/) are trademarks of the ArtCraft Team.\nThey are NOT open source and are NOT covered by the MIT or Apache-2.0 license above. This includes\neverywhere ArtCraft Launcher shows them: the app icon (assets/app-icon/, the blue \"A\" mark), the\nArtCraft logo in the window header and the \"A\" mark used as the tray / menu-bar icon\n(docs/brand/artcraft-mark-64.png, artcraft-mark-black-44.png).\nTheir terms are in docs/brand/LICENSE-brand.txt; forks and modified versions must remove them.",
+    noticeUrl: "https://github.com/storytold/craft-launcher/blob/main/NOTICE",
     downloads: [
       {
         name: "artcraft-launcher-0.4.1-freebsd-x86_64.tar.gz",
