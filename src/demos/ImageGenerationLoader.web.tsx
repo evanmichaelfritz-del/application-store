@@ -178,14 +178,17 @@ function WorkerLoader({
       worker.postMessage({ type: 'photos', bitmaps }, bitmaps);
     };
 
-    syncRef.current = sync;
+    syncRef.current = () => {
+      cancelAnimationFrame(raf);
+      sync();
+    };
     boot();
     loadPhotos().catch(() => {
       /* reveal retries until the bitmaps arrive */
     });
     return () => {
       dead = true;
-      if (syncRef.current === sync) syncRef.current = null;
+      syncRef.current = null;
       cancelAnimationFrame(raf);
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;

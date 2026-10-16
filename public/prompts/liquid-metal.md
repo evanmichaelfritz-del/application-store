@@ -4,24 +4,51 @@ Recreate the liquid-metal ring from `metal-fx@2.0.11` (MIT, Jakub Antalik). The 
 
 ## Piece
 
-`MetalFx` wraps one child and paints a WebGL2 metal ring plus a glow. One specimen switches with `variant`:
+The specimen is the composer `libraries.dev/metal` renders, from `packages/metal-fx/demo/components/Examples.tsx` (mounted by `demo/App.tsx`) and the same markup on `sites/home/src/examples/metal-examples-v2.tsx`.
 
-- `button`: 140×40, radius 20, label `Upgrade to Pro`. Fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)` in the dark theme. Light theme uses fill `#ffffff`, text `#111111`, border `rgba(0, 0, 0, 0.08)`.
-- `circle`: 40×40, radius 50%, send arrow, same fills.
+The composer is 448px wide, `max-width: 100%`, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The placeholder is `Build anything...` at 14px / 16px, 70% of the row width. The bottom row is a 36×36 plus, a spacer, Agent and Auto chips (36px tall, radius 50), and a 40×40 circle send button. Circle fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`, radius 50%. `box-sizing: border-box` keeps the circle at 40×40 including its 1px border.
 
-Dark stage `#171717`. Light stage `#f6f6f6`. Preset default `chromatic`. Strength default `1`. The ring starts running (`paused` false). Theme is pinned to `dark` or `light` (the package default is `auto`).
+`MetalFx` on that button:
+
+- `preset="chromatic"`
+- `variant="circle"`
+- `theme="dark"` (light is a package option, not on the original)
+- `innerShadow`
+- `useMetalBend(sendRef)` on the `MetalFx` ref
+- `reflectionTargets={[autoChipRef]}` unless No Reflection is on
+- `strength={strength * 0.9}`
+
+Effective strength: `demo/App.tsx` stores the slider as `useState(90)` and passes `strength / 100` (`0.9`) into `Examples`. `Examples.tsx` then sets `strength={strength * 0.9}`. `0.9 × 0.9 = 0.81`. `sites/home/src/metal.tsx` uses the same product (`STRENGTH = 90`, then `strength * 0.9`).
+
+Start state: `packages/metal-fx/demo/components/Playground.tsx` line 77 is `const [paused, setPaused] = useState(true)`. The comment there says the playground starts paused so the page loads quietly, while the surrounding Examples keep auto-playing (they do not pass `paused`). This card follows that playground start state and mounts paused. Press Play to run the shared frame loop.
+
+No Glow and No Reflection start off (`disableGlow` false, `disableReflection` false), matching the playground.
+
+The 140×40 radius-20 `Upgrade to Pro` button at `strength={1}` and `variant="button"` stays only as the package default. It is labelled package default, and it is a package option, not on the original composer. Child text stays `#f8f8f8` in both themes. The previous `#111111` light-theme text override is dropped.
+
+Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the original. Presets `chromatic`, `silver`, and `gold` are the playground color control. Page default preset is `chromatic`.
 
 ## States
+
+| Control | Source start | Notes |
+| --- | --- | --- |
+| specimen | composer | 40×40 circle, `innerShadow`, bend, reflection on Auto |
+| `paused` | `true` | `Playground.tsx` line 77, `useState(true)`. Examples omit `paused` and keep running |
+| page strength | `90` | `demo/App.tsx` `useState(90)`. Circle receives `0.81` |
+| `disableGlow` | `false` | No Glow toggle |
+| `disableReflection` | `false` | No Reflection toggle clears `reflectionTargets` |
+| package default | off | 140×40, `variant="button"`, `strength={1}` |
 
 | Prop | Values | Default in the package |
 | --- | --- | --- |
 | `preset` | `chromatic`, `silver`, `gold` | `chromatic` |
-| `variant` | `button`, `circle` | `button` |
-| `theme` | `dark`, `light`, `auto` | `auto` |
-| `strength` | 0..1, multiplies shader opacity and glow alpha | `1` |
-| `paused` | `true` keeps the last frame | `false` |
+| `variant` | `button`, `circle` | `button` (package default). The page composer passes `circle` |
+| `theme` | `dark`, `light`, `auto` | `auto`. This specimen pins `dark`. Light is a package option, not on the original |
+| `strength` | 0..1 | package default `1`. Composer effective value is `0.81` |
+| `paused` | `true` holds the last frame | package default `false`. This card starts `true` |
 | `glowGain` | glow multiplier | `1` |
 | `scale` | pixel-constant multiplier | `1` |
+| `innerShadow` | `true` uses the design rim | off unless passed. The composer passes it |
 
 `button` maps to kind `pill` with `shaderScale` 1.6 (`ma`) and `ringCssPx` 1. `circle` uses `shaderScale` 1.3 (`pa`) and `ringCssPx` 2. Reference size constants are `fa = 140` and `ha = 40`. `strength` does not stop the shader; it scales the alpha painted onto the child.
 
@@ -69,29 +96,35 @@ Uniforms written each frame include `u_colorTint`, `u_repetition`, `u_softness`,
 
 ## Gotchas
 
-- `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas.
-- Copies share one GL context. Do not mount the component twice in the same tick (a strict double-invoke tears the shared renderer down).
+- Start paused. The source line is `Playground.tsx` 77: `const [paused, setPaused] = useState(true)`. The Examples composer does not pass `paused`, so that hero row on the demo page keeps running. This card uses the playground start state.
+- Composer strength is `0.9 × 0.9 = 0.81` (`useState(90)` in `demo/App.tsx`, then `strength * 0.9` in `Examples.tsx`). The package default strength is `1`, used only by the labelled 140×40 button.
+- `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas. Do not add a second fallback.
+- Copies share one GL context. Do not mount the component twice in the same tick (a strict double-invoke tears the shared renderer down). This card does not wrap `MetalFx` in `StrictMode`.
 - `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")` and updates on `change`. Pin `dark` or `light` when a control chooses the theme.
 - Circle radius is `Math.min(width, height) / 2`. Button radius is the child's computed `borderTopLeftRadius`, capped at half the shorter side.
-- `normalizeHostStyles` defaults to true and clears the child's outer border, outline, and box-shadow so they do not sit under the ring. The specimen border is still the element's own border before that normalization; the ring replaces the outer chrome.
-- Reflections render only in the resolved dark theme. This specimen passes no `reflectionTargets`.
+- `normalizeHostStyles` defaults to true and clears the child's outer border, outline, and box-shadow so they do not sit under the ring.
+- Reflections render only in the resolved dark theme. The composer passes the Auto chip as `reflectionTargets`. No Reflection sets that prop to `undefined`.
+- `useMetalBend(sendRef)` is the package bend on the circle root. The 140×40 package default does not attach that ref.
+- Do not set the child text to `#111111`. Both themes keep `#f8f8f8` on `#1d1d1d`.
 - The shader source is unmodified Paper `liquidMetal`. Do not retune the GLSL.
 
 ## Setup
 
-Peer is React 18 or newer. The published module is `metal-fx@2.0.11` `dist/index.es.js`. It needs WebGL2. No Three.js and no separate shader package: the shader is already inlined. The MIT license is the first comment on any redistributed copy. The package NOTICE names the Apache-2.0 Paper shader.
+Peer is React 18 or newer. The published module is `metal-fx@2.0.11` `dist/index.es.js`. It needs WebGL2. No Three.js and no separate shader package: the shader is already inlined. The package MIT text is the first comment on any redistributed copy, followed by the React `LICENSE` verbatim (`react-dom`'s `LICENSE` matches, so it is not repeated) and the package NOTICE.
 
 ## Checklist
 
-- [ ] `preset` default `chromatic`, `variant` default `button`, `strength` default `1`, `paused` default `false`.
+- [ ] The specimen is the composer: 40×40 circle, `variant="circle"`, `innerShadow`, `useMetalBend(sendRef)`, `reflectionTargets` on the Auto chip.
+- [ ] Effective strength at the source start is `0.81` (`0.9 × 0.9`).
+- [ ] Start state is paused, from `Playground.tsx` line 77 (`useState(true)`). Say that the Examples row does not pass `paused`.
+- [ ] No Glow and No Reflection start off.
+- [ ] The 140×40 strength-1 button is labelled package default and is a package option, not on the original.
+- [ ] Light theme is a package option, not on the original. Child text stays `#f8f8f8`.
 - [ ] `chromatic`, `silver`, and `gold` dark and light blocks match the table, including gold dark `speed` 0.85 and silver dark `shaderOpacity` 0.88.
 - [ ] `button` uses shader scale 1.6 and a 1px ring. `circle` uses shader scale 1.3 and a 2px ring.
-- [ ] Reference size is 140×40. The button specimen is 140×40 radius 20 with the label `Upgrade to Pro`. The circle specimen is 40×40.
-- [ ] `strength` scales painted alpha and the glow. The shader keeps running at any strength above 0.
 - [ ] `paused` true holds the last frame.
 - [ ] A host without WebGL2 shows the child and no canvas.
 - [ ] Offscreen copies and a hidden document pause the shared loop.
-- [ ] Dark and light specimen fills match the piece section.
 - [ ] The component source below is unmodified `metal-fx@2.0.11`.
 
 ## Component

@@ -178,7 +178,7 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       '`frameT0 = performance.now()` at boot. `const d = 100 - ((performance.now() - frameT0) % 100)` then `timer = setTimeout(present, d < 50 ? d + 100 : d)` schedules the next frame.',
       '`manualReveal` returns while `paused` is true.',
-      'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`. `document.addEventListener(\'visibilitychange\', function () { sync(); })` posts that hold while the tab is hidden.',
+      'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`. `document.addEventListener(\'visibilitychange\', function () { cancelAnimationFrame(raf); sync(); })` posts that hold while the tab is hidden.',
       'Leaving pause during `visible`, when `holdMode` is not `manual`, waits `Math.min(HOLD_MS, 500)`.',
       'An empty photo list retries `beginReveal` after 500.',
       '`REF_DIM` is `320.0`. Host `cssW` falls back to 168.',
@@ -219,6 +219,85 @@ const LOCKS: Record<string, PromptLock> = {
     content:
       'The stage is 520px tall and the card spans the grid. The sample row is centered: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The pill sits at the bottom. Guides and the note card stay hidden until the pill opens. Round chrome is 36px in #8a8a8e. Minimize is the four-corner collapse mark.',
     rn: 'Copy HTML, Copy CSS, and Copy script are this same pill. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card. Do not render text chips labeled Pen, Marker, or Eraser.',
+  },
+  'border-beam': {
+    motion:
+      'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. Strength starts at 70% (`strength={0.7}`). pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+    content:
+      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
+    rn: 'Web CSS from `border-beam@1.4.1`. Theme is pinned dark. `active` starts true. Colorful and mono are the page colors.',
+    states: [
+      {
+        name: 'travel',
+        trigger: '`size` md, sm, or line',
+        from: 'beam offset 0',
+        to: 'one lap',
+        duration: '1.96s, or 3.1s for line',
+        easing: 'package CSS animation',
+        delay: 'none',
+      },
+      {
+        name: 'pulse',
+        trigger: '`pulse-inner` or `pulse-outside`',
+        from: 'glow in',
+        to: 'glow out',
+        duration: '2.3s',
+        easing: 'shared frame loop',
+        delay: 'pulse-outside uses the five `--sub-*` vars',
+      },
+    ],
+    gotchas: [
+      'The chat inner div uses `boxSizing: \'border-box\'` so the live box stays 348×122 and the send control stays 28×28.',
+      '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
+      'sm, ocean, sunset, forest, candy, ice, gold, and light are a package option, not on the original.',
+    ],
+    setup:
+      'Peer is React. The module is `border-beam@1.4.1`. Strength default on the page slider is 70 (`sites/beam/src/App.tsx`). The MIT text and the React LICENSE sit in front of the bundle.',
+    checklist: [
+      'Default size is md, color is colorful, theme is dark, strength is 0.7.',
+      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card.',
+      'The chat measures 348×122 and the send control measures 28×28.',
+    ],
+  },
+  'liquid-metal': {
+    motion:
+      'Page strength starts at 90 and the composer circle multiplies by 0.9, so the ring receives 0.81. `Playground.tsx` line 77 starts paused: `const [paused, setPaused] = useState(true)`.',
+    content:
+      'Composer, 448 wide, radius 20, placeholder `Build anything...`, plus, Agent, Auto, and a 40×40 circle send. `variant` is `circle`, `innerShadow` is on, `useMetalBend(sendRef)` bends the ring, and `reflectionTargets` is the Auto chip. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Theme is pinned dark. No Glow and No Reflection start off. The hero examples omit `paused`; this card follows the playground and starts paused.',
+    states: [
+      {
+        name: 'paused',
+        trigger: 'mount',
+        from: 'playground start',
+        to: 'last frame held',
+        duration: 'until Play',
+        easing: '',
+        delay: '`useState(true)` at Playground.tsx:77',
+      },
+      {
+        name: 'running',
+        trigger: 'Play',
+        from: 'held frame',
+        to: 'shared rAF',
+        duration: 'speed 1, gold dark 0.85',
+        easing: '',
+        delay: 'circle strength is pageStrength / 100 * 0.9',
+      },
+    ],
+    gotchas: [
+      'Effective composer strength is 0.9 × 0.9 = 0.81 at the source start (`useState(90)` in demo/App.tsx, then `strength * 0.9` in Examples.tsx).',
+      'The card starts paused because Playground.tsx line 77 is `useState(true)`. The Examples composer does not pass `paused`.',
+      'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
+      'Do not recolor the child to `#111111`.',
+    ],
+    setup:
+      'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
+    checklist: [
+      'The specimen is the composer with a 40×40 circle, `innerShadow`, strength 0.81, `useMetalBend`, and a reflection on Auto.',
+      'Start state is paused, from Playground.tsx line 77.',
+      'The 140×40 strength-1 button is labelled package default.',
+    ],
   },
 };
 

@@ -2,15 +2,17 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { BorderBeam, type BorderBeamColorVariant, type BorderBeamSize, type BorderBeamTheme } from 'border-beam';
 
 /**
- * border-beam@1.4.1. Defaults in the package: size md, colorVariant colorful,
- * theme dark, active true. Duration is the package fallback
- * (line 3.1, pulse 2.3, otherwise 1.96). Line passes borderRadius 20 so the
- * beam follows the search field instead of the 64px outer shell.
+ * border-beam@1.4.1. The libraries.dev page offers md, line, pulse-inner, and
+ * pulse-outside, colorful and mono, and dark only. sites/beam/src/App.tsx
+ * starts the strength slider at 70. sm, the other six color variants, and
+ * light are package options.
  */
 
-const SIZES: readonly BorderBeamSize[] = ['md', 'sm', 'line', 'pulse-inner', 'pulse-outside'];
-const COLORS: readonly BorderBeamColorVariant[] = ['colorful', 'mono', 'ocean', 'sunset'];
-const THEMES: readonly Exclude<BorderBeamTheme, 'auto'>[] = ['dark', 'light'];
+const PAGE_SIZES: readonly BorderBeamSize[] = ['md', 'line', 'pulse-inner', 'pulse-outside'];
+const PACKAGE_SIZES: readonly BorderBeamSize[] = ['sm'];
+const PAGE_COLORS: readonly BorderBeamColorVariant[] = ['colorful', 'mono'];
+const PACKAGE_COLORS: readonly BorderBeamColorVariant[] = ['ocean', 'sunset', 'forest', 'candy', 'ice', 'gold'];
+const PACKAGE_OPTION = 'package option, not on the original';
 
 const FONT = 'Inter_400Regular, system-ui, sans-serif';
 const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
@@ -140,7 +142,7 @@ function ChatSpecimen({ tokens }: { tokens: Tokens }) {
         position: 'relative',
       }}
     >
-      <div style={{ padding: '7px 7px 8px', display: 'flex', flexDirection: 'column', height: 122 }}>
+      <div style={{ boxSizing: 'border-box', padding: '7px 7px 8px', display: 'flex', flexDirection: 'column', height: 122 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -166,6 +168,7 @@ function ChatSpecimen({ tokens }: { tokens: Tokens }) {
           <Tag tokens={tokens}>Auto</Tag>
           <div
             style={{
+              boxSizing: 'border-box',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -260,17 +263,66 @@ function SearchSpecimen({ tokens }: { tokens: Tokens }) {
   );
 }
 
+function PulseDemoCard() {
+  const line = 'rgba(238, 238, 239, 0.08)';
+  return (
+    <div
+      role="img"
+      aria-label="Demo card"
+      style={{
+        boxSizing: 'border-box',
+        width: 250,
+        maxWidth: '100%',
+        padding: '24px 26px',
+        borderRadius: 16,
+        background: '#1d1d1d',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div style={{ height: 10, width: '55%', borderRadius: 4, background: 'rgba(238, 238, 239, 0.14)' }} />
+      <div style={{ height: 8, borderRadius: 4, background: line }} />
+      <div style={{ height: 8, width: '78%', borderRadius: 4, background: line }} />
+    </div>
+  );
+}
+
 function specimenFor(size: BorderBeamSize, tokens: Tokens) {
   if (size === 'sm') return <IconSpecimen tokens={tokens} />;
   if (size === 'line') return <SearchSpecimen tokens={tokens} />;
+  if (size === 'pulse-inner' || size === 'pulse-outside') return <PulseDemoCard />;
   return <ChatSpecimen tokens={tokens} />;
 }
 
-function Chip({ label, on, tokens, onPress }: { label: string; on: boolean; tokens: Tokens; onPress: () => void }) {
+function pulseOutsideVars(): CSSProperties {
+  const style: CSSProperties & Record<string, string> = {};
+  style['--sub-glow-offset-x'] = '1px';
+  style['--sub-glow-offset-y'] = '0px';
+  style['--sub-core-blur'] = '10px';
+  style['--sub-bloom-blur'] = '19px';
+  style['--sub-glow-opacity-mul'] = '1.71';
+  return style;
+}
+
+function Chip({
+  label,
+  on,
+  tokens,
+  onPress,
+  packageOption,
+}: {
+  label: string;
+  on: boolean;
+  tokens: Tokens;
+  onPress: () => void;
+  packageOption?: boolean;
+}) {
   return (
     <button
       type="button"
       aria-pressed={on}
+      title={packageOption ? PACKAGE_OPTION : undefined}
       onClick={onPress}
       style={{
         height: 26,
@@ -304,6 +356,7 @@ export function BorderBeamCard() {
   const [colorVariant, setColorVariant] = useState<BorderBeamColorVariant>('colorful');
   const [theme, setTheme] = useState<Exclude<BorderBeamTheme, 'auto'>>('dark');
   const [active, setActive] = useState(true);
+  const [strength, setStrength] = useState(70);
   const tokens = theme === 'dark' ? DARK : LIGHT;
   const shell: CSSProperties = {
     width: '100%',
@@ -332,28 +385,61 @@ export function BorderBeamCard() {
           colorVariant={colorVariant}
           theme={theme}
           active={active}
+          strength={strength / 100}
           borderRadius={size === 'line' ? 20 : undefined}
+          style={size === 'pulse-outside' ? pulseOutsideVars() : undefined}
         >
           {specimenFor(size, tokens)}
         </BorderBeam>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ControlRow label="Size" tokens={tokens}>
-          {SIZES.map((option) => (
+          {PAGE_SIZES.map((option) => (
             <Chip key={option} label={option} on={size === option} tokens={tokens} onPress={() => setSize(option)} />
+          ))}
+          {PACKAGE_SIZES.map((option) => (
+            <Chip key={option} label={option} on={size === option} tokens={tokens} packageOption onPress={() => setSize(option)} />
           ))}
         </ControlRow>
         <ControlRow label="Color" tokens={tokens}>
-          {COLORS.map((option) => (
+          {PAGE_COLORS.map((option) => (
             <Chip key={option} label={option} on={colorVariant === option} tokens={tokens} onPress={() => setColorVariant(option)} />
+          ))}
+          {PACKAGE_COLORS.map((option) => (
+            <Chip
+              key={option}
+              label={option}
+              on={colorVariant === option}
+              tokens={tokens}
+              packageOption
+              onPress={() => setColorVariant(option)}
+            />
           ))}
         </ControlRow>
         <ControlRow label="Theme" tokens={tokens}>
-          {THEMES.map((option) => (
-            <Chip key={option} label={option} on={theme === option} tokens={tokens} onPress={() => setTheme(option)} />
-          ))}
+          <Chip label="dark" on={theme === 'dark'} tokens={tokens} onPress={() => setTheme('dark')} />
+          <Chip label="light" on={theme === 'light'} tokens={tokens} packageOption onPress={() => setTheme('light')} />
           <Chip label={active ? 'Pause' : 'Play'} on={active} tokens={tokens} onPress={() => setActive((value) => !value)} />
         </ControlRow>
+        <ControlRow label="Strength" tokens={tokens}>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={strength}
+            aria-label="Effect strength"
+            onChange={(event) => {
+              const next = event.target.valueAsNumber;
+              if (Number.isFinite(next)) setStrength(next);
+            }}
+            style={{ width: 120, accentColor: tokens.controlOnText }}
+          />
+          <span style={{ fontFamily: FONT, fontSize: 11, color: tokens.controlText }}>{strength}%</span>
+        </ControlRow>
+        <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: tokens.label }}>
+          sm, ocean, sunset, forest, candy, ice, gold, light: {PACKAGE_OPTION}
+        </span>
       </div>
     </div>
   );

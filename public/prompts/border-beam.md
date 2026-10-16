@@ -4,26 +4,31 @@ Recreate Border Beam from `border-beam@1.4.1` (MIT, Jakub Antalik). The componen
 
 ## Piece
 
-`BorderBeam` wraps one child and paints a traveling border (`md`, `sm`, `line`) or a breathing glow (`pulse-inner`, `pulse-outside`). The specimen switches with `size`:
+The libraries.dev page (`sites/home/src/beam.tsx`) offers `md`, `line`, `pulse-inner`, and `pulse-outside`, colors `colorful` and `mono`, and theme dark only. `sites/beam/src/App.tsx` line 369 starts the strength slider at 70, so the beam receives `strength={0.7}`. The chat example on that page runs (`active` true). The playground stage on libraries.dev starts with `active` false; this specimen follows the example row and starts running.
 
-- `md`, `pulse-inner`, and `pulse-outside` wrap a chat field, 348×122, radius 20, placeholder `Build anything...`, chips Agent and Auto, a 28×28 send control.
-- `sm` wraps a 36×36 icon button, radius 20, with a 12×12 square of radius 2.
+- `md` wraps the chat field, 348×122, radius 20, placeholder `Build anything...`, chips Agent and Auto, a 28×28 send control. The inner div sets `boxSizing: 'border-box'` so the 122px height includes the `7px 7px 8px` padding, and the send control sets `boxSizing: 'border-box'` so its `28×28` box includes `padding: 0 8px`.
 - `line` wraps a search shell 366×42, outer radius 64, and passes `borderRadius` 20 so the beam follows the inner field. The package duration fallback for `line` is already 3.1.
+- `pulse-inner` and `pulse-outside` wrap the page demo card: width 250, padding `24px 26px`, radius 16, background `#1d1d1d`, three bars (10px title at 55% width, 8px full, 8px at 78% width) with 10px gaps. That content is 94px tall. `pulse-outside` also passes `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.
 
-Dark stage `#171717`. Light stage `#f6f6f6`. Mock fills and type follow the theme tokens in the specimen section. The beam starts active.
+`sm`, `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold`, and light theme are a package option, not on the original. The eight color names are the `BorderBeamColorVariant` union. `sm` wraps a 36×36 icon button, radius 20, with a 12×12 square of radius 2.
+
+Dark stage `#171717`. Light stage `#f6f6f6` when that package option is selected. Mock fills and type follow the theme tokens in the specimen section.
 
 ## States
 
-| Prop | Values | Default |
+| Control | On the original page | Package default |
 | --- | --- | --- |
-| `size` | `md`, `sm`, `line`, `pulse-inner`, `pulse-outside` | `md` |
-| `colorVariant` | `colorful`, `mono`, `ocean`, `sunset` | `colorful` |
-| `theme` | `dark`, `light` (package also accepts `auto`) | `dark` |
-| `active` | `true` runs, `false` fades the beam out and holds | `true` |
+| `size` | `md`, `line`, `pulse-inner`, `pulse-outside`. Page default `md` | package also has `sm` (package option, not on the original) |
+| `colorVariant` | `colorful`, `mono`. Page default `colorful` | `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold` (package option, not on the original) |
+| `theme` | dark only | `light` and `auto` (light is a package option, not on the original). This specimen pins `dark` or `light` |
+| `strength` | slider default 70% (`App.tsx` line 369), passed as `0.7` | package default is `1` |
+| `active` | example row runs; playground starts paused | package default `true`. This specimen starts `true` |
+
+| Prop | Values | Package fallback |
+| --- | --- | --- |
 | `staticColors` | hue shift off | `false`, forced `true` when `colorVariant` is `mono` |
 | `duration` | seconds | unset, so the package fallback applies |
 | `hueRange` | degrees | `30` |
-| `strength` | 0..1, beam layers only | `1` |
 | `glowSize` | blur multiplier | `1` |
 
 `active` false sets the fading state, then clears `data-active` after the fade-out animation. `active` true fades back in. An offscreen root sets `data-paused` through an `IntersectionObserver` with `rootMargin: "256px"`.
@@ -40,7 +45,17 @@ Size presets (`sizePresets`):
 | `pulse-outside` | 16 | 1 | | |
 | `pulse-inner` | 16 | 1 | | |
 
-The chat, icon, and search specimens supply their own radii (20, 20, and the explicit line value 20). The preset radius is the fallback when the child radius cannot be read.
+The chat, icon, and search specimens supply their own radii (20, 20, and the explicit line value 20). The pulse demo card supplies radius 16. The preset radius is the fallback when the child radius cannot be read.
+
+`pulse-outside` page style, from `sites/home/src/beam.tsx` (`PULSE_OUTSIDE_TUNED_VARS`) and `sites/beam/src/App.tsx` (`pulseOutsideTunedVars`):
+
+| custom property | value |
+| --- | --- |
+| `--sub-glow-offset-x` | `1px` |
+| `--sub-glow-offset-y` | `0px` |
+| `--sub-core-blur` | `10px` |
+| `--sub-bloom-blur` | `19px` |
+| `--sub-glow-opacity-mul` | `1.71` |
 
 Theme presets (`sizeThemePresets`), dark then light:
 
@@ -57,7 +72,7 @@ Theme presets (`sizeThemePresets`), dark then light:
 | `pulse-inner` dark | 1.54 | 0.44 | 0.66 | `transparent` | 1.2 | 0.75 | |
 | `pulse-inner` light | 0.32 | 0.4 | 0.8 | `transparent` | 0.75 | 1.3 | |
 
-`colorful` border stops begin `rgb(255, 50, 100)`, `rgb(40, 140, 255)`, `rgb(50, 200, 80)`, `rgb(30, 185, 170)`, `rgb(100, 70, 255)`, `rgb(40, 140, 255)`, `rgb(255, 120, 40)`, `rgb(240, 50, 180)`, `rgb(180, 40, 240)`. `mono`, `ocean`, and `sunset` use the same positions with their own stops in the component source. Spike colors for `colorful` are primary `rgb(255, 60, 80)` and secondary `rgba(40, 190, 180, 0.98)`.
+`colorful` border stops begin `rgb(255, 50, 100)`, `rgb(40, 140, 255)`, `rgb(50, 200, 80)`, `rgb(30, 185, 170)`, `rgb(100, 70, 255)`, `rgb(40, 140, 255)`, `rgb(255, 120, 40)`, `rgb(240, 50, 180)`, `rgb(180, 40, 240)`. The other seven variants use the same positions with their own stops in the component source. Spike colors for `colorful` are primary `rgb(255, 60, 80)` and secondary `rgba(40, 190, 180, 0.98)`.
 
 Dark mock tokens: background `#1d1d1d`, border `rgba(44, 47, 54, 0.52)`, chip `rgba(255, 255, 255, 0.04)`, chip line `rgba(255, 255, 255, 0.02)`, chip top `rgba(255, 255, 255, 0.04)`, glow `rgba(255, 255, 255, 0.02)`, placeholder `#4e4e4e`, search text `#565656`, square `rgba(217, 217, 217, 0.8)`, tag text `#caccd2`.
 
@@ -73,7 +88,7 @@ Duration fallback, from the component:
 
 Hue range: `U = o === "line" ? Math.min(n, 13) : n` with `n = 30`. Line travel therefore caps at 13 degrees. Other sizes use 30.
 
-Brightness: `b ?? F.brightness ?? 1.3`. Saturation: `g ?? F.saturation`. Strength writes `--beam-strength` clamped with `Math.max(0, Math.min(1, f))`.
+Brightness: `b ?? F.brightness ?? 1.3`. Saturation: `g ?? F.saturation`. Strength writes `--beam-strength` clamped with `Math.max(0, Math.min(1, f))`. The page passes `0.7`.
 
 `pulse-outside` scales its glow from the child box against a 350×140 reference, clamped between 0.35 and 4, and writes `--pulse-glow-sx` and `--pulse-glow-sy`.
 
@@ -81,27 +96,33 @@ Pulse frames are skipped when `(prefers-reduced-motion: reduce)` matches. Rotate
 
 ## Gotchas
 
-- `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")`. Pin `dark` or `light` when the page theme is chosen by a control.
+- `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")`. Pin `dark` or `light` when the page theme is chosen by a control. Light is a package option, not on the original.
 - `mono` forces static colors: `r === "mono" ? true : s`.
 - Omitting `borderRadius` reads `borderTopLeftRadius` of the first child. The search shell's outer radius is 64, so `line` must pass 20.
+- The chat inner div needs `boxSizing: 'border-box'`. Without it the 122px height excludes the padding and the send control is not 28×28.
+- `pulse-inner` and `pulse-outside` wrap the 250×94 radius-16 demo card, not the chat mock.
+- `pulse-outside` passes the five `--sub-*` custom properties above, matching the original page.
 - `pulse-outside` paints its bloom outside the child (`z-index` behind the child). The wrapper overflow stays visible.
 - The pulse loop is one shared frame callback. Rotate sizes use CSS animations named per instance id.
 - `data-paused` is set when the root is not intersecting. That is the package pause, separate from `active`.
 
 ## Setup
 
-Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/index.es.js`. It injects one `<style>` per instance. No WebGL, no extra runtime packages. The MIT license text is the first comment on any redistributed copy of this module.
+Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/index.es.js`. It injects one `<style>` per instance. No WebGL, no extra runtime packages. The package MIT text is the first comment on any redistributed copy of this module, followed by the React `LICENSE` verbatim. `react-dom`'s `LICENSE` is the same file, so it is not repeated.
 
 ## Checklist
 
-- [ ] `size` default is `md`, `colorVariant` default is `colorful`, `theme` default is `dark`, `active` default is `true`.
+- [ ] Page defaults: `size` `md`, `colorVariant` `colorful`, `theme` `dark`, `strength` `0.7`, `active` `true`.
+- [ ] `sm`, `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold`, and light are labelled package option, not on the original.
 - [ ] Duration is 1.96 for `md` and `sm`, 3.1 for `line`, and 2.3 for `pulse-inner` and `pulse-outside`.
 - [ ] `hueRange` is 30, and `line` caps it with `Math.min(n, 13)`.
-- [ ] `mono` forces static colors. `colorful`, `ocean`, and `sunset` keep the hue shift.
+- [ ] `mono` forces static colors.
 - [ ] Dark and light rows of `sizeThemePresets` match the table above, including pulse brightness and `hairlineOpacity` 0.
 - [ ] `active` false fades the beam out. `active` true fades it in.
 - [ ] Pulse honors `(prefers-reduced-motion: reduce)`. Rotate sizes keep moving.
-- [ ] Chat specimen is 348×122 radius 20. Icon specimen is 36×36 radius 20 with a 12×12 square. Search specimen is 366×42 with inner radius 20.
+- [ ] Chat specimen is 348×122 radius 20 with a 28×28 send control and `boxSizing: 'border-box'` on the inner div.
+- [ ] `pulse-inner` and `pulse-outside` wrap the 250×94 radius-16 demo card.
+- [ ] `pulse-outside` sets the five `--sub-*` properties.
 - [ ] `line` passes `borderRadius` 20.
 - [ ] Offscreen pause uses `rootMargin: "256px"`.
 - [ ] The component source below is unmodified `border-beam@1.4.1`.
