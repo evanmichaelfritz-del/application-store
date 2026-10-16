@@ -1,5 +1,3 @@
-export { BorderBeamDemo } from '@/src/demos/border-beam';
-export { LiquidMetalDemo } from '@/src/demos/liquid-metal';
 export {
   AgentListeningOrbDemo,
   AgentPlanningOrbDemo,

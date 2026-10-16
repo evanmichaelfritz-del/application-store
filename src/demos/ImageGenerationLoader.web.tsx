@@ -68,10 +68,12 @@ function imageActive(phase: LoaderPhase) {
 function WorkerLoader({
   inViewRef,
   workerRef,
+  syncRef,
   onPhase,
 }: {
   inViewRef: MutableRefObject<boolean>;
   workerRef: MutableRefObject<Worker | null>;
+  syncRef: MutableRefObject<(() => void) | null>;
   onPhase: (phase: LoaderPhase) => void;
 }) {
   const stillRef = useRef<HTMLCanvasElement>(null);
@@ -176,17 +178,22 @@ function WorkerLoader({
       worker.postMessage({ type: 'photos', bitmaps }, bitmaps);
     };
 
+    syncRef.current = () => {
+      cancelAnimationFrame(raf);
+      sync();
+    };
     boot();
     loadPhotos().catch(() => {
       /* reveal retries until the bitmaps arrive */
     });
     return () => {
       dead = true;
+      syncRef.current = null;
       cancelAnimationFrame(raf);
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
     };
-  }, [inViewRef, workerRef]);
+  }, [inViewRef, syncRef, workerRef]);
 
   return (
     <div data-testid="img-fx-loader" style={{ position: 'relative', width: '100%', height: '100%', ...cardStyle }}>
@@ -220,6 +227,7 @@ function WorkerLoader({
 export function ImageGenerationLoaderDemo() {
   const hostRef = useRef<View>(null);
   const workerRef = useRef<Worker | null>(null);
+  const syncRef = useRef<(() => void) | null>(null);
   const canObserve = typeof IntersectionObserver === 'function';
   const [seen, setSeen] = useState(!canObserve);
   const [inView, setInView] = useState(!canObserve);
@@ -254,7 +262,10 @@ export function ImageGenerationLoaderDemo() {
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const onVis = () => setTabHidden(document.visibilityState === 'hidden');
+    const onVis = () => {
+      setTabHidden(document.visibilityState === 'hidden');
+      syncRef.current?.();
+    };
     onVis();
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
@@ -264,7 +275,7 @@ export function ImageGenerationLoaderDemo() {
     <Stage>
       <View ref={hostRef} style={styles.wrap} collapsable={false}>
         {seen ? (
-          <WorkerLoader inViewRef={inViewRef} workerRef={workerRef} onPhase={setPhase} />
+          <WorkerLoader inViewRef={inViewRef} workerRef={workerRef} syncRef={syncRef} onPhase={setPhase} />
         ) : (
           <div style={cardStyle} />
         )}

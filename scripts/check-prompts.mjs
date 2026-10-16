@@ -121,6 +121,8 @@ for (const dir of [join(root, 'src/demos'), join(root, 'public/prompts')]) {
 const publicPrompt = {
   'yogesh-thinking-orbs': readFileSync(join(root, 'public/prompts/yogesh-thinking-orbs.md'), 'utf8'),
   'yogesh-orb-creator': readFileSync(join(root, 'public/prompts/yogesh-orb-creator.md'), 'utf8'),
+  'border-beam': readFileSync(join(root, 'public/prompts/border-beam.md'), 'utf8'),
+  'liquid-metal': readFileSync(join(root, 'public/prompts/liquid-metal.md'), 'utf8'),
 };
 
 function missingSections(text) {

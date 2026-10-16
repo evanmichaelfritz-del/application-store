@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, promptIsLazy, readyPrompt, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyScript, promptIsLazy, readyPrompt, scriptIsLazy, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -182,8 +182,14 @@ function Found({ item }: { item: TransitionItem }) {
 
   const copyCode = () => {
     mark('code');
-    const text = codeSlot(item.id, activeKind);
-    setTimeout(() => writeClipboard(text), 0);
+    const write = (text: string) => {
+      setTimeout(() => writeClipboard(text), 0);
+    };
+    if (activeKind === 'script' && scriptIsLazy(item.id)) {
+      void loadCopyScript(item.id).then(write);
+      return;
+    }
+    write(codeSlot(item.id, activeKind));
   };
   const copyPrompt = () => {
     mark('prompt');
@@ -276,8 +282,14 @@ function Found({ item }: { item: TransitionItem }) {
           }}
           onCopy={() => {
             mark('slot');
-            const text = codeSlot(item.id, activeKind);
-            setTimeout(() => writeClipboard(text), 0);
+            const write = (text: string) => {
+              setTimeout(() => writeClipboard(text), 0);
+            };
+            if (activeKind === 'script' && scriptIsLazy(item.id)) {
+              void loadCopyScript(item.id).then(write);
+              return;
+            }
+            write(codeSlot(item.id, activeKind));
           }}
         />
       </Section>
@@ -677,18 +689,32 @@ const CodeBody = memo(function CodeBody({ id, kind, defer }: { id: string; kind:
   const ref = useRef<View>(null);
   const [body, setBody] = useState('');
   useEffect(() => {
+    let live = true;
     const apply = () => {
+      const finish = (text: string) => {
+        if (live) setBody(text);
+      };
+      if (kind === 'script' && scriptIsLazy(id)) {
+        void loadCopyScript(id).then(finish).catch(() => finish(''));
+        return;
+      }
       try {
-        setBody(codeSlot(id, kind));
+        finish(codeSlot(id, kind));
       } catch {
-        setBody('');
+        finish('');
       }
     };
     if (!defer) {
       apply();
-      return;
+      return () => {
+        live = false;
+      };
     }
-    return scheduleIdle(apply);
+    const cancel = scheduleIdle(apply);
+    return () => {
+      live = false;
+      cancel();
+    };
   }, [defer, id, kind]);
   useLayoutEffect(() => {
     const node = hostElement(ref.current, domId);

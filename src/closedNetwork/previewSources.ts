@@ -761,48 +761,14 @@ canvas { display: block; width: 168px; height: 168px; }`,
     document: TILT_COPY_SNIPPET,
   },
   'border-beam': {
-    html: `<div class="col">
-  <div class="t-beam shell">
-    <div class="beam-spin"></div>
-    <div class="inner chat">
-      <span class="mark">}</span>
-      <span class="dots">…</span>
-      <span class="auto">Auto</span>
-      <span class="send">↑</span>
-    </div>
-  </div>
-  <div class="t-beam search">
-    <div class="beam-spin search-spin"></div>
-    <div class="inner search-inner">
-      <span class="mag">⌕</span>
-      <span>Search</span>
-    </div>
-  </div>
-</div>`,
-    extraCss: `.t-beam.shell, .t-beam.search { border-radius: 18px; padding: 2px; overflow: hidden; background: #ff4d9a; }
-.t-beam.search { border-radius: 999px; background: #ff8ab8; }
-.beam-spin {
-  position: absolute; inset: -70%;
-  background: conic-gradient(from 0deg, transparent 0 60%, var(--beam-colors));
-  animation: beam-spin var(--beam-loop) linear infinite;
-}
-.search-spin {
-  background: conic-gradient(from 90deg, transparent 0 72%, var(--search-colors));
-  animation-duration: var(--search-loop);
-}
-.inner { position: relative; z-index: 1; background: #fff; border-radius: 16px; }
-.chat { width: 280px; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.search-inner { height: 40px; padding: 0 16px; display: flex; align-items: center; gap: 8px; color: #6c6c6c; border-radius: 999px; }
-.mark { font-weight: 600; }
-.dots { flex: 1; letter-spacing: 0.2em; color: #8f8f8f; }
-.auto, .send {
-  height: 26px; min-width: 26px; padding: 0 8px; border-radius: 999px;
-  display: grid; place-items: center; background: #f3f3f3; font-size: 12px;
-}
-@keyframes beam-spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) {
-  .beam-spin { animation: none !important; }
-}`,
+    snippet: false,
+    html: `<div id="parity-root"></div>`,
+    extraCss: `#parity-root { width: min(480px, 100%); }`,
+    script: `(function () {
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/border-beam.js';
+  document.body.appendChild(s);
+})();`,
   },
   'orb-solving': orbCard({ state: 'solving', size: 64, label: 'Solving....', agent: false }),
   'orb-thinking': orbCard({ motionsource: 'msThinking', size: 64, label: 'Thinking....', agent: false }),
@@ -895,29 +861,14 @@ canvas { display: block; width: 168px; height: 168px; }`,
     snippet: false,
   },
   'liquid-metal': {
-    html: `<div class="metal-row">
-  <div class="t-metal pill"><span>Auto</span></div>
-  <div class="t-metal send"><span>↑</span></div>
-</div>`,
-    extraCss: `.metal-row { display: flex; align-items: center; gap: 16px; }
-.t-metal { display: grid; place-items: center; border-radius: 999px; isolation: isolate; }
-.t-metal.pill { padding: var(--metal-auto-stroke); }
-.t-metal.send { width: 48px; height: 48px; padding: var(--metal-send-stroke); }
-.t-metal > span {
-  position: relative; z-index: 1; background: #fff; border-radius: inherit;
-  display: grid; place-items: center; width: 100%; height: 100%;
-  padding: 8px 18px; font-weight: 600;
-}
-.t-metal::before {
-  content: "";
-  position: absolute; inset: 0; border-radius: inherit;
-  background: conic-gradient(var(--metal-colors));
-  animation: metal-spin var(--metal-loop) linear infinite;
-}
-@keyframes metal-spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) {
-  .t-metal::before { animation: none !important; }
-}`,
+    snippet: false,
+    html: `<div id="parity-root"></div>`,
+    extraCss: `#parity-root { width: 504px; }`,
+    script: `(function () {
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/liquid-metal.js';
+  document.body.appendChild(s);
+})();`,
   },
   'preview-tools': {
     snippet: false,

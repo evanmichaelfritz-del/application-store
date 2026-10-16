@@ -39,6 +39,7 @@ export const STACKS = [
   { slug: 'rn-skia', label: 'RN Skia' },
   { slug: 'rn-svg', label: 'RN SVG' },
   { slug: 'web-svg-filter', label: 'Web SVG filter' },
+  { slug: 'web-css', label: 'Web CSS' },
   { slug: 'web-webgl', label: 'Web WebGL' },
 ] as const;
 
@@ -98,7 +99,7 @@ const ROWS: Record<string, Row> = {
   'image-generation-loader': ['loaders', 'ambient-loop', 'web-webgl', null, 'shipped'],
   'tooltip-open-close': ['menus-overlays', 'hover', 'rn-reanimated', 'transitions-dev', 'shipped'],
   'tilt-3d': ['cards', 'hover', 'rn-reanimated', 'transitions-dev', 'shipped'],
-  'border-beam': ['backgrounds-shaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
+  'border-beam': ['backgrounds-shaders', 'ambient-loop', 'web-css', 'libraries-dev', 'shipped'],
   'orb-solving': ['loaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
   'orb-thinking': ['loaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
   'orb-agent-listening': ['loaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
@@ -108,7 +109,7 @@ const ROWS: Record<string, Row> = {
   'orb-working': ['loaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
   'orb-agent-shaping': ['loaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
   gooey: ['backgrounds-shaders', 'gesture', 'web-svg-filter', 'libraries-dev', 'shipped'],
-  'liquid-metal': ['backgrounds-shaders', 'ambient-loop', 'rn-skia', 'libraries-dev', 'shipped'],
+  'liquid-metal': ['backgrounds-shaders', 'ambient-loop', 'web-webgl', 'libraries-dev', 'shipped'],
   'abrar-overview': ['data-display', 'static', 'rn-svg', 'abrar', 'shipped'],
   'preview-tools': ['inputs-pickers', 'gesture', 'rn-reanimated', null, 'shipped'],
   'orb-state-picker': ['inputs-pickers', 'static', 'rn-skia', 'libraries-dev', 'shipped'],

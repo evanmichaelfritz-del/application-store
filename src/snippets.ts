@@ -422,20 +422,6 @@ export function Card() {
 
   'tilt-3d': TILT_COPY_SNIPPET,
 
-  'border-beam': `:root {
-  --beam-loop: 2800ms;
-  --search-loop: 5200ms;
-  --beam-tail: 18;
-  --beam-colors: #ff4d9a, #c026d3, #a855f7, #fb7c3a;
-  --search-colors: #ff8ab8, #ff5aa5, #e879f9;
-}
-/* RN: Skia dots walk a rounded-rect perimeter (chat) or bottom stroke (Search).
-   Copy is tokens — live demo is Reanimated + Skia, not CSS @keyframes. */
-.t-beam { position: relative; }
-@media (prefers-reduced-motion: reduce) {
-  .t-beam { animation: none !important; }
-}`,
-
   'orb-solving': ORB_GALLERY_SNIPPETS.solving,
   'orb-thinking': ORB_GALLERY_SNIPPETS.thinking,
   'orb-agent-listening': ORB_GALLERY_SNIPPETS['agent-listening'],
@@ -477,16 +463,4 @@ export function Card() {
   .t-gooey-tile { transition: none !important; }
 }`,
 
-  'liquid-metal': `:root {
-  --metal-loop: 3400ms;
-  --metal-auto-stroke: 4.5px;
-  --metal-send-stroke: 5.5px;
-  --metal-colors: #5CE1FF, #FF4ECD, #FFD166, #7CFFB2, #7AA2FF, #5CE1FF;
-}
-/* RN: Skia SweepGradient ring; stroke = thickness + sin(progress)*1.4.
-   Wraps Auto pill + send button. */
-.t-metal { position: relative; }
-@media (prefers-reduced-motion: reduce) {
-  .t-metal { animation: none !important; }
-}`,
 };

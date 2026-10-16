@@ -176,9 +176,9 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      '`frameT0 = performance.now()` at boot. `setTimeout(present, 100 - ((performance.now() - frameT0) % 100))` schedules the next frame.',
+      '`frameT0 = performance.now()` at boot. `const d = 100 - ((performance.now() - frameT0) % 100)` then `timer = setTimeout(present, d < 50 ? d + 100 : d)` schedules the next frame.',
       '`manualReveal` returns while `paused` is true.',
-      'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`.',
+      'A hidden document or an offscreen card sets `var hold = !live` and posts `{ type: \'hold\', hold: hold }` plus `{ type: \'auto\', on: auto }`. `document.addEventListener(\'visibilitychange\', function () { cancelAnimationFrame(raf); sync(); })` posts that hold while the tab is hidden.',
       'Leaving pause during `visible`, when `holdMode` is not `manual`, waits `Math.min(HOLD_MS, 500)`.',
       'An empty photo list retries `beginReveal` after 500.',
       '`REF_DIM` is `320.0`. Host `cssW` falls back to 168.',
@@ -202,11 +202,6 @@ const LOCKS: Record<string, PromptLock> = {
     content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
     rn: TILT_RN,
   },
-  'border-beam': {
-    motion: 'Skia beam dots walk a rounded-rect perimeter. Chat loop 2800ms; Search bottom-stroke loop 5200ms, dim 0.55. Tail 18. Reduced motion freezes at 0.12 / 0.4.',
-    content: 'Chat row: `}` + `…` + Auto pill + send. Search pill: magnifier + `Search`. Beam colors `#ff4d9a #c026d3 #a855f7 #fb7c3a`. Search colors `#ff8ab8 #ff5aa5 #e879f9`.',
-    rn: 'LoadSkiaWeb once at the web root. Do not wrap WithSkiaWeb per card. Copy emits `.t-beam`.',
-  },
   'thinking-orbs': {
     motion: 'Dotted Fibonacci sphere spin 9000ms linear; metallic orb swirl 7200ms linear. Reduced motion holds spin 0.4 / swirl 0.9.',
     content: '`Agent searching...` / `Agent listening...` / `Solving....` + dotted sphere / `Thinking....` + metallic orb. 56 dots.',
@@ -217,11 +212,6 @@ const LOCKS: Record<string, PromptLock> = {
     content: 'Purple tile `#7c2bff` + rose tile `#e11d48` + neck `#ff4ad2`. Tiles 120×148, radius 28, rest offset 28 / 78.',
     rn: 'Web: Views only (no Skia, no CSS filter). Hit overlay `#gooey-drag`. Copy emits `.t-gooey-tile`.',
   },
-  'liquid-metal': {
-    motion: 'SweepGradient metal ring 3400ms. Stroke = thickness + sin(progress)·1.4. Auto thickness 4.5; send 5.5. Blur 8 on the glow pass.',
-    content: 'Auto pill + circular send `↑`. Metal colors `#5CE1FF #FF4ECD #FFD166 #7CFFB2 #7AA2FF`.',
-    rn: 'Skia RoundedRect stroke + SweepGradient. Copy emits `.t-metal`.',
-  },
   ...ORB_LOCKS,
   'preview-tools': {
     motion:
@@ -229,6 +219,87 @@ const LOCKS: Record<string, PromptLock> = {
     content:
       'The stage is 520px tall and the card spans the grid. The sample row is centered: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The pill sits at the bottom. Guides and the note card stay hidden until the pill opens. Round chrome is 36px in #8a8a8e. Minimize is the four-corner collapse mark.',
     rn: 'Copy HTML, Copy CSS, and Copy script are this same pill. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card. Do not render text chips labeled Pen, Marker, or Eraser.',
+  },
+  'border-beam': {
+    motion:
+      'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+    content:
+      'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the live 36×36 icon example and is Pro-locked in the playground. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+    rn: 'Web CSS from `border-beam@1.4.1`. Dark on the page; light is a package option. `active` starts true. Colorful and mono are the page colors. Small is Pro-locked in the playground and stays selectable.',
+    states: [
+      {
+        name: 'travel',
+        trigger: '`size` md, sm, or line',
+        from: 'beam offset 0',
+        to: 'one lap',
+        duration: '1.96s, or 3.1s for line',
+        easing: 'package CSS animation',
+        delay: 'none',
+      },
+      {
+        name: 'pulse',
+        trigger: '`pulse-inner` or `pulse-outside`',
+        from: 'glow in',
+        to: 'glow out',
+        duration: '2.3s',
+        easing: 'shared frame loop',
+        delay: 'pulse-outside uses the five `--sub-*` vars',
+      },
+    ],
+    gotchas: [
+      'The chat inner div uses `boxSizing: \'border-box\'` so the live box stays 348×122 and the send control stays 28×28.',
+      '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
+      'Small is Pro-locked in the playground (beam.tsx:57). The live 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+    ],
+    setup:
+      'Peer is React. The module is `border-beam@1.4.1`. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
+    checklist: [
+      'Default size is md, color is colorful, theme is dark, strength is 1.',
+      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card.',
+      'The chat measures 348×122 and the send control measures 28×28.',
+    ],
+  },
+  'liquid-metal': {
+    motion:
+      'The card opens on the v2 composer, which runs with `useMetalBend`. The Live mode New pill is a later row at 0.72. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). The v2 circle and the playground receive strength 0.81.',
+    content:
+      'Default is the v2 composer: chromatic, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, strength 0.81, running (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). The Live mode New pill is `MetalBadge` at 0.72. The playground is Search plus a 40×40 circle and starts paused. The v1 gold row is `metal-fx@1.0.4` and is not rendered. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The v2 composer mounts running. The playground starts paused. The next specimen mounts only after the previous `MetalFx` unmounts.',
+    states: [
+      {
+        name: 'running',
+        trigger: 'mount',
+        from: 'v2 composer',
+        to: 'shared rAF',
+        duration: 'speed 1',
+        easing: '',
+        delay: 'useMetalBend on the send circle',
+      },
+      {
+        name: 'paused',
+        trigger: 'playground',
+        from: 'useState(true)',
+        to: 'last frame held',
+        duration: 'until Play',
+        easing: '',
+        delay: 'metal.tsx line 237; the v2 composer does not pass paused',
+      },
+    ],
+    gotchas: [
+      'v2 composer (`metal-examples-v2.tsx` line 59 and lines 87–94, opened by `metal.tsx` lines 233 and 258): chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'Live mode New pill (`metal-examples-v2.tsx` line 108): MetalBadge multiplies page strength 0.9 by metalOpacity 0.8, so the pill is 0.72. It is not the composer circle.',
+      'Playground (`metal.tsx` CircleStageV2 lines 169 and 177–186, paused at line 237): Search reflection, innerShadow, useMetalBend, starts paused, strength 0.81.',
+      'The v1 gold row is metal-fx@1.0.4 and is not rendered on this card.',
+      'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
+      'Do not recolor the child to `#111111`.',
+    ],
+    setup:
+      'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
+    checklist: [
+      'The default specimen is the v2 composer: chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
+      'The Live mode New pill is 0.72. The playground circle is a separate row and starts paused.',
+      'The 140×40 strength-1 button is labelled package default. The v1 gold row is not rendered.',
+    ],
   },
 };
 

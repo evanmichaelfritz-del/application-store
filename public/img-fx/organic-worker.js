@@ -829,7 +829,8 @@ function present() {
   } catch (err) {
     postMessage({ type: 'error', message: String(err && err.message ? err.message : err) });
   }
-  timer = setTimeout(present, 100 - ((performance.now() - frameT0) % 100));
+  const d = 100 - ((performance.now() - frameT0) % 100);
+  timer = setTimeout(present, d < 50 ? d + 100 : d);
 }
 self.onmessage = (ev) => {
   const msg = ev.data || {};

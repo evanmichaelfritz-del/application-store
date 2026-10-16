@@ -7,8 +7,6 @@ export const SKIA_NEAR_MARGIN_PX = 200;
 export const SKIA_CANVAS_CAP = 6;
 
 const CANVAS_WEIGHT: Record<string, number> = {
-  'border-beam': 2,
-  'liquid-metal': 2,
   'yogesh-orb-creator': 2,
 };
 

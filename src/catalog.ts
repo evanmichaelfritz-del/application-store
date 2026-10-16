@@ -23,6 +23,8 @@ import { TooltipDemo } from './demos/Tooltip';
 import { TiltCardDemo } from './demos/TiltCard';
 import { GooeyDemo } from './demos/gooey';
 import { ImageGenerationLoaderDemo } from './demos/ImageGenerationLoader';
+import { BorderBeamDemo } from './demos/border-beam';
+import { LiquidMetalDemo } from './demos/liquid-metal';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
 import type { NavSection } from './sections';
@@ -42,8 +44,6 @@ function lazySkia<K extends keyof Awaited<ReturnType<typeof loadSkiaCards>>>(key
 
 const YogeshThinkingOrbsDemo = lazySkia('YogeshThinkingOrbsDemo');
 const YogeshOrbCreatorDemo = lazySkia('YogeshOrbCreatorDemo');
-const BorderBeamDemo = lazySkia('BorderBeamDemo');
-const LiquidMetalDemo = lazySkia('LiquidMetalDemo');
 const SolvingOrbDemo = lazySkia('SolvingOrbDemo');
 const ThinkingOrbDemo = lazySkia('ThinkingOrbDemo');
 const AgentListeningOrbDemo = lazySkia('AgentListeningOrbDemo');
@@ -57,8 +57,6 @@ const OrbStatePickerDemo = lazySkia('OrbStatePickerDemo');
 const SKIA_IDS = new Set([
   'yogesh-thinking-orbs',
   'yogesh-orb-creator',
-  'border-beam',
-  'liquid-metal',
   'orb-solving',
   'orb-thinking',
   'orb-agent-listening',
@@ -369,7 +367,6 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['border', 'beam', 'animated', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
-    skia: true,
     Demo: BorderBeamDemo,
   },
   {
@@ -478,7 +475,6 @@ export const TRANSITIONS: TransitionItem[] = [
     tags: ['liquid', 'metal', 'animated', 'border', 'component', 'effects'],
     sections: ['effects'],
     pro: false,
-    skia: true,
     Demo: LiquidMetalDemo,
   },
   {

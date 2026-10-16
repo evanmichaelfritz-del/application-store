@@ -16,6 +16,7 @@ import {
   splitPreviewDocument,
   type PreviewKind,
 } from '@/src/closedNetwork/previewSources';
+import { loadAssetPrompt, promptIsLazy } from '@/src/library/assetCopy';
 import { writeClipboard } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { colors, fonts, radii, shadows } from '@/src/theme';
@@ -49,6 +50,7 @@ export default function PlaygroundScreen() {
     setSelectedKey(key);
     setCode(button.code);
     setPrompt(button.prompt);
+    if (promptIsLazy(button.id) || !button.prompt) void loadAssetPrompt(button.id).then(setPrompt);
     setPreviewHtml(button.code);
     setMode('code');
   };

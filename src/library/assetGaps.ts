@@ -50,17 +50,9 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Template prompt (8086 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
     'Unused CSS: .agent, .chip, .col, .controls, .is-on, .muted, .picker, .trigger.',
   ],
-  'border-beam': [
-    'Live is a dark stage with a moving magenta/violet beam on a prompt bar and Search pill; Copy is a light theme with a static-looking pink outline (ambient motion detected, but the colour and theme differ).',
-    'Unused .trigger. Template prompt.',
-  ],
   'drag-drop-physics': [
     'Live has a blue "Image" chip under the zone; Copy has a black "Photo" tile.',
     'Unused .col/.trigger. Template prompt.',
-  ],
-  'liquid-metal': [
-    'Live is a dark stage with rainbow liquid-metal rings; Copy is a light stage, smaller and flatter.',
-    'Unused .col/.trigger. Template prompt at 3.9 KB, with no shader/gradient math.',
   ],
   'preview-tools': [
     '95.8 KB but still the generic template: code is inlined (byte-matches Copy), but there are no per-state tables, gotchas or parity checklist, and it carries the boilerplate.',
