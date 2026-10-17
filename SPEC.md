@@ -161,3 +161,5 @@ At 500ms the right side is 0 by 20px. At 800ms the left side is 0 by 30px. The r
 
 Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
 
+Big-drag tilt leans slightly deeper and builds faster than the original in Motion's harness: about 0.25° deeper at 80px, 0.43° at 120px (Motion, 85520e5). Accepted as known gap.
+
