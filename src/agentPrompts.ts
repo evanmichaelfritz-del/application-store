@@ -122,7 +122,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'drag-drop-physics': {
     motion:
-      'Pointer drag follows 1:1. Scale eases to 1.05 over 150ms (about 1.036 at 33ms, about 1.043 at 49ms, 1.05 by about 140ms). Eleven events 372/11 ms apart carry an 80px drag. Gain is 25.774. That drag settles between -5.56° and -5.68°. The slower pass settles between -4.41° and -4.43°. A clamped flick is about -3.4° on the frame whose scale has just passed 1.030. Reduced motion snaps the tilt to the clamp. Tilt holds while the pointer is idle. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), ≈9.75% overshoot (7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. A hit eases the chip out in 229ms with up to 2px blur and eases the photo in over 347ms. Squash reads 0.985/0.9729/0.9703 at 45/111/210ms, then 0.9748/0.9834/0.9889/0.9957 at 278/312/345/412ms, and 0.9997 by 460ms. The puff starts at 263ms, is just visible at 276ms, holds opacity 0.90 from 450ms through 470ms, and is gone at 1488ms with 11.5px of drift and scale 1.14. The photo fades from 1832ms over 211ms (opacity about 0.68/0.41/0.25/0.14/0.07 at 32/64/100/130/163ms, gone at 211ms, blur 4px). The chip respawns from 2268ms (0.512/0.951 at 30ms, 0.794/0.979 at 63ms, 0.923/0.992 at 96ms) and is fully visible at 2410ms.',
+      'Pointer drag follows 1:1. Scale eases to 1.05 over 150ms. On a 0.2 px/ms drag this card painted scale 1.022 at 36ms and 1.043 at 52ms. Gain is 27.8 (5.56/0.2). That drag reads -1.724° at 34.6ms, -1.875° at 36ms, -3.260° at 52ms, -4.304° at 84ms, -4.609° at 104ms, -5.037° at 153ms, -5.267° at 201ms, -5.429° at 252ms, -5.540° at 301ms, and -5.627° from 352ms. The 0.1 px/ms drag settles at -2.780° and the 0.3 px/ms drag at -8.390°. An 80px drag over 1200ms in 36 equal steps settles at -1.842° and does not pass -2.94°. Reduced motion snaps: -5.56° on that 0.2 px/ms drag, and -10° on a move past the clamp. Tilt holds while the pointer is idle. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), ≈9.75% overshoot (7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. A hit eases the chip out in 229ms with up to 2px blur (0.386 at 111ms) and eases the photo in over 430ms (0.132/0.507/0.774/0.942 at 111/210/277/344ms, 0.984 at 377ms). Squash reads 0.985/0.9729/0.9703 at 45/111/210ms, then 0.9748/0.9834/0.9889/0.9957 at 278/312/345/412ms, and 0.9997 by 460ms. The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The photo fades from 1832ms over 211ms (opacity about 0.68/0.41/0.25/0.14/0.07 at 32/64/100/130/163ms, gone at 211ms, blur 4px). The chip respawns from 2268ms (0.512/0.951 at 30ms, 0.794/0.979 at 63ms, 0.923/0.992 at 96ms) and is fully visible at 2410ms.',
     content:
       'Board 213×192. Chip 72×72 photo at left 141, top 0, radius 12. Zone 104×104 at left 0, top 88, radius 12, 2px dashed rgba(0,0,0,0.1), background rgba(234,234,234,0.2). Chip and filled zone share shadow 0 2px 6px rgba(0,0,0,0.11), 0 5px 20px rgba(0,0,0,0.12). While the chip centre is over the zone: border rgba(0,0,0,0.28), background rgba(234,234,234,0.55), label opacity 0.5. Label is 11px / 15px #767676, width 76, top 38 (text at 40 from the outer edge). Font stack starts with Inter, then system faces. No font download.',
     rn: 'Web pointer events and CSS. Copy loads `/parity/drag-drop-physics.js`, the same board as the live card. Grabbing cursor is on the chip only. Native `src/demos/drag-drop/index.tsx` re-exports the gesture-handler scene in `src/demos/DragDrop.tsx`.',
@@ -159,8 +159,8 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: 'pointer up with the chip centre inside the zone',
         from: 'release pose',
         to: 'chip opacity 0, zone photo opacity 1, puff running',
-        duration: 'chip 229ms, photo 347ms, squash recovered by 460ms, puff from 263ms for 1225ms',
-        easing: 'chip ease-out with 2px blur; photo ease-in-out; squash down to 0.97 over 226ms then back over 240ms',
+        duration: 'chip 229ms, photo 430ms, squash recovered by 460ms, puff from 279ms to 1462ms',
+        easing: 'chip ease-out with 2px blur; photo cubic-bezier(0.433, 0.032, 0.516, 1.065); squash down to 0.97 over 226ms then back over 240ms',
         delay: 'none',
       },
       {
@@ -196,16 +196,16 @@ const LOCKS: Record<string, PromptLock> = {
       'There is no throw and no momentum. Velocity only tilts the chip. Tilt holds while the pointer is idle.',
       'Re-grabs during the return and the drop are ignored until the chip is ready again.',
       'The zone highlight is the drag-over state. There is no hover or focus style.',
-      'Reduced motion follows the OS setting and html[data-reduce-motion="1"]. The tilt snaps to the clamp. Tweens and the puff are skipped. The zone empties at 1832ms and the chip respawns at 2268ms.',
+      'Reduced motion follows the OS setting and html[data-reduce-motion="1"]. The tilt snaps to the clamped target (-5.56° on the 0.2 px/ms drag, -10° past the clamp). Tweens and the puff are skipped. The zone empties at 1832ms and the chip respawns at 2268ms.',
       'The label font stack is Inter, then system faces. Do not add a font download or a CDN request.',
     ],
     setup:
       'photo.ts exports DROP_PHOTO, a 746×944 CC0 crop of Jez Timms’s rose (Unsplash https://unsplash.com/photos/ODANAGrc168, Wikimedia Commons https://commons.wikimedia.org/wiki/File:Blood-red_rose_up_close_(Unsplash).jpg, https://creativecommons.org/publicdomain/zero/1.0/). Any 746×944 image can replace it. The original demo uses a different 746×944 portrait. The copy bundle is public/parity/drag-drop-physics.js with the React LICENSE verbatim in a /*! */ header. Peer is React.',
     checklist: [
       'Board is 213×192. Chip is 72×72 at left 141 top 0 with radius 12. Zone is 104×104 at left 0 top 88 with radius 12.',
-      'Scale eases to 1.05 in 150ms (about 1.036 at 33ms). An 80px drag of eleven events about 33.8ms apart settles between -5.56° and -5.68°. Idle tilt holds. Reduced motion snaps the tilt. Grabbing cursor is on the chip only.',
+      'Scale eases to 1.05 in 150ms (1.022 at 36ms, 1.043 at 52ms). A 0.2 px/ms drag holds at -5.627°. Idle tilt holds. Reduced motion snaps the tilt. Grabbing cursor is on the chip only.',
       'A miss returns in 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), starting in the pointerup frame, and ignores re-grabs.',
-      'A hit fades the chip by 229ms with up to 2px blur, the photo in by 347ms, squashes to 0.970 at 210ms and back to 0.9997 by 460ms, and runs the puff from 263ms.',
+      'A hit fades the chip by 229ms with up to 2px blur, the photo in by 430ms (0.132 at 111ms, 0.942 at 344ms), squashes to 0.970 at 210ms and back to 0.9997 by 460ms, and runs the puff from 279ms to 1462ms.',
       'The photo fades from 1832ms over 211ms to a 4px blur. The chip respawns from 2268ms and is fully visible at 2410ms.',
       'Live and Copy mount the same board. Copy makes no external request.',
     ],

@@ -27,22 +27,26 @@ const LIFT_MS = 150;
 const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * Eleven pointer events, 372/11 ms apart, carry an 80px drag. The first
- * event's speed on that spacing was 0.2139, 0.2158, 0.2165 and 0.2197 px/ms
- * across runs. Gain 25.774 is 5.58 / 0.2165. Those runs settled at -5.56°,
- * -5.61° and -5.68°. The slower pass, 4.4/5.58 of the 80px speed, settled
- * at -4.41° to -4.43°. Leftward is negative. The ease itself is done by
- * 330ms. The lift transition paints about 8ms behind its curve (scale 1.022
- * at 24ms, where the curve is already at 1.029), so the tilt ease waits
- * those 8ms. A clamped flick then reads about -3.4° on the frame whose
- * scale has just passed 1.030. dx === 0 leaves the target, and once the
- * ease finishes the angle holds.
+ * Gain is 5.56 / 0.2 = 27.8. An 80px drag in 400ms is 0.2 px/ms and settles
+ * at −5.56°. The same gain gives −2.78° at 0.1 px/ms (40px in 400ms) and
+ * −8.34° at 0.3 px/ms (120px in 400ms). Leftward is negative.
+ *
+ * Speed is the rolling average of the last three pointer samples (the
+ * pointerdown counts). The angle eases from the grab toward that target
+ * over 330ms. The curve waits 19ms, which is the shift that puts the 80px
+ * samples on the curve. A target change under 0.5° does not restart the
+ * ease, so a steady drag's event-gap wobble holds the origin. dx === 0
+ * leaves the target. Once the ease finishes, the angle holds.
+ * Anything past ±10° snaps to the clamp.
  */
-const TILT_GAIN = 25.774;
+const TILT_GAIN = 27.8;
 const TILT_EASE_MS = 330;
-const TILT_LAG_MS = 8;
-/** 0.340 at 25ms of the curve, 1 by 330ms. */
-const TILT_CURVE = [0.16, 0.72, 0.16, 0.955] as const;
+const TILT_LAG_MS = 19;
+/** Fitted to the 80px samples. About 0.30 at 34ms of wall time, 1 by 330ms. */
+const TILT_CURVE = [0.123, 0.738, 0.014, 0.907] as const;
+const TILT_SAMPLES = 3;
+/** Below this, a new rolling speed does not restart the 330ms ease. */
+const TILT_HOLD = 0.5;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
@@ -61,19 +65,21 @@ const SQUASH_BACK_EASE = 'cubic-bezier(0.55, 0.3, 0, 0.4)';
  * the animation forward by that amount puts the wall-clock samples on the curve.
  */
 const SQUASH_LEAD = 12;
-const PHOTO_IN_MS = 347;
-const PUFF_DELAY = 263;
-const PUFF_MS = 1225;
-const PUFF_PEAK = 0.9;
 /**
- * Opacity holds at 0.9 from 450ms to 470ms. 460ms sits inside that window,
- * so a sample a few milliseconds off the peak still reads 0.9. These
- * percents are (450-263)/1225 and (470-263)/1225.
+ * Photo fade-in. The sinking paint runs about 12ms behind the drop, so this
+ * curve is fitted on that clock: opacity 0.13/0.50/0.77/0.94 at 111/210/277/344ms,
+ * and 0.99 only after about 377ms.
  */
-const PUFF_PEAK_LO = ((450 - PUFF_DELAY) / PUFF_MS) * 100;
-const PUFF_PEAK_HI = ((470 - PUFF_DELAY) / PUFF_MS) * 100;
-/** Side reach has levelled off by 750ms, 487ms into the run. */
-const PUFF_HOLD_AT = ((750 - PUFF_DELAY) / PUFF_MS) * 100;
+const PHOTO_IN_MS = 430;
+const PHOTO_IN_EASE = 'cubic-bezier(0.433, 0.032, 0.516, 1.065)';
+/**
+ * First and last visible frames of the puff. The sinking paint runs about
+ * 12ms behind the drop, so the animation is started that much earlier.
+ */
+const PUFF_FROM = 279;
+const PUFF_END = 1462;
+const PUFF_DELAY = PUFF_FROM - SQUASH_LEAD;
+const PUFF_MS = PUFF_END - PUFF_FROM;
 const PHOTO_OUT_AT = 1832;
 const PHOTO_OUT_MS = 211;
 const PHOTO_OUT_BLUR = 4;
@@ -92,19 +98,54 @@ const RESPAWN_EASE = 'cubic-bezier(0.24, 0.76, 0.5, 0.92)';
 const RESPAWN_DELAY = RESPAWN_AT - SQUASH_LEAD - 3;
 const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
-const PUFF_STROKE = 50;
+/**
+ * Stroke 36 is an eye choice: a thick ring, open in the middle (inner 64).
+ * One octave, because the side darkness falls off in a smooth haze.
+ * Blur 5 and alpha 0.38 are the pair whose 500ms side profile reads
+ * 41/27/12/3/0 at 2/5/10/15/20px outside the zone.
+ */
+const PUFF_STROKE = 36;
 const PUFF_RADIUS = 27;
-const PUFF_DRIFT_AT_PEAK = 4.96;
-const PUFF_SCALE_AT_PEAK = 1.02;
-const PUFF_DRIFT_AT_HOLD = 6.6;
-const PUFF_DRIFT = 11.5;
-const PUFF_SCALE = 1.14;
-const PUFF_COLOR = 'rgba(132,132,132,0.55)';
+const PUFF_COLOR = 'rgba(132,132,132,0.38)';
 const PUFF_NOISE = 0.028;
-const PUFF_OCTAVES = 2;
+const PUFF_OCTAVES = 1;
 const PUFF_SEED = 11;
 const PUFF_DISPLACE = 4;
-const PUFF_BLUR = 22;
+const PUFF_BLUR = 5;
+/** Filter box in the puff's own pixels, wide enough that the blur is not cut. */
+const PUFF_FILTER_MARGIN = 160;
+
+type PuffStop = { t: number; opacity?: number; drift?: number; scale?: number };
+/** Opacity, drift, and scale read off the demo frames. Linear between these stops. */
+const PUFF_STOPS: PuffStop[] = [
+  { t: 279, opacity: 0, drift: 0, scale: 1 },
+  { t: 313, opacity: 0.335 },
+  { t: 363, opacity: 0.607 },
+  { t: 413, opacity: 0.807 },
+  { t: 462, opacity: 0.899, drift: 2.46, scale: 1.112 },
+  { t: 513, opacity: 0.836 },
+  { t: 612, opacity: 0.706, drift: 4.11, scale: 1.214 },
+  { t: 712, opacity: 0.585 },
+  { t: 812, opacity: 0.472, drift: 6.08, scale: 1.335 },
+  { t: 913, opacity: 0.369 },
+  { t: 1012, opacity: 0.274, scale: 1.438 },
+  { t: 1112, opacity: 0.191 },
+  { t: 1213, opacity: 0.119, scale: 1.517 },
+  { t: 1313, opacity: 0.061 },
+  { t: 1412, opacity: 0.021 },
+  { t: 1462, opacity: 0, drift: 9.94, scale: 1.573 },
+];
+
+function puffKeyframeCss(): string {
+  return PUFF_STOPS.map((stop) => {
+    const pct = ((stop.t - PUFF_FROM) / PUFF_MS) * 100;
+    const bits: string[] = [];
+    if (stop.opacity !== undefined) bits.push(`opacity: ${stop.opacity}`);
+    if (stop.drift !== undefined) bits.push(`translate: 0 ${stop.drift}px`);
+    if (stop.scale !== undefined) bits.push(`scale: ${stop.scale}`);
+    return `  ${Number(pct.toFixed(4))}% { ${bits.join('; ')}; }`;
+  }).join('\n');
+}
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
 const OVER_BORDER = 'rgba(0,0,0,0.28)';
@@ -144,7 +185,7 @@ const SHEET = `
 }
 .ddp-photo-out {
   animation:
-    ddp-photo-in ${PHOTO_IN_MS}ms ease-in-out both,
+    ddp-photo-in ${PHOTO_IN_MS}ms ${PHOTO_IN_EASE} both,
     ddp-photo-out ${PHOTO_OUT_MS}ms ${PHOTO_OUT_EASE} ${PHOTO_OUT_DELAY}ms forwards;
 }
 @keyframes ddp-photo-in {
@@ -176,34 +217,7 @@ const SHEET = `
   animation: ddp-puff ${PUFF_MS}ms linear ${PUFF_DELAY}ms both;
 }
 @keyframes ddp-puff {
-  0% {
-    opacity: 0;
-    translate: 0 0;
-    scale: 1;
-    animation-timing-function: cubic-bezier(0, 0.1, 0.6, 1);
-  }
-  ${PUFF_PEAK_LO}% {
-    opacity: ${PUFF_PEAK};
-    translate: 0 ${PUFF_DRIFT_AT_PEAK}px;
-    scale: ${PUFF_SCALE_AT_PEAK};
-    animation-timing-function: linear;
-  }
-  ${PUFF_PEAK_HI}% {
-    opacity: ${PUFF_PEAK};
-    translate: 0 ${PUFF_DRIFT_AT_PEAK}px;
-    scale: ${PUFF_SCALE_AT_PEAK};
-    animation-timing-function: cubic-bezier(0.2, 0.15, 0.1, 1);
-  }
-  ${PUFF_HOLD_AT}% {
-    translate: 0 ${PUFF_DRIFT_AT_HOLD}px;
-    scale: ${PUFF_SCALE};
-    animation-timing-function: linear;
-  }
-  100% {
-    opacity: 0;
-    translate: 0 ${PUFF_DRIFT}px;
-    scale: ${PUFF_SCALE};
-  }
+${puffKeyframeCss()}
 }
 @media (prefers-reduced-motion: reduce) {
   .ddp-squash, .ddp-puff, .ddp-photo-out, .ddp-chip-life, .ddp-life-lift { animation: none !important; }
@@ -311,11 +325,20 @@ function Puff({ filterId }: { filterId: string }) {
         top: ZONE_Y + (ZONE - PUFF_SIZE) / 2,
         width: PUFF_SIZE,
         height: PUFF_SIZE,
+        overflow: 'visible',
         zIndex: 0,
       }}
     >
       <svg width={PUFF_SIZE} height={PUFF_SIZE} viewBox={`0 0 ${PUFF_SIZE} ${PUFF_SIZE}`} overflow="visible">
-        <filter id={filterId} x="-80%" y="-80%" width="260%" height="260%" colorInterpolationFilters="sRGB">
+        <filter
+          id={filterId}
+          filterUnits="userSpaceOnUse"
+          x={-PUFF_FILTER_MARGIN}
+          y={-PUFF_FILTER_MARGIN}
+          width={PUFF_SIZE + PUFF_FILTER_MARGIN * 2}
+          height={PUFF_SIZE + PUFF_FILTER_MARGIN * 2}
+          colorInterpolationFilters="sRGB"
+        >
           <feTurbulence type="fractalNoise" baseFrequency={PUFF_NOISE} numOctaves={PUFF_OCTAVES} seed={PUFF_SEED} result="noise" />
           <feDisplacementMap in="SourceGraphic" in2="noise" scale={PUFF_DISPLACE} xChannelSelector="R" yChannelSelector="G" result="torn" />
           <feGaussianBlur in="torn" stdDeviation={PUFF_BLUR} />
@@ -387,7 +410,7 @@ export function PhysicsDropCard() {
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const velRef = useRef({ lastX: 0, movedAt: 0 });
+  const tiltSamples = useRef<{ t: number; x: number }[]>([]);
   const tiltTrack = useRef({ downAt: 0, origin: 0, from: 0, target: 0, armed: false });
   const tiltLoop = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -547,7 +570,7 @@ export function PhysicsDropCard() {
       poseY: poseRef.current.y,
     };
     const now = performance.now();
-    velRef.current = { lastX: event.clientX, movedAt: now };
+    tiltSamples.current = [{ t: now, x: event.clientX }];
     tiltTrack.current = { downAt: now, origin: now, from: 0, target: 0, armed: false };
     reduceRef.current = motionReducedNow();
     flushSync(() => {
@@ -560,20 +583,20 @@ export function PhysicsDropCard() {
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (phaseRef.current !== 'held' || event.pointerId !== pointerRef.current) return;
     const grab = grabRef.current;
-    const vel = velRef.current;
     const now = performance.now();
-    const dt = Math.max(now - vel.movedAt, 1);
-    const dx = event.clientX - vel.lastX;
-    vel.lastX = event.clientX;
-    vel.movedAt = now;
+    const samples = tiltSamples.current;
+    samples.push({ t: now, x: event.clientX });
+    if (samples.length > TILT_SAMPLES) samples.splice(0, samples.length - TILT_SAMPLES);
     const track = tiltTrack.current;
     const snap = motionReducedNow();
     reduceRef.current = snap;
-    if (dx !== 0) {
+    const oldest = samples[0];
+    const newest = samples[samples.length - 1];
+    const dt = newest.t - oldest.t;
+    const dx = newest.x - oldest.x;
+    if (dt > 0 && dx !== 0) {
       const next = clampTilt(dx / dt);
-      // A steady drag's event spacing wobbles, and that wobble used to restart the ease.
-      // Keep the target until the speed really changes.
-      const changed = Math.abs(next - track.target) >= 0.25;
+      const changed = Math.abs(next - track.target) >= TILT_HOLD;
       if (!track.armed) {
         track.armed = true;
         track.from = snap ? next : 0;
@@ -639,7 +662,7 @@ export function PhysicsDropCard() {
     objectFit: 'cover',
     borderRadius: RADIUS,
     opacity: showingPhoto ? 1 : 0,
-    transition: reduce || cycling ? 'none' : `opacity ${PHOTO_IN_MS}ms ease-in-out`,
+    transition: reduce || cycling ? 'none' : `opacity ${PHOTO_IN_MS}ms ${PHOTO_IN_EASE}`,
     pointerEvents: 'none',
   };
 
