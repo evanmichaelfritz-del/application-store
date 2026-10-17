@@ -125,6 +125,7 @@ const publicPrompt = {
   'liquid-metal': readFileSync(join(root, 'public/prompts/liquid-metal.md'), 'utf8'),
   gooey: readFileSync(join(root, 'public/prompts/gooey.md'), 'utf8'),
   'drag-drop-physics': readFileSync(join(root, 'public/prompts/drag-drop-physics.md'), 'utf8'),
+  'spacing-tuner': readFileSync(join(root, 'public/prompts/spacing-tuner.md'), 'utf8'),
 };
 
 function missingSections(text) {
@@ -186,6 +187,7 @@ const PACKAGE_SOURCE = [
   { file: join(root, 'public/prompts/border-beam.md'), pkg: 'border-beam', notice: false },
   { file: join(root, 'public/prompts/liquid-metal.md'), pkg: 'metal-fx', notice: true },
   { file: join(root, 'public/prompts/drag-drop-physics.md'), pkg: 'react', notice: false },
+  { file: join(root, 'public/prompts/spacing-tuner.md'), pkg: 'react', notice: false },
 ];
 
 function packageSourceIndex(text) {
@@ -228,5 +230,87 @@ for (const item of PACKAGE_SOURCE) {
 console.log(`license hits: ${licenseHits.length}`);
 if (licenseHits.length) {
   for (const line of licenseHits) console.error(`  ${line}`);
+  process.exit(1);
+}
+
+/**
+ * Spacing tuner fences are the card's source. A heading
+ * `### \`src/spacing-tuner/<file>\`` must match src/demos/spacing-tuner/<file>.
+ */
+const fencePrompt = readFileSync(join(root, 'public/prompts/spacing-tuner.md'), 'utf8');
+const fenceFiles = [
+  'tokens.ts',
+  'timeline.ts',
+  'layout.ts',
+  'Icons.tsx',
+  'SpacingTuner.tsx',
+  'index.ts',
+];
+const fenceHits = [];
+for (const name of fenceFiles) {
+  const heading = `src/spacing-tuner/${name}`;
+  const marker = `### \`${heading}\``;
+  const at = fencePrompt.indexOf(marker);
+  if (at < 0) {
+    fenceHits.push(`${heading}: heading missing`);
+    continue;
+  }
+  const rest = fencePrompt.slice(at + marker.length);
+  const open = rest.match(/```(?:ts|tsx)\n/);
+  if (!open || open.index == null) {
+    fenceHits.push(`${heading}: code fence missing`);
+    continue;
+  }
+  const start = open.index + open[0].length;
+  const end = rest.indexOf('\n```', start);
+  if (end < 0) {
+    fenceHits.push(`${heading}: code fence never closes`);
+    continue;
+  }
+  const fenced = rest.slice(start, end);
+  const file = readFileSync(join(root, 'src/demos/spacing-tuner', name), 'utf8').replace(/\n$/, '');
+  if (fenced !== file) fenceHits.push(`${heading}: fence does not match the card file`);
+}
+console.log(`fence hits: ${fenceHits.length}`);
+if (fenceHits.length) {
+  for (const line of fenceHits) console.error(`  ${line}`);
+  process.exit(1);
+}
+
+/**
+ * A catalog skill.path is a file under public/. Copy Skill serves those bytes.
+ * spacing-audit's hash is pinned to the staged skill.
+ */
+import { createHash } from 'node:crypto';
+
+const catalog = readFileSync(join(root, 'src/catalog.ts'), 'utf8');
+const skillHits = [];
+const skillRe = /skill:\s*\{\s*path:\s*'([^']+)',\s*name:\s*'([^']+)'\s*\}/g;
+const skills = [...catalog.matchAll(skillRe)];
+if (skills.length === 0) skillHits.push('catalog declares no skill');
+for (const match of skills) {
+  const skillPath = match[1];
+  const skillName = match[2];
+  if (skillPath.includes('..') || skillPath.startsWith('/')) {
+    skillHits.push(`${skillName}: path must stay inside public/`);
+    continue;
+  }
+  const absolute = join(root, 'public', skillPath);
+  let bytes;
+  try {
+    bytes = readFileSync(absolute);
+  } catch {
+    skillHits.push(`${skillName}: public/${skillPath} is missing`);
+    continue;
+  }
+  if (bytes.length === 0) skillHits.push(`${skillName}: public/${skillPath} is empty`);
+  if (skillName === 'spacing-audit') {
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    if (!hash.startsWith('fa392acc')) skillHits.push(`spacing-audit sha256 ${hash.slice(0, 8)} != fa392acc`);
+  }
+}
+console.log(`skill hits: ${skillHits.length}`);
+if (skillHits.length) {
+  for (const line of skillHits) console.error(`  ${line}`);
   process.exit(1);
 }

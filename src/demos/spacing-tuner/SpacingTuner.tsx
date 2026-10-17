@@ -81,11 +81,15 @@ function useClock(running: boolean, speed: number): number {
 
 interface Manual { key: VarKey; target: VarMap<number>; from: VarMap<number>; at: number }
 
+function blankVars(): VarMap<number> {
+  return { sidebar: 0, padding: 0, rowGap: 0, colGap: 0, cardPadding: 0 };
+}
+
 /** Manual (interactive) mode frame: each variable springs from where it was to its target. */
 function manualFrame(m: Manual, now: number, reduced: boolean): Frame {
   const dt = (now - m.at) / 1000;
   const p = reduced ? 1 : spring(dt);
-  const values = {} as VarMap<number>, display = {} as VarMap<number>, emphasis = {} as VarMap<number>;
+  const values = blankVars(), display = blankVars(), emphasis = blankVars();
   VARIABLES.forEach((v) => {
     const a = m.from[v.key], b = m.target[v.key];
     values[v.key] = a + (b - a) * p;

@@ -32,6 +32,10 @@ export function spring(t: number): number {
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const step = (t: number) => (t >= 0 ? 1 : 0);
 
+function blankVars(): VarMap<number> {
+  return { sidebar: 0, padding: 0, rowGap: 0, colGap: 0, cardPadding: 0 };
+}
+
 export type VarMap<T> = Record<VarKey, T>;
 
 export interface Frame {
@@ -50,9 +54,9 @@ export function phaseStart(index: number): number {
 /** Scene state at time t (seconds; wraps every LOOP_S). */
 export function frameAt(tRaw: number, reducedMotion = false): Frame {
   const t = ((tRaw % LOOP_S) + LOOP_S) % LOOP_S;
-  const values = {} as VarMap<number>;
-  const display = {} as VarMap<number>;
-  const emphasis = {} as VarMap<number>;
+  const values = blankVars();
+  const display = blankVars();
+  const emphasis = blankVars();
   VARIABLES.forEach((v, i) => {
     const start = phaseStart(i);
     const ease = reducedMotion ? step : spring;

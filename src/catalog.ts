@@ -27,6 +27,7 @@ import { BorderBeamDemo } from './demos/border-beam';
 import { LiquidMetalDemo } from './demos/liquid-metal';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
+import { SpacingTunerDemo } from './demos/spacing-tuner/demo';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -93,6 +94,11 @@ export type TransitionItem = {
   fullRow?: true;
   /** Skia canvas. Loaded only when the card nears the viewport. */
   skia?: true;
+  /**
+   * Optional skill file served from `public/<path>`.
+   * When set, the card shows a Copy Skill button. Cards without it are unchanged.
+   */
+  skill?: { path: string; name: string };
   Demo: ComponentType;
 };
 
@@ -543,6 +549,29 @@ export const TRANSITIONS: TransitionItem[] = [
     pro: false,
     skia: true,
     Demo: YogeshOrbCreatorDemo,
+  },
+  {
+    id: 'spacing-tuner',
+    title: 'Spacing tuner',
+    subtitle: 'Wireframe dashboard. Based on a spacing demo by @MichaelFilipiuk.',
+    categories: [],
+    tags: [
+      'spacing',
+      'tuner',
+      'dashboard',
+      'wireframe',
+      'graphic-design',
+      'sidebar',
+      'padding',
+      'gap',
+      'michael',
+      'michaelfilipiuk',
+    ],
+    sections: ['graphic-design'],
+    fullRow: true,
+    pro: false,
+    skill: { path: 'skills/spacing-audit/SKILL.md', name: 'spacing-audit' },
+    Demo: SpacingTunerDemo,
   },
 ];
 

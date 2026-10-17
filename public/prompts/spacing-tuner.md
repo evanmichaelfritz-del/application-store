@@ -2,6 +2,8 @@
 
 Build **one asset**, the *Spacing tuner*. It's an animated desktop-dashboard wireframe. Five spacing variables change one at a time, each with a translucent colour overlay on the area it affects and a status chip that counts its px value. Then everything springs back and the loop repeats every 10 s. Ship it as a self-contained React Native + TypeScript component that runs under react-native-web. The bar is **desktop web at 1280 px wide**; native is a known gap.
 
+Built clean-room from the public demo video's behaviour only, with no source code read.
+
 ## 0. Credit
 
 Based on a spacing demo by @MichaelFilipiuk ("If the app feels off but you're not sure why, it's probably the spacing."). Keep this credit in the asset's description.
@@ -235,6 +237,8 @@ When the OS setting is on (or `reducedMotion` is true):
 - The revert steps at 9.1 s.
 - Chip numbers jump straight to their final values.
 
+The live card passes the store flag into `reducedMotion` (the OS setting, or the in-app Reduce Motion switch). Copy does not mount that switch, so Copy follows `AccessibilityInfo`. On web that is `prefers-reduced-motion`.
+
 ## 10. Gotchas
 
 1. **Drive geometry from numbers, not measurement.** Every rect is computed in `computeScene()` from the five live values. Overlays must use the same rects every frame, so they never lag the layout.
@@ -247,6 +251,7 @@ When the OS setting is on (or `reducedMotion` is true):
 8. **`boxShadow` string styles** are used. They render on react-native-web and on the new React Native architecture; older native renderers ignore them (known gap).
 9. The rAF clock calls `setState` every frame (about 150 views). That's fine on desktop web; native performance is a known gap.
 10. Don't add text labels to the scene or chips. The reference has none; accessible names live in `accessibilityLabel` only.
+11. **Phone widths are a known gap.** Desktop web at 1280 is the bar. The stage still scales, but phone layouts are not a parity target.
 
 ## 11. File structure
 
@@ -261,7 +266,37 @@ src/spacing-tuner/Icons.tsx     the 5 chip icons (Views only, no SVG)
 src/spacing-tuner/SpacingTuner.tsx  component
 ```
 
+In the store these files live at `src/demos/spacing-tuner/`. The card mounts `SpacingTuner` directly and does not ship a second Expo app. Copy is `public/parity/spacing-tuner.js`, built by `scripts/build-parity.mjs` from `mount.tsx`. It aliases `react-native` to `react-native-web` and prepends that package's LICENSE, then the React LICENSE, verbatim in `/*! */` headers.
+
 Dependencies (no others): `expo ~58.0.14`, `react 19.3.0`, `react-dom 19.3.0`, `react-native 0.88.0`, `react-native-web ^0.21.4`, `expo-status-bar ~58.0.3`; dev: `typescript ~6.0.3`, `@types/react ~19.3.0`. `tsconfig.json` extends `expo/tsconfig.base` with `"strict": true`. Run on web with `npx expo start --web`, or export with `npx expo export -p web`.
+
+## Setup
+
+Peer is React. The component also runs on react-native-web. `scripts/build-parity.mjs` bundles `src/demos/spacing-tuner/mount.tsx` and prepends the react-native-web LICENSE and the React LICENSE verbatim in `/*! */` headers. react-dom's LICENSE matches React's, so it is not repeated. The React LICENSE is:
+
+```
+MIT License
+
+Copyright (c) Meta Platforms, Inc. and affiliates.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## 12. Full code
 
@@ -406,6 +441,10 @@ export function spring(t: number): number {
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const step = (t: number) => (t >= 0 ? 1 : 0);
 
+function blankVars(): VarMap<number> {
+  return { sidebar: 0, padding: 0, rowGap: 0, colGap: 0, cardPadding: 0 };
+}
+
 export type VarMap<T> = Record<VarKey, T>;
 
 export interface Frame {
@@ -424,9 +463,9 @@ export function phaseStart(index: number): number {
 /** Scene state at time t (seconds; wraps every LOOP_S). */
 export function frameAt(tRaw: number, reducedMotion = false): Frame {
   const t = ((tRaw % LOOP_S) + LOOP_S) % LOOP_S;
-  const values = {} as VarMap<number>;
-  const display = {} as VarMap<number>;
-  const emphasis = {} as VarMap<number>;
+  const values = blankVars();
+  const display = blankVars();
+  const emphasis = blankVars();
   VARIABLES.forEach((v, i) => {
     const start = phaseStart(i);
     const ease = reducedMotion ? step : spring;
@@ -618,6 +657,8 @@ export function VariableIcon({ kind, accent }: { kind: VarKey; accent: string })
 }
 ```
 
+## Component
+
 ### `src/spacing-tuner/SpacingTuner.tsx`
 
 ```tsx
@@ -704,11 +745,15 @@ function useClock(running: boolean, speed: number): number {
 
 interface Manual { key: VarKey; target: VarMap<number>; from: VarMap<number>; at: number }
 
+function blankVars(): VarMap<number> {
+  return { sidebar: 0, padding: 0, rowGap: 0, colGap: 0, cardPadding: 0 };
+}
+
 /** Manual (interactive) mode frame: each variable springs from where it was to its target. */
 function manualFrame(m: Manual, now: number, reduced: boolean): Frame {
   const dt = (now - m.at) / 1000;
   const p = reduced ? 1 : spring(dt);
-  const values = {} as VarMap<number>, display = {} as VarMap<number>, emphasis = {} as VarMap<number>;
+  const values = blankVars(), display = blankVars(), emphasis = blankVars();
   VARIABLES.forEach((v) => {
     const a = m.from[v.key], b = m.target[v.key];
     values[v.key] = a + (b - a) * p;
