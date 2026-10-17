@@ -79,7 +79,7 @@ The animation is `ddp-puff 1183ms linear 267ms both`. Opacity, `translate`, and 
 The ring, before the filter:
 
 - outer box 100×100
-- stroke 36, colour `rgba(132,132,132,0.38)`. Stroke 36 is an eye choice, a thick ring with an open middle
+- stroke 36, colour `rgba(132,132,132,0.48)`. Stroke 36 is an eye choice, a thick ring with an open middle. Alpha 0.48 is the weight on blur 5 that jointly fits the demo side profiles
 - centreline rect at inset 18, size 64×64
 - centreline `rx` is `27 - 18 = 9`
 
@@ -91,7 +91,7 @@ An SVG filter warps that stroke into a soft haze:
 - filter region in user space, from −160 to 260 on both axes, `sRGB`
 - the SVG and the puff layer set `overflow: visible`
 
-At 500ms the side darkness (249 minus the pixel) is 41/27/12/3/0 at 2/5/10/15/20px outside the zone. Past 10px the largest step is 4 on one side and 3 on the other. The upper corner is 6/4/3/1 and the lower corner is 17/13/10/7/6/3 along the first 6px of the diagonal. At 800ms the side is 37/29/20/11/4/2 at 2/5/10/15/20/25px and 0 by 27px. There is no straight cut and no filled corner.
+At 500ms the side darkness (249 minus the pixel) is 48/31/13/2/0 on the right and 48/31/12/3/0 on the left, at 2/5/10/15/20px. Residuals against the demo's 56/42/20/5/0 are −8/−11/−7/−3/0 and −8/−11/−8/−2/0. The bottom edge on that frame is 64/47/26/9/1. At 800ms the left side is 40/32/23/14/6/1 at 2/5/10/15/20/25px, residuals 0/+2/+4/+6/+4.4/+0.8 against 40/30/19/8/1.6/0.2. The right side is 46/36/26/16/8/3. The bottom edge is 53/42/33/26/18/9. Blur stays 5. There is no straight cut and no filled corner.
 
 Reduced motion does not mount the puff.
 
@@ -152,7 +152,7 @@ SOFTWARE.
 - [ ] Tilt stays within ±10°. Gain is 27.9. A 0.2 px/ms drag for 400ms reads −1.809° at 34.6ms and −5.571° at 400ms, and does not pass −5.58°. The 0.1 px/ms drag reads −2.356° at 117ms and does not pass −2.80°. The 0.3 px/ms drag reads −5.863° at 101ms, −7.816° at 201ms, and −8.251° at 301ms. An 80px drag over 1200ms holds at −1.860°. Idle tilt holds. Reduced motion snaps to the target.
 - [ ] A miss, tested by the chip centre, returns over 500ms with `cubic-bezier(0.34, 1.56, 0.64, 1)` (≈9.75% of release distance, 7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. There is no throw.
 - [ ] A hit fades the chip out in 229ms ease-out with up to 2px blur (0.386 at 111ms), squashes the zone through 0.970 at 210ms and back to 0.9997 by 460ms, and fades the cover photo in over 430ms (0.132/0.507/0.774/0.942 at 111/210/277/344ms) while the border and label hide.
-- [ ] The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The ring is stroke 36, one octave, blur 5, in a user-space filter box from −160 to 260. It does not darken the photo, and the haze has no hard edge. Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
+- [ ] The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The ring is stroke 36, alpha 0.48, one octave, blur 5, in a user-space filter box from −160 to 260. It does not darken the photo, and the haze has no hard edge. Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
 - [ ] The photo fades from 1832ms over 211ms to a 4px blur (opacity about 0.68/0.41/0.25 at 32/64/100ms, gone at 211ms, which is 2043ms after the drop). The chip respawns at 2268ms from scale 0.9 and opacity 0 and is fully visible at 2410ms.
 - [ ] Reduced motion follows the OS setting and `html[data-reduce-motion="1"]`. It snaps the tilt, skips the puff, empties the zone at 1832ms, and respawns the chip at 2268ms.
 - [ ] Copy and the live card are this component. Copy does not request a font or any other external host.
@@ -265,12 +265,14 @@ const PUFF_SIZE = 100;
 /**
  * Stroke 36 is an eye choice: a thick ring, open in the middle (inner 64).
  * One octave, because the side darkness falls off in a smooth haze.
- * Blur 5 and alpha 0.38 are the pair whose 500ms side profile reads
- * 41/27/12/3/0 at 2/5/10/15/20px outside the zone.
+ * Blur 5 is the stdDeviation whose 500ms and 800ms side profiles are the
+ * closest joint fit to the demo. Alpha 0.48 is the weight on that blur.
+ * 500ms reads 48/31/13/2/0 against 56/42/20/5/0. 800ms left reads
+ * 40/32/23/14/6/1 against 40/30/19/8/1.6/0.2.
  */
 const PUFF_STROKE = 36;
 const PUFF_RADIUS = 27;
-const PUFF_COLOR = 'rgba(132,132,132,0.38)';
+const PUFF_COLOR = 'rgba(132,132,132,0.48)';
 const PUFF_NOISE = 0.028;
 const PUFF_OCTAVES = 1;
 const PUFF_SEED = 11;

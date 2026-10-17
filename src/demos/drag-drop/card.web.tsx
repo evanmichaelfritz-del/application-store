@@ -102,12 +102,14 @@ const PUFF_SIZE = 100;
 /**
  * Stroke 36 is an eye choice: a thick ring, open in the middle (inner 64).
  * One octave, because the side darkness falls off in a smooth haze.
- * Blur 5 and alpha 0.38 are the pair whose 500ms side profile reads
- * 41/27/12/3/0 at 2/5/10/15/20px outside the zone.
+ * Blur 5 is the stdDeviation whose 500ms and 800ms side profiles are the
+ * closest joint fit to the demo. Alpha 0.48 is the weight on that blur.
+ * 500ms reads 48/31/13/2/0 against 56/42/20/5/0. 800ms left reads
+ * 40/32/23/14/6/1 against 40/30/19/8/1.6/0.2.
  */
 const PUFF_STROKE = 36;
 const PUFF_RADIUS = 27;
-const PUFF_COLOR = 'rgba(132,132,132,0.38)';
+const PUFF_COLOR = 'rgba(132,132,132,0.48)';
 const PUFF_NOISE = 0.028;
 const PUFF_OCTAVES = 1;
 const PUFF_SEED = 11;

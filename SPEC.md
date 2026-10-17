@@ -73,14 +73,26 @@ Replay: pointer position is `−0.2 × t` px for 400ms (twelve equal steps, 6.66
 
 The largest residual is 0.148° at 51ms. Every sample is inside 0.3°. The angle moved in one direction. The most negative sample was −5.574° at 420ms, which does not pass −5.58°.
 
-### Flick, the same 0.2 px/ms drag read early
+### Flick
 
-| t (ms) | tilt (deg) | scale |
-| --- | --- | --- |
-| 35 | −1.937 | 1.036 |
-| 52.3 | −3.313 | 1.043 |
+Replay: 80px in three moves, 5ms apart. Pointer position is `−80 × min(t, 15) / 15` at 5, 10, and 15ms, then hold. Speed is about 5.3 px/ms, so the target is the −10° clamp. The demo reads −3.40° at lift 1.030.
 
-Residuals against −1.77° and −3.40° are −0.167° and +0.087°. The painted scale at 52ms is 1.043.
+| t (ms) | card tilt | card scale | demo tilt | residual |
+| --- | --- | --- | --- | --- |
+| 5 | 0 | 1 | | |
+| 10 | 0 | 1 | | |
+| 15.1 | 0 | 1 | | |
+| 20.1 | 0 | 1.022 | | |
+| 25 | 0 | 1.022 | −3.40 at lift 1.030 | +3.40 |
+| 28 | 0 | 1.022 | | |
+| 33.9 | −1.730 | 1.036 | | +1.670 |
+| 35 | −1.937 | 1.036 | | +1.463 |
+| 40 | −2.587 | 1.036 | | +0.813 |
+| 45.1 | −2.985 | 1.036 | | +0.415 |
+| 52 | −3.305 | 1.043 | | +0.095 |
+| 60 | −3.697 | 1.043 | | |
+
+The painted scale is 1.022 through 28ms and 1.036 from 34ms to 45ms. It does not sit on 1.030. While the scale reads 1.036 the angle runs from −1.730° to −2.985°, which is 1.67° to 0.42° short of −3.40°. The 28ms wait that keeps the 80px drag at 0° through 18ms holds this flick at 0° until that wait ends. Reaching −3.40° by the 1.030 lift would put the 80px drag past −1.78° before 34ms. Known residual.
 
 ### 40px and 120px
 
@@ -92,7 +104,22 @@ Same 400ms, twelve-step shape.
 
 ### Slow gesture
 
-Replay: 80px over 1200ms, thirty-six equal steps. Pointer position is `−(80/1200) × t` px until 1200ms, then hold. That is 2.222px every 33.333ms, 0.06667 px/ms, target −1.86°. Painted −1.575° at 118ms and −1.860° from 1000ms. The most negative sample was −1.861°. It did not pass −3.21°. Residual against the −1.87° settle is +0.010°. Residual against the demo's −2.55° at 118ms is +0.975°. That demo frame is past the −1.87° settle, and this constant-speed chase does not pass its target.
+Replay: 80px over 1200ms, thirty-six equal steps. Pointer position is `−(80/1200) × t` px until 1200ms, then hold. That is 2.222px every 33.333ms, 0.06667 px/ms, target −1.86°. The demo reads −2.55° at 118ms, settles at −1.87°, and does not pass −3.21°.
+
+| t (ms) | card tilt | demo tilt | residual |
+| --- | --- | --- | --- |
+| 40 | −0.869 | | |
+| 80 | −1.367 | | |
+| 118 | −1.575 | −2.55 | +0.975 |
+| 200 | −1.774 | | |
+| 400 | −1.856 | | |
+| 600 | −1.861 | | |
+| 800 | −1.861 | | |
+| 1000 | −1.861 | | |
+| 1200 | −1.860 | −1.87 | +0.010 |
+| 1400 | −1.860 | −1.87 | +0.010 |
+
+The most negative sample was −1.861°. It did not pass −3.21°. The angle climbed in one direction and settled 0.010° short of −1.87°. The demo's −2.55° at 118ms is past that settle. This constant-speed chase does not pass its target, so that frame stays a residual of +0.975°.
 
 ## Puff frame fit
 
@@ -117,9 +144,20 @@ The puff is visible from 279ms and is gone at 1462ms. The sinking paint runs abo
 | 1412 | 0.021 | 9.64 | 1.562 |
 | 1462 | 0 | 9.94 | 1.573 |
 
-The ring is a 100×100 box, stroke 36, colour `rgba(132,132,132,0.38)`, centreline rect inset 18 so the inner size is 64 and the inner corner radius is 9. Stroke 36 is an eye choice: a thick ring with the middle left open. One octave of fractal noise (`baseFrequency` 0.028, seed 11), because the side darkness is a smooth haze. Displacement 4. Blur stdDeviation 5. The filter uses `filterUnits="userSpaceOnUse"` with a box from −160 to 260, so the blur is not cut into a square.
+The ring is a 100×100 box, stroke 36, colour `rgba(132,132,132,0.48)`, centreline rect inset 18 so the inner size is 64 and the inner corner radius is 9. Stroke 36 is an eye choice: a thick ring with the middle left open. One octave of fractal noise (`baseFrequency` 0.028, seed 11), because the side darkness is a smooth haze. Displacement 4. Blur stdDeviation 5. Alpha 0.48 is the weight on that blur: across blur 5, 5.5, and 6 and alpha 0.38, 0.48, 0.54, and 0.60, blur 5 with alpha 0.48 had the smallest summed squared residual against the two demo side profiles. The filter uses `filterUnits="userSpaceOnUse"` with a box from −160 to 260, so the blur is not cut into a square.
 
-At 500ms the side darkness (249 minus the pixel, averaged over five rows) is 41/27/12/3/0 at 2/5/10/15/20px outside the zone. Past 10px the largest one-pixel step on that side is 4, then 2 or less; the other side's largest step is 3. The upper corner is 6/4/3/1 and the lower corner, which the downward drift darkens, is 17/13/10/7/6/3 at 0–5px along the diagonal. Neither corner is a filled square. At 800ms the side reads 37/29/20/11/4/2 at 2/5/10/15/20/25px and is 0 by 27px.
+Darkness is 249 minus the pixel, averaged over five rows. Distances are pixels outside the zone. The 500ms demo side is 56/42/20/5/0 at 2/5/10/15/20px. The 800ms demo left side is 40/30/19/8/1.6/0.2 at 2/5/10/15/20/25px. The engineering note did not include a numeric bottom profile, so the bottom rows are this card only.
+
+| t (ms) | edge | px | demo | card | residual |
+| --- | --- | --- | --- | --- | --- |
+| 500 | right | 2/5/10/15/20 | 56/42/20/5/0 | 48/31/13/2/0 | −8/−11/−7/−3/0 |
+| 500 | left | 2/5/10/15/20 | 56/42/20/5/0 | 48/31/12/3/0 | −8/−11/−8/−2/0 |
+| 500 | bottom | 2/5/10/15/20 | | 64/47/26/9/1 | |
+| 800 | left | 2/5/10/15/20/25 | 40/30/19/8/1.6/0.2 | 40/32/23/14/6/1 | 0/+2/+4/+6/+4.4/+0.8 |
+| 800 | right | 2/5/10/15/20/25 | 40/30/19/8/1.6/0.2 | 46/36/26/16/8/3 | +6/+6/+7/+8/+6.4/+2.8 |
+| 800 | bottom | 2/5/10/15/20/25 | | 53/42/33/26/18/9 | |
+
+At 500ms the right side is 0 by 20px. At 800ms the left side is 0 by 30px. The right side at 800ms is darker than the left; the noise seed makes the two sides differ. Neither corner is a filled square.
 
 Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
 
