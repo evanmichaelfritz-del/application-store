@@ -27,26 +27,27 @@ const LIFT_MS = 150;
 const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * Gain is 5.56 / 0.2 = 27.8. An 80px drag in 400ms is 0.2 px/ms and settles
- * at −5.56°. The same gain gives −2.78° at 0.1 px/ms (40px in 400ms) and
- * −8.34° at 0.3 px/ms (120px in 400ms). Leftward is negative.
+ * Gain is 5.58 / 0.2 = 27.9. An 80px drag in 400ms is 0.2 px/ms and settles
+ * at −5.58°. The same gain gives −2.79° at 0.1 px/ms and −8.37° at 0.3 px/ms.
+ * Leftward is negative. Anything past ±10° snaps to the clamp.
  *
- * Speed is the rolling average of the last three pointer samples (the
- * pointerdown counts). The angle eases from the grab toward that target
- * over 330ms. The curve waits 19ms, which is the shift that puts the 80px
- * samples on the curve. A target change under 0.5° does not restart the
- * ease, so a steady drag's event-gap wobble holds the origin. dx === 0
- * leaves the target. Once the ease finishes, the angle holds.
- * Anything past ±10° snaps to the clamp.
+ * The angle is a first-order chase of that target. It does not restart, and
+ * a constant target is never crossed. After a 28ms wait, 44% of the target
+ * (up to ±5.58°) arrives with a 6ms time constant and the rest with 70ms.
+ * The part of the target past ±5.58° skips that fast mode. It waits 58ms
+ * and arrives with a 64ms time constant, so a faster drag cannot multiply
+ * the opening kick. Speed is the horizontal movement since the grab divided
+ * by the time since the grab, so one short interval cannot spike it.
+ * A sample with no horizontal change leaves the target.
  */
-const TILT_GAIN = 27.8;
-const TILT_EASE_MS = 330;
-const TILT_LAG_MS = 19;
-/** Fitted to the 80px samples. About 0.30 at 34ms of wall time, 1 by 330ms. */
-const TILT_CURVE = [0.123, 0.738, 0.014, 0.907] as const;
-const TILT_SAMPLES = 3;
-/** Below this, a new rolling speed does not restart the 330ms ease. */
-const TILT_HOLD = 0.5;
+const TILT_GAIN = 27.9;
+const TILT_FAST_CAP = 5.58;
+const TILT_LAG_MS = 28;
+const TILT_FAST_WEIGHT = 0.44;
+const TILT_TAU_FAST = 6;
+const TILT_TAU_BODY = 70;
+const TILT_EXTRA_LAG_MS = 58;
+const TILT_EXTRA_TAU = 64;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
@@ -251,31 +252,28 @@ function clampTilt(vxPxPerMs: number): number {
   return Math.round(clamped * 1000) / 1000;
 }
 
-function unitBezier(x1: number, y1: number, x2: number, y2: number, x: number): number {
-  if (x <= 0) return 0;
-  if (x >= 1) return 1;
-  let lo = 0;
-  let hi = 1;
-  for (let i = 0; i < 24; i++) {
-    const t = (lo + hi) / 2;
-    const mt = 1 - t;
-    const bx = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
-    if (bx < x) lo = t;
-    else hi = t;
-  }
-  const t = (lo + hi) / 2;
-  const mt = 1 - t;
-  return 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t;
+/** Two first-order modes. Result stays in [0, 1] and does not decrease. */
+function firstOrderMix(elapsedMs: number, lagMs: number, weightFast: number, tauFast: number, tauBody: number): number {
+  const elapsed = elapsedMs - lagMs;
+  if (elapsed <= 0) return 0;
+  const mixed =
+    1 -
+    weightFast * Math.exp(-elapsed / tauFast) -
+    (1 - weightFast) * Math.exp(-elapsed / tauBody);
+  if (mixed <= 0) return 0;
+  if (mixed >= 1) return 1;
+  return mixed;
 }
 
-function tiltProgress(elapsedMs: number): number {
-  return unitBezier(
-    TILT_CURVE[0],
-    TILT_CURVE[1],
-    TILT_CURVE[2],
-    TILT_CURVE[3],
-    (elapsedMs - TILT_LAG_MS) / TILT_EASE_MS,
-  );
+function chaseTilt(elapsedMs: number, target: number): number {
+  const sign = target < 0 ? -1 : 1;
+  const mag = Math.abs(target);
+  const capped = mag < TILT_FAST_CAP ? mag : TILT_FAST_CAP;
+  const extra = mag - capped;
+  const base = capped * firstOrderMix(elapsedMs, TILT_LAG_MS, TILT_FAST_WEIGHT, TILT_TAU_FAST, TILT_TAU_BODY);
+  const extraElapsed = elapsedMs - TILT_EXTRA_LAG_MS;
+  const tail = extraElapsed <= 0 ? 0 : extra * (1 - Math.exp(-extraElapsed / TILT_EXTRA_TAU));
+  return Math.round(sign * (base + tail) * 1000) / 1000;
 }
 
 function centreInsideZone(x: number, y: number): boolean {
@@ -410,8 +408,7 @@ export function PhysicsDropCard() {
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const tiltSamples = useRef<{ t: number; x: number }[]>([]);
-  const tiltTrack = useRef({ downAt: 0, origin: 0, from: 0, target: 0, armed: false });
+  const tiltTrack = useRef({ downAt: 0, x: 0, target: 0 });
   const tiltLoop = useRef(0);
   const timersRef = useRef<number[]>([]);
   const chipRef = useRef<HTMLDivElement>(null);
@@ -460,8 +457,7 @@ export function PhysicsDropCard() {
 
   function tiltAngle(now: number): number {
     const track = tiltTrack.current;
-    const raw = track.from + (track.target - track.from) * tiltProgress(now - track.origin);
-    return Math.round(raw * 1000) / 1000;
+    return chaseTilt(now - track.downAt, track.target);
   }
 
   function stopTiltLoop() {
@@ -570,8 +566,7 @@ export function PhysicsDropCard() {
       poseY: poseRef.current.y,
     };
     const now = performance.now();
-    tiltSamples.current = [{ t: now, x: event.clientX }];
-    tiltTrack.current = { downAt: now, origin: now, from: 0, target: 0, armed: false };
+    tiltTrack.current = { downAt: now, x: event.clientX, target: 0 };
     reduceRef.current = motionReducedNow();
     flushSync(() => {
       setPhaseBoth('held');
@@ -584,30 +579,13 @@ export function PhysicsDropCard() {
     if (phaseRef.current !== 'held' || event.pointerId !== pointerRef.current) return;
     const grab = grabRef.current;
     const now = performance.now();
-    const samples = tiltSamples.current;
-    samples.push({ t: now, x: event.clientX });
-    if (samples.length > TILT_SAMPLES) samples.splice(0, samples.length - TILT_SAMPLES);
     const track = tiltTrack.current;
     const snap = motionReducedNow();
     reduceRef.current = snap;
-    const oldest = samples[0];
-    const newest = samples[samples.length - 1];
-    const dt = newest.t - oldest.t;
-    const dx = newest.x - oldest.x;
-    if (dt > 0 && dx !== 0) {
-      const next = clampTilt(dx / dt);
-      const changed = Math.abs(next - track.target) >= TILT_HOLD;
-      if (!track.armed) {
-        track.armed = true;
-        track.from = snap ? next : 0;
-        track.target = next;
-        track.origin = snap ? now : track.downAt;
-      } else if (changed) {
-        track.from = snap ? next : tiltAngle(now);
-        track.target = next;
-        track.origin = now;
-      }
-    }
+    const step = event.clientX - track.x;
+    track.x = event.clientX;
+    const elapsed = now - track.downAt;
+    if (elapsed > 0 && step !== 0) track.target = clampTilt((event.clientX - grab.x) / elapsed);
     if (snap) stopTiltLoop();
     const tilt = snap ? track.target : tiltAngle(now);
     const x = grab.poseX + (event.clientX - grab.x);

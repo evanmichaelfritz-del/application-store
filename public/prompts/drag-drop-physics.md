@@ -44,20 +44,20 @@ There is no throw and no momentum. Velocity never moves the chip after release. 
 ## Drag and tilt
 
 - Position is `grabPose + (pointer - grabPoint)`, in CSS pixels, on every `pointermove`. The chip uses the `translate` property, so the follow is not on the same property as rotation or scale.
-- Scale while held eases to 1.05 on `.ddp-lift` with the `scale` property. The transition is `scale 150ms cubic-bezier(0.2, 0.9, 0.3, 1)`, already armed in `ready`, so the change from 1 runs. The curve's 1.030 is at 25ms. On a 0.2 px/ms drag this card painted scale 1.022 at 36ms and 1.043 at 52ms, and 1.05 by 153ms.
+- Scale while held eases to 1.05 on `.ddp-lift` with the `scale` property. The transition is `scale 150ms cubic-bezier(0.2, 0.9, 0.3, 1)`, already armed in `ready`, so the change from 1 runs. The curve's 1.030 is at 25ms. On a 0.2 px/ms drag this card painted scale 1.036 at 35ms and 1.043 at 52ms, and 1.05 by 151ms.
 - Cursor `grabbing` is set on the chip while `held`. `document.body` is left alone.
-- Tilt is degrees on `.ddp-tilt` via the `rotate` property, clamped to ±10 and rounded to 0.001°. Speed is the horizontal movement over the last three pointer samples. The pointerdown sample counts.
-- `TILT_GAIN` is 27.8, which is 5.56 / 0.2. A drag whose position is `−0.2 × t` px for 400ms read −1.724° at 34.6ms, −1.875° at 36ms, −3.260° at 52.1ms, −4.304° at 84.1ms, −4.609° at 104ms, −5.037° at 153.4ms, −5.267° at 201ms, −5.429° at 252.4ms, −5.540° at 301ms, and −5.627° at 352ms and at 420ms. The same shape at 0.1 px/ms settled at −2.780°, and at 0.3 px/ms at −8.390°. An 80px drag over 1200ms in 36 equal steps settled at −1.842° and did not pass −2.94°. The ease is 330ms of `cubic-bezier(0.123, 0.738, 0.014, 0.907)` and waits 19ms. The 36ms and 52ms frames of that 0.2 px/ms drag are the flick readings: −1.875° at scale 1.022, then −3.260° at scale 1.043.
-- A move with `dx === 0`, and any time the pointer is idle, leaves the last target where it is. Tilt does not decay.
-- `.ddp-tilt` is memoized on tilt, scale, and whether the drop cycle is running. The displayed angle is written from the ease each frame. A target change smaller than 0.5° does not restart that ease, so a steady drag can finish and hold. Under reduced motion the angle snaps to the clamped target instead of easing. The 0.2 px/ms drag snaps to −5.56°. A move past the clamp snaps to −10° in that same event.
+- Tilt is degrees on `.ddp-tilt` via the `rotate` property, clamped to ±10 and rounded to 0.001°. Speed is the horizontal movement since the grab divided by the time since the grab. A sample with no horizontal change leaves the target.
+- `TILT_GAIN` is 27.9, which is 5.58 / 0.2. The angle is a first-order chase of `clamp(gain × speed, ±10°)`. It does not restart, and a constant target is never crossed. After a 28ms wait, 44% of the target up to ±5.58° arrives with a 6ms time constant and the rest with 70ms. The part past ±5.58° skips that fast mode, waits 58ms, and arrives with a 64ms time constant. A drag whose position is `−0.2 × t` px for 400ms read 0° at 18.1ms, −1.809° at 34.6ms, −3.252° at 51ms, −3.792° at 67.5ms, −4.176° at 84ms, −4.485° at 101ms, −4.714° at 117ms, −4.904° at 134ms, −5.053° at 151ms, −5.165° at 167.5ms, −5.323° at 200.1ms, −5.427° at 234.2ms, −5.490° at 267.5ms, −5.526° at 300.4ms, −5.559° at 351.4ms, −5.569° at 384ms, and −5.571° at 400.2ms. It did not pass −5.58°. The same shape at 0.1 px/ms read −2.356° at 117.1ms and −2.688° at 217ms, and did not pass −2.80°. At 0.3 px/ms it read −5.863° at 101.5ms, −7.816° at 201ms, and −8.251° at 301ms. An 80px drag over 1200ms in 36 equal steps read −1.575° at 118ms and settled at −1.860°, and did not pass −3.21°. The 35ms and 52ms frames of the 0.2 px/ms drag are the flick readings: −1.937° at scale 1.036, then −3.313° at scale 1.043.
+- A move with no horizontal change, and any time the pointer is idle, leaves the last target where it is. Tilt does not decay.
+- `.ddp-tilt` is memoized on tilt, scale, and whether the drop cycle is running. The displayed angle is written from the chase each frame. Under reduced motion the angle snaps to the clamped target instead of chasing. The 0.2 px/ms drag snaps to −5.581° at 400ms. A move past the clamp snaps to −10° in that same event.
 - Held motion is `translate` on `.ddp-chip`, `rotate` on `.ddp-tilt`, and `scale` on `.ddp-lift`. Each property eases on its own.
 
 ## Timing
 
 | Piece | Duration | Easing | Notes |
 | --- | --- | --- | --- |
-| Lift | 150ms | `cubic-bezier(0.2, 0.9, 0.3, 1)` | Scale 1 → 1.05. The curve is 1.030 at 25ms. This card painted 1.022 at 36ms and 1.043 at 52ms on the 0.2 px/ms drag. |
-| Tilt ease | 330ms, after a 19ms wait | `cubic-bezier(0.123, 0.738, 0.014, 0.907)` | Gain 27.8. The 0.2 px/ms drag above holds at −5.627°. |
+| Lift | 150ms | `cubic-bezier(0.2, 0.9, 0.3, 1)` | Scale 1 → 1.05. The curve is 1.030 at 25ms. This card painted 1.036 at 35ms and 1.043 at 52ms on the 0.2 px/ms drag. |
+| Tilt | first-order chase | 6ms and 70ms after a 28ms wait; past ±5.58°, 64ms after 58ms | Gain 27.9. The 0.2 px/ms drag above reads −5.571° at 400ms and does not pass −5.58°. |
 | Miss return | 500ms | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Translate, rotate, and scale. Rest is applied in the pointerup frame. |
 | Return overshoot | peak at 57.3% (about 287ms) | the same curve | Output peaks at about 1.0978, which is ≈9.75% of release distance (7.8px on 80px). |
 | Chip fade on a hit | 229ms | `ease-out` | Opacity 1 → 0 and blur 0 → 2px. This card painted 0.386 at 111ms. Gone at 229ms, then the chip parks at rest while opacity stays 0. |
@@ -97,7 +97,7 @@ Reduced motion does not mount the puff.
 
 ## Reduced motion
 
-The card follows both signals. `prefers-reduced-motion: reduce` is read with `matchMedia` on the pointer event, and `html[data-reduce-motion="1"]` is read the same way plus a mutation observer. The in-app Reduce Motion switch sets that attribute from the OS setting or the switch. Copy does not mount the switch, so Copy follows the OS query. Either signal removes transitions and animations. The tilt snaps to the clamped target instead of easing. The 0.2 px/ms drag snaps to −5.56°. A fast move past the clamp snaps to −10° in the pointer event and is still −10° a frame later.
+The card follows both signals. `prefers-reduced-motion: reduce` is read with `matchMedia` on the pointer event, and `html[data-reduce-motion="1"]` is read the same way plus a mutation observer. The in-app Reduce Motion switch sets that attribute from the OS setting or the switch. Copy does not mount the switch, so Copy follows the OS query. Either signal removes transitions and animations. The tilt snaps to the clamped target instead of chasing. The 0.2 px/ms drag snaps to −5.581° at 400ms. A fast move past the clamp snaps to −10° in the pointer event and is still −10° a frame later.
 
 - A miss goes straight back to `ready` at rest.
 - A hit shows the filled zone immediately (photo opacity 1, border and label hidden, plate `#f7f7f7`, shared shadow, no squash, no puff) and parks the chip at rest while it is invisible.
@@ -148,11 +148,11 @@ SOFTWARE.
 - [ ] Board is 213×192 and transparent. Chip is 72×72 at left 141, top 0, cover, radius 12, with the shared shadow. Zone is 104×104 at left 0, top 88, radius 12.
 - [ ] Zone border is 2px dashed `rgba(0,0,0,0.1)` and the background is `rgba(234,234,234,0.2)`. The label is 11px / 15px `#767676`, width 76, top 38, in the Inter-first system stack.
 - [ ] Drag-over, while the chip centre is inside the zone, uses border `rgba(0,0,0,0.28)`, background `rgba(234,234,234,0.55)`, and label opacity 0.5.
-- [ ] Pointer down eases scale to 1.05 over 150ms (this card painted 1.022 at 36ms and 1.043 at 52ms) and sets cursor `grabbing` on the chip only. The chip follows the pointer 1:1.
-- [ ] Tilt stays within ±10°. Gain is 27.8. A 0.2 px/ms drag for 400ms reads −1.875° at 36ms and holds at −5.627°. The 0.1 and 0.3 px/ms drags hold at −2.780° and −8.390°. An 80px drag over 1200ms holds at −1.842°. Idle tilt holds. Reduced motion snaps to the target.
+- [ ] Pointer down eases scale to 1.05 over 150ms (this card painted 1.036 at 35ms and 1.043 at 52ms) and sets cursor `grabbing` on the chip only. The chip follows the pointer 1:1.
+- [ ] Tilt stays within ±10°. Gain is 27.9. A 0.2 px/ms drag for 400ms reads −1.809° at 34.6ms and −5.571° at 400ms, and does not pass −5.58°. The 0.1 px/ms drag reads −2.356° at 117ms and does not pass −2.80°. The 0.3 px/ms drag reads −5.863° at 101ms, −7.816° at 201ms, and −8.251° at 301ms. An 80px drag over 1200ms holds at −1.860°. Idle tilt holds. Reduced motion snaps to the target.
 - [ ] A miss, tested by the chip centre, returns over 500ms with `cubic-bezier(0.34, 1.56, 0.64, 1)` (≈9.75% of release distance, 7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. There is no throw.
 - [ ] A hit fades the chip out in 229ms ease-out with up to 2px blur (0.386 at 111ms), squashes the zone through 0.970 at 210ms and back to 0.9997 by 460ms, and fades the cover photo in over 430ms (0.132/0.507/0.774/0.942 at 111/210/277/344ms) while the border and label hide.
-- [ ] The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The ring is stroke 36, one octave, blur 5, in a user-space filter box from −160 to 260. It does not darken the photo, and the haze has no hard edge.
+- [ ] The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The ring is stroke 36, one octave, blur 5, in a user-space filter box from −160 to 260. It does not darken the photo, and the haze has no hard edge. Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
 - [ ] The photo fades from 1832ms over 211ms to a 4px blur (opacity about 0.68/0.41/0.25 at 32/64/100ms, gone at 211ms, which is 2043ms after the drop). The chip respawns at 2268ms from scale 0.9 and opacity 0 and is fully visible at 2410ms.
 - [ ] Reduced motion follows the OS setting and `html[data-reduce-motion="1"]`. It snaps the tilt, skips the puff, empties the zone at 1832ms, and respawns the chip at 2268ms.
 - [ ] Copy and the live card are this component. Copy does not request a font or any other external host.
@@ -190,26 +190,27 @@ const LIFT_MS = 150;
 const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * Gain is 5.56 / 0.2 = 27.8. An 80px drag in 400ms is 0.2 px/ms and settles
- * at −5.56°. The same gain gives −2.78° at 0.1 px/ms (40px in 400ms) and
- * −8.34° at 0.3 px/ms (120px in 400ms). Leftward is negative.
+ * Gain is 5.58 / 0.2 = 27.9. An 80px drag in 400ms is 0.2 px/ms and settles
+ * at −5.58°. The same gain gives −2.79° at 0.1 px/ms and −8.37° at 0.3 px/ms.
+ * Leftward is negative. Anything past ±10° snaps to the clamp.
  *
- * Speed is the rolling average of the last three pointer samples (the
- * pointerdown counts). The angle eases from the grab toward that target
- * over 330ms. The curve waits 19ms, which is the shift that puts the 80px
- * samples on the curve. A target change under 0.5° does not restart the
- * ease, so a steady drag's event-gap wobble holds the origin. dx === 0
- * leaves the target. Once the ease finishes, the angle holds.
- * Anything past ±10° snaps to the clamp.
+ * The angle is a first-order chase of that target. It does not restart, and
+ * a constant target is never crossed. After a 28ms wait, 44% of the target
+ * (up to ±5.58°) arrives with a 6ms time constant and the rest with 70ms.
+ * The part of the target past ±5.58° skips that fast mode. It waits 58ms
+ * and arrives with a 64ms time constant, so a faster drag cannot multiply
+ * the opening kick. Speed is the horizontal movement since the grab divided
+ * by the time since the grab, so one short interval cannot spike it.
+ * A sample with no horizontal change leaves the target.
  */
-const TILT_GAIN = 27.8;
-const TILT_EASE_MS = 330;
-const TILT_LAG_MS = 19;
-/** Fitted to the 80px samples. About 0.30 at 34ms of wall time, 1 by 330ms. */
-const TILT_CURVE = [0.123, 0.738, 0.014, 0.907] as const;
-const TILT_SAMPLES = 3;
-/** Below this, a new rolling speed does not restart the 330ms ease. */
-const TILT_HOLD = 0.5;
+const TILT_GAIN = 27.9;
+const TILT_FAST_CAP = 5.58;
+const TILT_LAG_MS = 28;
+const TILT_FAST_WEIGHT = 0.44;
+const TILT_TAU_FAST = 6;
+const TILT_TAU_BODY = 70;
+const TILT_EXTRA_LAG_MS = 58;
+const TILT_EXTRA_TAU = 64;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
@@ -414,31 +415,28 @@ function clampTilt(vxPxPerMs: number): number {
   return Math.round(clamped * 1000) / 1000;
 }
 
-function unitBezier(x1: number, y1: number, x2: number, y2: number, x: number): number {
-  if (x <= 0) return 0;
-  if (x >= 1) return 1;
-  let lo = 0;
-  let hi = 1;
-  for (let i = 0; i < 24; i++) {
-    const t = (lo + hi) / 2;
-    const mt = 1 - t;
-    const bx = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
-    if (bx < x) lo = t;
-    else hi = t;
-  }
-  const t = (lo + hi) / 2;
-  const mt = 1 - t;
-  return 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t;
+/** Two first-order modes. Result stays in [0, 1] and does not decrease. */
+function firstOrderMix(elapsedMs: number, lagMs: number, weightFast: number, tauFast: number, tauBody: number): number {
+  const elapsed = elapsedMs - lagMs;
+  if (elapsed <= 0) return 0;
+  const mixed =
+    1 -
+    weightFast * Math.exp(-elapsed / tauFast) -
+    (1 - weightFast) * Math.exp(-elapsed / tauBody);
+  if (mixed <= 0) return 0;
+  if (mixed >= 1) return 1;
+  return mixed;
 }
 
-function tiltProgress(elapsedMs: number): number {
-  return unitBezier(
-    TILT_CURVE[0],
-    TILT_CURVE[1],
-    TILT_CURVE[2],
-    TILT_CURVE[3],
-    (elapsedMs - TILT_LAG_MS) / TILT_EASE_MS,
-  );
+function chaseTilt(elapsedMs: number, target: number): number {
+  const sign = target < 0 ? -1 : 1;
+  const mag = Math.abs(target);
+  const capped = mag < TILT_FAST_CAP ? mag : TILT_FAST_CAP;
+  const extra = mag - capped;
+  const base = capped * firstOrderMix(elapsedMs, TILT_LAG_MS, TILT_FAST_WEIGHT, TILT_TAU_FAST, TILT_TAU_BODY);
+  const extraElapsed = elapsedMs - TILT_EXTRA_LAG_MS;
+  const tail = extraElapsed <= 0 ? 0 : extra * (1 - Math.exp(-extraElapsed / TILT_EXTRA_TAU));
+  return Math.round(sign * (base + tail) * 1000) / 1000;
 }
 
 function centreInsideZone(x: number, y: number): boolean {
@@ -573,8 +571,7 @@ export function PhysicsDropCard() {
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const tiltSamples = useRef<{ t: number; x: number }[]>([]);
-  const tiltTrack = useRef({ downAt: 0, origin: 0, from: 0, target: 0, armed: false });
+  const tiltTrack = useRef({ downAt: 0, x: 0, target: 0 });
   const tiltLoop = useRef(0);
   const timersRef = useRef<number[]>([]);
   const chipRef = useRef<HTMLDivElement>(null);
@@ -623,8 +620,7 @@ export function PhysicsDropCard() {
 
   function tiltAngle(now: number): number {
     const track = tiltTrack.current;
-    const raw = track.from + (track.target - track.from) * tiltProgress(now - track.origin);
-    return Math.round(raw * 1000) / 1000;
+    return chaseTilt(now - track.downAt, track.target);
   }
 
   function stopTiltLoop() {
@@ -733,8 +729,7 @@ export function PhysicsDropCard() {
       poseY: poseRef.current.y,
     };
     const now = performance.now();
-    tiltSamples.current = [{ t: now, x: event.clientX }];
-    tiltTrack.current = { downAt: now, origin: now, from: 0, target: 0, armed: false };
+    tiltTrack.current = { downAt: now, x: event.clientX, target: 0 };
     reduceRef.current = motionReducedNow();
     flushSync(() => {
       setPhaseBoth('held');
@@ -747,30 +742,13 @@ export function PhysicsDropCard() {
     if (phaseRef.current !== 'held' || event.pointerId !== pointerRef.current) return;
     const grab = grabRef.current;
     const now = performance.now();
-    const samples = tiltSamples.current;
-    samples.push({ t: now, x: event.clientX });
-    if (samples.length > TILT_SAMPLES) samples.splice(0, samples.length - TILT_SAMPLES);
     const track = tiltTrack.current;
     const snap = motionReducedNow();
     reduceRef.current = snap;
-    const oldest = samples[0];
-    const newest = samples[samples.length - 1];
-    const dt = newest.t - oldest.t;
-    const dx = newest.x - oldest.x;
-    if (dt > 0 && dx !== 0) {
-      const next = clampTilt(dx / dt);
-      const changed = Math.abs(next - track.target) >= TILT_HOLD;
-      if (!track.armed) {
-        track.armed = true;
-        track.from = snap ? next : 0;
-        track.target = next;
-        track.origin = snap ? now : track.downAt;
-      } else if (changed) {
-        track.from = snap ? next : tiltAngle(now);
-        track.target = next;
-        track.origin = now;
-      }
-    }
+    const step = event.clientX - track.x;
+    track.x = event.clientX;
+    const elapsed = now - track.downAt;
+    if (elapsed > 0 && step !== 0) track.target = clampTilt((event.clientX - grab.x) / elapsed);
     if (snap) stopTiltLoop();
     const tilt = snap ? track.target : tiltAngle(now);
     const x = grab.poseX + (event.clientX - grab.x);
