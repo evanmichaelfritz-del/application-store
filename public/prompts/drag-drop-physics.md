@@ -9,103 +9,112 @@ One board. The live web demo and Copy both mount `PhysicsDropCard` from `src/dem
 | Part | Value |
 | --- | --- |
 | Board | 213×192, transparent, position relative |
-| Chip | 72×72, left 141, top 0, `object-fit: cover`, radius 18 (chip side / 4) |
-| Zone | 104×104, left 0, top 88, `box-sizing: border-box` |
-| Zone border | 2px dashed `rgba(0,0,0,0.1)` while empty; transparent while filled |
-| Zone background | `rgba(234,234,234,0.2)` |
+| Chip | 72×72, left 141, top 0, `object-fit: cover`, radius 12 |
+| Chip shadow | `0 1px 2px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.08), 0 18px 32px rgba(0,0,0,0.06)` |
+| Zone | 104×104, left 0, top 88, radius 12, `box-sizing: border-box` |
+| Zone border | 2px dashed `rgba(0,0,0,0.1)` while empty; transparent while the photo is showing |
+| Zone background | `rgba(234,234,234,0.2)` while empty; `#f7f7f7` while the photo is showing |
+| Filled shadow | `0 2px 4px rgba(0,0,0,0.06), 0 10px 22px rgba(0,0,0,0.08)` while the photo is showing |
+| Drag-over | border `rgba(0,0,0,0.28)`, background `rgba(234,234,234,0.55)`, label opacity 0.5, while the chip centre is inside the zone |
 | Label | two centred lines, `Drag & drop` then `it here` |
-| Label type | 12px / 15px, `rgba(0,0,0,0.45)`, `system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif` |
-| Photo | `DROP_PHOTO`, JPEG data URI, 746×944, cover on the chip and, after a hit, on the zone |
+| Label box | 11px / 14px, `#767676`, width 76, top 40, `left: 0; right: 0; margin: 0 auto` inside the zone |
+| Label face | `Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif` |
+| Photo | `DROP_PHOTO`, JPEG data URI, 746×944, cover on the chip and, after a hit, on the zone at radius 12 |
 
-12px is the label size that keeps both lines inside the zone's 100px content box (104 minus the 2px border on each side). The spec calls the label small grey text and does not give a pixel size or a grey hex. Radius 18 is the chip side divided by 4; the spec says rounded and does not give a radius.
+The label names Inter first and then system faces. Nothing downloads a font. There is no `@font-face` and no request to a font host.
 
 ## States
 
 | State | How you get there | What you see |
 | --- | --- | --- |
-| `ready` | mount, a finished return, or the 2265ms respawn | Chip at translate 0,0, rotation 0, scale 1, opacity 1. Cursor `grab`. Zone shows the dashed border and the label. No photo in the zone. |
-| `held` | primary pointer down on the chip, only from `ready` | Chip follows the pointer 1:1. Scale becomes 1.05 on the down event, with no separate scale tween. Cursor `grabbing` on the chip and on `document.body` until release. Tilt tracks horizontal pointer velocity. |
+| `ready` | mount, a finished return, or the end of `back` | Chip at translate 0,0, rotation 0, scale 1, opacity 1. Cursor `grab` on the chip. Zone shows the dashed border and the label. No photo in the zone. |
+| `held` | primary pointer down on the chip, only from `ready` | Chip follows the pointer 1:1. Scale eases to 1.05. Cursor `grabbing` on the chip only. Tilt tracks horizontal pointer velocity and holds when that velocity is zero. |
 | `homing` | pointer up, and the chip centre is outside the zone | Transform eases to rest over 500ms. Pointer events on the chip are off. A new pointer down is ignored until the 500ms ends and the state is `ready`. |
-| `sinking` | pointer up, and the chip centre is inside the zone | Chip fades out in place. Zone border and label hide. Zone photo fades in. Zone scale squashes and recovers. Puff plays, unless reduced motion is on. |
-| `empty` | 1815ms after the hit | Zone is empty again: dashed border, label, no photo. Chip stays at opacity 0, already parked at rest. |
+| `sinking` | pointer up, and the chip centre is inside the zone | Chip fades out in place. Zone border and label hide. Zone photo fades in over the `#f7f7f7` plate. Zone scale squashes and recovers. Puff plays behind the zone, unless reduced motion is on. |
+| `clearing` | 1830ms after the hit | Photo fades out with a 1.5px blur. Chip stays at opacity 0, already parked at rest. |
+| `empty` | 2064ms after the hit | Zone is empty again: dashed border, label, no photo, no filled shadow. Chip stays at opacity 0. |
+| `back` | 2271ms after the hit | Chip plays in from scale 0.9 and opacity 0. At 2420ms the state becomes `ready`. |
 
-The chip centre is `left + x + 36`, `top + y + 36`, with left 141 and top 0. It is inside the zone when that point is within x 0…104 and y 88…192, edges included. Overlap of the boxes is not the test.
+The chip centre is `left + x + 36`, `top + y + 36`, with left 141 and top 0. It is inside the zone when that point is within x 0…104 and y 88…192, edges included. Overlap of the boxes is not the test. `data-over` is `1` only while `held` and that test passes.
 
 There is no throw and no momentum. Velocity never moves the chip after release. It only feeds tilt.
 
 ## Drag and tilt
 
 - Position is `grabPose + (pointer - grabPoint)`, in CSS pixels, on every `pointermove`.
-- Scale while held is 1.05.
-- Tilt is degrees, clamped to ±10, smoothed toward `vx * TILT_GAIN`.
-- `vx` is horizontal pixels per millisecond.
-- A typical drag is the 125px gap from the chip centre (177) to the zone centre (52), covered in 400ms, so `vx = -125 / 400 = -0.3125` px/ms.
-- That speed maps to -5.6°, so `TILT_GAIN = -5.6 / -0.3125 = 17.92` degrees per (px/ms).
-- Smoothing on each move is `tilt += (target - tilt) * (1 - exp(-dt / 48))`, with `dt` in ms.
-- If the pointer has not moved for 40ms, a frame loop eases tilt back toward 0 with the same 48ms constant.
-- Transform origin is the chip centre, so tilt and scale do not move the hit-test centre.
-- `transform` while held and while fading is `translate(x, y) rotate(tilt) scale(scale)`.
+- Scale while held eases to 1.05 on `.ddp-lift`. The transition is `transform 200ms cubic-bezier(0, 0.24, 0.43, 0.65)`, already armed in `ready`, so the change from 1 runs. That curve is about 1.017 at 35ms and 1.05 at 200ms.
+- Cursor `grabbing` is set on the chip while `held`. `document.body` is left alone.
+- Tilt is degrees on the chip, clamped to ±10. `vx` is horizontal pixels per millisecond since the previous move.
+- `TILT_GAIN` is 28 degrees per (px/ms): an 80px move at a steady 0.2 px/ms (80px in 400ms) has target tilt -5.6°.
+- Each move with nonzero `dx` eases toward `clamp(vx * 28, ±10)` by `1 - exp(-dt / TILT_EASE_MS)`. `TILT_EASE_MS` is `80 / -ln(0.26)`, about 59.39ms. One 80ms sample whose speed reaches the clamp therefore lands on -7.4°, because the blend is 0.74 and `0.74 * -10 = -7.4`.
+- A drag at `8.5 / 28` px/ms (about 0.3036 px/ms) has target tilt -8.5°, so 400ms into that drag reads about -8.5°.
+- A move with `dx === 0`, and any time the pointer is idle, leaves the last tilt where it is. Tilt does not decay.
+- Translate and rotate are on `.ddp-chip`. Scale is on `.ddp-lift`. Origin of both is the centre, so tilt and scale do not move the hit-test centre.
+- Held transform is `translate(x, y) rotate(tilt)` on the chip and `scale(scale)` on the lift.
 
 ## Timing
 
 | Piece | Duration | Easing | Notes |
 | --- | --- | --- | --- |
-| Miss return | 500ms | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Starts on the frame after release, from the release pose. Translate, tilt, and scale share this transition. |
-| Return overshoot | peak at 57.3% (about 287ms) | the same curve | Output peaks at about 1.098, which is about 10% of the release distance. |
-| Chip fade on a hit | 230ms | linear | Opacity 1 → 0. The chip stays at the release pose until the fade ends, then its transform snaps to rest while opacity is 0. |
-| Zone squash | 610ms | linear keyframes | Scale 1 at 0%, 0.97 at `230/610` (37.7049%, the chip-fade time), 1 at 100%. |
-| Zone photo | 395ms | linear | Opacity 0 → 1, `object-fit: cover`, painted over the 104×104 outer box (offset by the 2px border). |
-| Border and label | instant | none | Hidden on the hit frame. Restored on the empty frame. |
-| Puff visible | 280ms → 1460ms | linear | Delay 280ms, duration 1180ms. |
-| Zone empties | 1815ms after the hit | snap | State `empty`. |
-| Chip respawns | 2265ms after the hit | snap | State `ready`, rest pose, opacity 1. No fade-in. |
+| Lift | 200ms | `cubic-bezier(0, 0.24, 0.43, 0.65)` | Scale 1 → 1.05. About 1.017 at 35ms. |
+| Miss return | 500ms | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Starts on the frame after release, from the release pose. Translate, tilt, and scale share this curve. |
+| Return overshoot | peak at 57.3% (about 287ms) | the same curve | Output peaks at about 1.0978, which is ≈9.75% of release distance (7.8px on 80px). |
+| Chip fade on a hit | 229ms | `ease-out` | Opacity 1 → 0 and blur 0 → 1.8px. About 0.33 opacity at 112ms. Gone at 229ms, then the chip parks at rest while opacity stays 0. |
+| Zone squash | 520ms | `ease-in-out` between keys | Scale 1 at 0%, 0.97 at 42% (218.4ms), 1 at 520ms. |
+| Zone photo in | 445ms | `ease-in-out` | Opacity 0 → 1. About 0.13 at 112ms. The transition is armed before the hit. Radius 12, `object-fit: cover`, painted over the 104×104 outer box (offset by the 2px border). |
+| Border and label | instant | none | Hidden while the photo is showing (`sinking` and `clearing`). Restored when the state becomes `empty`. |
+| Puff | 0 → 1460ms | see below | Mounts on the hit. Unmounts when the zone is empty. |
+| Photo out | 1830ms → 2064ms | `ease-out` | Opacity 1 → 0 and blur 0 → 1.5px over 234ms. |
+| Chip respawn | 2271ms → 2420ms | `ease-out` | From scale 0.9 and opacity 0 to scale 1 and opacity 1 over 149ms, then `ready`. |
 
-The return transition is armed on the `homing` frame while the transform is still the release pose, then the rest transform is applied on the next frame. That is what lets the 500ms curve run. Re-grabs are ignored for the whole return because the state is not `ready`. The chip also ignores pointer downs while `sinking` or `empty`, so the drop timeline cannot be restarted until the respawn.
+The return transition is armed on the `homing` frame while the transform is still the release pose, then the rest transform is applied on the next frame. That is what lets the 500ms curve run. Re-grabs are ignored for the whole return because the state is not `ready`. The chip also ignores pointer downs while `sinking`, `clearing`, `empty`, or `back`.
 
 ## Puff
 
-A 100×100 layer centred on the zone: left `(104 - 100) / 2 = 2`, top `88 + 2 = 90`. It is not inside the zone, so the squash does not scale it.
+A 100×100 layer centred on the zone: left `(104 - 100) / 2 = 2`, top `88 + 2 = 90`. It is a sibling behind the zone (`z-index: 0`, zone `z-index: 1`), so the squash does not scale it and the opaque filled zone covers the middle. The halo outside the zone is the part you see. The photo is not greyed or darkened.
 
-End scale is `1 + 60 / 104` (about 1.576923). End drift is `translateY(10px)`. Opacity goes from 1 to 0 over the 1180ms run. Transform origin is the centre. Order is translate then scale, so the 10px is not multiplied by the scale.
+Opacity is linear between keys: 0 at 0ms, 0.9 at 460ms, 0 at 1460ms.
+
+Scale eases out between keys: 1 at 0ms, 1.135 at 500ms, `1 + 60/104` (about 1.5769) at 1460ms. `translateY` stays 0 through 500ms, then eases to 10px at 1460ms. Transform origin is the centre. Order is translate then scale, so the 10px is not multiplied by the scale.
 
 The ring, before the filter:
 
 - outer box 100×100
-- stroke 50, colour `rgba(122,122,122,0.4)`
+- stroke 50, colour `rgba(148,148,148,0.55)`
 - centreline rect at inset 25, size 50×50
 - centreline `rx` is `27 - 25 = 2`, so the outer corner reads as about 27
 
-The stroke is torn into wisps with an SVG filter. These numbers are the wisp recipe, not measurements of the demo:
+The stroke is a soft rounded haze. An SVG filter roughens it slightly:
 
-- `feTurbulence` fractal noise, `baseFrequency` 0.08, 3 octaves, seed 4
-- `feDisplacementMap` scale 24, R and G channels
-- `feGaussianBlur` stdDeviation 1.8
+- `feTurbulence` fractal noise, `baseFrequency` 0.045, 2 octaves, seed 9
+- `feDisplacementMap` scale 8, R and G channels
+- `feGaussianBlur` stdDeviation 8
 - filter region `-80% -80%` size `260% 260%`, `sRGB`
-- the SVG `overflow` is visible so the torn edge is not clipped to the 100 box
+- the SVG `overflow` is visible so the blurred edge is not clipped to the 100 box
 
-The puff mounts when the hit starts and unmounts when the zone empties. Reduced motion does not mount it.
+Reduced motion does not mount the puff.
 
 ## Reduced motion
 
-`prefers-reduced-motion: reduce` removes transitions and animations (`transition: none` and `animation: none` on the chip, the photo, the squash, and the puff). State changes are snaps.
+`prefers-reduced-motion: reduce` removes transitions and animations (`transition: none` and `animation: none` on the chip, the lift, the photo, the squash, the puff, the photo-out, and the respawn). State changes are snaps.
 
 - A miss goes straight back to `ready` at rest.
-- A hit shows the filled zone immediately (photo opacity 1, border and label hidden, no squash, no puff) and parks the chip at rest while it is invisible.
-- The zone still empties at 1815ms and the chip still respawns at 2265ms, so the drop stays usable.
+- A hit shows the filled zone immediately (photo opacity 1, border and label hidden, plate `#f7f7f7`, filled shadow, no squash, no puff) and parks the chip at rest while it is invisible.
+- The zone empties at 1830ms and the chip respawns at 2271ms, already at scale 1 and opacity 1.
 
 ## Gotchas
 
-- The chip accepts a grab only in `ready`. The return ignores re-grabs. The hit sequence also ignores them until the respawn.
+- The chip accepts a grab only in `ready`. The return ignores re-grabs. The hit sequence also ignores them until the respawn has finished.
 - Do not spring the chip home and do not keep integrating velocity after pointer up.
-- Do not add hover or focus styles. The chip is not tabbable.
-- The label must not request a font. No `fonts.gstatic.com`, no other CDN, no `@font-face` pointed at a network URL. The system stack above is the face.
+- Do not add hover or focus styles. The chip is not tabbable. The zone highlight is the drag-over state: it is on only while the pointer is down and the chip centre is inside the zone.
+- The label must not request a font. No `fonts.gstatic.com`, no other CDN, no `@font-face` pointed at a network URL. The Inter-first system stack above is the face.
 - The photo is a data URI. The board does not fetch an image.
 - Live and Copy are the same component. Copy's document centers a 213px `#parity-root` on `#f9f9f9` and loads `/parity/drag-drop-physics.js` from the same origin. The transparent board sits on that same grey in the live frame.
-- The native file is a static stand-in. It is not the web demo and it is not Copy.
+- Native `src/demos/drag-drop/index.tsx` re-exports `DragDropDemo` from `src/demos/DragDrop.tsx`, the gesture-handler scene. That scene is not the web board and it is not Copy.
 
 ## Setup
 
-`src/demos/drag-drop/photo.ts` exports `DROP_PHOTO`, a CC0 JPEG (Jez Timms, Unsplash ODANAGrc168) as a data URI. Any 746×944 image can replace it. The original demo uses a different portrait.
+`src/demos/drag-drop/photo.ts` exports `DROP_PHOTO`, a 746×944 CC0 crop of a rose by Jez Timms. The photograph is Unsplash photo ODANAGrc168, https://unsplash.com/photos/ODANAGrc168, also on Wikimedia Commons at https://commons.wikimedia.org/wiki/File:Blood-red_rose_up_close_(Unsplash).jpg. The dedication is CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/. Any 746×944 image can replace `DROP_PHOTO`. The original demo uses a different 746×944 portrait.
 
 Peer is React. `scripts/build-parity.mjs` bundles `mount.tsx` and prepends the React `LICENSE` verbatim in one `/*! */` header. `react-dom`'s `LICENSE` is the same text, so it is not repeated. The header is:
 
@@ -135,26 +144,27 @@ SOFTWARE.
 
 ## Checklist
 
-- [ ] Board is 213×192 and transparent. Chip is 72×72 at left 141, top 0, cover, radius 18. Zone is 104×104 at left 0, top 88.
-- [ ] Zone border is 2px dashed `rgba(0,0,0,0.1)` and the background is `rgba(234,234,234,0.2)`. The label is the two lines above, in the system font stack.
-- [ ] Pointer down sets scale 1.05 and cursor `grabbing`. The chip follows the pointer 1:1. Tilt stays within ±10° and is about -5.6° for a 125px leftward drag over 400ms.
-- [ ] A miss, tested by the chip centre, returns over 500ms with `cubic-bezier(0.34, 1.56, 0.64, 1)` and ignores re-grabs. There is no throw.
-- [ ] A hit fades the chip out in 230ms, squashes the zone to 0.97 and back by 610ms, and fades the cover photo in over 395ms while the border and label hide.
-- [ ] The puff runs from 280ms to 1460ms, grows to `1 + 60/104`, drifts 10px down, and fades out. It is a 100×100 rounded stroke torn by the noise filter above.
-- [ ] The zone empties at 1815ms. The chip respawns at rest at 2265ms.
-- [ ] Reduced motion snaps the tweens, skips the puff, and still empties at 1815ms and respawns at 2265ms.
+- [ ] Board is 213×192 and transparent. Chip is 72×72 at left 141, top 0, cover, radius 12, with the shadow above. Zone is 104×104 at left 0, top 88, radius 12.
+- [ ] Zone border is 2px dashed `rgba(0,0,0,0.1)` and the background is `rgba(234,234,234,0.2)`. The label is 11px `#767676`, width 76, top 40, in the Inter-first system stack.
+- [ ] Drag-over, while the chip centre is inside the zone, uses border `rgba(0,0,0,0.28)`, background `rgba(234,234,234,0.55)`, and label opacity 0.5.
+- [ ] Pointer down eases scale to 1.05 over 200ms (about 1.017 at 35ms) and sets cursor `grabbing` on the chip only. The chip follows the pointer 1:1.
+- [ ] Tilt stays within ±10°. An 80px drag at 0.2 px/ms reads about -5.6°. An 80ms sample at the clamp reads -7.4°. A 0.3036 px/ms drag reads about -8.5° at 400ms. Idle tilt holds.
+- [ ] A miss, tested by the chip centre, returns over 500ms with `cubic-bezier(0.34, 1.56, 0.64, 1)` (≈9.75% of release distance, 7.8px on 80px) and ignores re-grabs. There is no throw.
+- [ ] A hit fades the chip out in 229ms ease-out with up to 1.8px blur (about 0.33 at 112ms), squashes the zone to 0.97 and back by 520ms, and fades the cover photo in over 445ms ease-in-out (about 0.13 at 112ms) while the border and label hide.
+- [ ] The puff runs from the hit to 1460ms, behind the zone. Opacity peaks at 0.9 at 460ms. Scale is 1.135 at 500ms and about 1.577 at the end. It is a soft mid-grey rounded haze and does not darken the photo. Noise seed is 9.
+- [ ] The photo fades out from 1830ms to 2064ms with a 1.5px blur. The chip respawns at 2271ms from scale 0.9 and opacity 0 and is fully visible at 2420ms.
+- [ ] Reduced motion snaps the tweens, skips the puff, empties the zone at 1830ms, and respawns the chip at 2271ms.
 - [ ] Copy and the live card are this component. Copy does not request a font or any other external host.
-- [ ] The photo is the CC0 Jez Timms JPEG, and a different 746×944 image can replace `DROP_PHOTO`.
+- [ ] The photo is the CC0 Jez Timms crop linked above, and a different 746×944 image can replace `DROP_PHOTO`. The original demo uses a different 746×944 portrait.
 
 ## Component
 
-```tsx
+```js
 import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { DROP_PHOTO } from './photo';
 
 /**
- * Independent recreate of the visible behaviour of the transitions.dev
- * drag-and-drop demo. Geometry is the 1280 desktop measurement.
+ * Drag-and-drop board. Geometry is the 1280 desktop card.
  * The same component is what the copy bundle mounts.
  */
 
@@ -167,79 +177,123 @@ const CHIP_Y = 0;
 const ZONE_X = 0;
 const ZONE_Y = 88;
 const BORDER = 2;
-/** Rounded tile. The spec gives no radius; a quarter of the chip side stays clearly rounded. */
-const CHIP_RADIUS = CHIP / 4;
+const RADIUS = 12;
 const GRAB_SCALE = 1.05;
+const LIFT_MS = 200;
+/** 35ms into the 200ms lift reads about 1.017. */
+const LIFT_EASE = 'cubic-bezier(0, 0.24, 0.43, 0.65)';
 const TILT_LIMIT = 10;
 /**
- * A typical drag covers the horizontal gap from the chip centre to the zone
- * centre in 400ms, moving left. That speed maps to -5.6°.
+ * An 80px drag at a steady 0.2 px/ms (80px in 400ms) settles on -5.6°.
+ * One 80ms sample at or past the clamp settles on -7.4°: the blend over
+ * 80ms is 1 - e^(-80 / ease) = 0.74, and 0.74 * -10 = -7.4.
+ * A typical drag at 8.5/28 px/ms reads -8.5° at 400ms.
+ * Idle pointer movement does not change tilt.
  */
-const TYPICAL_TILT = -5.6;
-const TYPICAL_DRAG_MS = 400;
-const TYPICAL_VX = -(CHIP_X + CHIP / 2 - (ZONE_X + ZONE / 2)) / TYPICAL_DRAG_MS;
-const TILT_GAIN = TYPICAL_TILT / TYPICAL_VX;
-/** Own smoothing. Tilt eases toward the latest horizontal velocity. */
-const TILT_SMOOTH_MS = 48;
-const TILT_IDLE_MS = 40;
+const DRAG_80_VX = -80 / 400;
+const TILT_GAIN = -5.6 / DRAG_80_VX;
+const TILT_EASE_MS = 80 / -Math.log(0.26);
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-const FADE_MS = 230;
+const FADE_MS = 229;
+const FADE_BLUR = 1.8;
 const SQUASH = 0.97;
-const SQUASH_MS = 610;
-const PHOTO_MS = 395;
-const PUFF_START = 280;
-const PUFF_END = 1460;
-const PUFF_MS = PUFF_END - PUFF_START;
-const EMPTY_AT = 1815;
-const RESPAWN_AT = 2265;
+const SQUASH_MS = 520;
+const SQUASH_DIP = 42;
+const PHOTO_IN_MS = 445;
+const PUFF_MS = 1460;
+const PUFF_PEAK_MS = 460;
+const PUFF_SCALE_MS = 500;
+const PUFF_MID_SCALE = 1.135;
+const PHOTO_OUT_AT = 1830;
+const PHOTO_OUT_MS = 234;
+const PHOTO_OUT_BLUR = 1.5;
+const RESPAWN_AT = 2271;
+const RESPAWN_MS = 149;
+const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
 const PUFF_STROKE = 50;
 const PUFF_RADIUS = 27;
 const PUFF_DRIFT = 10;
 const PUFF_SCALE = 1 + 60 / ZONE;
-const PUFF_COLOR = 'rgba(122,122,122,0.4)';
-/** Own wisp recipe: noise tears the thick stroke, then a small blur. */
-const PUFF_NOISE = 0.08;
-const PUFF_OCTAVES = 3;
-const PUFF_SEED = 4;
-const PUFF_DISPLACE = 24;
-const PUFF_BLUR = 1.8;
+const PUFF_COLOR = 'rgba(148,148,148,0.55)';
+const PUFF_NOISE = 0.045;
+const PUFF_OCTAVES = 2;
+const PUFF_SEED = 9;
+const PUFF_DISPLACE = 8;
+const PUFF_BLUR = 8;
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
-const LABEL_COLOR = 'rgba(0,0,0,0.45)';
-const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const LABEL_SIZE = 12;
-const LABEL_LINE = 15;
+const OVER_BORDER = 'rgba(0,0,0,0.28)';
+const OVER_BG = 'rgba(234,234,234,0.55)';
+const OVER_LABEL = 0.5;
+const FILLED_BG = '#f7f7f7';
+const LABEL_COLOR = '#767676';
+const LABEL_FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const LABEL_SIZE = 11;
+const LABEL_LINE = 14;
+const LABEL_WIDTH = 76;
+const LABEL_TOP = 40;
+const CHIP_SHADOW = '0 1px 2px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.08), 0 18px 32px rgba(0,0,0,0.06)';
+const ZONE_SHADOW = '0 2px 4px rgba(0,0,0,0.06), 0 10px 22px rgba(0,0,0,0.08)';
 
 type Pose = { x: number; y: number; tilt: number; scale: number };
-type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'empty';
+type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'clearing' | 'empty' | 'back';
 
 const REST: Pose = { x: 0, y: 0, tilt: 0, scale: 1 };
 
-const SQUASH_AT = (FADE_MS / SQUASH_MS) * 100;
+const PEAK_AT = (PUFF_PEAK_MS / PUFF_MS) * 100;
+const SCALE_AT = (PUFF_SCALE_MS / PUFF_MS) * 100;
 
 const SHEET = `
-.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear both; }
+.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms ease-in-out both; }
 @keyframes ddp-squash {
   0% { transform: scale(1); }
-  ${SQUASH_AT}% { transform: scale(${SQUASH}); }
+  ${SQUASH_DIP}% { transform: scale(${SQUASH}); }
   100% { transform: scale(1); }
+}
+.ddp-fade { animation: ddp-fade ${FADE_MS}ms ease-out both; }
+@keyframes ddp-fade {
+  from { opacity: 1; filter: blur(0px); }
+  to { opacity: 0; filter: blur(${FADE_BLUR}px); }
+}
+.ddp-photo-out { animation: ddp-photo-out ${PHOTO_OUT_MS}ms ease-out both; }
+@keyframes ddp-photo-out {
+  from { opacity: 1; filter: blur(0px); }
+  to { opacity: 0; filter: blur(${PHOTO_OUT_BLUR}px); }
+}
+.ddp-in { animation: ddp-in ${RESPAWN_MS}ms ease-out both; }
+@keyframes ddp-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ease-out both; }
+@keyframes ddp-in-lift {
+  from { transform: scale(${RESPAWN_SCALE}); }
+  to { transform: scale(1); }
 }
 .ddp-puff {
   opacity: 0;
   pointer-events: none;
   transform-origin: center center;
-  animation: ddp-puff ${PUFF_MS}ms linear ${PUFF_START}ms forwards;
+  animation:
+    ddp-puff-fade ${PUFF_MS}ms linear both,
+    ddp-puff-grow ${PUFF_MS}ms ease-out both;
 }
-@keyframes ddp-puff {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
+@keyframes ddp-puff-fade {
+  0% { opacity: 0; }
+  ${PEAK_AT}% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+@keyframes ddp-puff-grow {
+  0% { transform: translateY(0px) scale(1); }
+  ${SCALE_AT}% { transform: translateY(0px) scale(${PUFF_MID_SCALE}); }
+  100% { transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ddp-squash, .ddp-puff { animation: none !important; }
+  .ddp-squash, .ddp-puff, .ddp-fade, .ddp-photo-out, .ddp-in, .ddp-in-lift { animation: none !important; }
   .ddp-puff { opacity: 0 !important; }
-  .ddp-chip, .ddp-photo { transition: none !important; }
+  .ddp-chip, .ddp-lift, .ddp-photo { transition: none !important; }
 }
 `;
 
@@ -297,7 +351,7 @@ function Puff({ filterId }: { filterId: string }) {
         top: ZONE_Y + (ZONE - PUFF_SIZE) / 2,
         width: PUFF_SIZE,
         height: PUFF_SIZE,
-        zIndex: 2,
+        zIndex: 0,
       }}
     >
       <svg width={PUFF_SIZE} height={PUFF_SIZE} viewBox={`0 0 ${PUFF_SIZE} ${PUFF_SIZE}`} overflow="visible">
@@ -333,13 +387,13 @@ export function PhysicsDropCard() {
 
   const [phase, setPhase] = useState<DropPhase>('ready');
   const [pose, setPose] = useState<Pose>(REST);
+  const [over, setOver] = useState(false);
   const phaseRef = useRef<DropPhase>('ready');
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const velRef = useRef({ vx: 0, lastX: 0, movedAt: 0, tilt: 0 });
+  const velRef = useRef({ lastX: 0, movedAt: 0, tilt: 0 });
   const timersRef = useRef<number[]>([]);
-  const tiltLoopRef = useRef(0);
   const homeFrameRef = useRef(0);
   const aliveRef = useRef(true);
 
@@ -349,19 +403,9 @@ export function PhysicsDropCard() {
       aliveRef.current = false;
       for (const id of timersRef.current) window.clearTimeout(id);
       timersRef.current = [];
-      if (tiltLoopRef.current) cancelAnimationFrame(tiltLoopRef.current);
       if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (phase !== 'held') return;
-    const previous = document.body.style.cursor;
-    document.body.style.cursor = 'grabbing';
-    return () => {
-      document.body.style.cursor = previous;
-    };
-  }, [phase]);
 
   function publish(next: Pose) {
     poseRef.current = next;
@@ -384,35 +428,18 @@ export function PhysicsDropCard() {
   function clearTimers() {
     for (const id of timersRef.current) window.clearTimeout(id);
     timersRef.current = [];
-  }
-
-  function stopTilt() {
-    if (!tiltLoopRef.current) return;
-    cancelAnimationFrame(tiltLoopRef.current);
-    tiltLoopRef.current = 0;
-  }
-
-  function tiltFrame(now: number) {
-    if (!aliveRef.current || phaseRef.current !== 'held') return;
-    const vel = velRef.current;
-    const idleFor = now - vel.movedAt;
-    if (idleFor > TILT_IDLE_MS) {
-      const blend = 1 - Math.exp(-idleFor / TILT_SMOOTH_MS);
-      const nextTilt = vel.tilt + (0 - vel.tilt) * blend;
-      vel.tilt = nextTilt;
-      if (Math.abs(poseRef.current.tilt - nextTilt) > 0.05) {
-        publish({ ...poseRef.current, tilt: nextTilt });
-      }
-    }
-    tiltLoopRef.current = requestAnimationFrame(tiltFrame);
+    if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
+    homeFrameRef.current = 0;
   }
 
   function parkReady() {
     publish(REST);
+    setOver(false);
     setPhaseBoth('ready');
   }
 
   function beginHome() {
+    setOver(false);
     setPhaseBoth('homing');
     if (reduceRef.current) {
       parkReady();
@@ -431,23 +458,45 @@ export function PhysicsDropCard() {
 
   function beginDrop() {
     clearTimers();
+    setOver(false);
     setPhaseBoth('sinking');
-    later(reduceRef.current ? 0 : FADE_MS, () => {
+    if (reduceRef.current) {
+      publish(REST);
+      later(PHOTO_OUT_AT, () => {
+        if (phaseRef.current !== 'sinking') return;
+        setPhaseBoth('empty');
+      });
+      later(RESPAWN_AT, () => {
+        if (phaseRef.current !== 'empty') return;
+        parkReady();
+      });
+      return;
+    }
+    later(FADE_MS, () => {
       if (phaseRef.current !== 'sinking') return;
       publish(REST);
     });
-    later(EMPTY_AT, () => {
+    later(PHOTO_OUT_AT, () => {
       if (phaseRef.current !== 'sinking') return;
+      setPhaseBoth('clearing');
+    });
+    later(PHOTO_OUT_AT + PHOTO_OUT_MS, () => {
+      if (phaseRef.current !== 'clearing') return;
       setPhaseBoth('empty');
     });
     later(RESPAWN_AT, () => {
       if (phaseRef.current !== 'empty') return;
-      parkReady();
+      setPhaseBoth('back');
+      publish({ ...REST, scale: RESPAWN_SCALE });
+      later(RESPAWN_MS, () => {
+        if (phaseRef.current !== 'back') return;
+        publish(REST);
+        setPhaseBoth('ready');
+      });
     });
   }
 
   function finishDrag() {
-    stopTilt();
     pointerRef.current = null;
     if (centreInsideZone(poseRef.current.x, poseRef.current.y)) beginDrop();
     else beginHome();
@@ -465,11 +514,9 @@ export function PhysicsDropCard() {
       poseX: poseRef.current.x,
       poseY: poseRef.current.y,
     };
-    velRef.current = { vx: 0, lastX: event.clientX, movedAt: performance.now(), tilt: 0 };
+    velRef.current = { lastX: event.clientX, movedAt: performance.now(), tilt: poseRef.current.tilt };
     setPhaseBoth('held');
-    publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: 0, scale: GRAB_SCALE });
-    stopTilt();
-    tiltLoopRef.current = requestAnimationFrame(tiltFrame);
+    publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: poseRef.current.tilt, scale: GRAB_SCALE });
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -478,17 +525,19 @@ export function PhysicsDropCard() {
     const vel = velRef.current;
     const now = performance.now();
     const dt = Math.max(now - vel.movedAt, 1);
-    vel.vx = (event.clientX - vel.lastX) / dt;
+    const dx = event.clientX - vel.lastX;
     vel.lastX = event.clientX;
     vel.movedAt = now;
-    const blend = 1 - Math.exp(-dt / TILT_SMOOTH_MS);
-    vel.tilt += (clampTilt(vel.vx) - vel.tilt) * blend;
-    publish({
-      x: grab.poseX + (event.clientX - grab.x),
-      y: grab.poseY + (event.clientY - grab.y),
-      tilt: vel.tilt,
-      scale: GRAB_SCALE,
-    });
+    let tilt = vel.tilt;
+    if (dx !== 0) {
+      const target = clampTilt(dx / dt);
+      tilt = vel.tilt + (target - vel.tilt) * (1 - Math.exp(-dt / TILT_EASE_MS));
+      vel.tilt = tilt;
+    }
+    const x = grab.poseX + (event.clientX - grab.x);
+    const y = grab.poseY + (event.clientY - grab.y);
+    setOver(centreInsideZone(x, y));
+    publish({ x, y, tilt, scale: GRAB_SCALE });
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -499,10 +548,22 @@ export function PhysicsDropCard() {
     finishDrag();
   }
 
-  const filled = phase === 'sinking';
-  const hidden = phase === 'sinking' || phase === 'empty';
+  const showingPhoto = phase === 'sinking' || phase === 'clearing';
   const homing = phase === 'homing' && !reduce;
   const fading = phase === 'sinking' && !reduce;
+  const respawning = phase === 'back' && !reduce;
+
+  let chipOpacity = 1;
+  if (phase === 'clearing' || phase === 'empty') chipOpacity = 0;
+  if (reduce && (phase === 'sinking' || phase === 'back')) chipOpacity = 0;
+
+  let chipTransition = 'none';
+  if (homing) chipTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
+
+  let liftTransition = `transform ${LIFT_MS}ms ${LIFT_EASE}`;
+  if (reduce || phase === 'back' || phase === 'clearing' || phase === 'empty' || (phase === 'sinking' && pose.scale === 1)) {
+    liftTransition = 'none';
+  } else if (homing) liftTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
 
   const chipStyle: CSSProperties = {
     position: 'absolute',
@@ -510,17 +571,17 @@ export function PhysicsDropCard() {
     top: CHIP_Y,
     width: CHIP,
     height: CHIP,
-    borderRadius: CHIP_RADIUS,
-    overflow: 'hidden',
-    zIndex: 3,
+    borderRadius: RADIUS,
+    zIndex: 2,
     touchAction: 'none',
     userSelect: 'none',
     cursor: phase === 'held' ? 'grabbing' : 'grab',
     pointerEvents: phase === 'ready' || phase === 'held' ? 'auto' : 'none',
-    opacity: hidden ? 0 : 1,
-    transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.tilt}deg) scale(${pose.scale})`,
+    opacity: fading || respawning ? undefined : chipOpacity,
+    boxShadow: CHIP_SHADOW,
+    transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.tilt}deg)`,
     transformOrigin: 'center center',
-    transition: homing ? `transform ${RETURN_MS}ms ${RETURN_EASE}` : fading ? `opacity ${FADE_MS}ms linear` : 'none',
+    transition: chipTransition,
   };
 
   const photoStyle: CSSProperties = {
@@ -530,8 +591,9 @@ export function PhysicsDropCard() {
     width: ZONE,
     height: ZONE,
     objectFit: 'cover',
-    opacity: filled ? 1 : 0,
-    transition: filled && !reduce ? `opacity ${PHOTO_MS}ms linear` : 'none',
+    borderRadius: RADIUS,
+    opacity: showingPhoto ? 1 : 0,
+    transition: reduce || phase === 'clearing' ? 'none' : `opacity ${PHOTO_IN_MS}ms ease-in-out`,
     pointerEvents: 'none',
   };
 
@@ -539,10 +601,12 @@ export function PhysicsDropCard() {
     <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }} data-testid="drag-drop-physics">
       <div
         data-phase={phase}
+        data-over={over ? '1' : '0'}
         style={{ position: 'relative', width: BOARD_W, height: BOARD_H, background: 'transparent' }}
       >
+        {showingPhoto && !reduce ? <Puff filterId={filterId} /> : null}
         <div
-          className={filled && !reduce ? 'ddp-squash' : undefined}
+          className={phase === 'sinking' && !reduce ? 'ddp-squash' : undefined}
           style={{
             position: 'absolute',
             left: ZONE_X,
@@ -550,21 +614,30 @@ export function PhysicsDropCard() {
             width: ZONE,
             height: ZONE,
             boxSizing: 'border-box',
-            border: `${BORDER}px dashed ${filled ? 'transparent' : ZONE_BORDER}`,
-            background: ZONE_BG,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: RADIUS,
+            border: `${BORDER}px dashed ${showingPhoto ? 'transparent' : over ? OVER_BORDER : ZONE_BORDER}`,
+            background: showingPhoto ? FILLED_BG : over ? OVER_BG : ZONE_BG,
+            boxShadow: showingPhoto ? ZONE_SHADOW : 'none',
             zIndex: 1,
             transformOrigin: 'center center',
           }}
         >
-          <img className="ddp-photo" src={DROP_PHOTO} alt="" draggable={false} style={photoStyle} />
+          <img
+            className={phase === 'clearing' && !reduce ? 'ddp-photo ddp-photo-out' : 'ddp-photo'}
+            src={DROP_PHOTO}
+            alt=""
+            draggable={false}
+            style={photoStyle}
+          />
           <span
             style={{
-              position: 'relative',
-              zIndex: 1,
-              opacity: filled ? 0 : 1,
+              position: 'absolute',
+              top: LABEL_TOP,
+              left: 0,
+              right: 0,
+              width: LABEL_WIDTH,
+              margin: '0 auto',
+              opacity: showingPhoto ? 0 : over ? OVER_LABEL : 1,
               textAlign: 'center',
               fontFamily: LABEL_FONT,
               fontSize: LABEL_SIZE,
@@ -578,21 +651,33 @@ export function PhysicsDropCard() {
             it here
           </span>
         </div>
-        {filled && !reduce ? <Puff filterId={filterId} /> : null}
         <div
-          className="ddp-chip"
+          className={fading ? 'ddp-chip ddp-fade' : respawning ? 'ddp-chip ddp-in' : 'ddp-chip'}
           style={chipStyle}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <img
-            src={DROP_PHOTO}
-            alt=""
-            draggable={false}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
-          />
+          <div
+            className={respawning ? 'ddp-lift ddp-in-lift' : 'ddp-lift'}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: RADIUS,
+              overflow: 'hidden',
+              transform: `scale(${pose.scale})`,
+              transformOrigin: 'center center',
+              transition: liftTransition,
+            }}
+          >
+            <img
+              src={DROP_PHOTO}
+              alt=""
+              draggable={false}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+            />
+          </div>
         </div>
       </div>
     </div>

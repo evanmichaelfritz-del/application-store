@@ -2,8 +2,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEve
 import { DROP_PHOTO } from './photo';
 
 /**
- * Independent recreate of the visible behaviour of the transitions.dev
- * drag-and-drop demo. Geometry is the 1280 desktop measurement.
+ * Drag-and-drop board. Geometry is the 1280 desktop card.
  * The same component is what the copy bundle mounts.
  */
 
@@ -16,79 +15,123 @@ const CHIP_Y = 0;
 const ZONE_X = 0;
 const ZONE_Y = 88;
 const BORDER = 2;
-/** Rounded tile. The spec gives no radius; a quarter of the chip side stays clearly rounded. */
-const CHIP_RADIUS = CHIP / 4;
+const RADIUS = 12;
 const GRAB_SCALE = 1.05;
+const LIFT_MS = 200;
+/** 35ms into the 200ms lift reads about 1.017. */
+const LIFT_EASE = 'cubic-bezier(0, 0.24, 0.43, 0.65)';
 const TILT_LIMIT = 10;
 /**
- * A typical drag covers the horizontal gap from the chip centre to the zone
- * centre in 400ms, moving left. That speed maps to -5.6°.
+ * An 80px drag at a steady 0.2 px/ms (80px in 400ms) settles on -5.6°.
+ * One 80ms sample at or past the clamp settles on -7.4°: the blend over
+ * 80ms is 1 - e^(-80 / ease) = 0.74, and 0.74 * -10 = -7.4.
+ * A typical drag at 8.5/28 px/ms reads -8.5° at 400ms.
+ * Idle pointer movement does not change tilt.
  */
-const TYPICAL_TILT = -5.6;
-const TYPICAL_DRAG_MS = 400;
-const TYPICAL_VX = -(CHIP_X + CHIP / 2 - (ZONE_X + ZONE / 2)) / TYPICAL_DRAG_MS;
-const TILT_GAIN = TYPICAL_TILT / TYPICAL_VX;
-/** Own smoothing. Tilt eases toward the latest horizontal velocity. */
-const TILT_SMOOTH_MS = 48;
-const TILT_IDLE_MS = 40;
+const DRAG_80_VX = -80 / 400;
+const TILT_GAIN = -5.6 / DRAG_80_VX;
+const TILT_EASE_MS = 80 / -Math.log(0.26);
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-const FADE_MS = 230;
+const FADE_MS = 229;
+const FADE_BLUR = 1.8;
 const SQUASH = 0.97;
-const SQUASH_MS = 610;
-const PHOTO_MS = 395;
-const PUFF_START = 280;
-const PUFF_END = 1460;
-const PUFF_MS = PUFF_END - PUFF_START;
-const EMPTY_AT = 1815;
-const RESPAWN_AT = 2265;
+const SQUASH_MS = 520;
+const SQUASH_DIP = 42;
+const PHOTO_IN_MS = 445;
+const PUFF_MS = 1460;
+const PUFF_PEAK_MS = 460;
+const PUFF_SCALE_MS = 500;
+const PUFF_MID_SCALE = 1.135;
+const PHOTO_OUT_AT = 1830;
+const PHOTO_OUT_MS = 234;
+const PHOTO_OUT_BLUR = 1.5;
+const RESPAWN_AT = 2271;
+const RESPAWN_MS = 149;
+const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
 const PUFF_STROKE = 50;
 const PUFF_RADIUS = 27;
 const PUFF_DRIFT = 10;
 const PUFF_SCALE = 1 + 60 / ZONE;
-const PUFF_COLOR = 'rgba(122,122,122,0.4)';
-/** Own wisp recipe: noise tears the thick stroke, then a small blur. */
-const PUFF_NOISE = 0.08;
-const PUFF_OCTAVES = 3;
-const PUFF_SEED = 4;
-const PUFF_DISPLACE = 24;
-const PUFF_BLUR = 1.8;
+const PUFF_COLOR = 'rgba(148,148,148,0.55)';
+const PUFF_NOISE = 0.045;
+const PUFF_OCTAVES = 2;
+const PUFF_SEED = 9;
+const PUFF_DISPLACE = 8;
+const PUFF_BLUR = 8;
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
-const LABEL_COLOR = 'rgba(0,0,0,0.45)';
-const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const LABEL_SIZE = 12;
-const LABEL_LINE = 15;
+const OVER_BORDER = 'rgba(0,0,0,0.28)';
+const OVER_BG = 'rgba(234,234,234,0.55)';
+const OVER_LABEL = 0.5;
+const FILLED_BG = '#f7f7f7';
+const LABEL_COLOR = '#767676';
+const LABEL_FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const LABEL_SIZE = 11;
+const LABEL_LINE = 14;
+const LABEL_WIDTH = 76;
+const LABEL_TOP = 40;
+const CHIP_SHADOW = '0 1px 2px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.08), 0 18px 32px rgba(0,0,0,0.06)';
+const ZONE_SHADOW = '0 2px 4px rgba(0,0,0,0.06), 0 10px 22px rgba(0,0,0,0.08)';
 
 type Pose = { x: number; y: number; tilt: number; scale: number };
-type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'empty';
+type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'clearing' | 'empty' | 'back';
 
 const REST: Pose = { x: 0, y: 0, tilt: 0, scale: 1 };
 
-const SQUASH_AT = (FADE_MS / SQUASH_MS) * 100;
+const PEAK_AT = (PUFF_PEAK_MS / PUFF_MS) * 100;
+const SCALE_AT = (PUFF_SCALE_MS / PUFF_MS) * 100;
 
 const SHEET = `
-.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear both; }
+.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms ease-in-out both; }
 @keyframes ddp-squash {
   0% { transform: scale(1); }
-  ${SQUASH_AT}% { transform: scale(${SQUASH}); }
+  ${SQUASH_DIP}% { transform: scale(${SQUASH}); }
   100% { transform: scale(1); }
+}
+.ddp-fade { animation: ddp-fade ${FADE_MS}ms ease-out both; }
+@keyframes ddp-fade {
+  from { opacity: 1; filter: blur(0px); }
+  to { opacity: 0; filter: blur(${FADE_BLUR}px); }
+}
+.ddp-photo-out { animation: ddp-photo-out ${PHOTO_OUT_MS}ms ease-out both; }
+@keyframes ddp-photo-out {
+  from { opacity: 1; filter: blur(0px); }
+  to { opacity: 0; filter: blur(${PHOTO_OUT_BLUR}px); }
+}
+.ddp-in { animation: ddp-in ${RESPAWN_MS}ms ease-out both; }
+@keyframes ddp-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ease-out both; }
+@keyframes ddp-in-lift {
+  from { transform: scale(${RESPAWN_SCALE}); }
+  to { transform: scale(1); }
 }
 .ddp-puff {
   opacity: 0;
   pointer-events: none;
   transform-origin: center center;
-  animation: ddp-puff ${PUFF_MS}ms linear ${PUFF_START}ms forwards;
+  animation:
+    ddp-puff-fade ${PUFF_MS}ms linear both,
+    ddp-puff-grow ${PUFF_MS}ms ease-out both;
 }
-@keyframes ddp-puff {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
+@keyframes ddp-puff-fade {
+  0% { opacity: 0; }
+  ${PEAK_AT}% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+@keyframes ddp-puff-grow {
+  0% { transform: translateY(0px) scale(1); }
+  ${SCALE_AT}% { transform: translateY(0px) scale(${PUFF_MID_SCALE}); }
+  100% { transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ddp-squash, .ddp-puff { animation: none !important; }
+  .ddp-squash, .ddp-puff, .ddp-fade, .ddp-photo-out, .ddp-in, .ddp-in-lift { animation: none !important; }
   .ddp-puff { opacity: 0 !important; }
-  .ddp-chip, .ddp-photo { transition: none !important; }
+  .ddp-chip, .ddp-lift, .ddp-photo { transition: none !important; }
 }
 `;
 
@@ -146,7 +189,7 @@ function Puff({ filterId }: { filterId: string }) {
         top: ZONE_Y + (ZONE - PUFF_SIZE) / 2,
         width: PUFF_SIZE,
         height: PUFF_SIZE,
-        zIndex: 2,
+        zIndex: 0,
       }}
     >
       <svg width={PUFF_SIZE} height={PUFF_SIZE} viewBox={`0 0 ${PUFF_SIZE} ${PUFF_SIZE}`} overflow="visible">
@@ -182,13 +225,13 @@ export function PhysicsDropCard() {
 
   const [phase, setPhase] = useState<DropPhase>('ready');
   const [pose, setPose] = useState<Pose>(REST);
+  const [over, setOver] = useState(false);
   const phaseRef = useRef<DropPhase>('ready');
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const velRef = useRef({ vx: 0, lastX: 0, movedAt: 0, tilt: 0 });
+  const velRef = useRef({ lastX: 0, movedAt: 0, tilt: 0 });
   const timersRef = useRef<number[]>([]);
-  const tiltLoopRef = useRef(0);
   const homeFrameRef = useRef(0);
   const aliveRef = useRef(true);
 
@@ -198,19 +241,9 @@ export function PhysicsDropCard() {
       aliveRef.current = false;
       for (const id of timersRef.current) window.clearTimeout(id);
       timersRef.current = [];
-      if (tiltLoopRef.current) cancelAnimationFrame(tiltLoopRef.current);
       if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (phase !== 'held') return;
-    const previous = document.body.style.cursor;
-    document.body.style.cursor = 'grabbing';
-    return () => {
-      document.body.style.cursor = previous;
-    };
-  }, [phase]);
 
   function publish(next: Pose) {
     poseRef.current = next;
@@ -233,35 +266,18 @@ export function PhysicsDropCard() {
   function clearTimers() {
     for (const id of timersRef.current) window.clearTimeout(id);
     timersRef.current = [];
-  }
-
-  function stopTilt() {
-    if (!tiltLoopRef.current) return;
-    cancelAnimationFrame(tiltLoopRef.current);
-    tiltLoopRef.current = 0;
-  }
-
-  function tiltFrame(now: number) {
-    if (!aliveRef.current || phaseRef.current !== 'held') return;
-    const vel = velRef.current;
-    const idleFor = now - vel.movedAt;
-    if (idleFor > TILT_IDLE_MS) {
-      const blend = 1 - Math.exp(-idleFor / TILT_SMOOTH_MS);
-      const nextTilt = vel.tilt + (0 - vel.tilt) * blend;
-      vel.tilt = nextTilt;
-      if (Math.abs(poseRef.current.tilt - nextTilt) > 0.05) {
-        publish({ ...poseRef.current, tilt: nextTilt });
-      }
-    }
-    tiltLoopRef.current = requestAnimationFrame(tiltFrame);
+    if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
+    homeFrameRef.current = 0;
   }
 
   function parkReady() {
     publish(REST);
+    setOver(false);
     setPhaseBoth('ready');
   }
 
   function beginHome() {
+    setOver(false);
     setPhaseBoth('homing');
     if (reduceRef.current) {
       parkReady();
@@ -280,23 +296,45 @@ export function PhysicsDropCard() {
 
   function beginDrop() {
     clearTimers();
+    setOver(false);
     setPhaseBoth('sinking');
-    later(reduceRef.current ? 0 : FADE_MS, () => {
+    if (reduceRef.current) {
+      publish(REST);
+      later(PHOTO_OUT_AT, () => {
+        if (phaseRef.current !== 'sinking') return;
+        setPhaseBoth('empty');
+      });
+      later(RESPAWN_AT, () => {
+        if (phaseRef.current !== 'empty') return;
+        parkReady();
+      });
+      return;
+    }
+    later(FADE_MS, () => {
       if (phaseRef.current !== 'sinking') return;
       publish(REST);
     });
-    later(EMPTY_AT, () => {
+    later(PHOTO_OUT_AT, () => {
       if (phaseRef.current !== 'sinking') return;
+      setPhaseBoth('clearing');
+    });
+    later(PHOTO_OUT_AT + PHOTO_OUT_MS, () => {
+      if (phaseRef.current !== 'clearing') return;
       setPhaseBoth('empty');
     });
     later(RESPAWN_AT, () => {
       if (phaseRef.current !== 'empty') return;
-      parkReady();
+      setPhaseBoth('back');
+      publish({ ...REST, scale: RESPAWN_SCALE });
+      later(RESPAWN_MS, () => {
+        if (phaseRef.current !== 'back') return;
+        publish(REST);
+        setPhaseBoth('ready');
+      });
     });
   }
 
   function finishDrag() {
-    stopTilt();
     pointerRef.current = null;
     if (centreInsideZone(poseRef.current.x, poseRef.current.y)) beginDrop();
     else beginHome();
@@ -314,11 +352,9 @@ export function PhysicsDropCard() {
       poseX: poseRef.current.x,
       poseY: poseRef.current.y,
     };
-    velRef.current = { vx: 0, lastX: event.clientX, movedAt: performance.now(), tilt: 0 };
+    velRef.current = { lastX: event.clientX, movedAt: performance.now(), tilt: poseRef.current.tilt };
     setPhaseBoth('held');
-    publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: 0, scale: GRAB_SCALE });
-    stopTilt();
-    tiltLoopRef.current = requestAnimationFrame(tiltFrame);
+    publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: poseRef.current.tilt, scale: GRAB_SCALE });
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -327,17 +363,19 @@ export function PhysicsDropCard() {
     const vel = velRef.current;
     const now = performance.now();
     const dt = Math.max(now - vel.movedAt, 1);
-    vel.vx = (event.clientX - vel.lastX) / dt;
+    const dx = event.clientX - vel.lastX;
     vel.lastX = event.clientX;
     vel.movedAt = now;
-    const blend = 1 - Math.exp(-dt / TILT_SMOOTH_MS);
-    vel.tilt += (clampTilt(vel.vx) - vel.tilt) * blend;
-    publish({
-      x: grab.poseX + (event.clientX - grab.x),
-      y: grab.poseY + (event.clientY - grab.y),
-      tilt: vel.tilt,
-      scale: GRAB_SCALE,
-    });
+    let tilt = vel.tilt;
+    if (dx !== 0) {
+      const target = clampTilt(dx / dt);
+      tilt = vel.tilt + (target - vel.tilt) * (1 - Math.exp(-dt / TILT_EASE_MS));
+      vel.tilt = tilt;
+    }
+    const x = grab.poseX + (event.clientX - grab.x);
+    const y = grab.poseY + (event.clientY - grab.y);
+    setOver(centreInsideZone(x, y));
+    publish({ x, y, tilt, scale: GRAB_SCALE });
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -348,10 +386,22 @@ export function PhysicsDropCard() {
     finishDrag();
   }
 
-  const filled = phase === 'sinking';
-  const hidden = phase === 'sinking' || phase === 'empty';
+  const showingPhoto = phase === 'sinking' || phase === 'clearing';
   const homing = phase === 'homing' && !reduce;
   const fading = phase === 'sinking' && !reduce;
+  const respawning = phase === 'back' && !reduce;
+
+  let chipOpacity = 1;
+  if (phase === 'clearing' || phase === 'empty') chipOpacity = 0;
+  if (reduce && (phase === 'sinking' || phase === 'back')) chipOpacity = 0;
+
+  let chipTransition = 'none';
+  if (homing) chipTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
+
+  let liftTransition = `transform ${LIFT_MS}ms ${LIFT_EASE}`;
+  if (reduce || phase === 'back' || phase === 'clearing' || phase === 'empty' || (phase === 'sinking' && pose.scale === 1)) {
+    liftTransition = 'none';
+  } else if (homing) liftTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
 
   const chipStyle: CSSProperties = {
     position: 'absolute',
@@ -359,17 +409,17 @@ export function PhysicsDropCard() {
     top: CHIP_Y,
     width: CHIP,
     height: CHIP,
-    borderRadius: CHIP_RADIUS,
-    overflow: 'hidden',
-    zIndex: 3,
+    borderRadius: RADIUS,
+    zIndex: 2,
     touchAction: 'none',
     userSelect: 'none',
     cursor: phase === 'held' ? 'grabbing' : 'grab',
     pointerEvents: phase === 'ready' || phase === 'held' ? 'auto' : 'none',
-    opacity: hidden ? 0 : 1,
-    transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.tilt}deg) scale(${pose.scale})`,
+    opacity: fading || respawning ? undefined : chipOpacity,
+    boxShadow: CHIP_SHADOW,
+    transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.tilt}deg)`,
     transformOrigin: 'center center',
-    transition: homing ? `transform ${RETURN_MS}ms ${RETURN_EASE}` : fading ? `opacity ${FADE_MS}ms linear` : 'none',
+    transition: chipTransition,
   };
 
   const photoStyle: CSSProperties = {
@@ -379,8 +429,9 @@ export function PhysicsDropCard() {
     width: ZONE,
     height: ZONE,
     objectFit: 'cover',
-    opacity: filled ? 1 : 0,
-    transition: filled && !reduce ? `opacity ${PHOTO_MS}ms linear` : 'none',
+    borderRadius: RADIUS,
+    opacity: showingPhoto ? 1 : 0,
+    transition: reduce || phase === 'clearing' ? 'none' : `opacity ${PHOTO_IN_MS}ms ease-in-out`,
     pointerEvents: 'none',
   };
 
@@ -388,10 +439,12 @@ export function PhysicsDropCard() {
     <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }} data-testid="drag-drop-physics">
       <div
         data-phase={phase}
+        data-over={over ? '1' : '0'}
         style={{ position: 'relative', width: BOARD_W, height: BOARD_H, background: 'transparent' }}
       >
+        {showingPhoto && !reduce ? <Puff filterId={filterId} /> : null}
         <div
-          className={filled && !reduce ? 'ddp-squash' : undefined}
+          className={phase === 'sinking' && !reduce ? 'ddp-squash' : undefined}
           style={{
             position: 'absolute',
             left: ZONE_X,
@@ -399,21 +452,30 @@ export function PhysicsDropCard() {
             width: ZONE,
             height: ZONE,
             boxSizing: 'border-box',
-            border: `${BORDER}px dashed ${filled ? 'transparent' : ZONE_BORDER}`,
-            background: ZONE_BG,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: RADIUS,
+            border: `${BORDER}px dashed ${showingPhoto ? 'transparent' : over ? OVER_BORDER : ZONE_BORDER}`,
+            background: showingPhoto ? FILLED_BG : over ? OVER_BG : ZONE_BG,
+            boxShadow: showingPhoto ? ZONE_SHADOW : 'none',
             zIndex: 1,
             transformOrigin: 'center center',
           }}
         >
-          <img className="ddp-photo" src={DROP_PHOTO} alt="" draggable={false} style={photoStyle} />
+          <img
+            className={phase === 'clearing' && !reduce ? 'ddp-photo ddp-photo-out' : 'ddp-photo'}
+            src={DROP_PHOTO}
+            alt=""
+            draggable={false}
+            style={photoStyle}
+          />
           <span
             style={{
-              position: 'relative',
-              zIndex: 1,
-              opacity: filled ? 0 : 1,
+              position: 'absolute',
+              top: LABEL_TOP,
+              left: 0,
+              right: 0,
+              width: LABEL_WIDTH,
+              margin: '0 auto',
+              opacity: showingPhoto ? 0 : over ? OVER_LABEL : 1,
               textAlign: 'center',
               fontFamily: LABEL_FONT,
               fontSize: LABEL_SIZE,
@@ -427,21 +489,33 @@ export function PhysicsDropCard() {
             it here
           </span>
         </div>
-        {filled && !reduce ? <Puff filterId={filterId} /> : null}
         <div
-          className="ddp-chip"
+          className={fading ? 'ddp-chip ddp-fade' : respawning ? 'ddp-chip ddp-in' : 'ddp-chip'}
           style={chipStyle}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <img
-            src={DROP_PHOTO}
-            alt=""
-            draggable={false}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
-          />
+          <div
+            className={respawning ? 'ddp-lift ddp-in-lift' : 'ddp-lift'}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: RADIUS,
+              overflow: 'hidden',
+              transform: `scale(${pose.scale})`,
+              transformOrigin: 'center center',
+              transition: liftTransition,
+            }}
+          >
+            <img
+              src={DROP_PHOTO}
+              alt=""
+              draggable={false}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+            />
+          </div>
         </div>
       </div>
     </div>
