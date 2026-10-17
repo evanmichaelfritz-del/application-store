@@ -149,6 +149,9 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Generic template prompt (7900 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
   ],
+  'spacing-tuner': [
+    'Phone widths are a known gap. The 1440×1080 stage scales with the card, but parity is desktop web at 1280.',
+  ],
   'tooltip-open-close': [
     'Generic template prompt (4850 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',

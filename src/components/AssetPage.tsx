@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyScript, promptIsLazy, readyPrompt, scriptIsLazy, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -191,6 +191,14 @@ function Found({ item }: { item: TransitionItem }) {
     }
     write(codeSlot(item.id, activeKind));
   };
+  const skill = skillFor(item.id);
+  const copySkill = () => {
+    if (!skill) return;
+    mark('skill');
+    setTimeout(() => {
+      void loadSkill(item.id).then((text) => writeClipboard(text));
+    }, 0);
+  };
   const copyPrompt = () => {
     mark('prompt');
     const ready = readyPrompt(item.id);
@@ -222,6 +230,16 @@ function Found({ item }: { item: TransitionItem }) {
           onPress={copyCode}
           testID="copy-code"
         />
+        {skill ? (
+          <BarButton
+            label={copied === 'skill' ? 'Copied' : 'Copy Skill'}
+            icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
+            tone="secondary"
+            done={copied === 'skill'}
+            onPress={copySkill}
+            testID="copy-skill"
+          />
+        ) : null}
         <BarButton
           label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
           icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}

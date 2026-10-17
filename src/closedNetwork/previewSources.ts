@@ -705,6 +705,17 @@ canvas { display: block; width: 168px; height: 168px; }`,
   document.body.appendChild(s);
 })();`,
   },
+  'spacing-tuner': {
+    snippet: false,
+    html: `<div id="parity-root"></div>`,
+    extraCss: `body { background: #F3F3F3; }
+#parity-root { width: min(1440px, 100%); aspect-ratio: 1440 / 1080; }`,
+    script: `(function () {
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/spacing-tuner.js';
+  document.body.appendChild(s);
+})();`,
+  },
   'shimmer-text': {
     html: `<p class="t-shimmer">Generating reply</p>`,
     extraCss: `.t-shimmer { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; }`,

@@ -12,7 +12,7 @@ Public repo: [evanmichaelfritz-del/application-store](https://github.com/evanmic
 | --- | --- |
 | Transitions | Essential + text pieces from the transitions catalog |
 | Effects | Confetti, gooey plus menu, stacks, tilt, Border Beam, Gooey, Liquid metal, one card per Thinking Orb, plus the orb state picker |
-| Graphic design | Empty add slot (CLEAR pieces live under Effects) |
+| Graphic design | Dashboard pieces (Influencer Overview, Spacing tuner) |
 | AI skills | Empty — reserved for downloadable skills |
 | Tools | Empty add slot |
 | Manual | Hand-authored add slot |
@@ -28,6 +28,8 @@ Continuous-add path (do not invent new card chrome):
 2. Portable snippet in `src/snippets.ts` keyed by `id`.
 3. Motion lock in `src/agentPrompts.ts` (`LOCKS[id]`).
 4. Register one object on `TRANSITIONS` in `src/catalog.ts` with `sections` + `categories`.
+
+Optional skill: set `skill: { path, name }` on that object. `path` is relative to `public/` (for example `skills/spacing-audit/SKILL.md`). The card then shows a **Copy Skill** button beside Copy and Agent Prompt, and copies that file. Leave `skill` unset and the card stays as it was. `npm test` checks that `public/<path>` is the file the registry names.
 
 Empty sections render a dashed add-slot card. New nav rows: append to `NAV_SECTIONS` in `src/sections.ts`.
 

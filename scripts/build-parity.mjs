@@ -48,6 +48,12 @@ const targets = [
     outfile: 'public/parity/drag-drop-physics.js',
     header: block(readFileSync(join(root, 'node_modules/react/LICENSE'), 'utf8'), false),
   },
+  {
+    entry: 'src/demos/spacing-tuner/mount.tsx',
+    outfile: 'public/parity/spacing-tuner.js',
+    header: licenseHeader('react-native-web'),
+    alias: { 'react-native': 'react-native-web' },
+  },
 ];
 
 for (const target of targets) {
@@ -63,6 +69,7 @@ for (const target of targets) {
     legalComments: 'inline',
     define: { 'process.env.NODE_ENV': '"production"' },
     write: false,
+    ...(target.alias ? { alias: target.alias } : {}),
   });
   const js = result.outputFiles[0].text;
   writeFileSync(join(root, target.outfile), target.header + js);
