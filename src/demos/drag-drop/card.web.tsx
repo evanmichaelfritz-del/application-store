@@ -1,9 +1,14 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { memo, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { DROP_PHOTO } from './photo';
 
 /**
  * Drag-and-drop board. Geometry is the 1280 desktop card.
  * The same component is what the copy bundle mounts.
+ *
+ * Timing below is fit to measured gestures and to frames read off the
+ * moving card. The easing numbers are this file's own curves for those
+ * samples. Nothing here is taken from another implementation's source.
  */
 
 const BOARD_W = 213;
@@ -17,49 +22,53 @@ const ZONE_Y = 88;
 const BORDER = 2;
 const RADIUS = 12;
 const GRAB_SCALE = 1.05;
-const LIFT_MS = 200;
-/** 35ms into the 200ms lift reads about 1.017. */
-const LIFT_EASE = 'cubic-bezier(0, 0.24, 0.43, 0.65)';
+const LIFT_MS = 150;
+/** About 1.037 at 35ms, about 1.043 at 52ms, 1.05 at 150ms. */
+const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * An 80px drag at a steady 0.2 px/ms (80px in 400ms) settles on -5.6°.
- * One 80ms sample at or past the clamp settles on -7.4°: the blend over
- * 80ms is 1 - e^(-80 / ease) = 0.74, and 0.74 * -10 = -7.4.
- * A typical drag at 8.5/28 px/ms reads -8.5° at 400ms.
- * Idle pointer movement does not change tilt.
+ * 80px over 12 frames of 16ms is 80/192 px/ms and reads about -5.57°.
+ * Gain is that angle divided by that speed. Leftward motion is negative.
+ * The rotate layer then ease-outs toward the clamped target. 112ms reaches
+ * about -3.4° at 25ms, the moment the lift scale is 1.030, when the target
+ * is the clamp. dx === 0 leaves the target alone, so idle tilt holds.
  */
-const DRAG_80_VX = -80 / 400;
-const TILT_GAIN = -5.6 / DRAG_80_VX;
-const TILT_EASE_MS = 80 / -Math.log(0.26);
+const TILT_GAIN = 5.57 / (80 / 192);
+const TILT_EASE_MS = 112;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
-const FADE_BLUR = 1.8;
+const FADE_BLUR = 2;
 const SQUASH = 0.97;
-const SQUASH_MS = 520;
-const SQUASH_DIP = 42;
-const PHOTO_IN_MS = 445;
-const PUFF_MS = 1460;
-const PUFF_PEAK_MS = 460;
-const PUFF_SCALE_MS = 500;
-const PUFF_MID_SCALE = 1.135;
-const PHOTO_OUT_AT = 1830;
-const PHOTO_OUT_MS = 234;
-const PHOTO_OUT_BLUR = 1.5;
-const RESPAWN_AT = 2271;
-const RESPAWN_MS = 149;
+const SQUASH_DOWN_MS = 250;
+const SQUASH_BACK_MS = 450;
+const SQUASH_MS = SQUASH_DOWN_MS + SQUASH_BACK_MS;
+const SQUASH_DIP = (SQUASH_DOWN_MS / SQUASH_MS) * 100;
+const PHOTO_IN_MS = 380;
+const PUFF_DELAY = 260;
+const PUFF_MS = 1275;
+const PUFF_START_SCALE = 0.96;
+const PUFF_PEAK = 0.9;
+const PUFF_PEAK_AT = 16;
+const PHOTO_OUT_AT = 1815;
+const PHOTO_OUT_MS = 400;
+const PHOTO_OUT_BLUR = 4;
+/** 85ms in (about 1.9s from the drop): opacity 0.30, blur 2.8px of the 4px end. */
+const PHOTO_OUT_EASE = 'cubic-bezier(0, 0.65, 0.25, 0.9)';
+const RESPAWN_AT = 2265;
+const RESPAWN_MS = 250;
 const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
 const PUFF_STROKE = 50;
 const PUFF_RADIUS = 27;
 const PUFF_DRIFT = 10;
 const PUFF_SCALE = 1 + 60 / ZONE;
-const PUFF_COLOR = 'rgba(148,148,148,0.55)';
-const PUFF_NOISE = 0.045;
+const PUFF_COLOR = 'rgba(132,132,132,0.55)';
+const PUFF_NOISE = 0.035;
 const PUFF_OCTAVES = 2;
-const PUFF_SEED = 9;
-const PUFF_DISPLACE = 8;
-const PUFF_BLUR = 8;
+const PUFF_SEED = 11;
+const PUFF_DISPLACE = 30;
+const PUFF_BLUR = 0.35;
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
 const OVER_BORDER = 'rgba(0,0,0,0.28)';
@@ -69,25 +78,29 @@ const FILLED_BG = '#f7f7f7';
 const LABEL_COLOR = '#767676';
 const LABEL_FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const LABEL_SIZE = 11;
-const LABEL_LINE = 14;
+const LABEL_LINE = 15;
 const LABEL_WIDTH = 76;
-const LABEL_TOP = 40;
-const CHIP_SHADOW = '0 1px 2px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.08), 0 18px 32px rgba(0,0,0,0.06)';
-const ZONE_SHADOW = '0 2px 4px rgba(0,0,0,0.06), 0 10px 22px rgba(0,0,0,0.08)';
+/** 38px from the padding edge. The 2px border puts the text at 40px from the outer edge. */
+const LABEL_TOP = 38;
+/** 2px contact edge plus a short mid layer. The shade is gone by about 20px. */
+const SHADOW = '0 2px 2px rgba(0,0,0,0.50), 0 6px 8px rgba(0,0,0,0.22)';
 
 type Pose = { x: number; y: number; tilt: number; scale: number };
 type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'clearing' | 'empty' | 'back';
 
 const REST: Pose = { x: 0, y: 0, tilt: 0, scale: 1 };
 
-const PEAK_AT = (PUFF_PEAK_MS / PUFF_MS) * 100;
-const SCALE_AT = (PUFF_SCALE_MS / PUFF_MS) * 100;
-
 const SHEET = `
-.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms ease-in-out both; }
+.ddp-ready .ddp-lift,
+.ddp-held .ddp-lift { transition: scale ${LIFT_MS}ms ${LIFT_EASE}; }
+.ddp-held .ddp-tilt { transition: rotate ${TILT_EASE_MS}ms ease-out; }
+.ddp-homing .ddp-chip { transition: translate ${RETURN_MS}ms ${RETURN_EASE}; }
+.ddp-homing .ddp-tilt { transition: rotate ${RETURN_MS}ms ${RETURN_EASE}; }
+.ddp-homing .ddp-lift { transition: scale ${RETURN_MS}ms ${RETURN_EASE}; }
+.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear both; }
 @keyframes ddp-squash {
-  0% { transform: scale(1); }
-  ${SQUASH_DIP}% { transform: scale(${SQUASH}); }
+  0% { transform: scale(1); animation-timing-function: ease-out; }
+  ${SQUASH_DIP}% { transform: scale(${SQUASH}); animation-timing-function: ease-out; }
   100% { transform: scale(1); }
 }
 .ddp-fade { animation: ddp-fade ${FADE_MS}ms ease-out both; }
@@ -95,7 +108,7 @@ const SHEET = `
   from { opacity: 1; filter: blur(0px); }
   to { opacity: 0; filter: blur(${FADE_BLUR}px); }
 }
-.ddp-photo-out { animation: ddp-photo-out ${PHOTO_OUT_MS}ms ease-out both; }
+.ddp-photo-out { animation: ddp-photo-out ${PHOTO_OUT_MS}ms ${PHOTO_OUT_EASE} both; }
 @keyframes ddp-photo-out {
   from { opacity: 1; filter: blur(0px); }
   to { opacity: 0; filter: blur(${PHOTO_OUT_BLUR}px); }
@@ -107,32 +120,36 @@ const SHEET = `
 }
 .ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ease-out both; }
 @keyframes ddp-in-lift {
-  from { transform: scale(${RESPAWN_SCALE}); }
-  to { transform: scale(1); }
+  from { scale: ${RESPAWN_SCALE}; }
+  to { scale: 1; }
 }
 .ddp-puff {
   opacity: 0;
   pointer-events: none;
   transform-origin: center center;
-  animation:
-    ddp-puff-fade ${PUFF_MS}ms linear both,
-    ddp-puff-grow ${PUFF_MS}ms ease-out both;
+  animation: ddp-puff ${PUFF_MS}ms ease-out ${PUFF_DELAY}ms both;
 }
-@keyframes ddp-puff-fade {
-  0% { opacity: 0; }
-  ${PEAK_AT}% { opacity: 0.9; }
-  100% { opacity: 0; }
-}
-@keyframes ddp-puff-grow {
-  0% { transform: translateY(0px) scale(1); }
-  ${SCALE_AT}% { transform: translateY(0px) scale(${PUFF_MID_SCALE}); }
-  100% { transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
+@keyframes ddp-puff {
+  0% { opacity: 0; transform: translateY(0px) scale(${PUFF_START_SCALE}); }
+  ${PUFF_PEAK_AT}% { opacity: ${PUFF_PEAK}; }
+  100% { opacity: 0; transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ddp-squash, .ddp-puff, .ddp-fade, .ddp-photo-out, .ddp-in, .ddp-in-lift { animation: none !important; }
   .ddp-puff { opacity: 0 !important; }
-  .ddp-chip, .ddp-lift, .ddp-photo { transition: none !important; }
+  .ddp-chip, .ddp-tilt, .ddp-lift, .ddp-photo { transition: none !important; }
 }
+html[data-reduce-motion="1"] .ddp-squash,
+html[data-reduce-motion="1"] .ddp-puff,
+html[data-reduce-motion="1"] .ddp-fade,
+html[data-reduce-motion="1"] .ddp-photo-out,
+html[data-reduce-motion="1"] .ddp-in,
+html[data-reduce-motion="1"] .ddp-in-lift { animation: none !important; }
+html[data-reduce-motion="1"] .ddp-puff { opacity: 0 !important; }
+html[data-reduce-motion="1"] .ddp-chip,
+html[data-reduce-motion="1"] .ddp-tilt,
+html[data-reduce-motion="1"] .ddp-lift,
+html[data-reduce-motion="1"] .ddp-photo { transition: none !important; }
 `;
 
 function installSheet() {
@@ -146,9 +163,9 @@ function installSheet() {
 
 function clampTilt(vxPxPerMs: number): number {
   const raw = vxPxPerMs * TILT_GAIN;
-  if (raw > TILT_LIMIT) return TILT_LIMIT;
-  if (raw < -TILT_LIMIT) return -TILT_LIMIT;
-  return raw;
+  const clamped = Math.max(-TILT_LIMIT, Math.min(TILT_LIMIT, raw));
+  // Thousandths of a degree. A steady drag stays on one target so the ease can finish.
+  return Math.round(clamped * 1000) / 1000;
 }
 
 function centreInsideZone(x: number, y: number): boolean {
@@ -157,19 +174,28 @@ function centreInsideZone(x: number, y: number): boolean {
   return cx >= ZONE_X && cx <= ZONE_X + ZONE && cy >= ZONE_Y && cy <= ZONE_Y + ZONE;
 }
 
+function motionReducedNow(): boolean {
+  if (typeof window === 'undefined') return false;
+  const media =
+    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const forced = typeof document !== 'undefined' && document.documentElement.dataset.reduceMotion === '1';
+  return Boolean(media || forced);
+}
+
 function usePrefersReducedMotion(): boolean {
-  const [reduce, setReduce] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  });
+  const [reduce, setReduce] = useState(motionReducedNow);
 
   useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => setReduce(query.matches);
+    const apply = () => setReduce(motionReducedNow());
     apply();
-    query.addEventListener('change', apply);
-    return () => query.removeEventListener('change', apply);
+    const query = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    query?.addEventListener('change', apply);
+    const observer = new MutationObserver(apply);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reduce-motion'] });
+    return () => {
+      query?.removeEventListener('change', apply);
+      observer.disconnect();
+    };
   }, []);
 
   return reduce;
@@ -214,6 +240,41 @@ function Puff({ filterId }: { filterId: string }) {
   );
 }
 
+const ChipFace = memo(function ChipFace({ tilt, scale, respawning }: { tilt: number; scale: number; respawning: boolean }) {
+  return (
+    <div
+      className="ddp-tilt"
+      style={{
+        width: '100%',
+        height: '100%',
+        borderRadius: RADIUS,
+        boxShadow: SHADOW,
+        transformOrigin: 'center center',
+        rotate: `${tilt}deg`,
+      }}
+    >
+      <div
+        className={respawning ? 'ddp-lift ddp-in-lift' : 'ddp-lift'}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: RADIUS,
+          overflow: 'hidden',
+          transformOrigin: 'center center',
+          scale,
+        }}
+      >
+        <img
+          src={DROP_PHOTO}
+          alt=""
+          draggable={false}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+        />
+      </div>
+    </div>
+  );
+});
+
 export function PhysicsDropCard() {
   installSheet();
   const reduce = usePrefersReducedMotion();
@@ -232,8 +293,9 @@ export function PhysicsDropCard() {
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
   const velRef = useRef({ lastX: 0, movedAt: 0, tilt: 0 });
   const timersRef = useRef<number[]>([]);
-  const homeFrameRef = useRef(0);
+  const chipRef = useRef<HTMLDivElement>(null);
   const aliveRef = useRef(true);
+  const armHomeRef = useRef(false);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -241,9 +303,15 @@ export function PhysicsDropCard() {
       aliveRef.current = false;
       for (const id of timersRef.current) window.clearTimeout(id);
       timersRef.current = [];
-      if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!armHomeRef.current || phase !== 'homing') return;
+    armHomeRef.current = false;
+    chipRef.current?.getBoundingClientRect();
+    publish(REST);
+  }, [phase]);
 
   function publish(next: Pose) {
     poseRef.current = next;
@@ -266,8 +334,6 @@ export function PhysicsDropCard() {
   function clearTimers() {
     for (const id of timersRef.current) window.clearTimeout(id);
     timersRef.current = [];
-    if (homeFrameRef.current) cancelAnimationFrame(homeFrameRef.current);
-    homeFrameRef.current = 0;
   }
 
   function parkReady() {
@@ -278,19 +344,17 @@ export function PhysicsDropCard() {
 
   function beginHome() {
     setOver(false);
-    setPhaseBoth('homing');
     if (reduceRef.current) {
       parkReady();
       return;
     }
-    homeFrameRef.current = requestAnimationFrame(() => {
-      homeFrameRef.current = 0;
-      if (!aliveRef.current || phaseRef.current !== 'homing') return;
-      publish(REST);
-      later(RETURN_MS, () => {
-        if (phaseRef.current !== 'homing') return;
-        setPhaseBoth('ready');
-      });
+    armHomeRef.current = true;
+    flushSync(() => {
+      setPhaseBoth('homing');
+    });
+    later(RETURN_MS, () => {
+      if (phaseRef.current !== 'homing') return;
+      setPhaseBoth('ready');
     });
   }
 
@@ -368,8 +432,7 @@ export function PhysicsDropCard() {
     vel.movedAt = now;
     let tilt = vel.tilt;
     if (dx !== 0) {
-      const target = clampTilt(dx / dt);
-      tilt = vel.tilt + (target - vel.tilt) * (1 - Math.exp(-dt / TILT_EASE_MS));
+      tilt = clampTilt(dx / dt);
       vel.tilt = tilt;
     }
     const x = grab.poseX + (event.clientX - grab.x);
@@ -387,21 +450,13 @@ export function PhysicsDropCard() {
   }
 
   const showingPhoto = phase === 'sinking' || phase === 'clearing';
-  const homing = phase === 'homing' && !reduce;
   const fading = phase === 'sinking' && !reduce;
   const respawning = phase === 'back' && !reduce;
 
   let chipOpacity = 1;
   if (phase === 'clearing' || phase === 'empty') chipOpacity = 0;
+  if (respawning) chipOpacity = 0;
   if (reduce && (phase === 'sinking' || phase === 'back')) chipOpacity = 0;
-
-  let chipTransition = 'none';
-  if (homing) chipTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
-
-  let liftTransition = `transform ${LIFT_MS}ms ${LIFT_EASE}`;
-  if (reduce || phase === 'back' || phase === 'clearing' || phase === 'empty' || (phase === 'sinking' && pose.scale === 1)) {
-    liftTransition = 'none';
-  } else if (homing) liftTransition = `transform ${RETURN_MS}ms ${RETURN_EASE}`;
 
   const chipStyle: CSSProperties = {
     position: 'absolute',
@@ -415,11 +470,9 @@ export function PhysicsDropCard() {
     userSelect: 'none',
     cursor: phase === 'held' ? 'grabbing' : 'grab',
     pointerEvents: phase === 'ready' || phase === 'held' ? 'auto' : 'none',
-    opacity: fading || respawning ? undefined : chipOpacity,
-    boxShadow: CHIP_SHADOW,
-    transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.tilt}deg)`,
+    opacity: fading ? undefined : chipOpacity,
+    translate: `${pose.x}px ${pose.y}px`,
     transformOrigin: 'center center',
-    transition: chipTransition,
   };
 
   const photoStyle: CSSProperties = {
@@ -440,6 +493,7 @@ export function PhysicsDropCard() {
       <div
         data-phase={phase}
         data-over={over ? '1' : '0'}
+        className={`ddp-${phase}`}
         style={{ position: 'relative', width: BOARD_W, height: BOARD_H, background: 'transparent' }}
       >
         {showingPhoto && !reduce ? <Puff filterId={filterId} /> : null}
@@ -455,7 +509,7 @@ export function PhysicsDropCard() {
             borderRadius: RADIUS,
             border: `${BORDER}px dashed ${showingPhoto ? 'transparent' : over ? OVER_BORDER : ZONE_BORDER}`,
             background: showingPhoto ? FILLED_BG : over ? OVER_BG : ZONE_BG,
-            boxShadow: showingPhoto ? ZONE_SHADOW : 'none',
+            boxShadow: showingPhoto ? SHADOW : 'none',
             zIndex: 1,
             transformOrigin: 'center center',
           }}
@@ -490,6 +544,7 @@ export function PhysicsDropCard() {
           </span>
         </div>
         <div
+          ref={chipRef}
           className={fading ? 'ddp-chip ddp-fade' : respawning ? 'ddp-chip ddp-in' : 'ddp-chip'}
           style={chipStyle}
           onPointerDown={onPointerDown}
@@ -497,25 +552,7 @@ export function PhysicsDropCard() {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div
-            className={respawning ? 'ddp-lift ddp-in-lift' : 'ddp-lift'}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: RADIUS,
-              overflow: 'hidden',
-              transform: `scale(${pose.scale})`,
-              transformOrigin: 'center center',
-              transition: liftTransition,
-            }}
-          >
-            <img
-              src={DROP_PHOTO}
-              alt=""
-              draggable={false}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
-            />
-          </div>
+          <ChipFace tilt={pose.tilt} scale={pose.scale} respawning={respawning} />
         </div>
       </div>
     </div>

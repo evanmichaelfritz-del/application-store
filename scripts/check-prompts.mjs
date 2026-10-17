@@ -191,7 +191,7 @@ const PACKAGE_SOURCE = [
 function packageSourceIndex(text) {
   const heading = text.search(/^## Component\b/m);
   if (heading < 0) return -1;
-  const fence = text.slice(heading).search(/```(?:js|javascript)\n/);
+  const fence = text.slice(heading).search(/```(?:js|javascript|tsx)\n/);
   if (fence < 0) return -1;
   return heading + fence;
 }
@@ -213,7 +213,7 @@ for (const item of PACKAGE_SOURCE) {
   const text = readFileSync(item.file, 'utf8');
   const start = packageSourceIndex(text);
   if (start < 0) {
-    licenseHits.push(`${item.file}: ## Component is missing its js block`);
+    licenseHits.push(`${item.file}: ## Component is missing its code block`);
     continue;
   }
   const before = text.slice(0, start);
