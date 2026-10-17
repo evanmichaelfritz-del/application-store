@@ -47,7 +47,7 @@ There is no throw and no momentum. Velocity never moves the chip after release. 
 - Scale while held eases to 1.05 on `.ddp-lift` with the `scale` property. The transition is `scale 150ms cubic-bezier(0.2, 0.9, 0.3, 1)`, already armed in `ready`, so the change from 1 runs. Painted on the card: about 1.036 at 33ms, about 1.043 at 49ms, and 1.05 by about 140ms.
 - Cursor `grabbing` is set on the chip while `held`. `document.body` is left alone.
 - Tilt is degrees on `.ddp-tilt` via the `rotate` property, clamped to ±10 and rounded to 0.001°. `vx` is horizontal pixels per millisecond since the previous move.
-- `TILT_GAIN` is `5.56 / (80/400)`. The measured 80px gesture's pointer events arrive about 33ms apart (about 24–37ms), so the drag lasts about 400ms, not 12 frames of 16ms. At 34ms that drag reads -1.77°. At 40px it reads -3.19°. At 80px it has settled at -5.54° and holds. A 120px drag at 1.5× that speed, events still about 33ms apart, settles at -8.34°.
+- `TILT_GAIN` is 27.9497, the least-squares fit in SPEC.md. The measured 80px gesture's pointer events arrive about 33ms apart (about 24–37ms), so the drag lasts about 400ms, not 12 frames of 16ms. At 34ms that drag reads -1.77°. At 40px it reads -3.19°. At 80px it has settled at -5.54° and holds. A 120px drag at 1.5× that speed, events still about 33ms apart, settles at -8.34°.
 - A fast flick whose speed reaches the ±10° clamp, starting in the same frame as the lift, reads -3.22° at 35ms while the scale is 1.036, and -3.46° at 51ms while the scale is 1.043.
 - A move with `dx === 0`, and any time the pointer is idle, leaves the last target where it is. Tilt does not decay.
 - `.ddp-tilt` is memoized on tilt, scale, and the respawn flag. The displayed angle is written from the ease each frame. A target change smaller than 0.25° does not restart that ease, so a steady drag can finish and hold.
@@ -198,15 +198,16 @@ const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
  * The 80px gesture's pointer events land about 33ms apart, so the drag lasts
- * about 400ms, not 12 frames of 16ms. Gain is 5.56° divided by 80/400 px/ms.
- * Leftward is negative. The displayed angle is this ease from the grab, written
+ * about 400ms, not 12 frames of 16ms. Gain is the least-squares fit 27.9497
+ * from the slow drag, that 80px drag, and a flick. Leftward is negative.
+ * The displayed angle is this ease from the grab, written
  * in the same frame as the pointer event. Painted on that cadence: -1.77° at
  * 34ms, -3.19° at 40px, and -5.54° at 80px, then it holds. A 120px drag at 1.5×
  * that speed settles at -8.34°. A flick that clamps at ±10° is -3.22° at 35ms
  * and -3.46° at 51ms. dx === 0 leaves the target, and once the ease finishes
  * the angle holds.
  */
-const TILT_GAIN = 5.56 / (80 / 400);
+const TILT_GAIN = 27.9497;
 const TILT_EASE_MS = 380;
 /** Hits the 34ms and 200ms samples above. Not a curve copied from elsewhere. */
 const TILT_CURVE = [0.104, 0.62, 0, 0.006] as const;

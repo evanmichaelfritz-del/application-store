@@ -28,15 +28,16 @@ const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
  * The 80px gesture's pointer events land about 33ms apart, so the drag lasts
- * about 400ms, not 12 frames of 16ms. Gain is 5.56° divided by 80/400 px/ms.
- * Leftward is negative. The displayed angle is this ease from the grab, written
+ * about 400ms, not 12 frames of 16ms. Gain is the least-squares fit 27.9497
+ * from the slow drag, that 80px drag, and a flick. Leftward is negative.
+ * The displayed angle is this ease from the grab, written
  * in the same frame as the pointer event. Painted on that cadence: -1.77° at
  * 34ms, -3.19° at 40px, and -5.54° at 80px, then it holds. A 120px drag at 1.5×
  * that speed settles at -8.34°. A flick that clamps at ±10° is -3.22° at 35ms
  * and -3.46° at 51ms. dx === 0 leaves the target, and once the ease finishes
  * the angle holds.
  */
-const TILT_GAIN = 5.56 / (80 / 400);
+const TILT_GAIN = 27.9497;
 const TILT_EASE_MS = 380;
 /** Hits the 34ms and 200ms samples above. Not a curve copied from elsewhere. */
 const TILT_CURVE = [0.104, 0.62, 0, 0.006] as const;
