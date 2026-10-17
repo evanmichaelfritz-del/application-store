@@ -16,7 +16,7 @@ Clean-room. Build the card from the behaviour recorded here. Don't open transiti
 - Pointer down on the chip grabs it. Cursor is `grab`, then `grabbing` on the chip only (not `document.body`).
 - Scale eases to 1.05 over 150ms with `cubic-bezier(0.2, 0.9, 0.3, 1)`. The curve's own 1.030 is at 25ms. On this build a 0.2 px/ms drag painted scale 1.036 at 35ms and 1.043 at 52ms, and 1.05 by 151ms.
 - The chip follows the pointer 1:1. Position is the `translate` property. Rotation and scale are separate properties, so the follow is not waiting on the tilt ease.
-- Tilt target is `clamp(gain × speed, ±10°)`, rounded to 0.001°. Speed is the horizontal movement since the grab divided by the time since the grab, so one short interval cannot spike it. Gain is `5.58 / 0.2 = 27.9`. The angle is a first-order chase of that target. It does not restart, and a constant target is never crossed. After a 28ms wait, 44% of the target up to ±5.58° arrives with a 6ms time constant and the rest with 70ms. The part past ±5.58° skips that fast mode, waits 58ms, and arrives with a 64ms time constant. The angle is written in the same frame as the pointer event. A move with no horizontal change leaves the target. Idle tilt holds.
+- Tilt target is `clamp(gain × speed, ±10°)`, rounded to 0.001°. Speed is the rolling average of the last three move events. A gap above 100ms is a hold: that stretch reads 0, and the next move uses only the new intervals, so a wait before the drag does not dilute the speed. Gain is `5.58 / 0.2 = 27.9`. The angle is a first-order chase of that target. While the pointer keeps moving, the chase does not restart, and a constant target is never crossed. After a 28ms wait, 44% of the target up to ±5.58° arrives with a 6ms time constant and the rest with 70ms. The part past ±5.58° skips that fast mode, waits 58ms, and arrives with a 64ms time constant. The clock starts at the grab when the drag begins immediately, and at the first move after a hold. The angle is written in the same frame as the pointer event. A move with no horizontal change leaves the target. Idle tilt holds.
 - No throw or momentum.
 
 ## Release
@@ -34,7 +34,7 @@ Clean-room. Build the card from the behaviour recorded here. Don't open transiti
 ## Reduced motion
 
 - Follows the OS `prefers-reduced-motion: reduce` setting and `html[data-reduce-motion="1"]`. The in-app Reduce Motion switch writes that attribute. Copy has no switch, so it follows the OS query.
-- No transitions and no animations. The tilt snaps to the clamped target in the pointer event. On the 80px gesture below, that snap is −5.581° at 400ms with scale 1.05. A fast move that exceeds the clamp snaps to −10° in the pointer event and is still −10° a frame later. Both the OS query and the attribute take that path.
+- No transitions and no animations. The tilt snaps to the clamped target in the pointer event. On the 80px gesture below, that snap is −5.580° at 400ms with scale 1.05. A fast move that exceeds the clamp snaps to −10° in the pointer event and is still −10° a frame later. Both the OS query and the attribute take that path.
 - The zone empties at 1832ms and the chip respawns at 2268ms, already at scale 1 and opacity 1. The puff does not play.
 
 ## Native
@@ -53,25 +53,28 @@ Replay: pointer position is `−0.2 × t` px for 400ms (twelve equal steps, 6.66
 
 | t (ms) | tilt (deg) | residual (deg) |
 | --- | --- | --- |
-| 18.1 | 0 | 0 |
-| 34.6 | −1.809 | −0.029 |
-| 51 | −3.252 | +0.148 |
-| 67.5 | −3.792 | +0.008 |
-| 84 | −4.176 | −0.006 |
-| 101 | −4.485 | −0.065 |
-| 117 | −4.714 | −0.074 |
-| 134 | −4.904 | −0.084 |
-| 151 | −5.053 | −0.073 |
-| 167.5 | −5.165 | −0.075 |
-| 200.1 | −5.323 | −0.063 |
-| 234.2 | −5.427 | −0.037 |
-| 267.5 | −5.490 | −0.010 |
-| 300.4 | −5.526 | −0.016 |
-| 351.4 | −5.559 | −0.009 |
-| 384 | −5.569 | +0.011 |
-| 400.2 | −5.571 | +0.009 |
+| 18 | 0 | 0 |
+| 34.8 | −1.865 | −0.085 |
+| 51 | −3.241 | +0.159 |
+| 67.4 | −3.788 | +0.012 |
+| 84.4 | −4.174 | −0.004 |
+| 101.2 | −4.449 | −0.029 |
+| 117.1 | −4.700 | −0.060 |
+| 134.3 | −4.892 | −0.072 |
+| 151.2 | −5.039 | −0.059 |
+| 167.4 | −5.150 | −0.060 |
+| 200.5 | −5.312 | −0.052 |
+| 234.3 | −5.415 | −0.025 |
+| 267.3 | −5.493 | −0.013 |
+| 300.5 | −5.516 | −0.006 |
+| 351 | −5.560 | −0.010 |
+| 384 | −5.561 | +0.019 |
+| 400.3 | −5.565 | +0.015 |
+| 700 | −5.580 | 0 |
 
-The largest residual is 0.148° at 51ms. Every sample is inside 0.3°. The angle moved in one direction. The most negative sample was −5.574° at 420ms, which does not pass −5.58°.
+The largest residual is 0.159° at 51ms. Every sample is inside 0.3°. The most negative sample was −5.580° at 700ms. It does not pass −5.58°.
+
+The same 80px drag after a 250ms hold, with the pointer still reporting during the hold, reads 0° at 18ms of motion, −1.828° at 34.1ms, −3.262° at 51ms, −5.560° at 351ms, and −5.546° at 700ms. The most negative sample was −5.560°. A silent 250ms hold, with no moves until the drag, reads 0° through 34ms of motion, −1.668° at 51ms, and −5.580° at 700ms. The first event after the silence only opens the window, so the rise starts one step later. Neither hold passes −5.58°.
 
 ### Flick
 
@@ -81,26 +84,27 @@ Replay: 80px in three moves, 5ms apart. Pointer position is `−80 × min(t, 15)
 | --- | --- | --- | --- | --- |
 | 5 | 0 | 1 | | |
 | 10 | 0 | 1 | | |
-| 15.1 | 0 | 1 | | |
-| 20.1 | 0 | 1.022 | | |
+| 15.3 | 0 | 1 | | |
 | 25 | 0 | 1.022 | −3.40 at lift 1.030 | +3.40 |
-| 28 | 0 | 1.022 | | |
-| 33.9 | −1.730 | 1.036 | | +1.670 |
-| 35 | −1.937 | 1.036 | | +1.463 |
-| 40 | −2.587 | 1.036 | | +0.813 |
-| 45.1 | −2.985 | 1.036 | | +0.415 |
-| 52 | −3.305 | 1.043 | | +0.095 |
-| 60 | −3.697 | 1.043 | | |
+| 35 | −1.954 | 1.036 | | +1.446 |
+| 40 | −2.596 | 1.036 | | +0.804 |
+| 45 | −2.973 | 1.036 | | +0.427 |
+| 52 | −3.309 | 1.043 | | +0.091 |
+| 60.7 | −3.774 | 1.043 | | |
+| 200.3 | −9.253 | 1.05 | | |
+| 360.2 | −9.933 | 1.05 | | |
+| 700.8 | −10.000 | 1.05 | | |
+| 900 | −10.000 | 1.05 | | |
 
-The painted scale is 1.022 through 28ms and 1.036 from 34ms to 45ms. It does not sit on 1.030. While the scale reads 1.036 the angle runs from −1.730° to −2.985°, which is 1.67° to 0.42° short of −3.40°. The 28ms wait that keeps the 80px drag at 0° through 18ms holds this flick at 0° until that wait ends. Reaching −3.40° by the 1.030 lift would put the 80px drag past −1.78° before 34ms. Known residual.
+The painted scale is 1.022 at 25ms and 1.036 from 35ms to 45ms. It does not sit on 1.030. While the scale reads 1.036 the angle runs from −1.954° to −2.973°, which is 1.45° to 0.43° short of −3.40°. The 28ms wait that keeps the 80px drag at 0° through 18ms holds this flick at 0° until that wait ends. Reaching −3.40° by the 1.030 lift would put the 80px drag past −1.78° before 34ms. The held flick then reaches the −10° clamp: −9.933° at 360ms and −10.000° at 700ms, still −10.000° at 900ms. Known residual on the early frame.
 
 ### 40px and 120px
 
 Same 400ms, twelve-step shape.
 
-40px, 0.1 px/ms. Painted −2.356° at 117.1ms (residual +0.214° against −2.57°) and −2.688° at 217ms (residual +0.042° against −2.73°). The most negative sample was −2.783°. It did not pass −2.80°.
+40px, 0.1 px/ms. Painted −2.351° at 117ms (residual +0.219° against −2.57°) and −2.685° at 217ms (residual +0.045° against −2.73°). It settled at −2.790°. The most negative sample was −2.790°. It did not pass −2.80°.
 
-120px, 0.3 px/ms. Painted −5.863° at 101.5ms (residual −0.033° against −5.83°), −7.816° at 201ms (residual +0.004° against −7.82°), and −8.251° at 301ms (residual −0.031° against −8.22°).
+120px, 0.3 px/ms. Painted −5.836° at 101ms (residual −0.006° against −5.83°), −7.829° at 201ms (residual +0.009° against −7.82°), −8.244° at 301ms (residual −0.024° against −8.22°), and −8.341° at 400ms. It settled at −8.370°. The same drag after a 250ms hold read −8.342° at 400ms of motion and settled at −8.370°. Neither passed −8.37°.
 
 ### Slow gesture
 
@@ -108,18 +112,18 @@ Replay: 80px over 1200ms, thirty-six equal steps. Pointer position is `−(80/12
 
 | t (ms) | card tilt | demo tilt | residual |
 | --- | --- | --- | --- |
-| 40 | −0.869 | | |
-| 80 | −1.367 | | |
-| 118 | −1.575 | −2.55 | +0.975 |
-| 200 | −1.774 | | |
-| 400 | −1.856 | | |
-| 600 | −1.861 | | |
-| 800 | −1.861 | | |
-| 1000 | −1.861 | | |
-| 1200 | −1.860 | −1.87 | +0.010 |
-| 1400 | −1.860 | −1.87 | +0.010 |
+| 40 | −0.871 | | |
+| 80.3 | −1.366 | | |
+| 118.5 | −1.574 | −2.55 | +0.976 |
+| 200.3 | −1.774 | | |
+| 400.2 | −1.852 | | |
+| 600 | −1.857 | | |
+| 800 | −1.860 | | |
+| 1000 | −1.860 | | |
+| 1200 | −1.863 | −1.87 | +0.007 |
+| 1400.1 | −1.863 | −1.87 | +0.007 |
 
-The most negative sample was −1.861°. It did not pass −3.21°. The angle climbed in one direction and settled 0.010° short of −1.87°. The demo's −2.55° at 118ms is past that settle. This constant-speed chase does not pass its target, so that frame stays a residual of +0.975°.
+The most negative sample was −1.863°. It did not pass −3.21°. It settled 0.007° short of −1.87°. The demo's −2.55° at 118ms is past that settle. This constant-speed chase does not pass its target, so that frame stays a residual of +0.976°.
 
 ## Puff frame fit
 
@@ -159,7 +163,5 @@ Darkness is 249 minus the pixel, averaged over five rows. Distances are pixels o
 
 At 500ms the right side is 0 by 20px. At 800ms the left side is 0 by 30px. The right side at 800ms is darker than the left; the noise seed makes the two sides differ. Neither corner is a filled square.
 
-Puff halo edge is a smooth haze; the original's outline wanders more irregularly (Motion, 75aa37c). Accepted as known gap.
-
-Big-drag tilt leans slightly deeper and builds faster than the original in Motion's harness: about 0.25° deeper at 80px, 0.43° at 120px (Motion, 85520e5). Accepted as known gap.
+The puff halo edge is a smooth haze; the original's outline wanders more irregularly.
 
