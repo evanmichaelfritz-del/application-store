@@ -58,7 +58,7 @@ const INSTALL_ENTRIES: readonly InstallEntry[] = [];
 const PARITY_ENTRIES: readonly ParityEntry[] = [
   {
     id: 'spacing-tuner',
-    sha: '2111383736243859714',
+    sha: '4234059ed69ff19840ae3360ae4ab85cb1b2165cc3fbdbcd63457867a0ae0775',
     href: 'https://x.com/MichaelFilipiuk/status/2111383736243859714',
   },
 ];

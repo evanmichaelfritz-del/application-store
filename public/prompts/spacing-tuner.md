@@ -2,8 +2,6 @@
 
 Build **one asset**, the *Spacing tuner*. It's an animated desktop-dashboard wireframe. Five spacing variables change one at a time, each with a translucent colour overlay on the area it affects and a status chip that counts its px value. Then everything springs back and the loop repeats every 10 s. Ship it as a self-contained React Native + TypeScript component that runs under react-native-web. The bar is **desktop web at 1280 px wide**; native is a known gap.
 
-Built clean-room from the public demo video's behaviour only, with no source code read.
-
 ## 0. Credit
 
 Based on a spacing demo by @MichaelFilipiuk ("If the app feels off but you're not sure why, it's probably the spacing."). Keep this credit in the asset's description, and link the post: https://x.com/MichaelFilipiuk/status/2111383736243859714.
@@ -172,12 +170,12 @@ Measured at 60 fps by tracking element edges and overlay colours across all 600 
 - Phase k = 0…4 starts at **t0 = 0.8 + 1.3k**.
 - **Overlay and ring:** fade in linearly over **0.15 s** from t0, and fade out linearly over **0.25 s** from t0 + 1.0.
 - **Value:** starts its spring at **t0 + 0.2**.
-- **Spring:** mass 1, **stiffness 202, damping 21.35** (ζ = 0.751, ω0 = 14.21 rad/s), zero initial velocity. Damping is higher than a ζ = 0.707 spring, and stiffness stays high enough that half-travel does not slip.
-  - Half-travel (progress 0.5) is at **+0.103 s**: 1.103, 2.403, 3.703, 5.003, 6.303, and revert 9.203. Those sit within 16 ms of the frame times 1.093 / 2.400 / 3.689 / 5.003 / 6.295 / 9.200.
+- **Spring:** mass 1, stiffness 202, damping 21.35 (ζ ≈ 0.751), zero initial velocity. Chosen to put the sidebar overshoot windows and the half-travel times within one frame of the original.
+  - Half-travel (progress 0.5) is at **+0.103 s**: 1.103, 2.403, 3.703, 5.003, 6.303, and revert 9.203. Those sit within one frame of 1.093 / 2.400 / 3.689 / 5.003 / 6.295 / 9.200.
   - The sidebar chip first leaves 184 at **+0.009 s** (t = 1.009) and first reads 248 at **+0.250 s** (t = 1.250), not earlier.
   - Peak overshoot is **2.80% at +0.335 s**. On the 64 px sidebar move that is **+1.8 px**, which rounds to +2 px from 1.300 s to 1.383 s, then +1 px until 1.480 s, and is settled from 1.480 s. The revert mirrors that: −2 px from 9.400 s to 9.483 s, −1 px until 9.580 s.
-  - Card padding travels 12 px, so the same 2.80% is **+0.34 px** and shows no whole-pixel overshoot.
-  - Frame measurements of the video: the sidebar edge holds +2 px from 1.283 s to 1.383 s and +1 px from 1.400 s to 1.467 s, settled from 1.483 s. The revert holds −2 px from 9.367 s to 9.500 s and −1 px from 9.517 s to 9.567 s, resting from 9.583 s. That whole-pixel band is about 2.3–3.9% of the 64 px move (1.5–2.5 px), not 3–7%.
+  - Measured overshoot is about 1–4.8% across moves, and 3.1% on the 64 px sidebar move.
+  - The sidebar edge holds +2 px from 1.283 s to 1.383 s and +1 px from 1.400 s to 1.467 s, settled from 1.483 s. The revert holds −2 px from 9.367 s to 9.500 s and −1 px from 9.517 s to 9.567 s, resting from 9.583 s.
 
 | Phase | Overlay fade-in | Value spring start | Reaches target | Settled | Overlay fade-out | Evidence |
 |---|---|---|---|---|---|---|
@@ -252,6 +250,12 @@ The clock also pauses while the stage is off screen (`IntersectionObserver`, and
 9. The rAF clock drives about 150 views, but it does not run under reduced motion or while the stage is off screen, and it skips renders during the 7.25–9.1 s rest. Native performance is still a known gap.
 10. Don't add text labels to the scene or chips. The reference has none; accessible names live in `accessibilityLabel` only.
 11. **Phone widths are a known gap.** Desktop web at 1280 is the bar. The stage still scales, but phone layouts are not a parity target.
+
+## Known gaps
+
+- The card-padding edges (chart top and card bottom) paint +1 px from 6.495 to 6.595 s; the original peaks at +0.27 px.
+- The revert dip runs −2 px from 9.400 to 9.480 s vs the original's 9.367–9.500 s, and the sidebar chip returns to 184 at about 9.355 s vs 9.333 s.
+- The phase-1 counter's first change is one frame late (184 at 1.000 s, where the original shows 185).
 
 ## 11. File structure
 
@@ -1082,7 +1086,7 @@ Check at a 1280x800 viewport (stage scale 0.7407, centred) and at 1440x1080 (1:1
 5. **Chips at t=0:** 184 · 20 · 20 · 20 · 12. **At t=8:** 248 · 40 · 48 · 12 · 24. Chip row centred; first chip starts at x ≈ 341, height 58, gap 24.
 6. **Overlay colour over white** = accent at 0.32: blue band ≈ #C2DAF9, purple ≈ #E0D0F8, green ≈ #B9E7D3, orange ≈ #F9D8B8; pink over #FAFAFA ≈ #F7C3D8.
 7. **Overlay and ring opacity:** 0 at t=0.80, 1 at 0.95, 1 until 1.80, 0 at 2.05. Same shape at 2.10 / 3.40 / 4.70 / 6.00.
-8. **Value starts:** 1.00 / 2.30 / 3.60 / 4.90 / 6.20. Half-travel is +0.103 s. The sidebar chip reads 248 at 1.250 s and not before. Peak overshoot is 2.8% at +0.335 s (+1.8 px on the 64 px sidebar move) and the edge is settled by +0.48 s.
+8. **Value starts:** 1.00 / 2.30 / 3.60 / 4.90 / 6.20. The spring is mass 1, stiffness 202, damping 21.35. Half-travel is +0.103 s (1.103, 2.403, 3.703, 5.003, 6.303, revert 9.203). The sidebar chip reads 248 at 1.250 s and not before. Peak overshoot is 2.80% at +0.335 s (+1.8 px on the 64 px sidebar move, rounding to +2 px) and the edge is settled from 1.480 s.
    - Sidebar chip at t=1.15 is 231. The reference video shows 234 at that sample.
 9. **Rest 7.25–9.10:** no overlays or rings. **Revert starts at 9.10**, all five together. Chips at t=9.20 are 217 / 30 / 35 / 16 / 18; at 9.33 they are 186 / 21 / 21 / 20 / 12 (the sidebar chip is 186 here, not 184 — 184 returns once the spring is inside half a pixel of the target).
 10. **The layout overshoots on revert** by the same 2.8% (sidebar briefly about 182 at the peak, t≈9.43), but the chip stays clamped at 184 once the rounded value gets there.

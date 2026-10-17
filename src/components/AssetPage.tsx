@@ -901,12 +901,9 @@ function ParityValue({ parity }: { parity: AssetParity | null }) {
   if (!parity) return <Text style={styles.faint}>Not checked</Text>;
   return (
     <Text style={styles.valueText}>
-      <Text style={styles.pass}>PASS</Text>
-      <Text> · </Text>
       <Text style={styles.sha} accessibilityRole="link" onPress={() => openExternal(parity.href)}>
-        {parity.sha}
+        Source post
       </Text>
-      <Text> · 1280</Text>
     </Text>
   );
 }
