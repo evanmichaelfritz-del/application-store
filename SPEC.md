@@ -45,7 +45,7 @@ Clean-room. Build the card from the behaviour recorded here. Don't open transiti
 
 Gain `27.9 = 5.58 / 0.2`. A steady 0.2 px/ms drag settles at −5.58°. The same gain gives −2.79° at 0.1 px/ms and −8.37° at 0.3 px/ms. The chase is the two first-order modes above. It is monotone for a constant target and does not cross that target.
 
-The ±10° clamp is the end of a fast move. Reduced motion on a move past the clamp reads −10.00° immediately. On this card a 120px move in 120ms (three 40ms steps, target already the clamp) read −2.606° / −5.365° / −7.487° / −8.394° at 40/80/120/160ms and −9.922° at 360ms, still closing on −10°.
+The ±10° clamp is the end of a fast move. Demo samples behind it: 200px in 4 steps reads −9.25° and then −10.00°; 120px in 3 steps reads −8.44° and then −10.00°. Reduced motion on a move past the clamp reads −10.00° immediately. On this card a 120px move in 120ms (three 40ms steps, target already the clamp) read −2.606° / −5.365° / −7.487° / −8.394° at 40/80/120/160ms and −9.922° at 360ms, still closing on −10°.
 
 ### 80px gesture
 
