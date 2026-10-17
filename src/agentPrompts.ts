@@ -121,9 +121,74 @@ const LOCKS: Record<string, PromptLock> = {
     rn: 'Measure each tab with onLayout. Same pattern as store section chips. Copy emits `.t-tabs-pill`.',
   },
   'drag-drop-physics': {
-    motion: 'Gesture-handler pan. Release springs home with `springs.default` (damping 20, stiffness 280). Zone radius/fill morph.',
-    content: 'Zone label `Drag & drop it here`.',
-    rn: 'Not a full physics engine. Copy emits `.t-drop`.',
+    motion:
+      'Pointer drag follows 1:1 at scale 1.05. Horizontal velocity tilts the chip, about -5.6° on a typical leftward drag, clamped to ±10°, with no throw. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1) (about 10% overshoot, peak near 300ms) and ignores re-grabs. A hit fades the chip in 230ms, squashes the zone to 0.97 and back by 610ms, fades the photo in over 395ms, and plays a smoke puff from 280ms to 1460ms. The zone empties at 1815ms and the chip respawns at 2265ms.',
+    content:
+      'Board 213×192. Chip 72×72 photo at left 141, top 0, radius 18. Zone 104×104 at left 0, top 88, 2px dashed rgba(0,0,0,0.1), background rgba(234,234,234,0.2). Label lines `Drag & drop` and `it here`.',
+    rn: 'Web pointer events and CSS. Copy loads `/parity/drag-drop-physics.js`, the same board as the live card. The zone label uses a system font stack. No CDN font request.',
+    states: [
+      {
+        name: 'ready',
+        trigger: 'mount, or respawn',
+        from: 'hidden chip',
+        to: 'chip at rest, scale 1, tilt 0',
+        duration: 'snap at 2265ms after a hit',
+        easing: 'none',
+        delay: 'none',
+      },
+      {
+        name: 'held',
+        trigger: 'pointer down on the chip',
+        from: 'rest',
+        to: 'pointer translation, scale 1.05, tilt from horizontal velocity',
+        duration: 'while the pointer is down',
+        easing: '1:1 follow; tilt smooths over 48ms',
+        delay: 'none',
+      },
+      {
+        name: 'homing',
+        trigger: 'pointer up with the chip centre outside the zone',
+        from: 'release pose',
+        to: 'rest',
+        duration: '500ms',
+        easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        delay: 're-grabs ignored until it finishes',
+      },
+      {
+        name: 'sinking',
+        trigger: 'pointer up with the chip centre inside the zone',
+        from: 'release pose',
+        to: 'chip opacity 0, zone photo opacity 1, puff running',
+        duration: 'chip 230ms, photo 395ms, squash 610ms, puff 280–1460ms',
+        easing: 'linear fades; squash linear through 0.97 at 230ms',
+        delay: 'puff delay 280ms',
+      },
+      {
+        name: 'empty',
+        trigger: '1815ms after the hit',
+        from: 'filled zone',
+        to: 'dashed zone and label, chip still hidden',
+        duration: 'until 2265ms',
+        easing: 'snap',
+        delay: '1815ms from the hit',
+      },
+    ],
+    gotchas: [
+      'Hit testing uses the chip centre, not a box overlap.',
+      'There is no throw and no momentum. Velocity only tilts the chip.',
+      'Re-grabs during the 500ms return are ignored.',
+      'prefers-reduced-motion removes tweens and the puff. The filled zone still holds until 1815ms, then the chip respawns at 2265ms.',
+      'The zone label font is the system stack. Do not add a fonts.gstatic.com or other CDN request.',
+    ],
+    setup:
+      'photo.ts exports DROP_PHOTO, a CC0 JPEG (Jez Timms, Unsplash ODANAGrc168) as a data URI. Any 746×944 image can replace it. The original demo uses a different portrait. The copy bundle is public/parity/drag-drop-physics.js with the React LICENSE verbatim in a /*! */ header. Peer is React.',
+    checklist: [
+      'Board is 213×192, chip 72×72 at left 141 top 0, zone 104×104 at left 0 top 88.',
+      'A miss returns in 500ms with cubic-bezier(0.34, 1.56, 0.64, 1) and ignores re-grabs.',
+      'A hit fades the chip by 230ms, the photo by 395ms, and the puff from 280ms to 1460ms.',
+      'The zone empties at 1815ms and the chip respawns at rest at 2265ms.',
+      'Live and Copy mount the same board. Copy makes no external font request.',
+    ],
   },
   'shimmer-text': {
     motion:

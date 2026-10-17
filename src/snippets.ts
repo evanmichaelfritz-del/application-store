@@ -323,17 +323,7 @@ export const SNIPPETS: Record<string, string> = {
   .t-tabs-pill { transition: none !important; }
 }`,
 
-  'drag-drop-physics': `:root {
-  --drop-snap: 520ms;
-  --drop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
-  --drop-morph: 300ms;
-}
-/* RN: gesture-handler pan + Reanimated spring snap.
-   Live site uses pointer physics into a morphing image well. */
-.t-drop { transition: border-radius var(--drop-morph) var(--drop-ease), transform var(--drop-snap) var(--drop-ease); }
-@media (prefers-reduced-motion: reduce) {
-  .t-drop { transition: none !important; }
-}`,
+  'drag-drop-physics': `/* The board runs from /parity/drag-drop-physics.js. */`,
 
   'shimmer-text': `:root {
   --shimmer-dur: 1200ms;

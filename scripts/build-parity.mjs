@@ -43,6 +43,11 @@ const targets = [
     outfile: 'public/parity/gooey.js',
     header: licenseHeader('liquid-gooey'),
   },
+  {
+    entry: 'src/demos/drag-drop/mount.tsx',
+    outfile: 'public/parity/drag-drop-physics.js',
+    header: block(readFileSync(join(root, 'node_modules/react/LICENSE'), 'utf8'), false),
+  },
 ];
 
 for (const target of targets) {

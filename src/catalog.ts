@@ -17,7 +17,7 @@ import { InputClearDemo } from './demos/InputClear';
 import { SkeletonRevealDemo } from './demos/SkeletonReveal';
 import { TextsRevealDemo } from './demos/TextsReveal';
 import { TabsSlidingDemo } from './demos/TabsSliding';
-import { DragDropDemo } from './demos/DragDrop';
+import { DragDropDemo } from './demos/drag-drop';
 import { ShimmerTextDemo } from './demos/ShimmerText';
 import { TooltipDemo } from './demos/Tooltip';
 import { TiltCardDemo } from './demos/TiltCard';

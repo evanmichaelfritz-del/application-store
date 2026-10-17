@@ -94,7 +94,7 @@ const ROWS: Record<string, Row> = {
   'skeleton-reveal': ['loaders', 'ambient-loop', 'rn-reanimated', 'transitions-dev', 'shipped'],
   'texts-reveal': ['text-effects', 'static', 'rn-reanimated', 'transitions-dev', 'shipped'],
   'tabs-sliding': ['navigation', 'static', 'rn-reanimated', 'transitions-dev', 'shipped'],
-  'drag-drop-physics': ['inputs-pickers', 'gesture', 'rn-reanimated', 'transitions-dev', 'shipped'],
+  'drag-drop-physics': ['inputs-pickers', 'gesture', 'web-svg-filter', 'transitions-dev', 'shipped'],
   'shimmer-text': ['text-effects', 'ambient-loop', 'rn-reanimated', null, 'shipped'],
   'image-generation-loader': ['loaders', 'ambient-loop', 'web-webgl', null, 'shipped'],
   'tooltip-open-close': ['menus-overlays', 'hover', 'rn-reanimated', 'transitions-dev', 'shipped'],

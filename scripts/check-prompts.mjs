@@ -124,6 +124,7 @@ const publicPrompt = {
   'border-beam': readFileSync(join(root, 'public/prompts/border-beam.md'), 'utf8'),
   'liquid-metal': readFileSync(join(root, 'public/prompts/liquid-metal.md'), 'utf8'),
   gooey: readFileSync(join(root, 'public/prompts/gooey.md'), 'utf8'),
+  'drag-drop-physics': readFileSync(join(root, 'public/prompts/drag-drop-physics.md'), 'utf8'),
 };
 
 function missingSections(text) {
