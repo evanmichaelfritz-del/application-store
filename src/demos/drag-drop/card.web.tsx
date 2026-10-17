@@ -27,60 +27,84 @@ const LIFT_MS = 150;
 const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * The 80px gesture's pointer events land about 33ms apart, so the drag lasts
- * about 400ms, not 12 frames of 16ms. Gain is the least-squares fit 27.9497
- * from the slow drag, that 80px drag, and a flick. Leftward is negative.
- * The displayed angle is this ease from the grab, written
- * in the same frame as the pointer event. Painted on that cadence: -1.77° at
- * 34ms, -3.19° at 40px, and -5.54° at 80px, then it holds. A 120px drag at 1.5×
- * that speed settles at -8.34°. A flick that clamps at ±10° is -3.22° at 35ms
- * and -3.46° at 51ms. dx === 0 leaves the target, and once the ease finishes
- * the angle holds.
+ * Eleven pointer events, 372/11 ms apart, carry an 80px drag. The first
+ * event's speed on that spacing was 0.2139, 0.2158, 0.2165 and 0.2197 px/ms
+ * across runs. Gain 25.774 is 5.58 / 0.2165. Those runs settled at -5.56°,
+ * -5.61° and -5.68°. The slower pass, 4.4/5.58 of the 80px speed, settled
+ * at -4.41° to -4.43°. Leftward is negative. The ease itself is done by
+ * 330ms. The lift transition paints about 8ms behind its curve (scale 1.022
+ * at 24ms, where the curve is already at 1.029), so the tilt ease waits
+ * those 8ms. A clamped flick then reads about -3.4° on the frame whose
+ * scale has just passed 1.030. dx === 0 leaves the target, and once the
+ * ease finishes the angle holds.
  */
-const TILT_GAIN = 27.9497;
-const TILT_EASE_MS = 380;
-/** Hits the 34ms and 200ms samples above. Not a curve copied from elsewhere. */
-const TILT_CURVE = [0.104, 0.62, 0, 0.006] as const;
+const TILT_GAIN = 25.774;
+const TILT_EASE_MS = 330;
+const TILT_LAG_MS = 8;
+/** 0.340 at 25ms of the curve, 1 by 330ms. */
+const TILT_CURVE = [0.16, 0.72, 0.16, 0.955] as const;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
 const FADE_BLUR = 2;
 const SQUASH = 0.97;
-const SQUASH_DOWN_MS = 173;
-const SQUASH_BACK_MS = 285;
+const SQUASH_DOWN_MS = 226;
+const SQUASH_BACK_MS = 240;
 const SQUASH_MS = SQUASH_DOWN_MS + SQUASH_BACK_MS;
 const SQUASH_DIP = (SQUASH_DOWN_MS / SQUASH_MS) * 100;
-/** Dip reaches 0.985 at 45ms, 0.9725 at 111ms, and 0.97 by about 210ms. */
-const SQUASH_DIP_EASE = 'cubic-bezier(0.57, 1.264, 0.853, 0.872)';
-/** Back is 0.975 at 278ms, 0.983 at 312ms, 0.989 at 345ms, 0.996 at 412ms. */
-const SQUASH_BACK_EASE = 'cubic-bezier(0.904, 0.336, 0.011, 0.233)';
-const PHOTO_IN_MS = 380;
-const PUFF_DELAY = 250;
-const PUFF_MS = 1275;
-const PUFF_START_SCALE = 0.96;
+/** Dip: 0.985 at 45ms, 0.9725 at 111ms, 0.970 by 210ms. */
+const SQUASH_DIP_EASE = 'cubic-bezier(0.4, 1.05, 0.4, 0.9)';
+/** Back: 0.975/0.983/0.989/0.996 at 278/312/345/412ms, and 0.999 by 460ms. */
+const SQUASH_BACK_EASE = 'cubic-bezier(0.55, 0.3, 0, 0.4)';
+/**
+ * The squash animation clock sat 12ms behind the drop timestamp. Shifting
+ * the animation forward by that amount puts the wall-clock samples on the curve.
+ */
+const SQUASH_LEAD = 12;
+const PHOTO_IN_MS = 347;
+const PUFF_DELAY = 263;
+const PUFF_MS = 1225;
 const PUFF_PEAK = 0.9;
-const PUFF_PEAK_AT = 16;
-const PHOTO_OUT_AT = 1815;
-const PHOTO_OUT_MS = 263;
+/**
+ * Opacity holds at 0.9 from 450ms to 470ms. 460ms sits inside that window,
+ * so a sample a few milliseconds off the peak still reads 0.9. These
+ * percents are (450-263)/1225 and (470-263)/1225.
+ */
+const PUFF_PEAK_LO = ((450 - PUFF_DELAY) / PUFF_MS) * 100;
+const PUFF_PEAK_HI = ((470 - PUFF_DELAY) / PUFF_MS) * 100;
+/** Side reach has levelled off by 750ms, 487ms into the run. */
+const PUFF_HOLD_AT = ((750 - PUFF_DELAY) / PUFF_MS) * 100;
+const PHOTO_OUT_AT = 1832;
+const PHOTO_OUT_MS = 211;
 const PHOTO_OUT_BLUR = 4;
-/** Opacity 0.66/0.40/0.24/0.13/0.07 at 32/64/100/130/163ms, gone at 263ms. Blur follows the same progress out to 4px. */
-const PHOTO_OUT_EASE = 'cubic-bezier(0.138, 0.3, 0.19, 0.981)';
-const RESPAWN_AT = 2265;
-const RESPAWN_MS = 212;
-/** Opacity and scale share this ease: about 0.51/0.951 at 30ms, 0.79/0.979 at 63ms, 0.92/0.992 at 96ms. */
-const RESPAWN_EASE = 'cubic-bezier(0.208, 1.044, 0.529, 0.992)';
+/** Opacity 0.66/0.40/0.24/0.13/0.07 at 32/64/100/130/163ms. The fit reaches 0 at 211ms, so the fade ends at 2043ms. */
+const PHOTO_OUT_EASE = 'cubic-bezier(0.12, 0.04, 0.08, 0.8)';
+/** Scheduled from the sinking paint, which lands SQUASH_LEAD after the drop. */
+const PHOTO_OUT_DELAY = PHOTO_OUT_AT - SQUASH_LEAD;
+const RESPAWN_AT = 2268;
+const RESPAWN_MS = 142;
+/** Opacity and scale share this ease: 0.51/0.951 at 30ms, 0.79/0.979 at 63ms, 0.92/0.992 at 96ms. Done at 142ms, which is 2410ms after the drop. */
+const RESPAWN_EASE = 'cubic-bezier(0.24, 0.76, 0.5, 0.92)';
+/**
+ * Scheduled from the same sinking paint as the photo fade. The respawn
+ * samples read about 3ms behind that paint, so this starts 3ms sooner.
+ */
+const RESPAWN_DELAY = RESPAWN_AT - SQUASH_LEAD - 3;
 const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
 const PUFF_STROKE = 50;
 const PUFF_RADIUS = 27;
-const PUFF_DRIFT = 10;
-const PUFF_SCALE = 1 + 60 / ZONE;
+const PUFF_DRIFT_AT_PEAK = 4.96;
+const PUFF_SCALE_AT_PEAK = 1.02;
+const PUFF_DRIFT_AT_HOLD = 6.6;
+const PUFF_DRIFT = 11.5;
+const PUFF_SCALE = 1.14;
 const PUFF_COLOR = 'rgba(132,132,132,0.55)';
 const PUFF_NOISE = 0.028;
 const PUFF_OCTAVES = 2;
 const PUFF_SEED = 11;
-const PUFF_DISPLACE = 6;
-const PUFF_BLUR = 14;
+const PUFF_DISPLACE = 4;
+const PUFF_BLUR = 22;
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
 const OVER_BORDER = 'rgba(0,0,0,0.28)';
@@ -108,29 +132,39 @@ const SHEET = `
 .ddp-homing .ddp-chip { transition: translate ${RETURN_MS}ms ${RETURN_EASE}; }
 .ddp-homing .ddp-tilt { transition: rotate ${RETURN_MS}ms ${RETURN_EASE}; }
 .ddp-homing .ddp-lift { transition: scale ${RETURN_MS}ms ${RETURN_EASE}; }
-/* -12ms: the animation clock otherwise starts about a frame after pointerup. */
-.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear -12ms both; }
+.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear -${SQUASH_LEAD}ms both; }
 @keyframes ddp-squash {
   0% { transform: scale(1); animation-timing-function: ${SQUASH_DIP_EASE}; }
   ${SQUASH_DIP}% { transform: scale(${SQUASH}); animation-timing-function: ${SQUASH_BACK_EASE}; }
   100% { transform: scale(1); }
 }
-.ddp-fade { animation: ddp-fade ${FADE_MS}ms ease-out both; }
 @keyframes ddp-fade {
   from { opacity: 1; filter: blur(0px); }
   to { opacity: 0; filter: blur(${FADE_BLUR}px); }
 }
-.ddp-photo-out { animation: ddp-photo-out ${PHOTO_OUT_MS}ms ${PHOTO_OUT_EASE} both; }
+.ddp-photo-out {
+  animation:
+    ddp-photo-in ${PHOTO_IN_MS}ms ease-in-out both,
+    ddp-photo-out ${PHOTO_OUT_MS}ms ${PHOTO_OUT_EASE} ${PHOTO_OUT_DELAY}ms forwards;
+}
+@keyframes ddp-photo-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @keyframes ddp-photo-out {
   from { opacity: 1; filter: blur(0px); }
   to { opacity: 0; filter: blur(${PHOTO_OUT_BLUR}px); }
 }
-.ddp-in { animation: ddp-in ${RESPAWN_MS}ms ${RESPAWN_EASE} both; }
-@keyframes ddp-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.ddp-chip-life {
+  animation:
+    ddp-fade ${FADE_MS}ms ease-out forwards,
+    ddp-in ${RESPAWN_MS}ms ${RESPAWN_EASE} ${RESPAWN_DELAY}ms forwards;
 }
-.ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ${RESPAWN_EASE} both; }
+.ddp-life-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ${RESPAWN_EASE} ${RESPAWN_DELAY}ms forwards; }
+@keyframes ddp-in {
+  from { opacity: 0; filter: blur(0px); }
+  to { opacity: 1; filter: blur(0px); }
+}
 @keyframes ddp-in-lift {
   from { scale: ${RESPAWN_SCALE}; }
   to { scale: 1; }
@@ -139,24 +173,48 @@ const SHEET = `
   opacity: 0;
   pointer-events: none;
   transform-origin: center center;
-  animation: ddp-puff ${PUFF_MS}ms ease-out ${PUFF_DELAY}ms both;
+  animation: ddp-puff ${PUFF_MS}ms linear ${PUFF_DELAY}ms both;
 }
 @keyframes ddp-puff {
-  0% { opacity: 0; transform: translateY(0px) scale(${PUFF_START_SCALE}); }
-  ${PUFF_PEAK_AT}% { opacity: ${PUFF_PEAK}; }
-  100% { opacity: 0; transform: translateY(${PUFF_DRIFT}px) scale(${PUFF_SCALE}); }
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+    animation-timing-function: cubic-bezier(0, 0.1, 0.6, 1);
+  }
+  ${PUFF_PEAK_LO}% {
+    opacity: ${PUFF_PEAK};
+    translate: 0 ${PUFF_DRIFT_AT_PEAK}px;
+    scale: ${PUFF_SCALE_AT_PEAK};
+    animation-timing-function: linear;
+  }
+  ${PUFF_PEAK_HI}% {
+    opacity: ${PUFF_PEAK};
+    translate: 0 ${PUFF_DRIFT_AT_PEAK}px;
+    scale: ${PUFF_SCALE_AT_PEAK};
+    animation-timing-function: cubic-bezier(0.2, 0.15, 0.1, 1);
+  }
+  ${PUFF_HOLD_AT}% {
+    translate: 0 ${PUFF_DRIFT_AT_HOLD}px;
+    scale: ${PUFF_SCALE};
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 ${PUFF_DRIFT}px;
+    scale: ${PUFF_SCALE};
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ddp-squash, .ddp-puff, .ddp-fade, .ddp-photo-out, .ddp-in, .ddp-in-lift { animation: none !important; }
+  .ddp-squash, .ddp-puff, .ddp-photo-out, .ddp-chip-life, .ddp-life-lift { animation: none !important; }
   .ddp-puff { opacity: 0 !important; }
   .ddp-chip, .ddp-tilt, .ddp-lift, .ddp-photo { transition: none !important; }
 }
 html[data-reduce-motion="1"] .ddp-squash,
 html[data-reduce-motion="1"] .ddp-puff,
-html[data-reduce-motion="1"] .ddp-fade,
 html[data-reduce-motion="1"] .ddp-photo-out,
-html[data-reduce-motion="1"] .ddp-in,
-html[data-reduce-motion="1"] .ddp-in-lift { animation: none !important; }
+html[data-reduce-motion="1"] .ddp-chip-life,
+html[data-reduce-motion="1"] .ddp-life-lift { animation: none !important; }
 html[data-reduce-motion="1"] .ddp-puff { opacity: 0 !important; }
 html[data-reduce-motion="1"] .ddp-chip,
 html[data-reduce-motion="1"] .ddp-tilt,
@@ -197,7 +255,13 @@ function unitBezier(x1: number, y1: number, x2: number, y2: number, x: number): 
 }
 
 function tiltProgress(elapsedMs: number): number {
-  return unitBezier(TILT_CURVE[0], TILT_CURVE[1], TILT_CURVE[2], TILT_CURVE[3], elapsedMs / TILT_EASE_MS);
+  return unitBezier(
+    TILT_CURVE[0],
+    TILT_CURVE[1],
+    TILT_CURVE[2],
+    TILT_CURVE[3],
+    (elapsedMs - TILT_LAG_MS) / TILT_EASE_MS,
+  );
 }
 
 function centreInsideZone(x: number, y: number): boolean {
@@ -272,7 +336,7 @@ function Puff({ filterId }: { filterId: string }) {
   );
 }
 
-const ChipFace = memo(function ChipFace({ tilt, scale, respawning }: { tilt: number; scale: number; respawning: boolean }) {
+const ChipFace = memo(function ChipFace({ tilt, scale, cycling }: { tilt: number; scale: number; cycling: boolean }) {
   return (
     <div
       className="ddp-tilt"
@@ -286,7 +350,7 @@ const ChipFace = memo(function ChipFace({ tilt, scale, respawning }: { tilt: num
       }}
     >
       <div
-        className={respawning ? 'ddp-lift ddp-in-lift' : 'ddp-lift'}
+        className={cycling ? 'ddp-lift ddp-life-lift' : 'ddp-lift'}
         style={{
           width: '100%',
           height: '100%',
@@ -485,6 +549,7 @@ export function PhysicsDropCard() {
     const now = performance.now();
     velRef.current = { lastX: event.clientX, movedAt: now };
     tiltTrack.current = { downAt: now, origin: now, from: 0, target: 0, armed: false };
+    reduceRef.current = motionReducedNow();
     flushSync(() => {
       setPhaseBoth('held');
       publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: poseRef.current.tilt, scale: GRAB_SCALE });
@@ -502,6 +567,8 @@ export function PhysicsDropCard() {
     vel.lastX = event.clientX;
     vel.movedAt = now;
     const track = tiltTrack.current;
+    const snap = motionReducedNow();
+    reduceRef.current = snap;
     if (dx !== 0) {
       const next = clampTilt(dx / dt);
       // A steady drag's event spacing wobbles, and that wobble used to restart the ease.
@@ -509,16 +576,17 @@ export function PhysicsDropCard() {
       const changed = Math.abs(next - track.target) >= 0.25;
       if (!track.armed) {
         track.armed = true;
-        track.from = reduceRef.current ? next : 0;
+        track.from = snap ? next : 0;
         track.target = next;
-        track.origin = reduceRef.current ? now : track.downAt;
+        track.origin = snap ? now : track.downAt;
       } else if (changed) {
-        track.from = reduceRef.current ? next : tiltAngle(now);
+        track.from = snap ? next : tiltAngle(now);
         track.target = next;
         track.origin = now;
       }
     }
-    const tilt = reduceRef.current ? track.target : tiltAngle(now);
+    if (snap) stopTiltLoop();
+    const tilt = snap ? track.target : tiltAngle(now);
     const x = grab.poseX + (event.clientX - grab.x);
     const y = grab.poseY + (event.clientY - grab.y);
     setOver(centreInsideZone(x, y));
@@ -538,6 +606,7 @@ export function PhysicsDropCard() {
   const showingPhoto = phase === 'sinking' || phase === 'clearing';
   const fading = phase === 'sinking' && !reduce;
   const respawning = phase === 'back' && !reduce;
+  const cycling = !reduce && (phase === 'sinking' || phase === 'clearing' || phase === 'empty' || phase === 'back');
 
   let chipOpacity = 1;
   if (phase === 'clearing' || phase === 'empty') chipOpacity = 0;
@@ -570,7 +639,7 @@ export function PhysicsDropCard() {
     objectFit: 'cover',
     borderRadius: RADIUS,
     opacity: showingPhoto ? 1 : 0,
-    transition: reduce || phase === 'clearing' ? 'none' : `opacity ${PHOTO_IN_MS}ms ease-in-out`,
+    transition: reduce || cycling ? 'none' : `opacity ${PHOTO_IN_MS}ms ease-in-out`,
     pointerEvents: 'none',
   };
 
@@ -601,7 +670,7 @@ export function PhysicsDropCard() {
           }}
         >
           <img
-            className={phase === 'clearing' && !reduce ? 'ddp-photo ddp-photo-out' : 'ddp-photo'}
+            className={cycling && showingPhoto ? 'ddp-photo ddp-photo-out' : 'ddp-photo'}
             src={DROP_PHOTO}
             alt=""
             draggable={false}
@@ -631,14 +700,14 @@ export function PhysicsDropCard() {
         </div>
         <div
           ref={chipRef}
-          className={fading ? 'ddp-chip ddp-fade' : respawning ? 'ddp-chip ddp-in' : 'ddp-chip'}
+          className={cycling ? 'ddp-chip ddp-chip-life' : 'ddp-chip'}
           style={chipStyle}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <ChipFace tilt={pose.tilt} scale={pose.scale} respawning={respawning} />
+          <ChipFace tilt={pose.tilt} scale={pose.scale} cycling={cycling} />
         </div>
       </div>
     </div>
