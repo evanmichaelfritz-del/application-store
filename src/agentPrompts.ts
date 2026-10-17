@@ -122,10 +122,10 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'drag-drop-physics': {
     motion:
-      'No idle loop. Drag lifts the chip to 1.05 and tilts it by velocity, clamped to 10 degrees. A miss returns in 500ms with cubic-bezier(0.34, 1.56, 0.64, 1). A hit fades the chip in 450ms, squashes the zone to 0.97 in 250ms, then releases over 450ms. The photo holds 1800ms, empties in 400ms, and the chip respawns in 250ms.',
+      'No idle loop. Drag lifts the chip to 1.05 and tilts it by velocity, clamped to 10 degrees. A miss eases home in 500ms with cubic-bezier(0.34, 1.56, 0.64, 1). A fast flick and a slow drag share that curve from the release point, so there is no throw. A hit fades the chip in 450ms, squashes the zone to 0.97 in 250ms, then releases over 450ms. One smoke ring starts 250ms later and runs 1275ms. The photo holds 1800ms, empties in 400ms, and the chip respawns in 250ms.',
     content:
-      'First paint is a 72×72 photo at left 141 top 0 and a 104×104 dashed zone at left 0 top 88. The label is Drag & drop / it here, 11px weight 400. The original page uses a different photo. This one is CC0: blood-red rose by Jez Timms, https://commons.wikimedia.org/wiki/File:Blood-red_rose_up_close_(Unsplash).jpg . The specimen has no option rows.',
-    rn: 'Web pointer events on a 213×192 board. The native card still runs the older gesture-handler scene. Copy loads Inter weight 400 from the Google Fonts latin woff2 (OFL, not embedded). There is no public package for this Pro transition, so the bundle header is the React LICENSE.',
+      'First paint is a 72×72 photo at left 141 top 0 and a 104×104 dashed zone at left 0 top 88. The label is Drag & drop / it here, 11px weight 400. The photo is CC0: blood-red rose by Jez Timms, Unsplash ODANAGrc168, https://commons.wikimedia.org/wiki/File:Blood-red_rose_up_close_(Unsplash).jpg . The specimen has no option rows.',
+    rn: 'Web pointer events on a 213×192 board. The native card still runs the older gesture-handler scene. Copy loads Inter weight 400 from the Google Fonts latin woff2 (OFL, not embedded). There is no public package for this transition, so the bundle header is the React LICENSE.',
     states: [
       {
         name: 'rest',
@@ -158,13 +158,14 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'The hit test is the chip center inside the zone, not a box overlap.',
       'The zone does not keep the photo. It empties and the chip respawns.',
-      'The page has no locked option rows on this specimen. Do not add a control panel.',
+      'A miss eases home. Release speed does not add throw.',
+      'The public specimen has no option rows. Do not add a control panel.',
     ],
     setup:
-      'Peer is React. The transition is not an open package. The React LICENSE sits in front of the bundle. The photo is a CC0 JPEG embedded as a data URI.',
+      'Peer is React. The transition is not an open package. The React LICENSE sits in front of the bundle. photo.ts exports the CC0 JPEG (Jez Timms, Unsplash ODANAGrc168) as a data URI. Any 746×944 image can replace it.',
     checklist: [
       'The first paint is the 72×72 chip and the empty 104×104 zone, label Drag & drop / it here.',
-      'A miss springs home. A hit fills the zone with the photo, then empties it.',
+      'A miss eases home on the 500ms overshoot curve. A hit fills the zone, shows one ring, then empties.',
       'Copy is this board only.',
     ],
   },
