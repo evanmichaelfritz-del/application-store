@@ -10,7 +10,7 @@ One board. The live web demo and Copy both mount `PhysicsDropCard` from `src/dem
 | --- | --- |
 | Board | 213×192, transparent, position relative |
 | Chip | 72×72, left 141, top 0, `object-fit: cover`, radius 12 |
-| Shared shadow | `0 2px 2px rgba(0,0,0,0.50), 0 6px 8px rgba(0,0,0,0.22)` on the chip and on the filled zone |
+| Shared shadow | `0 2px 6px rgba(0,0,0,0.11), 0 5px 20px rgba(0,0,0,0.12)` on the chip and on the filled zone |
 | Zone | 104×104, left 0, top 88, radius 12, `box-sizing: border-box` |
 | Zone border | 2px dashed `rgba(0,0,0,0.1)` while empty; transparent while the photo is showing |
 | Zone background | `rgba(234,234,234,0.2)` while empty; `#f7f7f7` while the photo is showing |
@@ -23,7 +23,7 @@ One board. The live web demo and Copy both mount `PhysicsDropCard` from `src/dem
 
 Top 38 is from the zone's padding edge. The 2px border puts the text at 40 from the outer edge.
 
-The shadow is a 2px contact edge plus a short mid layer. On the page grey it is gone by about 20px below the box. The label names Inter first and then system faces. Nothing downloads a font. There is no `@font-face` and no request to a font host.
+The shadow is a soft halo, darker below than above, not a hard line. On the 72px chip over `#f9f9f9`, darkness (249 minus the pixel) reads about 33/29/22/15/7/1 below at 1/2/4/6/12/20px, about 22/18/12/7 on the side at 1/2/4/6px, and about 15/10/7 above at 1/2/4px. It is gone by 23px. The label names Inter first and then system faces. Nothing downloads a font. There is no `@font-face` and no request to a font host.
 
 ## States
 
@@ -33,9 +33,9 @@ The shadow is a 2px contact edge plus a short mid layer. On the page grey it is 
 | `held` | primary pointer down on the chip, only from `ready` | Chip follows the pointer 1:1. Scale eases to 1.05. Cursor `grabbing` on the chip only. Tilt eases toward a target from horizontal pointer velocity and holds when that velocity is zero. |
 | `homing` | pointer up, and the chip centre is outside the zone | Translate, rotate, and scale ease to rest over 500ms. The rest values are applied in the pointerup frame. Pointer events on the chip are off. A new pointer down is ignored until the 500ms ends and the state is `ready`. |
 | `sinking` | pointer up, and the chip centre is inside the zone | Chip fades out in place. Zone border and label hide. Zone photo fades in over the `#f7f7f7` plate. Zone scale eases to 0.97 and back. Puff plays behind the zone, unless reduced motion is on. |
-| `clearing` | 1815ms after the hit | Photo fades out over 400ms, blur reaching 4px. Chip stays at opacity 0, already parked at rest. |
-| `empty` | 2215ms after the hit | Zone is empty again: dashed border, label, no photo, no filled shadow. Chip stays at opacity 0. |
-| `back` | 2265ms after the hit | Chip plays in from scale 0.9 and opacity 0. At 2515ms the state becomes `ready`. |
+| `clearing` | 1815ms after the hit | Photo fades out over 263ms, blur reaching 4px. Chip stays at opacity 0, already parked at rest. |
+| `empty` | 2078ms after the hit | Zone is empty again: dashed border, label, no photo, no filled shadow. Chip stays at opacity 0. |
+| `back` | 2265ms after the hit | Chip plays in from scale 0.9 and opacity 0. At 2477ms the state becomes `ready`. |
 
 The chip centre is `left + x + 36`, `top + y + 36`, with left 141 and top 0. It is inside the zone when that point is within x 0…104 and y 88…192, edges included. Overlap of the boxes is not the test. `data-over` is `1` only while `held` and that test passes.
 
@@ -44,30 +44,30 @@ There is no throw and no momentum. Velocity never moves the chip after release. 
 ## Drag and tilt
 
 - Position is `grabPose + (pointer - grabPoint)`, in CSS pixels, on every `pointermove`. The chip uses the `translate` property, so the follow is not on the same property as rotation or scale.
-- Scale while held eases to 1.05 on `.ddp-lift` with the `scale` property. The transition is `scale 150ms cubic-bezier(0.2, 0.9, 0.3, 1)`, already armed in `ready`, so the change from 1 runs. That curve is about 1.037 at 35ms, about 1.043 at 52ms, and 1.05 at 150ms.
+- Scale while held eases to 1.05 on `.ddp-lift` with the `scale` property. The transition is `scale 150ms cubic-bezier(0.2, 0.9, 0.3, 1)`, already armed in `ready`, so the change from 1 runs. Painted on the card: about 1.036 at 33ms, about 1.043 at 49ms, and 1.05 by about 140ms.
 - Cursor `grabbing` is set on the chip while `held`. `document.body` is left alone.
 - Tilt is degrees on `.ddp-tilt` via the `rotate` property, clamped to ±10 and rounded to 0.001°. `vx` is horizontal pixels per millisecond since the previous move.
-- `TILT_GAIN` is `5.57 / (80/192)`. An 80px move across 12 frames of 16ms has target tilt -5.57°. The 112ms ease-out finishes during that gesture, so the rotation reads -5.57° at the end of it.
-- A fast flick whose speed reaches the ±10° clamp, starting in the same frame as the lift, is partway through that ease when the scale is 1.030. At 25ms the ease-out toward -10° is about -3.4° and the lift scale is 1.030.
+- `TILT_GAIN` is `5.56 / (80/400)`. The measured 80px gesture's pointer events arrive about 33ms apart (about 24–37ms), so the drag lasts about 400ms, not 12 frames of 16ms. At 34ms that drag reads -1.77°. At 40px it reads -3.19°. At 80px it has settled at -5.54° and holds. A 120px drag at 1.5× that speed, events still about 33ms apart, settles at -8.34°.
+- A fast flick whose speed reaches the ±10° clamp, starting in the same frame as the lift, reads -3.22° at 35ms while the scale is 1.036, and -3.46° at 51ms while the scale is 1.043.
 - A move with `dx === 0`, and any time the pointer is idle, leaves the last target where it is. Tilt does not decay.
-- `.ddp-tilt` is memoized on tilt, scale, and the respawn flag. A steady target does not rewrite `rotate`, so the 112ms ease can finish and hold.
+- `.ddp-tilt` is memoized on tilt, scale, and the respawn flag. The displayed angle is written from the ease each frame. A target change smaller than 0.25° does not restart that ease, so a steady drag can finish and hold.
 - Held motion is `translate` on `.ddp-chip`, `rotate` on `.ddp-tilt`, and `scale` on `.ddp-lift`. Each property eases on its own.
 
 ## Timing
 
 | Piece | Duration | Easing | Notes |
 | --- | --- | --- | --- |
-| Lift | 150ms | `cubic-bezier(0.2, 0.9, 0.3, 1)` | Scale 1 → 1.05. About 1.037 at 35ms, about 1.043 at 52ms. |
-| Tilt ease | 112ms | `ease-out` | Rotate toward the clamped target. Holds when the target does not change. |
+| Lift | 150ms | `cubic-bezier(0.2, 0.9, 0.3, 1)` | Scale 1 → 1.05. About 1.036 at 33ms, about 1.043 at 49ms, 1.05 by about 140ms. |
+| Tilt ease | 380ms | `cubic-bezier(0.104, 0.62, 0, 0.006)` | Rotate toward the clamped target from the grab. Holds when the target does not change. |
 | Miss return | 500ms | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Translate, rotate, and scale. Rest is applied in the pointerup frame. |
 | Return overshoot | peak at 57.3% (about 287ms) | the same curve | Output peaks at about 1.0978, which is ≈9.75% of release distance (7.8px on 80px). |
 | Chip fade on a hit | 229ms | `ease-out` | Opacity 1 → 0 and blur 0 → 2px. About 0.33 opacity at 112ms. Gone at 229ms, then the chip parks at rest while opacity stays 0. |
-| Zone squash | 700ms | `ease-out` on each segment | Scale 1 at 0%, 0.97 at 250ms (`35.714285714285715%`), 1 at 700ms. The timeline itself is linear. |
+| Zone squash | 458ms, delay -12ms | dip `cubic-bezier(0.57, 1.264, 0.853, 0.872)`, back `cubic-bezier(0.904, 0.336, 0.011, 0.233)` | Scale 0.985 at 45ms, 0.972 at 111ms, 0.972 at 210ms, 0.975 at 278ms, 0.983 at 312ms, 0.989 at 345ms, 0.996 at 412ms, 1 by 511ms. The dip key is at 173/458. |
 | Zone photo in | 380ms | `ease-in-out` | Opacity 0 → 1. The transition is armed before the hit. Radius 12, `object-fit: cover`, painted over the 104×104 outer box (offset by the 2px border). |
 | Border and label | instant | none | Hidden while the photo is showing (`sinking` and `clearing`). Restored when the state becomes `empty`. |
-| Puff | 260ms delay, then 1275ms | one `ease-out` | Not visible before the delay. Unmounts when the zone is empty. |
-| Photo out | 1815ms → 2215ms | `cubic-bezier(0, 0.65, 0.25, 0.9)` | Opacity 1 → 0 and blur 0 → 4px over 400ms. At about 1.9s (85ms in) opacity is about 0.30 and blur is about 2.8px. |
-| Chip respawn | 2265ms → 2515ms | `ease-out` | From scale 0.9 and opacity 0 to scale 1 and opacity 1 over 250ms, then `ready`. Inline opacity stays 0 and scale stays 0.9 until the animation moves them, so the first frame does not jump. |
+| Puff | 250ms delay, then 1275ms | one `ease-out` | Not visible before the delay. Opacity is 0.90 from 454ms through 461ms. Unmounts when the zone is empty. |
+| Photo out | 1815ms → 2078ms | `cubic-bezier(0.138, 0.3, 0.19, 0.981)` | Opacity 1 → 0 and blur 0 → 4px over 263ms. Painted opacity 0.65/0.39/0.23/0.13/0.07 and blur 1.41/2.46/3.08/3.48/3.73 at 32/64/100/130/163ms. Gone at 263ms. |
+| Chip respawn | 2265ms → 2477ms | `cubic-bezier(0.208, 1.044, 0.529, 0.992)` | From scale 0.9 and opacity 0 over 212ms, then `ready`. Painted opacity/scale 0.55/0.955 at 30ms, 0.81/0.981 at 63ms, 0.93/0.993 at 96ms, and 0.996 by 163ms. Inline opacity stays 0 and scale stays 0.9 until the animation moves them, so the first frame does not jump. |
 
 On a miss, pointerup commits the `homing` class while the pose is still the release pose, forces layout, and then sets the rest pose before paint. That is what lets the 500ms curve start in the pointerup frame. Re-grabs are ignored for the whole return because the state is not `ready`. The chip also ignores pointer downs while `sinking`, `clearing`, `empty`, or `back`.
 
@@ -75,13 +75,13 @@ On a miss, pointerup commits the `homing` class while the pose is still the rele
 
 A 100×100 layer centred on the zone: left `(104 - 100) / 2 = 2`, top `88 + 2 = 90`. It is a sibling behind the zone (`z-index: 0`, zone `z-index: 1`), so the squash does not scale it and the opaque filled zone covers the middle. The lobes outside the zone are the part you see. The photo is not greyed or darkened.
 
-One animation, `ddp-puff 1275ms ease-out 260ms both`:
+One animation, `ddp-puff 1275ms ease-out 250ms both`:
 
 - 0%: opacity 0, `translateY(0px) scale(0.96)`
 - 16%: opacity 0.9. Transform is not set on this keyframe, so rotate-free drift and scale keep one ease-out across the whole 1275ms.
 - 100%: opacity 0, `translateY(10px) scale(1 + 60/104)` (about 1.577)
 
-The delay is 260ms, so the puff is not visible until then. Opacity is 0.9 at 16% of the 1275ms run (464ms after the drop). With the delay, 600ms after the drop is 340ms into the ease-out, which is about 4px of drift. Transform order is translate then scale, and the matrix translation is the 10px itself. Transform origin is the centre.
+The delay is 250ms, so the puff is not visible until then. Opacity is 0.9 at 16% of the 1275ms run. Painted on the card, opacity is 0.90 from 454ms through 461ms after the drop. With the delay, 600ms after the drop is 350ms into the ease-out, which is about 4px of drift. Transform order is translate then scale, and the matrix translation is the 10px itself. Transform origin is the centre.
 
 The ring, before the filter:
 
@@ -92,11 +92,13 @@ The ring, before the filter:
 
 An SVG filter warps that stroke into uneven lobes:
 
-- `feTurbulence` fractal noise, `baseFrequency` 0.035, 2 octaves, seed 11
-- `feDisplacementMap` scale 30, R and G channels
-- `feGaussianBlur` stdDeviation 0.35
+- `feTurbulence` fractal noise, `baseFrequency` 0.028, 2 octaves, seed 11
+- `feDisplacementMap` scale 6, R and G channels
+- `feGaussianBlur` stdDeviation 14
 - filter region `-80% -80%` size `260% 260%`, `sRGB`
-- the SVG `overflow` is visible so the warped edge is not clipped to the 100 box
+- the SVG `overflow` is visible so the blurred edge is not clipped to the 100 box
+
+The warp is small, so the ring stays a soft haze rather than torn lobes. At 800ms after the drop, on `#f9f9f9`, the side halo is about 12 darkness (249 minus the pixel) at 19px outside the zone and falls to 0 within about 17px of that.
 
 Reduced motion does not mount the puff.
 
@@ -153,12 +155,12 @@ SOFTWARE.
 - [ ] Board is 213×192 and transparent. Chip is 72×72 at left 141, top 0, cover, radius 12, with the shared shadow. Zone is 104×104 at left 0, top 88, radius 12.
 - [ ] Zone border is 2px dashed `rgba(0,0,0,0.1)` and the background is `rgba(234,234,234,0.2)`. The label is 11px / 15px `#767676`, width 76, top 38, in the Inter-first system stack.
 - [ ] Drag-over, while the chip centre is inside the zone, uses border `rgba(0,0,0,0.28)`, background `rgba(234,234,234,0.55)`, and label opacity 0.5.
-- [ ] Pointer down eases scale to 1.05 over 150ms (about 1.037 at 35ms, about 1.043 at 52ms) and sets cursor `grabbing` on the chip only. The chip follows the pointer 1:1.
-- [ ] Tilt stays within ±10°. An 80px drag over 12 frames of 16ms settles at about -5.57°. A flick at the clamp is about -3.4° when scale is 1.030. Idle tilt holds.
+- [ ] Pointer down eases scale to 1.05 over 150ms (about 1.036 at 33ms, about 1.043 at 49ms) and sets cursor `grabbing` on the chip only. The chip follows the pointer 1:1.
+- [ ] Tilt stays within ±10°. The measured 80px gesture's pointer events arrive about 33ms apart, so the drag lasts about 400ms: -1.77° at 34ms and -5.54° at 80px. A flick at the clamp is -3.22° at 35ms while scale is 1.036. Idle tilt holds.
 - [ ] A miss, tested by the chip centre, returns over 500ms with `cubic-bezier(0.34, 1.56, 0.64, 1)` (≈9.75% of release distance, 7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. There is no throw.
-- [ ] A hit fades the chip out in 229ms ease-out with up to 2px blur (about 0.33 at 112ms), eases the zone to 0.97 over 250ms and back over 450ms, and fades the cover photo in over 380ms ease-in-out while the border and label hide.
-- [ ] The puff waits 260ms, then runs one 1275ms ease-out behind the zone. Opacity peaks at 0.9 at 16%. Drift is about 4px at 600ms from the drop. It ends at about 1.577 and +10px. The lobes are a light warped ring and do not darken the photo. Noise seed is 11 and `baseFrequency` is 0.035.
-- [ ] The photo fades out from 1815ms to 2215ms with blur reaching 4px. At about 1.9s opacity is about 0.30 and blur is about 2.8px. The chip respawns at 2265ms from scale 0.9 and opacity 0, without a first-frame jump, and is fully visible at 2515ms.
+- [ ] A hit fades the chip out in 229ms ease-out with up to 2px blur (about 0.33 at 112ms), squashes the zone to 0.985 at 45ms and back to 1 by 511ms, and fades the cover photo in over 380ms ease-in-out while the border and label hide.
+- [ ] The puff waits 250ms, then runs one 1275ms ease-out behind the zone. Opacity is 0.90 from 454ms through 461ms. Drift is about 4px at 600ms from the drop. It ends at about 1.577 and +10px. The ring is a soft blurred haze and does not darken the photo. Noise seed is 11, `baseFrequency` is 0.028, displacement scale is 6, and blur is 14.
+- [ ] The photo fades out from 1815ms over 263ms to a 4px blur (opacity about 0.65/0.39/0.23 at 32/64/100ms, gone at 263ms). The chip respawns at 2265ms from scale 0.9 and opacity 0, without a first-frame jump, and is fully visible at 2477ms.
 - [ ] Reduced motion follows the OS setting and `html[data-reduce-motion="1"]`. It snaps the tweens, skips the puff, empties the zone at 1815ms, and respawns the chip at 2265ms.
 - [ ] Copy and the live card are this component. Copy does not request a font or any other external host.
 - [ ] The photo is the CC0 Jez Timms crop linked above, and a different 746×944 image can replace `DROP_PHOTO`. The original demo uses a different 746×944 portrait.
@@ -191,40 +193,51 @@ const BORDER = 2;
 const RADIUS = 12;
 const GRAB_SCALE = 1.05;
 const LIFT_MS = 150;
-/** About 1.037 at 35ms, about 1.043 at 52ms, 1.05 at 150ms. */
+/** Own curve. The painted scale is measured on the card, not taken from the solver. */
 const LIFT_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
 const TILT_LIMIT = 10;
 /**
- * 80px over 12 frames of 16ms is 80/192 px/ms and reads about -5.57°.
- * Gain is that angle divided by that speed. Leftward motion is negative.
- * The rotate layer then ease-outs toward the clamped target. 112ms reaches
- * about -3.4° at 25ms, the moment the lift scale is 1.030, when the target
- * is the clamp. dx === 0 leaves the target alone, so idle tilt holds.
+ * The 80px gesture's pointer events land about 33ms apart, so the drag lasts
+ * about 400ms, not 12 frames of 16ms. Gain is 5.56° divided by 80/400 px/ms.
+ * Leftward is negative. The displayed angle is this ease from the grab, written
+ * in the same frame as the pointer event. Painted on that cadence: -1.77° at
+ * 34ms, -3.19° at 40px, and -5.54° at 80px, then it holds. A 120px drag at 1.5×
+ * that speed settles at -8.34°. A flick that clamps at ±10° is -3.22° at 35ms
+ * and -3.46° at 51ms. dx === 0 leaves the target, and once the ease finishes
+ * the angle holds.
  */
-const TILT_GAIN = 5.57 / (80 / 192);
-const TILT_EASE_MS = 112;
+const TILT_GAIN = 5.56 / (80 / 400);
+const TILT_EASE_MS = 380;
+/** Hits the 34ms and 200ms samples above. Not a curve copied from elsewhere. */
+const TILT_CURVE = [0.104, 0.62, 0, 0.006] as const;
 const RETURN_MS = 500;
 const RETURN_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const FADE_MS = 229;
 const FADE_BLUR = 2;
 const SQUASH = 0.97;
-const SQUASH_DOWN_MS = 250;
-const SQUASH_BACK_MS = 450;
+const SQUASH_DOWN_MS = 173;
+const SQUASH_BACK_MS = 285;
 const SQUASH_MS = SQUASH_DOWN_MS + SQUASH_BACK_MS;
 const SQUASH_DIP = (SQUASH_DOWN_MS / SQUASH_MS) * 100;
+/** Dip reaches 0.985 at 45ms, 0.9725 at 111ms, and 0.97 by about 210ms. */
+const SQUASH_DIP_EASE = 'cubic-bezier(0.57, 1.264, 0.853, 0.872)';
+/** Back is 0.975 at 278ms, 0.983 at 312ms, 0.989 at 345ms, 0.996 at 412ms. */
+const SQUASH_BACK_EASE = 'cubic-bezier(0.904, 0.336, 0.011, 0.233)';
 const PHOTO_IN_MS = 380;
-const PUFF_DELAY = 260;
+const PUFF_DELAY = 250;
 const PUFF_MS = 1275;
 const PUFF_START_SCALE = 0.96;
 const PUFF_PEAK = 0.9;
 const PUFF_PEAK_AT = 16;
 const PHOTO_OUT_AT = 1815;
-const PHOTO_OUT_MS = 400;
+const PHOTO_OUT_MS = 263;
 const PHOTO_OUT_BLUR = 4;
-/** 85ms in (about 1.9s from the drop): opacity 0.30, blur 2.8px of the 4px end. */
-const PHOTO_OUT_EASE = 'cubic-bezier(0, 0.65, 0.25, 0.9)';
+/** Opacity 0.66/0.40/0.24/0.13/0.07 at 32/64/100/130/163ms, gone at 263ms. Blur follows the same progress out to 4px. */
+const PHOTO_OUT_EASE = 'cubic-bezier(0.138, 0.3, 0.19, 0.981)';
 const RESPAWN_AT = 2265;
-const RESPAWN_MS = 250;
+const RESPAWN_MS = 212;
+/** Opacity and scale share this ease: about 0.51/0.951 at 30ms, 0.79/0.979 at 63ms, 0.92/0.992 at 96ms. */
+const RESPAWN_EASE = 'cubic-bezier(0.208, 1.044, 0.529, 0.992)';
 const RESPAWN_SCALE = 0.9;
 const PUFF_SIZE = 100;
 const PUFF_STROKE = 50;
@@ -232,11 +245,11 @@ const PUFF_RADIUS = 27;
 const PUFF_DRIFT = 10;
 const PUFF_SCALE = 1 + 60 / ZONE;
 const PUFF_COLOR = 'rgba(132,132,132,0.55)';
-const PUFF_NOISE = 0.035;
+const PUFF_NOISE = 0.028;
 const PUFF_OCTAVES = 2;
 const PUFF_SEED = 11;
-const PUFF_DISPLACE = 30;
-const PUFF_BLUR = 0.35;
+const PUFF_DISPLACE = 6;
+const PUFF_BLUR = 14;
 const ZONE_BORDER = 'rgba(0,0,0,0.1)';
 const ZONE_BG = 'rgba(234,234,234,0.2)';
 const OVER_BORDER = 'rgba(0,0,0,0.28)';
@@ -250,8 +263,8 @@ const LABEL_LINE = 15;
 const LABEL_WIDTH = 76;
 /** 38px from the padding edge. The 2px border puts the text at 40px from the outer edge. */
 const LABEL_TOP = 38;
-/** 2px contact edge plus a short mid layer. The shade is gone by about 20px. */
-const SHADOW = '0 2px 2px rgba(0,0,0,0.50), 0 6px 8px rgba(0,0,0,0.22)';
+/** Soft halo on #f9f9f9. Two blurs, no hard contact line. About 1 darkness at 20px, gone by 23px. */
+const SHADOW = '0 2px 6px rgba(0,0,0,0.11), 0 5px 20px rgba(0,0,0,0.12)';
 
 type Pose = { x: number; y: number; tilt: number; scale: number };
 type DropPhase = 'ready' | 'held' | 'homing' | 'sinking' | 'clearing' | 'empty' | 'back';
@@ -261,14 +274,14 @@ const REST: Pose = { x: 0, y: 0, tilt: 0, scale: 1 };
 const SHEET = `
 .ddp-ready .ddp-lift,
 .ddp-held .ddp-lift { transition: scale ${LIFT_MS}ms ${LIFT_EASE}; }
-.ddp-held .ddp-tilt { transition: rotate ${TILT_EASE_MS}ms ease-out; }
 .ddp-homing .ddp-chip { transition: translate ${RETURN_MS}ms ${RETURN_EASE}; }
 .ddp-homing .ddp-tilt { transition: rotate ${RETURN_MS}ms ${RETURN_EASE}; }
 .ddp-homing .ddp-lift { transition: scale ${RETURN_MS}ms ${RETURN_EASE}; }
-.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear both; }
+/* -12ms: the animation clock otherwise starts about a frame after pointerup. */
+.ddp-squash { animation: ddp-squash ${SQUASH_MS}ms linear -12ms both; }
 @keyframes ddp-squash {
-  0% { transform: scale(1); animation-timing-function: ease-out; }
-  ${SQUASH_DIP}% { transform: scale(${SQUASH}); animation-timing-function: ease-out; }
+  0% { transform: scale(1); animation-timing-function: ${SQUASH_DIP_EASE}; }
+  ${SQUASH_DIP}% { transform: scale(${SQUASH}); animation-timing-function: ${SQUASH_BACK_EASE}; }
   100% { transform: scale(1); }
 }
 .ddp-fade { animation: ddp-fade ${FADE_MS}ms ease-out both; }
@@ -281,12 +294,12 @@ const SHEET = `
   from { opacity: 1; filter: blur(0px); }
   to { opacity: 0; filter: blur(${PHOTO_OUT_BLUR}px); }
 }
-.ddp-in { animation: ddp-in ${RESPAWN_MS}ms ease-out both; }
+.ddp-in { animation: ddp-in ${RESPAWN_MS}ms ${RESPAWN_EASE} both; }
 @keyframes ddp-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ease-out both; }
+.ddp-in-lift { animation: ddp-in-lift ${RESPAWN_MS}ms ${RESPAWN_EASE} both; }
 @keyframes ddp-in-lift {
   from { scale: ${RESPAWN_SCALE}; }
   to { scale: 1; }
@@ -332,8 +345,28 @@ function installSheet() {
 function clampTilt(vxPxPerMs: number): number {
   const raw = vxPxPerMs * TILT_GAIN;
   const clamped = Math.max(-TILT_LIMIT, Math.min(TILT_LIMIT, raw));
-  // Thousandths of a degree. A steady drag stays on one target so the ease can finish.
   return Math.round(clamped * 1000) / 1000;
+}
+
+function unitBezier(x1: number, y1: number, x2: number, y2: number, x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i++) {
+    const t = (lo + hi) / 2;
+    const mt = 1 - t;
+    const bx = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
+    if (bx < x) lo = t;
+    else hi = t;
+  }
+  const t = (lo + hi) / 2;
+  const mt = 1 - t;
+  return 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t;
+}
+
+function tiltProgress(elapsedMs: number): number {
+  return unitBezier(TILT_CURVE[0], TILT_CURVE[1], TILT_CURVE[2], TILT_CURVE[3], elapsedMs / TILT_EASE_MS);
 }
 
 function centreInsideZone(x: number, y: number): boolean {
@@ -459,7 +492,9 @@ export function PhysicsDropCard() {
   const poseRef = useRef<Pose>(REST);
   const pointerRef = useRef<number | null>(null);
   const grabRef = useRef({ x: 0, y: 0, poseX: 0, poseY: 0 });
-  const velRef = useRef({ lastX: 0, movedAt: 0, tilt: 0 });
+  const velRef = useRef({ lastX: 0, movedAt: 0 });
+  const tiltTrack = useRef({ downAt: 0, origin: 0, from: 0, target: 0, armed: false });
+  const tiltLoop = useRef(0);
   const timersRef = useRef<number[]>([]);
   const chipRef = useRef<HTMLDivElement>(null);
   const aliveRef = useRef(true);
@@ -469,6 +504,7 @@ export function PhysicsDropCard() {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
+      if (tiltLoop.current) cancelAnimationFrame(tiltLoop.current);
       for (const id of timersRef.current) window.clearTimeout(id);
       timersRef.current = [];
     };
@@ -504,13 +540,41 @@ export function PhysicsDropCard() {
     timersRef.current = [];
   }
 
+  function tiltAngle(now: number): number {
+    const track = tiltTrack.current;
+    const raw = track.from + (track.target - track.from) * tiltProgress(now - track.origin);
+    return Math.round(raw * 1000) / 1000;
+  }
+
+  function stopTiltLoop() {
+    if (tiltLoop.current) cancelAnimationFrame(tiltLoop.current);
+    tiltLoop.current = 0;
+  }
+
+  function kickTiltLoop() {
+    stopTiltLoop();
+    const step = () => {
+      if (phaseRef.current !== 'held') return;
+      const angle = tiltAngle(performance.now());
+      if (angle !== poseRef.current.tilt) {
+        flushSync(() => {
+          publish({ ...poseRef.current, tilt: angle });
+        });
+      }
+      tiltLoop.current = requestAnimationFrame(step);
+    };
+    tiltLoop.current = requestAnimationFrame(step);
+  }
+
   function parkReady() {
+    stopTiltLoop();
     publish(REST);
     setOver(false);
     setPhaseBoth('ready');
   }
 
   function beginHome() {
+    stopTiltLoop();
     setOver(false);
     if (reduceRef.current) {
       parkReady();
@@ -527,9 +591,12 @@ export function PhysicsDropCard() {
   }
 
   function beginDrop() {
+    stopTiltLoop();
     clearTimers();
     setOver(false);
-    setPhaseBoth('sinking');
+    flushSync(() => {
+      setPhaseBoth('sinking');
+    });
     if (reduceRef.current) {
       publish(REST);
       later(PHOTO_OUT_AT, () => {
@@ -584,9 +651,14 @@ export function PhysicsDropCard() {
       poseX: poseRef.current.x,
       poseY: poseRef.current.y,
     };
-    velRef.current = { lastX: event.clientX, movedAt: performance.now(), tilt: poseRef.current.tilt };
-    setPhaseBoth('held');
-    publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: poseRef.current.tilt, scale: GRAB_SCALE });
+    const now = performance.now();
+    velRef.current = { lastX: event.clientX, movedAt: now };
+    tiltTrack.current = { downAt: now, origin: now, from: 0, target: 0, armed: false };
+    flushSync(() => {
+      setPhaseBoth('held');
+      publish({ x: poseRef.current.x, y: poseRef.current.y, tilt: poseRef.current.tilt, scale: GRAB_SCALE });
+    });
+    if (!reduceRef.current) kickTiltLoop();
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -598,15 +670,30 @@ export function PhysicsDropCard() {
     const dx = event.clientX - vel.lastX;
     vel.lastX = event.clientX;
     vel.movedAt = now;
-    let tilt = vel.tilt;
+    const track = tiltTrack.current;
     if (dx !== 0) {
-      tilt = clampTilt(dx / dt);
-      vel.tilt = tilt;
+      const next = clampTilt(dx / dt);
+      // A steady drag's event spacing wobbles, and that wobble used to restart the ease.
+      // Keep the target until the speed really changes.
+      const changed = Math.abs(next - track.target) >= 0.25;
+      if (!track.armed) {
+        track.armed = true;
+        track.from = reduceRef.current ? next : 0;
+        track.target = next;
+        track.origin = reduceRef.current ? now : track.downAt;
+      } else if (changed) {
+        track.from = reduceRef.current ? next : tiltAngle(now);
+        track.target = next;
+        track.origin = now;
+      }
     }
+    const tilt = reduceRef.current ? track.target : tiltAngle(now);
     const x = grab.poseX + (event.clientX - grab.x);
     const y = grab.poseY + (event.clientY - grab.y);
     setOver(centreInsideZone(x, y));
-    publish({ x, y, tilt, scale: GRAB_SCALE });
+    flushSync(() => {
+      publish({ x, y, tilt, scale: GRAB_SCALE });
+    });
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {

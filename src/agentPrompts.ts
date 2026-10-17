@@ -122,9 +122,9 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'drag-drop-physics': {
     motion:
-      'Pointer drag follows 1:1. Scale eases to 1.05 over 150ms (about 1.037 at 35ms, about 1.043 at 52ms). An 80px drag over 12 frames of 16ms settles near -5.57°. A flick that clamps at ±10° is about -3.4° when scale is 1.030. Tilt holds while the pointer is idle. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), ≈9.75% overshoot (7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. A hit eases the chip out in 229ms with up to 2px blur, eases the photo in over 380ms, and squashes to 0.97 over 250ms then back over 450ms. The puff waits 260ms, then one 1275ms ease-out peaks near opacity 0.9 at 16% and ends near scale 1.577. The photo fades from 1815ms over 400ms to a 4px blur (about opacity 0.3 and 2.8px blur at 1.9s). The chip respawns from 2265ms and is fully visible at 2515ms.',
+      'Pointer drag follows 1:1. Scale eases to 1.05 over 150ms (about 1.036 at 33ms, about 1.043 at 49ms, 1.05 by about 140ms). Pointer events on an 80px drag arrive about 33ms apart, so the drag lasts about 400ms: -1.77° at 34ms, -3.19° at 40px, and -5.54° at 80px. A 120px drag at 1.5× that speed settles at -8.34°. A flick that clamps at ±10° is -3.22° at 35ms (scale 1.036) and -3.46° at 51ms (scale 1.043). Tilt holds while the pointer is idle. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), ≈9.75% overshoot (7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. A hit eases the chip out in 229ms with up to 2px blur and eases the photo in over 380ms. Squash reads 0.985 at 45ms, 0.972 at 111ms, and 0.972 at 210ms, then 0.975/0.983/0.989/0.996 at 278/312/345/412ms, and 1 by 511ms. The puff waits 250ms, then one 1275ms ease-out is at opacity 0.90 from 454ms through 461ms. The photo fades from 1815ms over 263ms (opacity about 0.65/0.39/0.23/0.13/0.07 at 32/64/100/130/163ms, gone at 263ms). The chip respawns from 2265ms (about 0.55/0.955 at 30ms, 0.81/0.981 at 63ms, 0.93/0.993 at 96ms) and is fully visible at 2477ms.',
     content:
-      'Board 213×192. Chip 72×72 photo at left 141, top 0, radius 12. Zone 104×104 at left 0, top 88, radius 12, 2px dashed rgba(0,0,0,0.1), background rgba(234,234,234,0.2). Chip and filled zone share shadow 0 2px 2px rgba(0,0,0,0.50), 0 6px 8px rgba(0,0,0,0.22). While the chip centre is over the zone: border rgba(0,0,0,0.28), background rgba(234,234,234,0.55), label opacity 0.5. Label is 11px / 15px #767676, width 76, top 38 (text at 40 from the outer edge). Font stack starts with Inter, then system faces. No font download.',
+      'Board 213×192. Chip 72×72 photo at left 141, top 0, radius 12. Zone 104×104 at left 0, top 88, radius 12, 2px dashed rgba(0,0,0,0.1), background rgba(234,234,234,0.2). Chip and filled zone share shadow 0 2px 6px rgba(0,0,0,0.11), 0 5px 20px rgba(0,0,0,0.12). While the chip centre is over the zone: border rgba(0,0,0,0.28), background rgba(234,234,234,0.55), label opacity 0.5. Label is 11px / 15px #767676, width 76, top 38 (text at 40 from the outer edge). Font stack starts with Inter, then system faces. No font download.',
     rn: 'Web pointer events and CSS. Copy loads `/parity/drag-drop-physics.js`, the same board as the live card. Grabbing cursor is on the chip only. Native `src/demos/drag-drop/index.tsx` re-exports the gesture-handler scene in `src/demos/DragDrop.tsx`.',
     states: [
       {
@@ -132,7 +132,7 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: 'mount, a finished return, or the end of the respawn',
         from: 'hidden chip or rest',
         to: 'chip at rest, scale 1, tilt 0, opacity 1',
-        duration: 'respawn runs 2265ms to 2515ms after a hit',
+        duration: 'respawn runs 2265ms to 2477ms after a hit',
         easing: 'respawn ease-out from scale 0.9 and opacity 0',
         delay: 'none',
       },
@@ -142,7 +142,7 @@ const LOCKS: Record<string, PromptLock> = {
         from: 'rest',
         to: 'pointer translation, scale 1.05, tilt from horizontal velocity',
         duration: 'while the pointer is down',
-        easing: '1:1 follow; scale eases over 150ms; tilt ease-out 112ms toward the clamped velocity',
+        easing: '1:1 follow; scale eases over 150ms; tilt eases toward the clamped velocity and holds',
         delay: 'none',
       },
       {
@@ -159,8 +159,8 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: 'pointer up with the chip centre inside the zone',
         from: 'release pose',
         to: 'chip opacity 0, zone photo opacity 1, puff running',
-        duration: 'chip 229ms, photo 380ms, squash 700ms, puff from 260ms for 1275ms',
-        easing: 'chip ease-out with 2px blur; photo ease-in-out; squash ease-out to 0.97 then back',
+        duration: 'chip 229ms, photo 380ms, squash through 511ms, puff from 250ms for 1275ms',
+        easing: 'chip ease-out with 2px blur; photo ease-in-out; squash down to 0.97 then back',
         delay: 'none',
       },
       {
@@ -168,18 +168,18 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: '1815ms after the hit',
         from: 'filled zone',
         to: 'photo opacity 0 with a 4px blur',
-        duration: '400ms, done at 2215ms',
-        easing: 'cubic-bezier(0, 0.65, 0.25, 0.9)',
+        duration: '263ms, done at 2078ms',
+        easing: 'cubic-bezier(0.138, 0.3, 0.19, 0.981)',
         delay: '1815ms from the hit',
       },
       {
         name: 'empty',
-        trigger: '2215ms after the hit',
+        trigger: '2078ms after the hit',
         from: 'fading photo',
         to: 'dashed zone and label, chip still hidden',
         duration: 'until 2265ms',
         easing: 'the photo fade is the exit; the chrome returns when it ends',
-        delay: '2215ms from the hit',
+        delay: '2078ms from the hit',
       },
     ],
     gotchas: [
@@ -194,10 +194,10 @@ const LOCKS: Record<string, PromptLock> = {
       'photo.ts exports DROP_PHOTO, a 746×944 CC0 crop of Jez Timms’s rose (Unsplash https://unsplash.com/photos/ODANAGrc168, Wikimedia Commons https://commons.wikimedia.org/wiki/File:Blood-red_rose_up_close_(Unsplash).jpg, https://creativecommons.org/publicdomain/zero/1.0/). Any 746×944 image can replace it. The original demo uses a different 746×944 portrait. The copy bundle is public/parity/drag-drop-physics.js with the React LICENSE verbatim in a /*! */ header. Peer is React.',
     checklist: [
       'Board is 213×192. Chip is 72×72 at left 141 top 0 with radius 12. Zone is 104×104 at left 0 top 88 with radius 12.',
-      'Scale eases to 1.05 in 150ms. An 80px drag over 12 frames of 16ms settles near -5.57°. Idle tilt holds. Grabbing cursor is on the chip only.',
+      'Scale eases to 1.05 in 150ms (about 1.036 at 33ms). An 80px drag whose events arrive about 33ms apart lasts about 400ms and settles at -5.54°. Idle tilt holds. Grabbing cursor is on the chip only.',
       'A miss returns in 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), starting in the pointerup frame, and ignores re-grabs.',
-      'A hit fades the chip by 229ms with up to 2px blur, the photo in by 380ms, squashes over 250ms and back over 450ms, and runs one puff ease-out from 260ms.',
-      'The photo fades from 1815ms over 400ms to a 4px blur. The chip respawns from 2265ms and is fully visible at 2515ms.',
+      'A hit fades the chip by 229ms with up to 2px blur, the photo in by 380ms, squashes to 0.985 at 45ms and back to 1 by 511ms, and runs one puff ease-out from 250ms.',
+      'The photo fades from 1815ms over 263ms to a 4px blur. The chip respawns from 2265ms and is fully visible at 2477ms.',
       'Live and Copy mount the same board. Copy makes no external request.',
     ],
   },
