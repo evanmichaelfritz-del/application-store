@@ -151,7 +151,6 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   ],
   'spacing-tuner': [
     'Phone widths are a known gap. The 1440×1080 stage scales with the card, but parity is desktop web at 1280.',
-    'The card-padding edges (chart top and card bottom) paint +1 px from 6.495 to 6.595 s; the original peaks at +0.27 px.',
     'The revert dip runs −2 px from 9.400 to 9.480 s vs the original\'s 9.367–9.500 s, and the sidebar chip returns to 184 at about 9.355 s vs 9.333 s.',
     'The phase-1 counter\'s first change is one frame late (184 at 1.000 s, where the original shows 185).',
   ],
