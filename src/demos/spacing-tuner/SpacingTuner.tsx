@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, LayoutChangeEvent, Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 import { CHIPS, COLORS, INNER, OVERLAY_ALPHA, SIZES, STAGE, VARIABLES, VarKey, WINDOW } from './tokens';
-import { frameAt, spring, LOOP_S, VarMap, Frame } from './timeline';
+import { frameAt, spring, LOOP_S, REDUCED_HOLD_S, REST_S, REVERT_S, VarMap, Frame } from './timeline';
 import { computeScene, Rect } from './layout';
 import { VariableIcon, withAlpha } from './Icons';
 
@@ -46,6 +46,11 @@ function Card({ r }: { r: Rect }) {
   );
 }
 
+function hostElement(node: View | null): HTMLElement | null {
+  if (typeof HTMLElement !== 'undefined' && node instanceof HTMLElement) return node;
+  return null;
+}
+
 function useReducedMotion(forced?: boolean): boolean {
   const [os, setOs] = useState(false);
   useEffect(() => {
@@ -58,7 +63,38 @@ function useReducedMotion(forced?: boolean): boolean {
   return forced ?? os;
 }
 
-/** rAF clock in seconds. */
+/** True while the stage is on screen. Without IntersectionObserver, stay running. */
+function useOnScreen(ref: React.RefObject<View | null>): boolean {
+  const canObserve = typeof IntersectionObserver === 'function';
+  const [onScreen, setOnScreen] = useState(!canObserve);
+  useEffect(() => {
+    if (!canObserve) return;
+    const el = hostElement(ref.current);
+    if (!el) {
+      setOnScreen(true);
+      return;
+    }
+    let intersecting = false;
+    const publish = () => {
+      const hidden = typeof document !== 'undefined' && document.hidden;
+      const next = intersecting && !hidden;
+      setOnScreen((current) => (current === next ? current : next));
+    };
+    const observer = new IntersectionObserver((entries) => {
+      intersecting = entries.some((entry) => entry.isIntersecting);
+      publish();
+    });
+    observer.observe(el);
+    document.addEventListener('visibilitychange', publish);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', publish);
+    };
+  }, [canObserve, ref]);
+  return onScreen;
+}
+
+/** rAF clock in seconds. Skips React renders through the 7.25–9.1 s rest. */
 function useClock(running: boolean, speed: number): number {
   const [t, setT] = useState(0);
   const base = useRef<{ start: number; offset: number } | null>(null);
@@ -69,8 +105,10 @@ function useClock(running: boolean, speed: number): number {
     const tick = (now: number) => {
       if (!base.current) base.current = { start: now, offset: tRef.current };
       const next = (base.current.offset + ((now - base.current.start) / 1000) * speed) % LOOP_S;
+      const prev = tRef.current;
       tRef.current = next;
-      setT(next);
+      const resting = prev >= REST_S && prev < REVERT_S && next >= REST_S && next < REVERT_S;
+      if (!resting) setT(next);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -101,9 +139,11 @@ function manualFrame(m: Manual, now: number, reduced: boolean): Frame {
 
 export default function SpacingTuner({ autoPlay = true, time, interactive = false, reducedMotion, speed = 1, style }: SpacingTunerProps) {
   const reduced = useReducedMotion(reducedMotion);
+  const rootRef = useRef<View>(null);
+  const onScreen = useOnScreen(rootRef);
   const [manual, setManual] = useState<Manual | null>(null);
   const [now, setNow] = useState(0);
-  const loopT = useClock(time === undefined && autoPlay && !manual, speed);
+  const loopT = useClock(time === undefined && autoPlay && !manual && !reduced && onScreen, speed);
   const [scale, setScale] = useState(0);
 
   // Drive re-renders while a manual spring settles.
@@ -115,7 +155,8 @@ export default function SpacingTuner({ autoPlay = true, time, interactive = fals
     return () => cancelAnimationFrame(raf);
   }, [manual]);
 
-  const frame = manual ? manualFrame(manual, now || manual.at, reduced) : frameAt(time ?? loopT, reduced);
+  const shown = time ?? (reduced ? REDUCED_HOLD_S : loopT);
+  const frame = manual ? manualFrame(manual, now || manual.at, reduced) : frameAt(shown, false);
   const scene = useMemo(() => computeScene(frame.values), [frame.values]);
 
   const onPress = (key: VarKey) => {
@@ -138,7 +179,7 @@ export default function SpacingTuner({ autoPlay = true, time, interactive = fals
 
   const { S, C } = scene;
   return (
-    <View style={[{ width: '100%', aspectRatio: STAGE.width / STAGE.height, backgroundColor: COLORS.page, overflow: 'hidden' }, style]} onLayout={onLayout}>
+    <View ref={rootRef} style={[{ width: '100%', aspectRatio: STAGE.width / STAGE.height, backgroundColor: COLORS.page, overflow: 'hidden' }, style]} onLayout={onLayout}>
       {scale > 0 && (
         <View
           style={{

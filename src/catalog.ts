@@ -96,7 +96,7 @@ export type TransitionItem = {
   skia?: true;
   /**
    * Optional skill file served from `public/<path>`.
-   * When set, the card shows a Copy Skill button. Cards without it are unchanged.
+   * When set, the card shows a Copy skill button. Cards without it are unchanged.
    */
   skill?: { path: string; name: string };
   Demo: ComponentType;
@@ -560,14 +560,13 @@ export const TRANSITIONS: TransitionItem[] = [
       'tuner',
       'dashboard',
       'wireframe',
-      'graphic-design',
       'sidebar',
       'padding',
       'gap',
       'michael',
       'michaelfilipiuk',
     ],
-    sections: ['graphic-design'],
+    sections: [],
     fullRow: true,
     pro: false,
     skill: { path: 'skills/spacing-audit/SKILL.md', name: 'spacing-audit' },

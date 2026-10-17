@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
-import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
+import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { StoreSheet } from '@/src/components/StoreSheet';
@@ -72,10 +72,28 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [skillCopied, setSkillCopied] = useState(false);
+  const [skillText, setSkillText] = useState<string | null>(null);
   const skill = skillFor(item.id);
   const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lazyPromptId = promptIsLazy(item.id) ? item.id : '';
+
+  useEffect(() => {
+    if (!skill) return;
+    let live = true;
+    setSkillText(null);
+    void loadSkill(item.id).then(
+      (text) => {
+        if (live) setSkillText(text);
+      },
+      () => {
+        if (live) setSkillText(null);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [item.id, skill]);
 
   useEffect(() => {
     if (!promptOpen || !lazyPromptId) return;
@@ -114,19 +132,22 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   );
 
   const copySkill = () => {
-    if (!skill) return;
-    setSkillCopied(true);
-    show();
-    setTimeout(() => setSkillCopied(false), 1400);
-    setTimeout(() => {
-      void loadSkill(item.id).then((text) => writeClipboard(text));
-    }, 0);
+    if (skillText == null) return;
+    void writeClipboardAwait(skillText).then(
+      () => {
+        setSkillCopied(true);
+        show();
+        if (hideBtn.current) clearTimeout(hideBtn.current);
+        hideBtn.current = setTimeout(() => setSkillCopied(false), 1400);
+      },
+      () => setSkillCopied(false),
+    );
   };
 
   const skillButton = skill ? (
     <ActionButton
       style={touch ? styles.actionTouch : undefined}
-      label={skillCopied ? 'Copied' : 'Copy Skill'}
+      label={skillCopied ? 'Copied' : 'Copy skill'}
       done={skillCopied}
       onPress={copySkill}
       testID={`copy-skill-${item.id}`}
@@ -196,7 +217,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {skill ? (
             <ActionButton
               style={styles.actionFull}
-              label={skillCopied ? 'Copied' : 'Copy Skill'}
+              label={skillCopied ? 'Copied' : 'Copy skill'}
               done={skillCopied}
               onPress={copySkill}
               testID={`copy-skill-${item.id}`}

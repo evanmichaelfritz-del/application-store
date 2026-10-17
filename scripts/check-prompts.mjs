@@ -70,6 +70,7 @@ await esbuild.build({
 
 const loaded = await import(pathToFileURL(outfile).href);
 const generatedPrompts = loaded.generatedPrompts();
+const catalogSkills = loaded.catalogSkills();
 
 /** Word characters plus a hyphen, so Helixes and SHA-256 are not Helix or SHA. */
 function bannedPhrase(label) {
@@ -283,14 +284,19 @@ if (fenceHits.length) {
  */
 import { createHash } from 'node:crypto';
 
-const catalog = readFileSync(join(root, 'src/catalog.ts'), 'utf8');
+function frontmatterName(bytes) {
+  const text = bytes.toString('utf8');
+  const fence = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fence) return null;
+  const line = fence[1].match(/^name:\s*(\S+)\s*$/m);
+  return line ? line[1] : null;
+}
+
 const skillHits = [];
-const skillRe = /skill:\s*\{\s*path:\s*'([^']+)',\s*name:\s*'([^']+)'\s*\}/g;
-const skills = [...catalog.matchAll(skillRe)];
-if (skills.length === 0) skillHits.push('catalog declares no skill');
-for (const match of skills) {
-  const skillPath = match[1];
-  const skillName = match[2];
+if (catalogSkills.length === 0) skillHits.push('catalog declares no skill');
+for (const skill of catalogSkills) {
+  const skillPath = skill.path;
+  const skillName = skill.name;
   if (skillPath.includes('..') || skillPath.startsWith('/')) {
     skillHits.push(`${skillName}: path must stay inside public/`);
     continue;
@@ -304,6 +310,10 @@ for (const match of skills) {
     continue;
   }
   if (bytes.length === 0) skillHits.push(`${skillName}: public/${skillPath} is empty`);
+  const declared = frontmatterName(bytes);
+  if (declared !== skillName) {
+    skillHits.push(`${skill.id}: SKILL.md name ${declared ?? '(missing)'} != registry name ${skillName}`);
+  }
   if (skillName === 'spacing-audit') {
     const hash = createHash('sha256').update(bytes).digest('hex');
     if (!hash.startsWith('fa392acc')) skillHits.push(`spacing-audit sha256 ${hash.slice(0, 8)} != fa392acc`);

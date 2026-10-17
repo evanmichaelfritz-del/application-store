@@ -10,6 +10,13 @@ export function writeClipboard(text: string) {
   void Clipboard.setStringAsync(text).catch(() => undefined);
 }
 
+/** Resolve after the clipboard write. Reject so the caller can clear a false Copied state. */
+export function writeClipboardAwait(text: string): Promise<void> {
+  const nav = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+  if (nav?.writeText) return nav.writeText(text);
+  return Clipboard.setStringAsync(text).then(() => undefined);
+}
+
 /** Copy during the press, including from inside a modal focus trap. */
 export function writeClipboardNow(text: string) {
   if (typeof document !== 'undefined') {

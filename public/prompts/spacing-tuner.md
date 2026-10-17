@@ -6,7 +6,7 @@ Built clean-room from the public demo video's behaviour only, with no source cod
 
 ## 0. Credit
 
-Based on a spacing demo by @MichaelFilipiuk ("If the app feels off but you're not sure why, it's probably the spacing."). Keep this credit in the asset's description.
+Based on a spacing demo by @MichaelFilipiuk ("If the app feels off but you're not sure why, it's probably the spacing."). Keep this credit in the asset's description, and link the post: https://x.com/MichaelFilipiuk/status/2111383736243859714.
 
 **Source tags used below:**
 - **[V t=…]**: a timestamp in seconds in the reference recording (1440x1080, 10.000 s, 60 fps).
@@ -172,10 +172,12 @@ Measured at 60 fps by tracking element edges and overlay colours across all 600 
 - Phase k = 0…4 starts at **t0 = 0.8 + 1.3k**.
 - **Overlay and ring:** fade in linearly over **0.15 s** from t0, and fade out linearly over **0.25 s** from t0 + 1.0.
 - **Value:** starts its spring at **t0 + 0.2**.
-- **Spring:** mass 1, **stiffness 200, damping 20** (ζ = 0.707, ω0 = 14.14 rad/s), zero initial velocity [M: least-squares fit to 5 moves + revert].
-  - It reaches the target at +0.237 s.
-  - It peaks at +4.3% at +0.313 s; the measured peak overshoot is 3–7%.
-  - It's within 0.5% by +0.497 s.
+- **Spring:** mass 1, **stiffness 202, damping 21.35** (ζ = 0.751, ω0 = 14.21 rad/s), zero initial velocity. Damping is higher than a ζ = 0.707 spring, and stiffness stays high enough that half-travel does not slip.
+  - Half-travel (progress 0.5) is at **+0.103 s**: 1.103, 2.403, 3.703, 5.003, 6.303, and revert 9.203. Those sit within 16 ms of the frame times 1.093 / 2.400 / 3.689 / 5.003 / 6.295 / 9.200.
+  - The sidebar chip first leaves 184 at **+0.009 s** (t = 1.009) and first reads 248 at **+0.250 s** (t = 1.250), not earlier.
+  - Peak overshoot is **2.80% at +0.335 s**. On the 64 px sidebar move that is **+1.8 px**, which rounds to +2 px from 1.300 s to 1.383 s, then +1 px until 1.480 s, and is settled from 1.480 s. The revert mirrors that: −2 px from 9.400 s to 9.483 s, −1 px until 9.580 s.
+  - Card padding travels 12 px, so the same 2.80% is **+0.34 px** and shows no whole-pixel overshoot.
+  - Frame measurements of the video: the sidebar edge holds +2 px from 1.283 s to 1.383 s and +1 px from 1.400 s to 1.467 s, settled from 1.483 s. The revert holds −2 px from 9.367 s to 9.500 s and −1 px from 9.517 s to 9.567 s, resting from 9.583 s. That whole-pixel band is about 2.3–3.9% of the 64 px move (1.5–2.5 px), not 3–7%.
 
 | Phase | Overlay fade-in | Value spring start | Reaches target | Settled | Overlay fade-out | Evidence |
 |---|---|---|---|---|---|---|
@@ -231,13 +233,11 @@ Also exported:
 
 ## 9. Reduced motion [I]
 
-When the OS setting is on (or `reducedMotion` is true):
-- The same schedule runs, but values **step** (no spring) at their start times.
-- Overlays and rings switch on and off without fades (on from t0 to t0 + 1.0).
-- The revert steps at 9.1 s.
-- Chip numbers jump straight to their final values.
+When `reducedMotion` is true, or when the OS asks for reduced motion (`AccessibilityInfo`; on web that is `prefers-reduced-motion`):
+- The clock does not run.
+- The stage holds one frame, the settled tuned pose at **t = 7.5 s**: sidebar 248, outer padding 40, row gap 48, column gap 12, card padding 24, no overlays and no rings.
 
-The live card passes the store flag into `reducedMotion` (the OS setting, or the in-app Reduce Motion switch). Copy does not mount that switch, so Copy follows `AccessibilityInfo`. On web that is `prefers-reduced-motion`.
+The clock also pauses while the stage is off screen (`IntersectionObserver`, and while the document is hidden). From 7.25 s to 9.1 s it keeps time but does not re-render, because that rest poses the same picture.
 
 ## 10. Gotchas
 
@@ -246,10 +246,10 @@ The live card passes the store flag into `reducedMotion` (the OS setting, or the
 3. **Bottom row split.** Use the 2 : 1 formula *with* padding reserved first. A plain 2/3 : 1/3 split is off by 8–12 px.
 4. **Chart bars scale with height; mini bars don't.**
 5. **Chip digits:** use fixed 17 px cells so the chips don't shift when the fallback font differs. Never set a width on a single `<Text>`, because it wraps.
-6. **Clamp chip numbers, not layout values.** The layout overshoots by about 4%; the numbers don't.
+6. **Clamp chip numbers, not layout values.** The layout overshoots by 2.8% on the 64 px sidebar move (+1.8 px); the numbers don't.
 7. **The stage scales with `transform: scale`** around the centre of a 1440x1080 box. Keep `overflow: hidden` on the root and on the window (rounded clipping).
 8. **`boxShadow` string styles** are used. They render on react-native-web and on the new React Native architecture; older native renderers ignore them (known gap).
-9. The rAF clock calls `setState` every frame (about 150 views). That's fine on desktop web; native performance is a known gap.
+9. The rAF clock drives about 150 views, but it does not run under reduced motion or while the stage is off screen, and it skips renders during the 7.25–9.1 s rest. Native performance is still a known gap.
 10. Don't add text labels to the scene or chips. The reference has none; accessible names live in `accessibilityLabel` only.
 11. **Phone widths are a known gap.** Desktop web at 1280 is the bar. The stage still scales, but phone layouts are not a parity target.
 
@@ -266,13 +266,11 @@ src/spacing-tuner/Icons.tsx     the 5 chip icons (Views only, no SVG)
 src/spacing-tuner/SpacingTuner.tsx  component
 ```
 
-In the store these files live at `src/demos/spacing-tuner/`. The card mounts `SpacingTuner` directly and does not ship a second Expo app. Copy is `public/parity/spacing-tuner.js`, built by `scripts/build-parity.mjs` from `mount.tsx`. It aliases `react-native` to `react-native-web` and prepends that package's LICENSE, then the React LICENSE, verbatim in `/*! */` headers.
-
-Dependencies (no others): `expo ~58.0.14`, `react 19.3.0`, `react-dom 19.3.0`, `react-native 0.88.0`, `react-native-web ^0.21.4`, `expo-status-bar ~58.0.3`; dev: `typescript ~6.0.3`, `@types/react ~19.3.0`. `tsconfig.json` extends `expo/tsconfig.base` with `"strict": true`. Run on web with `npx expo start --web`, or export with `npx expo export -p web`.
+Dependencies (no others): `react`, `react-native`, and `react-native-web`. `tsconfig.json` uses `"strict": true`.
 
 ## Setup
 
-Peer is React. The component also runs on react-native-web. `scripts/build-parity.mjs` bundles `src/demos/spacing-tuner/mount.tsx` and prepends the react-native-web LICENSE and the React LICENSE verbatim in `/*! */` headers. react-dom's LICENSE matches React's, so it is not repeated. The React LICENSE is:
+Peer is React. The component also runs on react-native-web. The React LICENSE is:
 
 ```
 MIT License
@@ -423,15 +421,23 @@ export const FADE_OUT_AT_S = 1.0;
 export const FADE_OUT_S = 0.25;
 /** All five values spring back together at this time; no overlays. */
 export const REVERT_S = 9.1;
+/** Rest window: the picture is already the tuned pose, so the clock skips renders. */
+export const REST_S = 7.25;
+/** Reduced motion holds this frame: the settled tuned pose, overlays gone. */
+export const REDUCED_HOLD_S = 7.5;
 
-/** Spring: mass 1, stiffness 200, damping 20 (zeta = 0.707), zero initial velocity. */
-export const SPRING = { stiffness: 200, damping: 20, mass: 1 } as const;
+/**
+ * Spring: mass 1, stiffness 202, damping 21.35 (zeta ≈ 0.751), zero initial velocity.
+ * Peak overshoot is 2.80% at +0.335 s. On the 64 px sidebar move that is +1.8 px,
+ * which rounds to +2 px and never +3. Card padding (12 px) peaks at +0.34 px.
+ */
+export const SPRING = { stiffness: 202, damping: 21.35, mass: 1 } as const;
 
 const W0 = Math.sqrt(SPRING.stiffness / SPRING.mass);
 const ZETA = SPRING.damping / (2 * Math.sqrt(SPRING.stiffness * SPRING.mass));
 const WD = W0 * Math.sqrt(1 - ZETA * ZETA);
 
-/** Normalised spring step response, 0 -> 1 with ~4.3% overshoot at 0.31 s. */
+/** Normalised spring step response, 0 -> 1 with 2.80% overshoot at 0.335 s. */
 export function spring(t: number): number {
   if (t <= 0) return 0;
   const decay = Math.exp(-ZETA * W0 * t);
@@ -665,7 +671,7 @@ export function VariableIcon({ kind, accent }: { kind: VarKey; accent: string })
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, LayoutChangeEvent, Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 import { CHIPS, COLORS, INNER, OVERLAY_ALPHA, SIZES, STAGE, VARIABLES, VarKey, WINDOW } from './tokens';
-import { frameAt, spring, LOOP_S, VarMap, Frame } from './timeline';
+import { frameAt, spring, LOOP_S, REDUCED_HOLD_S, REST_S, REVERT_S, VarMap, Frame } from './timeline';
 import { computeScene, Rect } from './layout';
 import { VariableIcon, withAlpha } from './Icons';
 
@@ -710,6 +716,11 @@ function Card({ r }: { r: Rect }) {
   );
 }
 
+function hostElement(node: View | null): HTMLElement | null {
+  if (typeof HTMLElement !== 'undefined' && node instanceof HTMLElement) return node;
+  return null;
+}
+
 function useReducedMotion(forced?: boolean): boolean {
   const [os, setOs] = useState(false);
   useEffect(() => {
@@ -722,7 +733,38 @@ function useReducedMotion(forced?: boolean): boolean {
   return forced ?? os;
 }
 
-/** rAF clock in seconds. */
+/** True while the stage is on screen. Without IntersectionObserver, stay running. */
+function useOnScreen(ref: React.RefObject<View | null>): boolean {
+  const canObserve = typeof IntersectionObserver === 'function';
+  const [onScreen, setOnScreen] = useState(!canObserve);
+  useEffect(() => {
+    if (!canObserve) return;
+    const el = hostElement(ref.current);
+    if (!el) {
+      setOnScreen(true);
+      return;
+    }
+    let intersecting = false;
+    const publish = () => {
+      const hidden = typeof document !== 'undefined' && document.hidden;
+      const next = intersecting && !hidden;
+      setOnScreen((current) => (current === next ? current : next));
+    };
+    const observer = new IntersectionObserver((entries) => {
+      intersecting = entries.some((entry) => entry.isIntersecting);
+      publish();
+    });
+    observer.observe(el);
+    document.addEventListener('visibilitychange', publish);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', publish);
+    };
+  }, [canObserve, ref]);
+  return onScreen;
+}
+
+/** rAF clock in seconds. Skips React renders through the 7.25–9.1 s rest. */
 function useClock(running: boolean, speed: number): number {
   const [t, setT] = useState(0);
   const base = useRef<{ start: number; offset: number } | null>(null);
@@ -733,8 +775,10 @@ function useClock(running: boolean, speed: number): number {
     const tick = (now: number) => {
       if (!base.current) base.current = { start: now, offset: tRef.current };
       const next = (base.current.offset + ((now - base.current.start) / 1000) * speed) % LOOP_S;
+      const prev = tRef.current;
       tRef.current = next;
-      setT(next);
+      const resting = prev >= REST_S && prev < REVERT_S && next >= REST_S && next < REVERT_S;
+      if (!resting) setT(next);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -765,9 +809,11 @@ function manualFrame(m: Manual, now: number, reduced: boolean): Frame {
 
 export default function SpacingTuner({ autoPlay = true, time, interactive = false, reducedMotion, speed = 1, style }: SpacingTunerProps) {
   const reduced = useReducedMotion(reducedMotion);
+  const rootRef = useRef<View>(null);
+  const onScreen = useOnScreen(rootRef);
   const [manual, setManual] = useState<Manual | null>(null);
   const [now, setNow] = useState(0);
-  const loopT = useClock(time === undefined && autoPlay && !manual, speed);
+  const loopT = useClock(time === undefined && autoPlay && !manual && !reduced && onScreen, speed);
   const [scale, setScale] = useState(0);
 
   // Drive re-renders while a manual spring settles.
@@ -779,7 +825,8 @@ export default function SpacingTuner({ autoPlay = true, time, interactive = fals
     return () => cancelAnimationFrame(raf);
   }, [manual]);
 
-  const frame = manual ? manualFrame(manual, now || manual.at, reduced) : frameAt(time ?? loopT, reduced);
+  const shown = time ?? (reduced ? REDUCED_HOLD_S : loopT);
+  const frame = manual ? manualFrame(manual, now || manual.at, reduced) : frameAt(shown, false);
   const scene = useMemo(() => computeScene(frame.values), [frame.values]);
 
   const onPress = (key: VarKey) => {
@@ -802,7 +849,7 @@ export default function SpacingTuner({ autoPlay = true, time, interactive = fals
 
   const { S, C } = scene;
   return (
-    <View style={[{ width: '100%', aspectRatio: STAGE.width / STAGE.height, backgroundColor: COLORS.page, overflow: 'hidden' }, style]} onLayout={onLayout}>
+    <View ref={rootRef} style={[{ width: '100%', aspectRatio: STAGE.width / STAGE.height, backgroundColor: COLORS.page, overflow: 'hidden' }, style]} onLayout={onLayout}>
       {scale > 0 && (
         <View
           style={{
@@ -1035,13 +1082,13 @@ Check at a 1280x800 viewport (stage scale 0.7407, centred) and at 1440x1080 (1:1
 5. **Chips at t=0:** 184 · 20 · 20 · 20 · 12. **At t=8:** 248 · 40 · 48 · 12 · 24. Chip row centred; first chip starts at x ≈ 341, height 58, gap 24.
 6. **Overlay colour over white** = accent at 0.32: blue band ≈ #C2DAF9, purple ≈ #E0D0F8, green ≈ #B9E7D3, orange ≈ #F9D8B8; pink over #FAFAFA ≈ #F7C3D8.
 7. **Overlay and ring opacity:** 0 at t=0.80, 1 at 0.95, 1 until 1.80, 0 at 2.05. Same shape at 2.10 / 3.40 / 4.70 / 6.00.
-8. **Value starts:** 1.00 / 2.30 / 3.60 / 4.90 / 6.20, each reaching its target after +0.24 s with about 4% overshoot at +0.31 s and settling by +0.5 s.
-   - Sidebar at t=1.10 ≈ 218 (chip shows 218).
-9. **Rest 7.25–9.10:** no overlays or rings. **Revert starts at 9.10**, all five together. Chips at t=9.20 ≈ 216 / 30 / 34 / 16 / 18; at 9.33, 184 / 20 / 20 / 20 / 12.
-10. **The layout overshoots on revert** (sidebar briefly about 181 at t≈9.4), but chip 1 shows 184.
+8. **Value starts:** 1.00 / 2.30 / 3.60 / 4.90 / 6.20. Half-travel is +0.103 s. The sidebar chip reads 248 at 1.250 s and not before. Peak overshoot is 2.8% at +0.335 s (+1.8 px on the 64 px sidebar move) and the edge is settled by +0.48 s.
+   - Sidebar chip at t=1.15 is 231. The reference video shows 234 at that sample.
+9. **Rest 7.25–9.10:** no overlays or rings. **Revert starts at 9.10**, all five together. Chips at t=9.20 are 217 / 30 / 35 / 16 / 18; at 9.33 they are 186 / 21 / 21 / 20 / 12 (the sidebar chip is 186 here, not 184 — 184 returns once the spring is inside half a pixel of the target).
+10. **The layout overshoots on revert** by the same 2.8% (sidebar briefly about 182 at the peak, t≈9.43), but the chip stays clamped at 184 once the rounded value gets there.
 11. **Loop:** t=10 renders identically to t=0; there's no jump on wrap during autoplay.
 12. **Padding overlay** is 4 bands of thickness P around x ≥ S. **Row-gap overlay** is 2 bands of height R spanning Wc. **Column-gap overlay** is 4 vertical gaps. **Card-padding overlay** is 6 rounded rings of thickness C.
 13. **Active chip:** 3 px accent ring outside the chip at the overlay's opacity; fill stays white.
 14. **`interactive` off:** chips aren't buttons. **`interactive` on:** pressing the row-gap chip makes it read 48 after about 0.5 s and stops the loop; pressing again returns it to 20.
-15. **Reduced motion:** values step at their start times; no tweening frames.
+15. **Reduced motion:** the clock is stopped and the stage holds t = 7.5 s (248 / 40 / 48 / 12 / 24, no overlays). It does not step through the five phases.
 16. **The web export builds** and runs with no console errors; `tsc --noEmit` passes under strict.

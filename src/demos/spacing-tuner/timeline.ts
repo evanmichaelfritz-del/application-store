@@ -14,15 +14,23 @@ export const FADE_OUT_AT_S = 1.0;
 export const FADE_OUT_S = 0.25;
 /** All five values spring back together at this time; no overlays. */
 export const REVERT_S = 9.1;
+/** Rest window: the picture is already the tuned pose, so the clock skips renders. */
+export const REST_S = 7.25;
+/** Reduced motion holds this frame: the settled tuned pose, overlays gone. */
+export const REDUCED_HOLD_S = 7.5;
 
-/** Spring: mass 1, stiffness 200, damping 20 (zeta = 0.707), zero initial velocity. */
-export const SPRING = { stiffness: 200, damping: 20, mass: 1 } as const;
+/**
+ * Spring: mass 1, stiffness 202, damping 21.35 (zeta ≈ 0.751), zero initial velocity.
+ * Peak overshoot is 2.80% at +0.335 s. On the 64 px sidebar move that is +1.8 px,
+ * which rounds to +2 px and never +3. Card padding (12 px) peaks at +0.34 px.
+ */
+export const SPRING = { stiffness: 202, damping: 21.35, mass: 1 } as const;
 
 const W0 = Math.sqrt(SPRING.stiffness / SPRING.mass);
 const ZETA = SPRING.damping / (2 * Math.sqrt(SPRING.stiffness * SPRING.mass));
 const WD = W0 * Math.sqrt(1 - ZETA * ZETA);
 
-/** Normalised spring step response, 0 -> 1 with ~4.3% overshoot at 0.31 s. */
+/** Normalised spring step response, 0 -> 1 with 2.80% overshoot at 0.335 s. */
 export function spring(t: number): number {
   if (t <= 0) return 0;
   const decay = Math.exp(-ZETA * W0 * t);
