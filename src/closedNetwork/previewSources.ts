@@ -696,61 +696,21 @@ canvas { display: block; width: 168px; height: 168px; }`,
 })();`,
   },
   'drag-drop-physics': {
-    html: `<div class="board">
-  <div class="t-drop" id="zone">Drag & drop it here</div>
-  <div class="chip" id="chip">Photo</div>
-</div>`,
-    extraCss: `.board { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-.t-drop {
-  width: 220px; height: 140px; border-radius: 28px; border: 1.5px dashed #d0d0d0;
-  display: grid; place-items: center; color: #6c6c6c; background: transparent;
+    snippet: false,
+    html: `<div id="parity-root"></div>`,
+    extraCss: `@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-.t-drop.is-filled { border-radius: 16px; border-style: solid; background: #fff; transform: scale(1.04); color: #17181c; }
-.chip {
-  width: 72px; height: 72px; border-radius: 16px; background: #17181c; color: #fff;
-  display: grid; place-items: center; touch-action: none; cursor: grab; user-select: none;
-}`,
+#parity-root { width: 213px; }`,
     script: `(function () {
-  var zone = document.getElementById('zone');
-  var chip = document.getElementById('chip');
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var dragging = false;
-  var ox = 0, oy = 0, x = 0, y = 0;
-  chip.addEventListener('pointerdown', function (e) {
-    dragging = true;
-    chip.setPointerCapture(e.pointerId);
-    chip.style.transition = 'none';
-    ox = e.clientX - x;
-    oy = e.clientY - y;
-  });
-  chip.addEventListener('pointermove', function (e) {
-    if (!dragging) return;
-    x = e.clientX - ox;
-    y = e.clientY - oy;
-    chip.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-  });
-  chip.addEventListener('pointerup', function () {
-    if (!dragging) return;
-    dragging = false;
-    var zb = zone.getBoundingClientRect();
-    var cb = chip.getBoundingClientRect();
-    var inside = cb.left < zb.right && cb.right > zb.left && cb.top < zb.bottom && cb.bottom > zb.top;
-    chip.style.transition = reduce ? 'none' : 'transform var(--drop-snap) var(--drop-ease)';
-    if (inside) {
-      zone.classList.add('is-filled');
-      zone.textContent = 'Dropped';
-      var dx = (zb.left + zb.width / 2) - (cb.left + cb.width / 2);
-      var dy = (zb.top + zb.height / 2) - (cb.top + cb.height / 2);
-      x += dx;
-      y += dy;
-    } else {
-      zone.classList.remove('is-filled');
-      zone.textContent = 'Drag & drop it here';
-      x = 0;
-      y = 0;
-    }
-    chip.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-  });
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/drag-drop-physics.js';
+  document.body.appendChild(s);
 })();`,
   },
   'shimmer-text': {

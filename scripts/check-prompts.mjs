@@ -184,6 +184,7 @@ const PACKAGE_SOURCE = [
   { file: join(root, 'public/prompts/gooey.md'), pkg: 'liquid-gooey', notice: false },
   { file: join(root, 'public/prompts/border-beam.md'), pkg: 'border-beam', notice: false },
   { file: join(root, 'public/prompts/liquid-metal.md'), pkg: 'metal-fx', notice: true },
+  { file: join(root, 'public/prompts/drag-drop-physics.md'), pkg: 'react', notice: false },
 ];
 
 function packageSourceIndex(text) {

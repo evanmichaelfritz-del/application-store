@@ -16,6 +16,14 @@ function block(text, leadingNewline) {
   return leadingNewline ? `/*!\n${body}*/\n` : `/*!${body}*/\n`;
 }
 
+function reactHeader() {
+  const reactLicense = readFileSync(join(root, 'node_modules/react/LICENSE'), 'utf8');
+  const reactDomLicense = readFileSync(join(root, 'node_modules/react-dom/LICENSE'), 'utf8');
+  let header = block(reactLicense, false);
+  if (reactDomLicense !== reactLicense) header += block(reactDomLicense, false);
+  return header;
+}
+
 function licenseHeader(packageDir, notice) {
   const packageLicense = readFileSync(join(root, 'node_modules', packageDir, 'LICENSE'), 'utf8');
   const reactLicense = readFileSync(join(root, 'node_modules/react/LICENSE'), 'utf8');
@@ -42,6 +50,11 @@ const targets = [
     entry: 'src/demos/gooey/mount.tsx',
     outfile: 'public/parity/gooey.js',
     header: licenseHeader('liquid-gooey'),
+  },
+  {
+    entry: 'src/demos/drag-drop/mount.tsx',
+    outfile: 'public/parity/drag-drop-physics.js',
+    header: reactHeader(),
   },
 ];
 
