@@ -4,7 +4,7 @@
  * LICENSE are prepended. react-dom's LICENSE is added only when it differs.
  */
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,6 +25,59 @@ function licenseHeader(packageDir, notice) {
   if (reactDomLicense !== reactLicense) header += block(reactDomLicense, false);
   if (notice) header += block(readFileSync(join(root, 'node_modules', packageDir, notice), 'utf8'), true);
   return header;
+}
+
+function licensePath(dir) {
+  for (const name of ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'LICENCE', 'LICENCE.md']) {
+    const path = join(dir, name);
+    if (existsSync(path)) return path;
+  }
+  // @react-native/normalize-colors ships no licence file. Its source header
+  // points at the React Native repo root LICENSE, which is this file.
+  const pkgPath = join(dir, 'package.json');
+  if (!existsSync(pkgPath)) return null;
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  const repo = typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository?.url ?? '');
+  if (repo.includes('github.com/react/react-native') || repo.includes('github.com/facebook/react-native')) {
+    const shared = join(root, 'node_modules/react-native/LICENSE');
+    if (existsSync(shared)) return shared;
+  }
+  return null;
+}
+
+/** Every node_modules package in an esbuild metafile, in a stable order. */
+function packagesFromMeta(meta) {
+  const dirs = new Map();
+  for (const input of Object.keys(meta.inputs)) {
+    const normalized = input.split('\\').join('/');
+    const marker = 'node_modules/';
+    const at = normalized.lastIndexOf(marker);
+    if (at < 0) continue;
+    const parts = normalized.slice(at + marker.length).split('/');
+    const name = parts[0].startsWith('@') ? `${parts[0]}/${parts[1]}` : parts[0];
+    if (!name || dirs.has(name)) continue;
+    dirs.set(name, join(root, 'node_modules', name));
+  }
+  return [...dirs.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+}
+
+/** Verbatim licence block for every bundled package. Throws when one is missing. */
+function headerFromMeta(meta) {
+  const packages = packagesFromMeta(meta);
+  if (packages.length === 0) throw new Error('metafile listed no bundled packages');
+  let header = '';
+  const names = [];
+  for (const [name, dir] of packages) {
+    const file = licensePath(dir);
+    if (!file) throw new Error(`bundled package ${name} has no LICENSE header`);
+    const text = readFileSync(file, 'utf8');
+    header += block(text, false);
+    if (!header.includes(text)) throw new Error(`bundled package ${name} licence was not written into the header`);
+    const notice = join(dir, 'NOTICE');
+    if (existsSync(notice)) header += block(readFileSync(notice, 'utf8'), true);
+    names.push(name);
+  }
+  return { header, names };
 }
 
 const targets = [
@@ -48,6 +101,15 @@ const targets = [
     outfile: 'public/parity/drag-drop-physics.js',
     header: block(readFileSync(join(root, 'node_modules/react/LICENSE'), 'utf8'), false),
   },
+  {
+    entry: 'src/demos/spacing-tuner/mount.tsx',
+    outfile: 'public/parity/spacing-tuner.js',
+    // TODO: the other Copy bundles still use a hand-listed header. Pointing
+    // them at headerFromMeta would prepend every transitive licence and change
+    // their bytes, so this metafile header stays on spacing-tuner only.
+    fromMeta: true,
+    alias: { 'react-native': 'react-native-web' },
+  },
 ];
 
 for (const target of targets) {
@@ -63,8 +125,16 @@ for (const target of targets) {
     legalComments: 'inline',
     define: { 'process.env.NODE_ENV': '"production"' },
     write: false,
+    metafile: Boolean(target.fromMeta),
+    ...(target.alias ? { alias: target.alias } : {}),
   });
+  let header = target.header ?? '';
+  if (target.fromMeta) {
+    const built = headerFromMeta(result.metafile);
+    header = built.header;
+    process.stdout.write(`licences ${built.names.join(', ')}\n`);
+  }
   const js = result.outputFiles[0].text;
-  writeFileSync(join(root, target.outfile), target.header + js);
-  process.stdout.write(`${target.outfile} ${target.header.length + js.length}\n`);
+  writeFileSync(join(root, target.outfile), header + js);
+  process.stdout.write(`${target.outfile} ${header.length + js.length}\n`);
 }

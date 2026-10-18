@@ -149,6 +149,11 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Generic template prompt (7900 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
   ],
+  'spacing-tuner': [
+    'Phone widths are a known gap. The 1440×1080 stage scales with the card, but parity is desktop web at 1280.',
+    'The revert dip runs −2 px from 9.400 to 9.480 s vs the original\'s 9.367–9.500 s, and the sidebar chip returns to 184 at about 9.355 s vs 9.333 s.',
+    'The phase-1 counter\'s first change is one frame late (184 at 1.000 s, where the original shows 185).',
+  ],
   'tooltip-open-close': [
     'Generic template prompt (4850 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',

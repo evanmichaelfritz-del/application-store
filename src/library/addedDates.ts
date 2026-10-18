@@ -42,6 +42,7 @@ export const ADDED_ON: Record<string, string> = {
   'preview-tools': 'Sep 24, 2026',
   'orb-state-picker': 'Sep 24, 2026',
   'yogesh-orb-creator': 'Oct 7, 2026',
+  'spacing-tuner': 'Oct 17, 2026',
 };
 
 export function addedOn(id: string): string | null {

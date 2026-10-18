@@ -41,10 +41,27 @@ type PropEntry = { id: string; props: readonly PropRow[] };
 type InstallEntry = { id: string; line: string; deps: readonly string[] };
 type ParityEntry = { id: string; sha: string; href: string };
 
-/** No catalog asset publishes a prop table, install line, or parity record yet. */
-const PROP_ENTRIES: readonly PropEntry[] = [];
+const PROP_ENTRIES: readonly PropEntry[] = [
+  {
+    id: 'spacing-tuner',
+    props: [
+      { name: 'autoPlay', type: 'boolean', fallback: 'true', description: 'Run the 10 s loop. Ignored when time is set.', required: false },
+      { name: 'time', type: 'number', fallback: null, description: 'Freeze the loop at this time in seconds.', required: false },
+      { name: 'interactive', type: 'boolean', fallback: 'false', description: 'Chips become buttons that toggle one variable.', required: false },
+      { name: 'reducedMotion', type: 'boolean', fallback: null, description: 'Hold the tuned frame at 7.5 s. Default follows the OS.', required: false },
+      { name: 'speed', type: 'number', fallback: '1', description: 'Playback speed multiplier.', required: false },
+      { name: 'style', type: 'StyleProp<ViewStyle>', fallback: null, description: 'Style for the root stage.', required: false },
+    ],
+  },
+];
 const INSTALL_ENTRIES: readonly InstallEntry[] = [];
-const PARITY_ENTRIES: readonly ParityEntry[] = [];
+const PARITY_ENTRIES: readonly ParityEntry[] = [
+  {
+    id: 'spacing-tuner',
+    sha: '4234059ed69ff19840ae3360ae4ab85cb1b2165cc3fbdbcd63457867a0ae0775',
+    href: 'https://x.com/MichaelFilipiuk/status/2111383736243859714',
+  },
+];
 
 export type AssetProp = PropRow;
 export type AssetInstall = { line: string; deps: readonly string[] };

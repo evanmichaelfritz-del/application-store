@@ -325,6 +325,8 @@ export const SNIPPETS: Record<string, string> = {
 
   'drag-drop-physics': `/* The board runs from /parity/drag-drop-physics.js. */`,
 
+  'spacing-tuner': `/* The stage runs from /parity/spacing-tuner.js. */`,
+
   'shimmer-text': `:root {
   --shimmer-dur: 1200ms;
   --shimmer-base: #7c7c7c;

@@ -36,6 +36,7 @@ const CREDITS = [
   { id: 'yogesh-thinking-orbs', label: 'Yogesh', url: 'https://x.com/yogesharc/status/2105360780015128808' },
   { id: 'yogesh-orb-creator', label: 'Yogesh', url: 'https://x.com/yogesharc/status/2106085555201024409' },
   { id: 'abrar-overview', label: 'Abrar Karim', url: 'https://x.com/AbrarInPixels/status/2086055804957065518' },
+  { id: 'spacing-tuner', label: 'Michael Filipiuk', url: 'https://x.com/MichaelFilipiuk/status/2111383736243859714' },
 ] as const;
 
 const UNVERIFIED = [
@@ -58,7 +59,7 @@ export function creditFor(id: string): AssetCredit | null {
 
 function assertCredits() {
   const ids = Object.keys(ASSET_META);
-  if (ids.length !== 39) throw new Error(`credit map expected 39 assets, found ${ids.length}`);
+  if (ids.length !== 40) throw new Error(`credit map expected 40 assets, found ${ids.length}`);
   for (const id of ids) {
     const credit = creditFor(id);
     const unverified = UNVERIFIED.some((item) => item === id);
@@ -77,6 +78,7 @@ function assertCredits() {
     'Jakub Antalik': 9,
     Yogesh: 2,
     'Abrar Karim': 1,
+    'Michael Filipiuk': 1,
   } as const;
   for (const [label, expected] of Object.entries(counts)) {
     const n = CREDITS.filter((row) => row.label === label).length;

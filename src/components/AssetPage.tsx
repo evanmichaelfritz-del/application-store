@@ -10,10 +10,10 @@ import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { LeftNav } from '@/src/components/LeftNav';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
-import { writeClipboard, writeClipboardNow } from '@/src/clipboard';
+import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyScript, promptIsLazy, readyPrompt, scriptIsLazy, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -105,7 +105,11 @@ function useCopied() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(null), 1600);
   };
-  return { copied, mark };
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setCopied(null);
+  };
+  return { copied, mark, clear };
 }
 
 function cellStyle(columns: number): ViewStyle {
@@ -168,7 +172,8 @@ function Found({ item }: { item: TransitionItem }) {
   const meta = ASSET_META[item.id];
   const credit = creditFor(item.id);
   const label = typeLabel(meta.type) ?? 'All assets';
-  const { copied, mark } = useCopied();
+  const { copied, mark, clear } = useCopied();
+  const skillBody = useRef<string | null>(null);
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
@@ -190,6 +195,31 @@ function Found({ item }: { item: TransitionItem }) {
       return;
     }
     write(codeSlot(item.id, activeKind));
+  };
+  const skill = skillFor(item.id);
+  useEffect(() => {
+    if (!skill) return;
+    let live = true;
+    skillBody.current = null;
+    void loadSkill(item.id).then(
+      (text) => {
+        if (live) skillBody.current = text;
+      },
+      () => {
+        if (live) skillBody.current = null;
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [item.id, skill]);
+  const copySkill = () => {
+    const text = skillBody.current;
+    if (text == null) return;
+    void writeClipboardAwait(text).then(
+      () => mark('skill'),
+      () => clear(),
+    );
   };
   const copyPrompt = () => {
     mark('prompt');
@@ -222,6 +252,16 @@ function Found({ item }: { item: TransitionItem }) {
           onPress={copyCode}
           testID="copy-code"
         />
+        {skill ? (
+          <BarButton
+            label={copied === 'skill' ? 'Copied' : 'Copy skill'}
+            icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
+            tone="secondary"
+            done={copied === 'skill'}
+            onPress={copySkill}
+            testID="copy-skill"
+          />
+        ) : null}
         <BarButton
           label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
           icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
@@ -861,12 +901,9 @@ function ParityValue({ parity }: { parity: AssetParity | null }) {
   if (!parity) return <Text style={styles.faint}>Not checked</Text>;
   return (
     <Text style={styles.valueText}>
-      <Text style={styles.pass}>PASS</Text>
-      <Text> · </Text>
       <Text style={styles.sha} accessibilityRole="link" onPress={() => openExternal(parity.href)}>
-        {parity.sha}
+        Source post
       </Text>
-      <Text> · 1280</Text>
     </Text>
   );
 }

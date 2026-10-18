@@ -29,6 +29,8 @@ Continuous-add path (do not invent new card chrome):
 3. Motion lock in `src/agentPrompts.ts` (`LOCKS[id]`).
 4. Register one object on `TRANSITIONS` in `src/catalog.ts` with `sections` + `categories`.
 
+Optional skill: set `skill: { path, name }` on that object. `path` is relative to `public/` (for example `skills/spacing-audit/SKILL.md`). The card then shows a **Copy skill** button beside Copy and Agent Prompt, and copies that file. Leave `skill` unset and the card stays as it was. `npm test` checks that `public/<path>` is the file the registry names, and that the skill frontmatter `name` matches.
+
 Empty sections render a dashed add-slot card. New nav rows: append to `NAV_SECTIONS` in `src/sections.ts`.
 
 ## Local

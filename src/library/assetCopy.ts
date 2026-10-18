@@ -1,4 +1,5 @@
 import { promptFor } from '@/src/agentPrompts';
+import { TRANSITIONS } from '@/src/catalog';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import {
   loadPublicPrompt,
@@ -24,6 +25,7 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'liquid-metal') return loadPublicPrompt('/prompts/liquid-metal.md');
   if (id === 'gooey') return loadPublicPrompt('/prompts/gooey.md');
   if (id === 'drag-drop-physics') return loadPublicPrompt('/prompts/drag-drop-physics.md');
+  if (id === 'spacing-tuner') return loadPublicPrompt('/prompts/spacing-tuner.md');
   return Promise.resolve(promptFor(id));
 }
 
@@ -34,7 +36,8 @@ export function promptIsLazy(id: string): boolean {
     id === 'border-beam' ||
     id === 'liquid-metal' ||
     id === 'gooey' ||
-    id === 'drag-drop-physics'
+    id === 'drag-drop-physics' ||
+    id === 'spacing-tuner'
   );
 }
 
@@ -43,6 +46,7 @@ const PARITY_SCRIPT: Record<string, string> = {
   'liquid-metal': '/parity/liquid-metal.js',
   gooey: '/parity/gooey.js',
   'drag-drop-physics': '/parity/drag-drop-physics.js',
+  'spacing-tuner': '/parity/spacing-tuner.js',
 };
 
 /** The runnable component is a public file. The preview iframe only carries a loader. */
@@ -54,6 +58,18 @@ export function loadCopyScript(id: string): Promise<string> {
   const url = PARITY_SCRIPT[id];
   if (!url) return Promise.resolve(copyTextFor(id, 'script'));
   return loadPublicPrompt(url);
+}
+
+export function skillFor(id: string): { path: string; name: string } | null {
+  const skill = TRANSITIONS.find((item) => item.id === id)?.skill;
+  return skill ?? null;
+}
+
+/** Skill markdown served from public/. Empty when this asset has no skill. */
+export function loadSkill(id: string): Promise<string> {
+  const skill = skillFor(id);
+  if (!skill) return Promise.resolve('');
+  return loadPublicPrompt(`/${skill.path}`);
 }
 
 /** Prompt text already in the bundle. Lazy Yogesh prompts return null until fetched. */
