@@ -324,3 +324,50 @@ if (skillHits.length) {
   for (const line of skillHits) console.error(`  ${line}`);
   process.exit(1);
 }
+
+/**
+ * Gooey Copy embeds the latin Inter woff2 and ships its OFL text in the bundle
+ * header. Dropping the face, the licence file, or the header block fails the build.
+ */
+const fontHits = [];
+const oflPath = join(root, 'public/fonts/OFL.txt');
+const woffPath = join(root, 'public/fonts/inter-latin.woff2');
+const gooeyBundlePath = join(root, 'public/parity/gooey.js');
+let oflText = '';
+try {
+  oflText = readFileSync(oflPath, 'utf8');
+} catch {
+  fontHits.push('public/fonts/OFL.txt is missing');
+}
+if (oflText && !oflText.includes('SIL OPEN FONT LICENSE')) {
+  fontHits.push('public/fonts/OFL.txt is missing the OFL text');
+}
+let gooeyBundle = '';
+try {
+  gooeyBundle = readFileSync(gooeyBundlePath, 'utf8');
+} catch {
+  fontHits.push('public/parity/gooey.js is missing');
+}
+if (oflText && gooeyBundle && !gooeyBundle.includes(oflText.trim())) {
+  fontHits.push('public/parity/gooey.js is missing the OFL block');
+}
+let woffBytes;
+try {
+  woffBytes = readFileSync(woffPath);
+} catch {
+  fontHits.push('public/fonts/inter-latin.woff2 is missing');
+}
+if (woffBytes) {
+  const woffHash = createHash('sha256').update(woffBytes).digest('hex');
+  if (!woffHash.startsWith('3100e775')) fontHits.push(`inter-latin.woff2 sha256 ${woffHash.slice(0, 8)} != 3100e775`);
+  const embedded = woffBytes.toString('base64');
+  const gooeyPrompt = generatedPrompts.find((item) => item.id === 'gooey');
+  if (!gooeyPrompt || !gooeyPrompt.prompt.includes(embedded)) {
+    fontHits.push('gooey Copy CSS is missing the Inter woff2 data URI');
+  }
+}
+console.log(`font hits: ${fontHits.length}`);
+if (fontHits.length) {
+  for (const line of fontHits) console.error(`  ${line}`);
+  process.exit(1);
+}

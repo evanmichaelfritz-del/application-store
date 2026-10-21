@@ -4,6 +4,7 @@
  * script when the motion cannot run from CSS alone.
  */
 import abrarOverviewDocument from '@/src/demos/abrar-overview/closed-network.html';
+import { INTER_LATIN_WOFF2_DATA_URI } from '@/src/closedNetwork/interLatinFont';
 import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
@@ -750,7 +751,7 @@ canvas { display: block; width: 168px; height: 168px; }`,
   font-style: normal;
   font-weight: 400 500;
   font-display: swap;
-  src: url(/fonts/inter-latin.woff2) format("woff2");
+  src: url("${INTER_LATIN_WOFF2_DATA_URI}") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 #parity-root { width: 452px; }`,

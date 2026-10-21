@@ -94,8 +94,7 @@ const targets = [
   {
     entry: 'src/demos/gooey/mount.tsx',
     outfile: 'public/parity/gooey.js',
-    // Inter is self-hosted for this copy. The woff2 stays under public/fonts;
-    // the bundle header carries the full OFL text that ships with that file.
+    // The Copy embeds the woff2. This header still carries the full OFL text.
     header: licenseHeader('liquid-gooey') + block(readFileSync(join(root, 'public/fonts/OFL.txt'), 'utf8'), false),
   },
   {

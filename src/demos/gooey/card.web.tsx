@@ -11,8 +11,8 @@ import { Liquid } from 'liquid-gooey';
 
 const PRO_LOCKED = 'Pro-locked on the original';
 const BOUNCE_HINT = `${PRO_LOCKED}; teaser only; not wired on the original`;
-const FONT = 'Inter_400Regular, system-ui, sans-serif';
-const FONT_MED = 'Inter_500Medium, system-ui, sans-serif';
+const FONT = 'Inter, Inter_400Regular, system-ui, sans-serif';
+const FONT_MED = 'Inter, Inter_500Medium, system-ui, sans-serif';
 
 const DARK_SHADOW =
   '0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.05), 0 4px 42px 0 rgba(0, 0, 0, 0.24)';
@@ -133,7 +133,7 @@ const CSS = `
   position: absolute; left: 50%; top: 50%; width: 261px; height: 46px; margin: -23px 0 0 -130.5px;
   border-radius: 54px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px;
   color: var(--gd-ink, #fbfbfb); cursor: grab; touch-action: none; user-select: none; box-sizing: border-box;
-  font-family: Inter, Inter_500Medium, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: Inter, Inter_500Medium, system-ui, sans-serif;
   font-size: 13px;
 }
 .as-gooey .dgc-chip {
@@ -213,6 +213,7 @@ function Chip({
         background: on ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.06)',
         color: on ? '#ffffff' : '#c0c0c0',
         fontFamily: FONT_MED,
+        fontWeight: 500,
         fontSize: 11,
         lineHeight: '26px',
         cursor: 'pointer',
@@ -226,7 +227,7 @@ function Chip({
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 72, fontFamily: FONT_MED, fontSize: 10, lineHeight: '12px', color: '#8b8b8b' }}>{label}</span>
+      <span style={{ width: 72, fontFamily: FONT_MED, fontWeight: 500, fontSize: 10, lineHeight: '12px', color: '#8b8b8b' }}>{label}</span>
       {children}
     </div>
   );
@@ -265,7 +266,7 @@ function Slider({
         }}
         style={{ width: 120, accentColor: '#ffffff' }}
       />
-      <span style={{ fontFamily: FONT, fontSize: 11, color: '#c0c0c0' }}>{value}</span>
+      <span style={{ fontFamily: FONT, fontWeight: 400, fontSize: 11, color: '#c0c0c0' }}>{value}</span>
     </Row>
   );
 }
@@ -590,7 +591,7 @@ export function GooeyCard() {
         </Row>
         <Slider label="Bounce" value={bounce} min={0} max={1} step={0.05} hint={BOUNCE_HINT} onChange={setBounce} />
         <Slider label="Stagger" value={stagger} min={0} max={200} step={5} hint={PRO_LOCKED} onChange={setStagger} />
-        <span style={{ fontFamily: FONT, fontSize: 10, lineHeight: '14px', color: '#8b8b8b' }}>
+        <span style={{ fontFamily: FONT, fontWeight: 400, fontSize: 10, lineHeight: '14px', color: '#8b8b8b' }}>
           Waviness, Fill, Bounce, and Stagger: {PRO_LOCKED}. Goo blur and Contrast are the public playground sliders.
         </span>
       </div>

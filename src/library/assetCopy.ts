@@ -5,6 +5,7 @@ import {
   loadPublicPrompt,
   loadYogeshOrbCreatorPrompt,
   loadYogeshThinkingOrbsPrompt,
+  reloadPublicPrompt,
 } from '@/src/demos/yogesh-thinking-orbs/loadPrompt';
 
 export type CodeKind = 'html' | 'css' | 'script';
@@ -70,6 +71,13 @@ export function loadSkill(id: string): Promise<string> {
   const skill = skillFor(id);
   if (!skill) return Promise.resolve('');
   return loadPublicPrompt(`/${skill.path}`);
+}
+
+/** Fetch the skill again after a failed load. */
+export function reloadSkill(id: string): Promise<string> {
+  const skill = skillFor(id);
+  if (!skill) return Promise.resolve('');
+  return reloadPublicPrompt(`/${skill.path}`);
 }
 
 /** Prompt text already in the bundle. Lazy Yogesh prompts return null until fetched. */

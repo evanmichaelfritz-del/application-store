@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -176,6 +176,7 @@ function Found({ item }: { item: TransitionItem }) {
   const skillBody = useRef<string | null>(null);
   const [skillPhase, setSkillPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const skillGen = useRef(0);
+  const skillLoad = useRef(0);
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
@@ -199,28 +200,34 @@ function Found({ item }: { item: TransitionItem }) {
     write(codeSlot(item.id, activeKind));
   };
   const skill = skillFor(item.id);
-  useEffect(() => {
-    if (!skill) return;
-    let live = true;
+  const fetchSkill = (reload: boolean) => {
+    const token = skillLoad.current + 1;
+    skillLoad.current = token;
     skillBody.current = null;
     setSkillPhase('loading');
-    void loadSkill(item.id).then(
+    const request = reload ? reloadSkill(item.id) : loadSkill(item.id);
+    void request.then(
       (text) => {
-        if (!live) return;
+        if (skillLoad.current !== token) return;
         skillBody.current = text;
         setSkillPhase('ready');
       },
       () => {
-        if (!live) return;
+        if (skillLoad.current !== token) return;
         skillBody.current = null;
         setSkillPhase('error');
       },
     );
-    return () => {
-      live = false;
-    };
+  };
+  useEffect(() => {
+    if (!skill) return;
+    fetchSkill(false);
   }, [item.id, skill]);
   const copySkill = () => {
+    if (skillPhase === 'error') {
+      fetchSkill(true);
+      return;
+    }
     const text = skillBody.current;
     if (skillPhase !== 'ready' || text == null) return;
     const token = skillGen.current + 1;
@@ -268,11 +275,19 @@ function Found({ item }: { item: TransitionItem }) {
         />
         {skill ? (
           <BarButton
-            label={copied === 'skill' ? 'Copied' : skillPhase === 'loading' ? 'Loading…' : 'Copy skill'}
+            label={
+              copied === 'skill'
+                ? 'Copied'
+                : skillPhase === 'loading'
+                  ? 'Loading…'
+                  : skillPhase === 'error'
+                    ? 'Retry'
+                    : 'Copy skill'
+            }
             icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
             tone="secondary"
             done={copied === 'skill'}
-            disabled={skillPhase !== 'ready'}
+            disabled={skillPhase === 'loading'}
             busy={skillPhase === 'loading'}
             onPress={copySkill}
             testID="copy-skill"
@@ -430,7 +445,8 @@ function BarButton({
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
       accessibilityLabel={label}
-      accessibilityState={{ disabled, busy }}
+      accessibilityState={{ disabled }}
+      aria-busy={busy}
       disabled={disabled}
       testID={testID}
       onPress={onPress}
