@@ -174,6 +174,8 @@ function Found({ item }: { item: TransitionItem }) {
   const label = typeLabel(meta.type) ?? 'All assets';
   const { copied, mark, clear } = useCopied();
   const skillBody = useRef<string | null>(null);
+  const [skillPhase, setSkillPhase] = useState<'loading' | 'ready' | 'error'>('loading');
+  const skillGen = useRef(0);
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
@@ -201,12 +203,17 @@ function Found({ item }: { item: TransitionItem }) {
     if (!skill) return;
     let live = true;
     skillBody.current = null;
+    setSkillPhase('loading');
     void loadSkill(item.id).then(
       (text) => {
-        if (live) skillBody.current = text;
+        if (!live) return;
+        skillBody.current = text;
+        setSkillPhase('ready');
       },
       () => {
-        if (live) skillBody.current = null;
+        if (!live) return;
+        skillBody.current = null;
+        setSkillPhase('error');
       },
     );
     return () => {
@@ -215,10 +222,17 @@ function Found({ item }: { item: TransitionItem }) {
   }, [item.id, skill]);
   const copySkill = () => {
     const text = skillBody.current;
-    if (text == null) return;
+    if (skillPhase !== 'ready' || text == null) return;
+    const token = skillGen.current + 1;
+    skillGen.current = token;
+    clear();
     void writeClipboardAwait(text).then(
-      () => mark('skill'),
-      () => clear(),
+      () => {
+        if (skillGen.current === token) mark('skill');
+      },
+      () => {
+        if (skillGen.current === token) clear();
+      },
     );
   };
   const copyPrompt = () => {
@@ -254,10 +268,12 @@ function Found({ item }: { item: TransitionItem }) {
         />
         {skill ? (
           <BarButton
-            label={copied === 'skill' ? 'Copied' : 'Copy skill'}
+            label={copied === 'skill' ? 'Copied' : skillPhase === 'loading' ? 'Loading…' : 'Copy skill'}
             icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
             tone="secondary"
             done={copied === 'skill'}
+            disabled={skillPhase !== 'ready'}
+            busy={skillPhase === 'loading'}
             onPress={copySkill}
             testID="copy-skill"
           />
@@ -389,6 +405,8 @@ function BarButton({
   icon,
   tone = 'secondary',
   done = false,
+  disabled = false,
+  busy = false,
   onPress,
   href,
   testID,
@@ -398,6 +416,8 @@ function BarButton({
   icon?: IconName;
   tone?: 'primary' | 'secondary';
   done?: boolean;
+  disabled?: boolean;
+  busy?: boolean;
   onPress?: () => void;
   href?: Href;
   testID?: string;
@@ -410,24 +430,30 @@ function BarButton({
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
       accessibilityLabel={label}
+      accessibilityState={{ disabled, busy }}
+      disabled={disabled}
       testID={testID}
       onPress={onPress}
-      onHoverIn={() => setHover(true)}
+      onHoverIn={() => {
+        if (!disabled) setHover(true);
+      }}
       onHoverOut={() => {
         setHover(false);
         setPressed(false);
       }}
-      onPressIn={() => setPressed(true)}
+      onPressIn={() => {
+        if (!disabled) setPressed(true);
+      }}
       onPressOut={() => setPressed(false)}
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={StyleSheet.flatten([
         styles.button,
-        styles.pointer,
+        disabled ? styles.buttonDisabled : styles.pointer,
         primary ? styles.buttonPrimary : styles.buttonSecondary,
-        hover && !pressed && primary && styles.buttonPrimaryHover,
-        hover && !pressed && !primary && styles.buttonSecondaryHover,
-        pressed && primary && styles.buttonPrimaryPressed,
-        pressed && !primary && styles.buttonSecondaryPressed,
+        hover && !pressed && !disabled && primary && styles.buttonPrimaryHover,
+        hover && !pressed && !disabled && !primary && styles.buttonSecondaryHover,
+        pressed && !disabled && primary && styles.buttonPrimaryPressed,
+        pressed && !disabled && !primary && styles.buttonSecondaryPressed,
         style,
       ])}
     >
@@ -1035,6 +1061,7 @@ const styles = StyleSheet.create({
   buttonText: { fontFamily: fonts.medium, fontSize: 13, color: colors.text },
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
+  buttonDisabled: { opacity: 0.45, cursor: 'auto' },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {

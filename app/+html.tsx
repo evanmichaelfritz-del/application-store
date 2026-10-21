@@ -10,12 +10,6 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="theme-color" content="#fdfdfd" />
         <title>Application Store</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: globalCss }} />
       </head>
@@ -25,6 +19,14 @@ export default function Root({ children }: { children: ReactNode }) {
 }
 
 const globalCss = `
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(/fonts/inter-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 html, body, #root {
   background-color: #fdfdfd;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

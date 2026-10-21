@@ -176,7 +176,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       option.kind === 'asset'
         ? `/a/${option.id}`
         : option.kind === 'type'
-          ? `/c/${option.slug}`
+          ? option.slug === 'all'
+            ? '/'
+            : `/c/${option.slug}`
           : `/?source=${option.slug}`;
     if (option.kind === 'asset') rememberRecent(option.id);
     close();
@@ -186,6 +188,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (option.kind === 'asset') router.push({ pathname: '/a/[slug]', params: { slug: option.id } });
+    else if (option.kind === 'type' && option.slug === 'all') router.push({ pathname: '/' });
     else if (option.kind === 'type') router.push({ pathname: '/c/[type]', params: { type: option.slug } });
     else router.push({ pathname: '/', params: { source: option.slug } });
   };

@@ -94,7 +94,9 @@ const targets = [
   {
     entry: 'src/demos/gooey/mount.tsx',
     outfile: 'public/parity/gooey.js',
-    header: licenseHeader('liquid-gooey'),
+    // Inter is self-hosted for this copy. The woff2 stays under public/fonts;
+    // the bundle header carries the full OFL text that ships with that file.
+    header: licenseHeader('liquid-gooey') + block(readFileSync(join(root, 'public/fonts/OFL.txt'), 'utf8'), false),
   },
   {
     entry: 'src/demos/drag-drop/mount.tsx',
@@ -112,7 +114,13 @@ const targets = [
   },
 ];
 
-for (const target of targets) {
+const only = process.argv.slice(2);
+const selected = only.length
+  ? targets.filter((target) => only.some((name) => target.outfile.includes(name)))
+  : targets;
+if (selected.length === 0) throw new Error(`no parity target matches ${only.join(', ')}`);
+
+for (const target of selected) {
   const result = await build({
     absWorkingDir: root,
     entryPoints: [target.entry],
