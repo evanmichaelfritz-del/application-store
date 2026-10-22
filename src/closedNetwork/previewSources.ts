@@ -803,6 +803,17 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>]/g, (ch) => (ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : '&gt;'));
 }
 
+/**
+ * A sandboxed srcdoc iframe reports `location.origin` as the string "null",
+ * so `location.origin + '/parity/…'` requests `/null/parity/…`. The parent
+ * page captures its origin and writes that absolute URL into the srcdoc.
+ * The stored document still says `location.origin`, so a Copy stays standalone.
+ */
+export function withPreviewOrigin(html: string, origin: string): string {
+  if (!origin || origin === 'null') return html;
+  return html.split('location.origin').join(JSON.stringify(origin));
+}
+
 export function composePreviewDocument(title: string, html: string, css: string, script: string): string {
   const scriptBlock = script.trim() ? `<script>\n${script.trim()}\n</script>\n` : '';
   return `<!DOCTYPE html>
