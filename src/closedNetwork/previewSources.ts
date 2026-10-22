@@ -4,7 +4,6 @@
  * script when the motion cannot run from CSS alone.
  */
 import abrarOverviewDocument from '@/src/demos/abrar-overview/closed-network.html';
-import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import type { NavSection } from '@/src/sections';
@@ -37,6 +36,8 @@ export type PlaygroundPreviewButton = {
   script: string;
   /** Full document loaded into the editor and the iframe. */
   code: string;
+  /** React Native or TSX copy. The playground shows it as code and does not iframe it. */
+  codeOnly: boolean;
   prompt: string;
 };
 
@@ -804,6 +805,27 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>]/g, (ch) => (ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : '&gt;'));
 }
 
+const PARITY_LOADER = "location.origin + '/parity/";
+
+/**
+ * A sandboxed srcdoc iframe reports `location.origin` as the string "null",
+ * so the parity loader requests `/null/parity/…`. Rewrite only that loader
+ * expression. Other `location.origin` text, including HTML pasted into Run,
+ * stays as written. The stored Copy still says `location.origin`.
+ */
+export function withPreviewOrigin(html: string, origin: string): string {
+  if (!origin || origin === 'null' || !html.includes(PARITY_LOADER)) return html;
+  return html.split(PARITY_LOADER).join(`${JSON.stringify(origin)} + '/parity/`);
+}
+
+/** Copy is React Native or TSX source, not a document the sandbox can run. */
+export function isCodeOnlyCopy(html: string, css: string, script: string): boolean {
+  const source = `${html}\n${css}\n${script}`;
+  if (/from\s+['"]react-native(?:-[^'"]+)?(?:\/[^'"]*)?['"]/.test(source)) return true;
+  if (/\/\* FILE [^*]*\.tsx \*\//.test(source)) return true;
+  return false;
+}
+
 export function composePreviewDocument(title: string, html: string, css: string, script: string): string {
   const scriptBlock = script.trim() ? `<script>\n${script.trim()}\n</script>\n` : '';
   return `<!DOCTYPE html>
@@ -875,7 +897,7 @@ export function embedGooeyFont(text: string): Promise<string> {
   if (!text.includes(GOOEY_FONT_SRC)) return Promise.resolve(text);
   return import('./interLatinFont').then((mod) =>
     text.split(GOOEY_FONT_PROMPT_LINE).join(
-      `src: url("${mod.INTER_LATIN_WOFF2_DATA_URI}") format("woff2"); /* Inter (OFL) */`,
+      `src: url("${mod.INTER_LATIN_WOFF2_DATA_URI}") format("woff2"); /* Inter © 2016 The Inter Project Authors. SIL Open Font License 1.1, https://openfontlicense.org */`,
     ),
   );
 }
@@ -1057,7 +1079,7 @@ function isPreviewKind(section: NavSection): section is PreviewKind {
   return section === 'transitions' || section === 'effects';
 }
 
-export function playgroundPreviewButtons(): PlaygroundPreviewButton[] {
+export function playgroundPreviewButtons(promptForId: (id: string) => string): PlaygroundPreviewButton[] {
   const buttons: PlaygroundPreviewButton[] = [];
   const missing: string[] = [];
 
@@ -1087,7 +1109,8 @@ export function playgroundPreviewButtons(): PlaygroundPreviewButton[] {
         css: parts.css,
         script: parts.script,
         code,
-        prompt: promptFor(item.id),
+        codeOnly: isCodeOnlyCopy(parts.html, parts.css, parts.script),
+        prompt: promptForId(item.id),
       });
     }
   }

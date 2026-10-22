@@ -16,7 +16,9 @@ export function PlaygroundPreview({ html }: { html: string }) {
     iframe.style.height = '100%';
     iframe.style.border = '0';
     iframe.style.background = '#f9f9f9';
-    iframe.srcdoc = html || '<!DOCTYPE html><html><body style="margin:0;display:grid;place-items:center;height:100vh;font:14px system-ui;color:#6c6c6c">Paste HTML and press Run</body></html>';
+    iframe.srcdoc =
+      html ||
+      '<!DOCTYPE html><html><body style="margin:0;display:grid;place-items:center;height:100vh;font:14px system-ui;color:#6c6c6c">Paste HTML and press Run</body></html>';
     node.appendChild(iframe);
   }, [html]);
 

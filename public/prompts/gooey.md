@@ -60,7 +60,7 @@ The examples row does not render melt. The public playground effect switch does 
 - two cards 84×84, radius 16
 - melt knobs line 687: blur 7, contrast 40, reach 0.8, fade 17, warp 0, mix 1, mixBlur 8, gravity 1.9, waviness 12
 - those match `IMAGE_MELT_DEFAULTS` (dist lines 157–167)
-- the original page uses different photos (`sites/home/public/images/melt-a.jpg` and `melt-b.jpg`)
+- the original page uses different photos than the two embedded in this card
 - these cards use two CC0 landscapes, cropped to those pixel sizes (512×447 and 403×512) and embedded as data URIs
 - warm, 512×447: Sunset over Trommekilen from Norrkila, W.carter, own work, CC0, https://commons.wikimedia.org/wiki/File:Sunset_over_Trommekilen_from_Norrkila_6.jpg
 - cool, 403×512: Calm sea, San Antonio, Ibiza, Joselodos, own work, CC0, https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg

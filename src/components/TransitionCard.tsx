@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
-import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
+import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { StoreSheet } from '@/src/components/StoreSheet';
@@ -183,17 +183,32 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       setSkillPhase('loading');
       setSkillText(null);
       setSkillCopied(false);
-      void reloadSkill(item.id).then(
+      const pending = reloadSkill(item.id);
+      const gestured = writeClipboardFromGesture(pending);
+      const written = gestured ?? pending.then((text) => writeClipboardAwait(text));
+      void pending.then(
         (text) => {
           if (skillLoad.current !== loadToken) return;
           setSkillText(text);
           setSkillPhase('ready');
-          finishSkillCopy(text, token);
         },
         () => {
           if (skillLoad.current !== loadToken) return;
           setSkillText(null);
           setSkillPhase('error');
+        },
+      );
+      void written.then(
+        () => {
+          if (skillGen.current !== token) return;
+          setSkillCopied(true);
+          show();
+          if (hideBtn.current) clearTimeout(hideBtn.current);
+          hideBtn.current = setTimeout(() => setSkillCopied(false), 1400);
+        },
+        () => {
+          if (skillGen.current !== token) return;
+          setSkillCopied(false);
         },
       );
       return;
