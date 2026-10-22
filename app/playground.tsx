@@ -14,11 +14,13 @@ import { promptFor } from '@/src/agentPrompts';
 import { PlaygroundPreview } from '@/src/components/PlaygroundPreview';
 import {
   embedGooeyFont,
+  isCodeOnlyCopy,
   playgroundPreviewButtons,
   splitPreviewDocument,
+  withPreviewOrigin,
   type PreviewKind,
 } from '@/src/closedNetwork/previewSources';
-import { loadAssetPrompt, promptIsLazy } from '@/src/library/assetCopy';
+import { loadAssetPrompt, loadCopyScript, promptIsLazy, scriptIsLazy } from '@/src/library/assetCopy';
 import { writeClipboard } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { colors, fonts, radii, shadows } from '@/src/theme';
@@ -40,6 +42,7 @@ export default function PlaygroundScreen() {
   const [selectedKey, setSelectedKey] = useState(first?.key ?? '');
   const docGen = useRef(0);
   const codeRef = useRef(first?.code ?? '');
+  const dirty = useRef(false);
   const { width } = useWindowDimensions();
   const stacked = width < 960;
   const { show } = useCopyToast();
@@ -53,12 +56,16 @@ export default function PlaygroundScreen() {
     docGen.current = token;
     codeRef.current = doc;
     setCode(doc);
-    setPreviewHtml(doc);
+    const partsNow = splitPreviewDocument(doc);
+    if (isCodeOnlyCopy(partsNow.html, partsNow.css, partsNow.script)) return;
     void embedGooeyFont(doc).then((next) => {
-      if (docGen.current !== token || codeRef.current !== doc || next === doc) return;
-      codeRef.current = next;
-      setCode(next);
-      setPreviewHtml(next);
+      if (docGen.current !== token || codeRef.current !== doc) return;
+      if (next !== doc) {
+        codeRef.current = next;
+        setCode(next);
+      }
+      const origin = typeof window === 'undefined' ? '' : window.location.origin;
+      setPreviewHtml(withPreviewOrigin(next, origin));
     });
   };
 
@@ -69,12 +76,17 @@ export default function PlaygroundScreen() {
     setPrompt(button.prompt);
     if (promptIsLazy(button.id) || !button.prompt) void loadAssetPrompt(button.id).then(setPrompt);
     setMode('code');
+    dirty.current = false;
     showDocument(button.code);
   };
 
   const runPreview = () => {
-    setPreviewHtml(code);
     setMode('code');
+    if (dirty.current || !current) {
+      setPreviewHtml(code);
+      return;
+    }
+    showDocument(current.code);
   };
 
   const copyPart = (text: string) => {
@@ -129,6 +141,7 @@ export default function PlaygroundScreen() {
                   onPress={() => {
                     if (!current) return;
                     setMode('code');
+                    dirty.current = false;
                     showDocument(current.code);
                   }}
                 />
@@ -144,7 +157,17 @@ export default function PlaygroundScreen() {
                     testID="copy-css"
                   />
                   {parts.script ? (
-                    <Action label="Copy script" onPress={() => copyPart(parts.script)} testID="copy-script" />
+                    <Action
+                      label="Copy script"
+                      onPress={() => {
+                        if (current && scriptIsLazy(current.id)) {
+                          void loadCopyScript(current.id).then(copyPart);
+                          return;
+                        }
+                        copyPart(parts.script);
+                      }}
+                      testID="copy-script"
+                    />
                   ) : null}
                 </>
               ) : (
@@ -205,6 +228,7 @@ export default function PlaygroundScreen() {
               onChangeText={
                 mode === 'code'
                   ? (value) => {
+                      dirty.current = true;
                       codeRef.current = value;
                       setCode(value);
                     }
@@ -222,9 +246,19 @@ export default function PlaygroundScreen() {
         <View style={[styles.pane, styles.previewPane, stacked && styles.paneStack]}>
           <View style={styles.previewHead}>
             <Text style={styles.previewTitle}>{current?.label ?? 'Preview'}</Text>
-            <Text style={styles.previewSub}>iframe · sandboxed scripts</Text>
+            <Text style={styles.previewSub} testID="playground-preview-note">
+              {current?.codeOnly ? 'React Native source, preview on the card' : 'iframe · sandboxed scripts'}
+            </Text>
           </View>
-          <PlaygroundPreview html={previewHtml} />
+          {current?.codeOnly ? (
+            <ScrollView testID="playground-code-only" style={styles.codeOnlyScroll}>
+              <Text selectable style={styles.codeOnlyText}>
+                {code}
+              </Text>
+            </ScrollView>
+          ) : (
+            <PlaygroundPreview html={previewHtml} />
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -409,4 +443,11 @@ const styles = StyleSheet.create({
   previewHead: { gap: 2 },
   previewTitle: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
   previewSub: { fontFamily: fonts.regular, fontSize: 12, color: colors.textFaint },
+  codeOnlyScroll: { flex: 1 },
+  codeOnlyText: {
+    fontFamily: 'monospace',
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.text,
+  },
 });

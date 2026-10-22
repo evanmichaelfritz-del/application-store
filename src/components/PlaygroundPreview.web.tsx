@@ -1,6 +1,5 @@
 import { createElement, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { withPreviewOrigin } from '@/src/closedNetwork/previewSources';
 
 /** Web-only iframe preview for closed-network HTML recreations. */
 export function PlaygroundPreview({ html }: { html: string }) {
@@ -17,10 +16,9 @@ export function PlaygroundPreview({ html }: { html: string }) {
     iframe.style.height = '100%';
     iframe.style.border = '0';
     iframe.style.background = '#f9f9f9';
-    const documentHtml =
+    iframe.srcdoc =
       html ||
       '<!DOCTYPE html><html><body style="margin:0;display:grid;place-items:center;height:100vh;font:14px system-ui;color:#6c6c6c">Paste HTML and press Run</body></html>';
-    iframe.srcdoc = withPreviewOrigin(documentHtml, window.location.origin);
     node.appendChild(iframe);
   }, [html]);
 

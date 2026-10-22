@@ -36,6 +36,8 @@ export type PlaygroundPreviewButton = {
   script: string;
   /** Full document loaded into the editor and the iframe. */
   code: string;
+  /** React Native or TSX copy. The playground shows it as code and does not iframe it. */
+  codeOnly: boolean;
   prompt: string;
 };
 
@@ -803,15 +805,25 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>]/g, (ch) => (ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : '&gt;'));
 }
 
+const PARITY_LOADER = "location.origin + '/parity/";
+
 /**
  * A sandboxed srcdoc iframe reports `location.origin` as the string "null",
- * so `location.origin + '/parity/…'` requests `/null/parity/…`. The parent
- * page captures its origin and writes that absolute URL into the srcdoc.
- * The stored document still says `location.origin`, so a Copy stays standalone.
+ * so the parity loader requests `/null/parity/…`. Rewrite only that loader
+ * expression. Other `location.origin` text, including HTML pasted into Run,
+ * stays as written. The stored Copy still says `location.origin`.
  */
 export function withPreviewOrigin(html: string, origin: string): string {
-  if (!origin || origin === 'null') return html;
-  return html.split('location.origin').join(JSON.stringify(origin));
+  if (!origin || origin === 'null' || !html.includes(PARITY_LOADER)) return html;
+  return html.split(PARITY_LOADER).join(`${JSON.stringify(origin)} + '/parity/`);
+}
+
+/** Copy is React Native or TSX source, not a document the sandbox can run. */
+export function isCodeOnlyCopy(html: string, css: string, script: string): boolean {
+  const source = `${html}\n${css}\n${script}`;
+  if (/from\s+['"]react-native(?:-[^'"]+)?(?:\/[^'"]*)?['"]/.test(source)) return true;
+  if (/\/\* FILE [^*]*\.tsx \*\//.test(source)) return true;
+  return false;
 }
 
 export function composePreviewDocument(title: string, html: string, css: string, script: string): string {
@@ -1067,7 +1079,7 @@ function isPreviewKind(section: NavSection): section is PreviewKind {
   return section === 'transitions' || section === 'effects';
 }
 
-export function playgroundPreviewButtons(promptForId: (id: string) => string = () => ''): PlaygroundPreviewButton[] {
+export function playgroundPreviewButtons(promptForId: (id: string) => string): PlaygroundPreviewButton[] {
   const buttons: PlaygroundPreviewButton[] = [];
   const missing: string[] = [];
 
@@ -1097,6 +1109,7 @@ export function playgroundPreviewButtons(promptForId: (id: string) => string = (
         css: parts.css,
         script: parts.script,
         code,
+        codeOnly: isCodeOnlyCopy(parts.html, parts.css, parts.script),
         prompt: promptForId(item.id),
       });
     }
