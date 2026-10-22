@@ -169,7 +169,10 @@ export default function PlaygroundScreen() {
                               setScriptRetry(false);
                               copyPart(text);
                             })
-                            .catch(() => setScriptRetry(true));
+                            .catch(() => {
+                              setScriptRetry(true);
+                              show("Couldn't copy");
+                            });
                           return;
                         }
                         setScriptRetry(false);

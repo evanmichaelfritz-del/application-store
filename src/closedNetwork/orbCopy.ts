@@ -93,6 +93,7 @@ const HOST = `  var MOTION = {
     }
     var t = orbTime(preset.speed);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.__orbMode = preset.mode;
     OrbEngine.paintFrame(ctx, OrbEngine.MODE_FRAMES[preset.mode](current.size, t, preset.opts), true);
   }
   function animating() {

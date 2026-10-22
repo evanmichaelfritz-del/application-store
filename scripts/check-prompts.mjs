@@ -415,11 +415,28 @@ function copyScript(prompt) {
   return at < 0 ? '' : prompt.slice(at);
 }
 
+function bindingName(script, key) {
+  return script.slice(script.indexOf(key)).match(new RegExp(`${key}\\s*([A-Za-z_$][\\w$]*)`))?.[1] ?? '';
+}
+
+/** morph: has to be a MODE_FRAMES key, and MODE_DRAWS has to be built from that same map. */
+function framesAndDrawsIncludeMorph(script) {
+  const framesName = bindingName(script, 'MODE_FRAMES:');
+  const drawsName = bindingName(script, 'MODE_DRAWS:');
+  if (!framesName || !drawsName) return false;
+  const framesAt = script.lastIndexOf(`${framesName} = {`, script.indexOf('MODE_FRAMES:'));
+  if (framesAt < 0 || !script.slice(framesAt, script.indexOf('}', framesAt)).includes('morph:')) return false;
+  const drawsAt = script.lastIndexOf(`${drawsName} =`, script.indexOf('MODE_DRAWS:'));
+  if (drawsAt < 0) return false;
+  const drawsBody = script.slice(drawsAt, drawsAt + 240);
+  return drawsBody.includes(`Object.entries(${framesName})`) || drawsBody.includes('morph:');
+}
+
 const orbHits = [];
 for (const id of ORB_FAMILY) {
   const prompt = generatedPrompts.find((item) => item.id === id)?.prompt ?? '';
   const script = copyScript(prompt);
-  const engineKeys = ['var OrbEngine = {', 'MODE_FRAMES:', 'resolvePreset:', 'paintFrame:'];
+  const engineKeys = ['var OrbEngine = {', 'MODE_FRAMES:', 'MODE_DRAWS:', 'resolvePreset:', 'paintFrame:'];
   if (engineKeys.some((key) => !script.includes(key))) {
     orbHits.push(`${id}: prompt is missing the portable renderer`);
   }
@@ -427,8 +444,9 @@ for (const id of ORB_FAMILY) {
     if (script.includes('shaping:') || script.includes('morph:')) {
       orbHits.push(`${id}: prompt still includes the unreachable shaping drawing`);
     }
-  } else if (!script.includes('shaping:')) {
-    orbHits.push(`${id}: prompt is missing the shared renderer`);
+  } else {
+    if (!script.includes('shaping:')) orbHits.push(`${id}: prompt is missing the shared renderer`);
+    if (!framesAndDrawsIncludeMorph(script)) orbHits.push(`${id}: MODE_FRAMES/MODE_DRAWS is missing morph`);
   }
   let css = '';
   try {

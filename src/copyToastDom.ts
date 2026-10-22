@@ -24,7 +24,7 @@ const PILL: Record<string, string> = {
 };
 
 /** Vanilla body mount — does not depend on React portals. */
-export function paintCopiedToast() {
+export function paintCopiedToast(message = 'Copied') {
   if (typeof document === 'undefined') return;
   let node = document.getElementById(TOAST_ID);
   if (!node) {
@@ -33,9 +33,9 @@ export function paintCopiedToast() {
     node.setAttribute('data-testid', 'copy-toast');
     node.setAttribute('role', 'alert');
     node.setAttribute('aria-live', 'polite');
-    node.textContent = 'Copied';
     document.body.appendChild(node);
   }
+  node.textContent = message;
   Object.assign(node.style, PILL);
 }
 

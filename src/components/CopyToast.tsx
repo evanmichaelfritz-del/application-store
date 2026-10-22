@@ -41,17 +41,17 @@ const PILL: Record<string, string | number> = {
   transform: 'scale(1)',
 };
 
-function WebCopiedToast({ visible, nonce }: { visible: boolean; nonce: number }) {
+function WebCopiedToast({ visible, nonce, message }: { visible: boolean; nonce: number; message: string }) {
   useEffect(() => {
-    if (visible) paintCopiedToast();
-  }, [visible, nonce]);
+    if (visible) paintCopiedToast(message);
+  }, [visible, nonce, message]);
 
   if (!visible || typeof document === 'undefined') return null;
 
   const portal = createPortal(
           <div key={nonce} data-testid="copy-toast-layer" style={LAYER}>
             <div data-testid="copy-toast" role="alert" aria-live="polite" style={PILL}>
-              Copied
+              {message}
             </div>
           </div>,
           document.body,
@@ -62,7 +62,7 @@ function WebCopiedToast({ visible, nonce }: { visible: boolean; nonce: number })
       {portal}
       <View pointerEvents="none" style={styles.backup}>
         <View testID="copy-toast" accessibilityRole="alert" style={styles.toast}>
-          <Text style={styles.text}>Copied</Text>
+          <Text style={styles.text}>{message}</Text>
         </View>
       </View>
     </>
@@ -80,7 +80,7 @@ function NativeHost({ children }: { children: ReactNode }) {
 }
 
 export function CopyToast() {
-  const { visible, nonce } = useCopyToast();
+  const { visible, nonce, message } = useCopyToast();
   const { reduceMotion } = useReduceMotion();
   const progress = useSharedValue(0);
   const [presented, setPresented] = useState(false);
@@ -112,7 +112,7 @@ export function CopyToast() {
   }));
 
   if (Platform.OS === 'web') {
-    return <WebCopiedToast key={nonce} visible={visible} nonce={nonce} />;
+    return <WebCopiedToast key={nonce} visible={visible} nonce={nonce} message={message} />;
   }
 
   if (!presented && !visible) return null;
@@ -120,7 +120,7 @@ export function CopyToast() {
   return (
     <NativeHost>
       <Animated.View style={[styles.toast, style]} testID="copy-toast">
-        <Text style={styles.text}>Copied</Text>
+        <Text style={styles.text}>{message}</Text>
       </Animated.View>
     </NativeHost>
   );
