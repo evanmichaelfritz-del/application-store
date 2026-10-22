@@ -194,7 +194,7 @@ function copyStyleAndScript(text) {
 }
 
 function statesBody(text) {
-  const match = text.match(/^## States\b[^\n]*\n([\s\S]*?)(?=^## |\s*$)/m);
+  const match = text.match(/^## States\b[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m);
   return match ? match[1] : '';
 }
 

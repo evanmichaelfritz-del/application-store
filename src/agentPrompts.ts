@@ -252,7 +252,7 @@ const LOCKS: Record<string, PromptLock> = {
         name: 'reduced',
         trigger: 'prefers-reduced-motion',
         from: 'the spawned bits',
-        to: 'translate to the same floor, with no frame loop',
+        to: '`.t-confetti-piece` is display none, so the pieces stay hidden',
         duration: '',
         easing: '',
         delay: '',
