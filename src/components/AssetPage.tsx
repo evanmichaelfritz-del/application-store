@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -204,25 +204,6 @@ function Found({ item }: { item: TransitionItem }) {
     write(codeSlot(item.id, activeKind));
   };
   const skill = skillFor(item.id);
-  const fetchSkill = (reload: boolean) => {
-    const token = skillLoad.current + 1;
-    skillLoad.current = token;
-    skillBody.current = null;
-    setSkillPhase('loading');
-    const request = reload ? reloadSkill(item.id) : loadSkill(item.id);
-    void request.then(
-      (text) => {
-        if (skillLoad.current !== token) return;
-        skillBody.current = text;
-        setSkillPhase('ready');
-      },
-      () => {
-        if (skillLoad.current !== token) return;
-        skillBody.current = null;
-        setSkillPhase('error');
-      },
-    );
-  };
   useEffect(() => {
     if (!skill) return;
     let ignore = false;
@@ -247,8 +228,37 @@ function Found({ item }: { item: TransitionItem }) {
     };
   }, [item.id, skill]);
   const copySkill = () => {
+    const writeSkill = (text: string, token: number) => {
+      void writeClipboardAwait(text).then(
+        () => {
+          if (skillGen.current === token) mark('skill');
+        },
+        () => {
+          if (skillGen.current === token) clear();
+        },
+      );
+    };
     if (skillPhase === 'error') {
-      fetchSkill(true);
+      const loadToken = skillLoad.current + 1;
+      skillLoad.current = loadToken;
+      const token = skillGen.current + 1;
+      skillGen.current = token;
+      skillBody.current = null;
+      clear();
+      setSkillPhase('loading');
+      void reloadSkill(item.id).then(
+        (text) => {
+          if (skillLoad.current !== loadToken) return;
+          skillBody.current = text;
+          setSkillPhase('ready');
+          writeSkill(text, token);
+        },
+        () => {
+          if (skillLoad.current !== loadToken) return;
+          skillBody.current = null;
+          setSkillPhase('error');
+        },
+      );
       return;
     }
     const text = skillBody.current;
@@ -256,14 +266,7 @@ function Found({ item }: { item: TransitionItem }) {
     const token = skillGen.current + 1;
     skillGen.current = token;
     clear();
-    void writeClipboardAwait(text).then(
-      () => {
-        if (skillGen.current === token) mark('skill');
-      },
-      () => {
-        if (skillGen.current === token) clear();
-      },
-    );
+    writeSkill(text, token);
   };
   const copyPrompt = () => {
     mark('prompt');
@@ -294,6 +297,7 @@ function Found({ item }: { item: TransitionItem }) {
           tone="primary"
           done={copied === 'code'}
           onPress={copyCode}
+          onWarm={activeKind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
           testID="copy-code"
         />
         {skill ? (
@@ -373,6 +377,7 @@ function Found({ item }: { item: TransitionItem }) {
           onChange={(next) => {
             setCodeReady(true);
             setTab(next);
+            if (next === 'styles') prefetchCopyCss(item.id);
           }}
           onCopy={() => {
             mark('slot');
@@ -450,6 +455,7 @@ function BarButton({
   disabled = false,
   busy = false,
   onPress,
+  onWarm,
   href,
   testID,
   style,
@@ -461,6 +467,7 @@ function BarButton({
   disabled?: boolean;
   busy?: boolean;
   onPress?: () => void;
+  onWarm?: () => void;
   href?: Href;
   testID?: string;
   style?: StyleProp<ViewStyle>;
@@ -478,7 +485,13 @@ function BarButton({
       testID={testID}
       onPress={onPress}
       onHoverIn={() => {
-        if (!disabled) setHover(true);
+        if (!disabled) {
+          setHover(true);
+          onWarm?.();
+        }
+      }}
+      onFocus={() => {
+        onWarm?.();
       }}
       onHoverOut={() => {
         setHover(false);
@@ -695,6 +708,12 @@ function CodePanel({
           accessibilityLabel={copied ? 'Copied' : 'Copy code'}
           testID="copy-code-slot"
           onPress={onCopy}
+          onHoverIn={() => {
+            if (kind === 'css') prefetchCopyCss(id);
+          }}
+          onFocus={() => {
+            if (kind === 'css') prefetchCopyCss(id);
+          }}
           {...pressableWeb({ dataSet: { focusRing: 'true' } })}
           style={styles.codeCopy}
         >

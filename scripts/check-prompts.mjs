@@ -371,6 +371,13 @@ if (woffBytes) {
   if (!css.includes(embedded)) {
     fontHits.push('gooey Copy CSS is missing the Inter woff2 data URI');
   }
+  if (css.includes('48,256') || css.includes('sha256') || css.includes('included in the Copy')) {
+    fontHits.push('gooey Copy CSS payload includes the prompt font note');
+  }
+  const gooeyPrompt = generatedPrompts.find((item) => item.id === 'gooey');
+  if (!gooeyPrompt || !gooeyPrompt.prompt.includes('included in the Copy')) {
+    fontHits.push('gooey prompt is missing the font elision note');
+  }
 }
 console.log(`font hits: ${fontHits.length}`);
 if (fontHits.length) {

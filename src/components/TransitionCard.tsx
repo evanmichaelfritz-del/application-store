@@ -4,7 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
-import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
@@ -27,6 +27,7 @@ function ActionButton({
   disabled,
   busy,
   onPress,
+  onWarm,
   style,
   testID,
 }: {
@@ -35,6 +36,7 @@ function ActionButton({
   disabled?: boolean;
   busy?: boolean;
   onPress: () => void;
+  onWarm?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }) {
@@ -47,6 +49,8 @@ function ActionButton({
       disabled={disabled}
       testID={testID}
       onPress={onPress}
+      onHoverIn={onWarm}
+      onFocus={onWarm}
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={(state) => {
         const hover = 'hovered' in state && state.hovered === true;
@@ -87,27 +91,6 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lazyPromptId = promptIsLazy(item.id) ? item.id : '';
-
-  const fetchSkill = (reload: boolean) => {
-    const token = skillLoad.current + 1;
-    skillLoad.current = token;
-    setSkillPhase('loading');
-    setSkillText(null);
-    setSkillCopied(false);
-    const request = reload ? reloadSkill(item.id) : loadSkill(item.id);
-    void request.then(
-      (text) => {
-        if (skillLoad.current !== token) return;
-        setSkillText(text);
-        setSkillPhase('ready');
-      },
-      () => {
-        if (skillLoad.current !== token) return;
-        setSkillText(null);
-        setSkillPhase('error');
-      },
-    );
-  };
 
   useEffect(() => {
     if (!skill) return;
@@ -170,25 +153,18 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       label={copied === kind ? 'Copied' : COPY_LABEL[kind]}
       done={copied === kind}
       onPress={() => copyPart(kind)}
+      onWarm={kind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
       testID={`copy-${kind}-${item.id}`}
     />
   );
 
-  const copySkill = () => {
-    if (skillPhase === 'error') {
-      fetchSkill(true);
-      return;
-    }
-    if (skillPhase !== 'ready' || skillText == null) return;
-    const token = skillGen.current + 1;
-    skillGen.current = token;
-    setSkillCopied(false);
-    if (hideBtn.current) clearTimeout(hideBtn.current);
-    void writeClipboardAwait(skillText).then(
+  const finishSkillCopy = (text: string, token: number) => {
+    void writeClipboardAwait(text).then(
       () => {
         if (skillGen.current !== token) return;
         setSkillCopied(true);
         show();
+        if (hideBtn.current) clearTimeout(hideBtn.current);
         hideBtn.current = setTimeout(() => setSkillCopied(false), 1400);
       },
       () => {
@@ -196,6 +172,37 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
         setSkillCopied(false);
       },
     );
+  };
+
+  const copySkill = () => {
+    if (skillPhase === 'error') {
+      const loadToken = skillLoad.current + 1;
+      skillLoad.current = loadToken;
+      const token = skillGen.current + 1;
+      skillGen.current = token;
+      setSkillPhase('loading');
+      setSkillText(null);
+      setSkillCopied(false);
+      void reloadSkill(item.id).then(
+        (text) => {
+          if (skillLoad.current !== loadToken) return;
+          setSkillText(text);
+          setSkillPhase('ready');
+          finishSkillCopy(text, token);
+        },
+        () => {
+          if (skillLoad.current !== loadToken) return;
+          setSkillText(null);
+          setSkillPhase('error');
+        },
+      );
+      return;
+    }
+    if (skillPhase !== 'ready' || skillText == null) return;
+    const token = skillGen.current + 1;
+    skillGen.current = token;
+    setSkillCopied(false);
+    finishSkillCopy(skillText, token);
   };
 
   const skillLabel = skillCopied
