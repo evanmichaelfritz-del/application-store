@@ -2,6 +2,7 @@
  * Closed-network recreation seeds for the Playground.
  * Each seed is a full HTML document — no npm / CDN.
  */
+import { promptFor } from '@/src/agentPrompts';
 import { playgroundPreviewButtons } from '@/src/closedNetwork/previewSources';
 
 export type PlaygroundSeed = {
@@ -16,7 +17,7 @@ export type PlaygroundSeed = {
 export function playgroundSeeds(): PlaygroundSeed[] {
   const seen = new Set<string>();
   const seeds: PlaygroundSeed[] = [];
-  for (const button of playgroundPreviewButtons()) {
+  for (const button of playgroundPreviewButtons(promptFor)) {
     if (seen.has(button.id)) continue;
     seen.add(button.id);
     seeds.push({

@@ -371,6 +371,9 @@ if (woffBytes) {
   if (!css.includes(embedded)) {
     fontHits.push('gooey Copy CSS is missing the Inter woff2 data URI');
   }
+  if (!css.includes('/* Inter © 2016 The Inter Project Authors. SIL Open Font License 1.1, https://openfontlicense.org */')) {
+    fontHits.push('gooey Copy CSS is missing the Inter OFL comment');
+  }
   if (css.includes('48,256') || css.includes('sha256') || css.includes('included in the Copy')) {
     fontHits.push('gooey Copy CSS payload includes the prompt font note');
   }

@@ -10,7 +10,7 @@ import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { LeftNav } from '@/src/components/LeftNav';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
-import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
+import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
@@ -246,17 +246,27 @@ function Found({ item }: { item: TransitionItem }) {
       skillBody.current = null;
       clear();
       setSkillPhase('loading');
-      void reloadSkill(item.id).then(
+      const pending = reloadSkill(item.id);
+      const gestured = writeClipboardFromGesture(pending);
+      const written = gestured ?? pending.then((text) => writeClipboardAwait(text));
+      void pending.then(
         (text) => {
           if (skillLoad.current !== loadToken) return;
           skillBody.current = text;
           setSkillPhase('ready');
-          writeSkill(text, token);
         },
         () => {
           if (skillLoad.current !== loadToken) return;
           skillBody.current = null;
           setSkillPhase('error');
+        },
+      );
+      void written.then(
+        () => {
+          if (skillGen.current === token) mark('skill');
+        },
+        () => {
+          if (skillGen.current === token) clear();
         },
       );
       return;

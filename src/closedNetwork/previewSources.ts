@@ -4,7 +4,6 @@
  * script when the motion cannot run from CSS alone.
  */
 import abrarOverviewDocument from '@/src/demos/abrar-overview/closed-network.html';
-import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import type { NavSection } from '@/src/sections';
@@ -875,7 +874,7 @@ export function embedGooeyFont(text: string): Promise<string> {
   if (!text.includes(GOOEY_FONT_SRC)) return Promise.resolve(text);
   return import('./interLatinFont').then((mod) =>
     text.split(GOOEY_FONT_PROMPT_LINE).join(
-      `src: url("${mod.INTER_LATIN_WOFF2_DATA_URI}") format("woff2"); /* Inter (OFL) */`,
+      `src: url("${mod.INTER_LATIN_WOFF2_DATA_URI}") format("woff2"); /* Inter © 2016 The Inter Project Authors. SIL Open Font License 1.1, https://openfontlicense.org */`,
     ),
   );
 }
@@ -1057,7 +1056,7 @@ function isPreviewKind(section: NavSection): section is PreviewKind {
   return section === 'transitions' || section === 'effects';
 }
 
-export function playgroundPreviewButtons(): PlaygroundPreviewButton[] {
+export function playgroundPreviewButtons(promptForId: (id: string) => string = () => ''): PlaygroundPreviewButton[] {
   const buttons: PlaygroundPreviewButton[] = [];
   const missing: string[] = [];
 
@@ -1087,7 +1086,7 @@ export function playgroundPreviewButtons(): PlaygroundPreviewButton[] {
         css: parts.css,
         script: parts.script,
         code,
-        prompt: promptFor(item.id),
+        prompt: promptForId(item.id),
       });
     }
   }

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { promptFor } from '@/src/agentPrompts';
 import { PlaygroundPreview } from '@/src/components/PlaygroundPreview';
 import {
   embedGooeyFont,
@@ -30,7 +31,7 @@ const GROUP_LABEL: Record<PreviewKind, string> = {
 };
 
 export default function PlaygroundScreen() {
-  const buttons = useMemo(() => playgroundPreviewButtons(), []);
+  const buttons = useMemo(() => playgroundPreviewButtons(promptFor), []);
   const first = buttons.find((button) => button.id === 'gooey-plus-menu') ?? buttons[0];
   const [mode, setMode] = useState<Mode>('code');
   const [code, setCode] = useState(first?.code ?? '');
