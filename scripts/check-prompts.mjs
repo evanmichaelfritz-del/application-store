@@ -387,3 +387,68 @@ if (fontHits.length) {
   for (const line of fontHits) console.error(`  ${line}`);
   process.exit(1);
 }
+
+/**
+ * The nine orb cards paste the portable Canvas2D renderer into the prompt.
+ * The picker cannot select Shaping, so that prompt must not carry the morph painter.
+ */
+const ORB_FAMILY = [
+  'orb-agent-listening',
+  'orb-agent-planning',
+  'orb-agent-shaping',
+  'orb-agent-thinking',
+  'orb-searching',
+  'orb-solving',
+  'orb-state-picker',
+  'orb-thinking',
+  'orb-working',
+];
+const ORB_CHIPS = ['orb-agent-listening', 'orb-agent-planning', 'orb-agent-shaping', 'orb-agent-thinking'];
+const ORB_PILLS = ['orb-searching', 'orb-solving', 'orb-thinking', 'orb-working'];
+
+function hasClassSelector(css, name) {
+  return new RegExp(`\\.${name}(?![A-Za-z0-9_-])`).test(css);
+}
+
+function copyScript(prompt) {
+  const at = prompt.indexOf('## Copy script');
+  return at < 0 ? '' : prompt.slice(at);
+}
+
+const orbHits = [];
+for (const id of ORB_FAMILY) {
+  const prompt = generatedPrompts.find((item) => item.id === id)?.prompt ?? '';
+  const script = copyScript(prompt);
+  if (!script.includes('var OrbEngine = {') || !script.includes('MODE_FRAMES: vt') || !script.includes('resolvePreset: Lt') || !script.includes('paintFrame: ht')) {
+    orbHits.push(`${id}: prompt is missing the portable renderer`);
+  }
+  if (id === 'orb-state-picker') {
+    if (script.includes('function xt(') || script.includes('shaping:')) {
+      orbHits.push(`${id}: prompt still includes the unreachable shaping drawing`);
+    }
+  } else if (!script.includes('function xt(')) {
+    orbHits.push(`${id}: prompt is missing the shared renderer`);
+  }
+  let css = '';
+  try {
+    css = loaded.copyTextFor(id, 'css');
+  } catch (error) {
+    orbHits.push(`${id}: Copy CSS failed: ${error instanceof Error ? error.message : 'unknown'}`);
+    continue;
+  }
+  const unused = id === 'orb-state-picker'
+    ? ['trigger', 'col', 'pill', 'chip', 'label', 'agent', 'muted']
+    : ORB_CHIPS.includes(id)
+      ? ['col', 'controls', 'is-on', 'label', 'picker', 'pill', 'trigger']
+      : ORB_PILLS.includes(id)
+        ? ['agent', 'chip', 'col', 'controls', 'is-on', 'muted', 'picker', 'trigger']
+        : [];
+  for (const name of unused) {
+    if (hasClassSelector(css, name)) orbHits.push(`${id}: unused CSS .${name}`);
+  }
+}
+console.log(`orb hits: ${orbHits.length}`);
+if (orbHits.length) {
+  for (const line of orbHits) console.error(`  ${line}`);
+  process.exit(1);
+}

@@ -1,4 +1,4 @@
-import { ORB_ENGINE_JS } from '@/src/closedNetwork/orbEngineSource';
+import { ORB_ENGINE_JS, orbEngineSource } from '@/src/closedNetwork/orbEngineSource';
 
 /**
  * Closed-network paint of the vendored thinking-orbs 0.3.1 engine.
@@ -156,7 +156,8 @@ const PICKER = `  function mark() {
 `;
 
 export function orbPreviewScript(picker: boolean): string {
-  return `(function () {\n${ORB_ENGINE_JS}\n${HOST}${picker ? PICKER : ''}})();\n`;
+  const engine = picker ? orbEngineSource({ morph: false }) : ORB_ENGINE_JS;
+  return `(function () {\n${engine}\n${HOST}${picker ? PICKER : ''}})();\n`;
 }
 
 export function orbCard(options: {
