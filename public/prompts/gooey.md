@@ -131,7 +131,7 @@ Morph open 550ms, close 250ms, open stagger 40ms, close stagger 0, icon 180ms af
 
 Peer is React 18 or newer. The published module is `liquid-gooey@0.2.2`. `sites/home/package.json` depends on `liquid-gooey` as `*` (the workspace package at 0.2.2). There is no npm alias. The package MIT text is the first comment on any redistributed copy, followed by the React `LICENSE` verbatim. `react-dom`'s `LICENSE` is the same file, so it is not repeated. The package ships no NOTICE.
 
-Copy loads Inter at weights 400 and 500 from `https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2` (the Google Fonts latin subset of Inter, a variable font, OFL). The file is not embedded. The face is declared in the Copy CSS as `@font-face` with `font-weight: 400 500`.
+Embeds Inter (400/500, latin) as a data URI under the SIL Open Font License.
 
 ## Checklist
 

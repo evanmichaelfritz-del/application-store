@@ -18,6 +18,12 @@ import { imageGenerationLoaderScript } from '@/src/closedNetwork/organicLoaderSo
 
 export type PreviewKind = 'transitions' | 'effects';
 
+// Source only: public/fonts/inter-latin.woff2. This path is not part of the payload.
+const GOOEY_FONT_SRC = 'url(data:font/woff2;base64,\u2026)';
+const GOOEY_FONT_NOTE =
+  'the base64 is the Inter v20 latin variable woff2 (48,256 B, sha256 3100e775\u2026), included in the Copy';
+const GOOEY_FONT_PROMPT_LINE = `src: ${GOOEY_FONT_SRC}; /* ${GOOEY_FONT_NOTE} */`;
+
 export type PlaygroundPreviewButton = {
   key: string;
   id: string;
@@ -750,7 +756,7 @@ canvas { display: block; width: 168px; height: 168px; }`,
   font-style: normal;
   font-weight: 400 500;
   font-display: swap;
-  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format("woff2");
+  ${GOOEY_FONT_PROMPT_LINE}
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 #parity-root { width: 452px; }`,
@@ -856,6 +862,22 @@ export function copyTextFor(id: string, kind: 'html' | 'css' | 'script'): string
   const parts = previewDocumentParts(id);
   if (kind === 'script' && !parts.script) return HTML_CSS_ONLY_NOTE;
   return parts[kind];
+}
+
+/** Start the face chunk before a Copy CSS write so the clipboard does not wait on it. */
+export function prefetchGooeyFont(text: string): void {
+  if (!text.includes(GOOEY_FONT_SRC)) return;
+  void import('./interLatinFont');
+}
+
+/** Swap the prompt's font placeholder for the embedded woff2. Loads the face on demand. */
+export function embedGooeyFont(text: string): Promise<string> {
+  if (!text.includes(GOOEY_FONT_SRC)) return Promise.resolve(text);
+  return import('./interLatinFont').then((mod) =>
+    text.split(GOOEY_FONT_PROMPT_LINE).join(
+      `src: url("${mod.INTER_LATIN_WOFF2_DATA_URI}") format("woff2"); /* Inter (OFL) */`,
+    ),
+  );
 }
 
 function classNames(selector: string): string[] {

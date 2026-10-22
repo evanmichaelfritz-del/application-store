@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -12,6 +12,7 @@ import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaygroundPreview } from '@/src/components/PlaygroundPreview';
 import {
+  embedGooeyFont,
   playgroundPreviewButtons,
   splitPreviewDocument,
   type PreviewKind,
@@ -36,6 +37,8 @@ export default function PlaygroundScreen() {
   const [prompt, setPrompt] = useState(first?.prompt ?? '');
   const [previewHtml, setPreviewHtml] = useState(first?.code ?? '');
   const [selectedKey, setSelectedKey] = useState(first?.key ?? '');
+  const docGen = useRef(0);
+  const codeRef = useRef(first?.code ?? '');
   const { width } = useWindowDimensions();
   const stacked = width < 960;
   const { show } = useCopyToast();
@@ -44,15 +47,28 @@ export default function PlaygroundScreen() {
   const current = buttons.find((button) => button.key === selectedKey) ?? first;
   const parts = useMemo(() => splitPreviewDocument(code), [code]);
 
+  const showDocument = (doc: string) => {
+    const token = docGen.current + 1;
+    docGen.current = token;
+    codeRef.current = doc;
+    setCode(doc);
+    setPreviewHtml(doc);
+    void embedGooeyFont(doc).then((next) => {
+      if (docGen.current !== token || codeRef.current !== doc || next === doc) return;
+      codeRef.current = next;
+      setCode(next);
+      setPreviewHtml(next);
+    });
+  };
+
   const loadPreview = (key: string) => {
     const button = buttons.find((item) => item.key === key);
     if (!button) return;
     setSelectedKey(key);
-    setCode(button.code);
     setPrompt(button.prompt);
     if (promptIsLazy(button.id) || !button.prompt) void loadAssetPrompt(button.id).then(setPrompt);
-    setPreviewHtml(button.code);
     setMode('code');
+    showDocument(button.code);
   };
 
   const runPreview = () => {
@@ -111,16 +127,21 @@ export default function PlaygroundScreen() {
                   primary
                   onPress={() => {
                     if (!current) return;
-                    setCode(current.code);
-                    setPreviewHtml(current.code);
                     setMode('code');
+                    showDocument(current.code);
                   }}
                 />
               )}
               {mode === 'code' ? (
                 <>
                   <Action label="Copy HTML" onPress={() => copyPart(parts.html)} testID="copy-html" />
-                  <Action label="Copy CSS" onPress={() => copyPart(parts.css)} testID="copy-css" />
+                  <Action
+                    label="Copy CSS"
+                    onPress={() => {
+                      void embedGooeyFont(parts.css).then(copyPart);
+                    }}
+                    testID="copy-css"
+                  />
                   {parts.script ? (
                     <Action label="Copy script" onPress={() => copyPart(parts.script)} testID="copy-script" />
                   ) : null}
@@ -180,7 +201,14 @@ export default function PlaygroundScreen() {
               style={styles.editor}
               multiline
               value={mode === 'code' ? code : prompt}
-              onChangeText={mode === 'code' ? setCode : setPrompt}
+              onChangeText={
+                mode === 'code'
+                  ? (value) => {
+                      codeRef.current = value;
+                      setCode(value);
+                    }
+                  : setPrompt
+              }
               textAlignVertical="top"
               autoCorrect={false}
               autoCapitalize="none"

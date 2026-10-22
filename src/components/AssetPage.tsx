@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -174,6 +174,9 @@ function Found({ item }: { item: TransitionItem }) {
   const label = typeLabel(meta.type) ?? 'All assets';
   const { copied, mark, clear } = useCopied();
   const skillBody = useRef<string | null>(null);
+  const [skillPhase, setSkillPhase] = useState<'loading' | 'ready' | 'error'>('loading');
+  const skillGen = useRef(0);
+  const skillLoad = useRef(0);
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
@@ -194,32 +197,76 @@ function Found({ item }: { item: TransitionItem }) {
       void loadCopyScript(item.id).then(write);
       return;
     }
+    if (activeKind === 'css') {
+      void loadCopyCss(item.id).then(write);
+      return;
+    }
     write(codeSlot(item.id, activeKind));
   };
   const skill = skillFor(item.id);
   useEffect(() => {
     if (!skill) return;
-    let live = true;
+    let ignore = false;
+    const token = skillLoad.current + 1;
+    skillLoad.current = token;
     skillBody.current = null;
+    setSkillPhase('loading');
     void loadSkill(item.id).then(
       (text) => {
-        if (live) skillBody.current = text;
+        if (ignore || skillLoad.current !== token) return;
+        skillBody.current = text;
+        setSkillPhase('ready');
       },
       () => {
-        if (live) skillBody.current = null;
+        if (ignore || skillLoad.current !== token) return;
+        skillBody.current = null;
+        setSkillPhase('error');
       },
     );
     return () => {
-      live = false;
+      ignore = true;
     };
   }, [item.id, skill]);
   const copySkill = () => {
+    const writeSkill = (text: string, token: number) => {
+      void writeClipboardAwait(text).then(
+        () => {
+          if (skillGen.current === token) mark('skill');
+        },
+        () => {
+          if (skillGen.current === token) clear();
+        },
+      );
+    };
+    if (skillPhase === 'error') {
+      const loadToken = skillLoad.current + 1;
+      skillLoad.current = loadToken;
+      const token = skillGen.current + 1;
+      skillGen.current = token;
+      skillBody.current = null;
+      clear();
+      setSkillPhase('loading');
+      void reloadSkill(item.id).then(
+        (text) => {
+          if (skillLoad.current !== loadToken) return;
+          skillBody.current = text;
+          setSkillPhase('ready');
+          writeSkill(text, token);
+        },
+        () => {
+          if (skillLoad.current !== loadToken) return;
+          skillBody.current = null;
+          setSkillPhase('error');
+        },
+      );
+      return;
+    }
     const text = skillBody.current;
-    if (text == null) return;
-    void writeClipboardAwait(text).then(
-      () => mark('skill'),
-      () => clear(),
-    );
+    if (skillPhase !== 'ready' || text == null) return;
+    const token = skillGen.current + 1;
+    skillGen.current = token;
+    clear();
+    writeSkill(text, token);
   };
   const copyPrompt = () => {
     mark('prompt');
@@ -250,14 +297,25 @@ function Found({ item }: { item: TransitionItem }) {
           tone="primary"
           done={copied === 'code'}
           onPress={copyCode}
+          onWarm={activeKind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
           testID="copy-code"
         />
         {skill ? (
           <BarButton
-            label={copied === 'skill' ? 'Copied' : 'Copy skill'}
+            label={
+              copied === 'skill'
+                ? 'Copied'
+                : skillPhase === 'loading'
+                  ? 'Loading…'
+                  : skillPhase === 'error'
+                    ? 'Retry'
+                    : 'Copy skill'
+            }
             icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
             tone="secondary"
             done={copied === 'skill'}
+            disabled={skillPhase === 'loading'}
+            busy={skillPhase === 'loading'}
             onPress={copySkill}
             testID="copy-skill"
           />
@@ -319,6 +377,7 @@ function Found({ item }: { item: TransitionItem }) {
           onChange={(next) => {
             setCodeReady(true);
             setTab(next);
+            if (next === 'styles') prefetchCopyCss(item.id);
           }}
           onCopy={() => {
             mark('slot');
@@ -327,6 +386,10 @@ function Found({ item }: { item: TransitionItem }) {
             };
             if (activeKind === 'script' && scriptIsLazy(item.id)) {
               void loadCopyScript(item.id).then(write);
+              return;
+            }
+            if (activeKind === 'css') {
+              void loadCopyCss(item.id).then(write);
               return;
             }
             write(codeSlot(item.id, activeKind));
@@ -389,7 +452,10 @@ function BarButton({
   icon,
   tone = 'secondary',
   done = false,
+  disabled = false,
+  busy = false,
   onPress,
+  onWarm,
   href,
   testID,
   style,
@@ -398,7 +464,10 @@ function BarButton({
   icon?: IconName;
   tone?: 'primary' | 'secondary';
   done?: boolean;
+  disabled?: boolean;
+  busy?: boolean;
   onPress?: () => void;
+  onWarm?: () => void;
   href?: Href;
   testID?: string;
   style?: StyleProp<ViewStyle>;
@@ -410,24 +479,37 @@ function BarButton({
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      aria-busy={busy}
+      disabled={disabled}
       testID={testID}
       onPress={onPress}
-      onHoverIn={() => setHover(true)}
+      onHoverIn={() => {
+        if (!disabled) {
+          setHover(true);
+          onWarm?.();
+        }
+      }}
+      onFocus={() => {
+        onWarm?.();
+      }}
       onHoverOut={() => {
         setHover(false);
         setPressed(false);
       }}
-      onPressIn={() => setPressed(true)}
+      onPressIn={() => {
+        if (!disabled) setPressed(true);
+      }}
       onPressOut={() => setPressed(false)}
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={StyleSheet.flatten([
         styles.button,
-        styles.pointer,
+        disabled ? styles.buttonDisabled : styles.pointer,
         primary ? styles.buttonPrimary : styles.buttonSecondary,
-        hover && !pressed && primary && styles.buttonPrimaryHover,
-        hover && !pressed && !primary && styles.buttonSecondaryHover,
-        pressed && primary && styles.buttonPrimaryPressed,
-        pressed && !primary && styles.buttonSecondaryPressed,
+        hover && !pressed && !disabled && primary && styles.buttonPrimaryHover,
+        hover && !pressed && !disabled && !primary && styles.buttonSecondaryHover,
+        pressed && !disabled && primary && styles.buttonPrimaryPressed,
+        pressed && !disabled && !primary && styles.buttonSecondaryPressed,
         style,
       ])}
     >
@@ -626,6 +708,12 @@ function CodePanel({
           accessibilityLabel={copied ? 'Copied' : 'Copy code'}
           testID="copy-code-slot"
           onPress={onCopy}
+          onHoverIn={() => {
+            if (kind === 'css') prefetchCopyCss(id);
+          }}
+          onFocus={() => {
+            if (kind === 'css') prefetchCopyCss(id);
+          }}
           {...pressableWeb({ dataSet: { focusRing: 'true' } })}
           style={styles.codeCopy}
         >
@@ -736,6 +824,10 @@ const CodeBody = memo(function CodeBody({ id, kind, defer }: { id: string; kind:
       };
       if (kind === 'script' && scriptIsLazy(id)) {
         void loadCopyScript(id).then(finish).catch(() => finish(''));
+        return;
+      }
+      if (kind === 'css') {
+        void loadCopyCss(id).then(finish).catch(() => finish(''));
         return;
       }
       try {
@@ -1035,6 +1127,7 @@ const styles = StyleSheet.create({
   buttonText: { fontFamily: fonts.medium, fontSize: 13, color: colors.text },
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
+  buttonDisabled: { opacity: 0.45, cursor: 'auto' },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {

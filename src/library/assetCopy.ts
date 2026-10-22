@@ -1,10 +1,11 @@
 import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
-import { copyTextFor } from '@/src/closedNetwork/previewSources';
+import { copyTextFor, embedGooeyFont, prefetchGooeyFont } from '@/src/closedNetwork/previewSources';
 import {
   loadPublicPrompt,
   loadYogeshOrbCreatorPrompt,
   loadYogeshThinkingOrbsPrompt,
+  reloadPublicPrompt,
 } from '@/src/demos/yogesh-thinking-orbs/loadPrompt';
 
 export type CodeKind = 'html' | 'css' | 'script';
@@ -12,6 +13,16 @@ export type CodeKind = 'html' | 'css' | 'script';
 /** One slot of the card's Copy HTML / Copy CSS / Copy script payload. */
 export function codeSlot(id: string, kind: CodeKind): string {
   return copyTextFor(id, kind);
+}
+
+/** Copy CSS, with the Gooey face filled in when this copy is built. */
+export function loadCopyCss(id: string): Promise<string> {
+  return embedGooeyFont(copyTextFor(id, 'css'));
+}
+
+/** Warm the Gooey face chunk on Copy hover, focus, or the Styles tab. */
+export function prefetchCopyCss(id: string): void {
+  prefetchGooeyFont(copyTextFor(id, 'css'));
 }
 
 /**
@@ -70,6 +81,13 @@ export function loadSkill(id: string): Promise<string> {
   const skill = skillFor(id);
   if (!skill) return Promise.resolve('');
   return loadPublicPrompt(`/${skill.path}`);
+}
+
+/** Fetch the skill again after a failed load. */
+export function reloadSkill(id: string): Promise<string> {
+  const skill = skillFor(id);
+  if (!skill) return Promise.resolve('');
+  return reloadPublicPrompt(`/${skill.path}`);
 }
 
 /** Prompt text already in the bundle. Lazy Yogesh prompts return null until fetched. */

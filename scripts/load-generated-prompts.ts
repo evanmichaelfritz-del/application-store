@@ -1,5 +1,8 @@
 import { TRANSITIONS } from '../src/catalog';
 import { promptFor } from '../src/agentPrompts';
+import { copyTextFor, embedGooeyFont } from '../src/closedNetwork/previewSources';
+
+export { copyTextFor, embedGooeyFont };
 
 /** Prompts the template emits. Yogesh ids are empty here; their sheets live in public/prompts. */
 export function generatedPrompts(): { id: string; prompt: string }[] {

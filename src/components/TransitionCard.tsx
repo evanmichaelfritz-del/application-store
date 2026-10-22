@@ -4,7 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
-import { loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
@@ -24,13 +24,19 @@ const COPY_LABEL: Record<CopyKind, string> = {
 function ActionButton({
   label,
   done,
+  disabled,
+  busy,
   onPress,
+  onWarm,
   style,
   testID,
 }: {
   label: string;
   done?: boolean;
+  disabled?: boolean;
+  busy?: boolean;
   onPress: () => void;
+  onWarm?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }) {
@@ -38,19 +44,24 @@ function ActionButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      aria-busy={busy === true}
+      disabled={disabled}
       testID={testID}
       onPress={onPress}
+      onHoverIn={onWarm}
+      onFocus={onWarm}
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={(state) => {
-        const hover = Boolean((state as { hovered?: boolean }).hovered);
+        const hover = 'hovered' in state && state.hovered === true;
         return [
           styles.action,
-          styles.pointer,
+          disabled ? styles.actionDisabled : styles.pointer,
           style,
           done && styles.actionDone,
-          hover && !done && styles.actionHover,
+          hover && !done && !disabled && styles.actionHover,
           hover && done && styles.actionDoneHover,
-          state.pressed && !done && styles.actionPressed,
+          state.pressed && !done && !disabled && styles.actionPressed,
           state.pressed && done && styles.actionDonePressed,
         ];
       }}
@@ -73,6 +84,9 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const [promptCopied, setPromptCopied] = useState(false);
   const [skillCopied, setSkillCopied] = useState(false);
   const [skillText, setSkillText] = useState<string | null>(null);
+  const [skillPhase, setSkillPhase] = useState<'loading' | 'ready' | 'error'>('loading');
+  const skillGen = useRef(0);
+  const skillLoad = useRef(0);
   const skill = skillFor(item.id);
   const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,18 +94,26 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
 
   useEffect(() => {
     if (!skill) return;
-    let live = true;
+    let ignore = false;
+    const token = skillLoad.current + 1;
+    skillLoad.current = token;
+    setSkillPhase('loading');
     setSkillText(null);
+    setSkillCopied(false);
     void loadSkill(item.id).then(
       (text) => {
-        if (live) setSkillText(text);
+        if (ignore || skillLoad.current !== token) return;
+        setSkillText(text);
+        setSkillPhase('ready');
       },
       () => {
-        if (live) setSkillText(null);
+        if (ignore || skillLoad.current !== token) return;
+        setSkillText(null);
+        setSkillPhase('error');
       },
     );
     return () => {
-      live = false;
+      ignore = true;
     };
   }, [item.id, skill]);
 
@@ -118,6 +140,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       void loadCopyScript(item.id).then(write);
       return;
     }
+    if (kind === 'css') {
+      void loadCopyCss(item.id).then(write);
+      return;
+    }
     write(copyTextFor(item.id, kind));
   };
 
@@ -127,32 +153,77 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       label={copied === kind ? 'Copied' : COPY_LABEL[kind]}
       done={copied === kind}
       onPress={() => copyPart(kind)}
+      onWarm={kind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
       testID={`copy-${kind}-${item.id}`}
     />
   );
 
-  const copySkill = () => {
-    if (skillText == null) return;
-    void writeClipboardAwait(skillText).then(
+  const finishSkillCopy = (text: string, token: number) => {
+    void writeClipboardAwait(text).then(
       () => {
+        if (skillGen.current !== token) return;
         setSkillCopied(true);
         show();
         if (hideBtn.current) clearTimeout(hideBtn.current);
         hideBtn.current = setTimeout(() => setSkillCopied(false), 1400);
       },
-      () => setSkillCopied(false),
+      () => {
+        if (skillGen.current !== token) return;
+        setSkillCopied(false);
+      },
     );
   };
 
-  const skillButton = skill ? (
-    <ActionButton
-      style={touch ? styles.actionTouch : undefined}
-      label={skillCopied ? 'Copied' : 'Copy skill'}
-      done={skillCopied}
-      onPress={copySkill}
-      testID={`copy-skill-${item.id}`}
-    />
-  ) : null;
+  const copySkill = () => {
+    if (skillPhase === 'error') {
+      const loadToken = skillLoad.current + 1;
+      skillLoad.current = loadToken;
+      const token = skillGen.current + 1;
+      skillGen.current = token;
+      setSkillPhase('loading');
+      setSkillText(null);
+      setSkillCopied(false);
+      void reloadSkill(item.id).then(
+        (text) => {
+          if (skillLoad.current !== loadToken) return;
+          setSkillText(text);
+          setSkillPhase('ready');
+          finishSkillCopy(text, token);
+        },
+        () => {
+          if (skillLoad.current !== loadToken) return;
+          setSkillText(null);
+          setSkillPhase('error');
+        },
+      );
+      return;
+    }
+    if (skillPhase !== 'ready' || skillText == null) return;
+    const token = skillGen.current + 1;
+    skillGen.current = token;
+    setSkillCopied(false);
+    finishSkillCopy(skillText, token);
+  };
+
+  const skillLabel = skillCopied
+    ? 'Copied'
+    : skillPhase === 'loading'
+      ? 'Loading…'
+      : skillPhase === 'error'
+        ? 'Retry'
+        : 'Copy skill';
+  const skillButton = (style?: StyleProp<ViewStyle>) =>
+    skill ? (
+      <ActionButton
+        style={style}
+        label={skillLabel}
+        done={skillCopied}
+        disabled={skillPhase === 'loading'}
+        busy={skillPhase === 'loading'}
+        onPress={copySkill}
+        testID={`copy-skill-${item.id}`}
+      />
+    ) : null;
 
   const copyPrompt = () => {
     setPromptCopied(true);
@@ -214,15 +285,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             {copyButton('css', styles.actionGrow)}
             {copyButton('script', styles.actionGrow)}
           </View>
-          {skill ? (
-            <ActionButton
-              style={styles.actionFull}
-              label={skillCopied ? 'Copied' : 'Copy skill'}
-              done={skillCopied}
-              onPress={copySkill}
-              testID={`copy-skill-${item.id}`}
-            />
-          ) : null}
+          {skillButton(styles.actionFull)}
           <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
         </View>
       ) : (
@@ -231,7 +294,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {copyButton('html', touch ? styles.actionTouch : undefined)}
           {copyButton('css', touch ? styles.actionTouch : undefined)}
           {copyButton('script', touch ? styles.actionTouch : undefined)}
-          {skillButton}
+          {skillButton(touch ? styles.actionTouch : undefined)}
           <ActionButton
             style={touch ? styles.actionTouch : undefined}
             label="AGENT_PROMPT"
@@ -372,6 +435,7 @@ const styles = StyleSheet.create({
   actionFull: { height: 44, alignSelf: 'stretch' },
   actionTouch: { height: 44, minWidth: 44 },
   pointer: { cursor: 'pointer' },
+  actionDisabled: { opacity: 0.45, cursor: 'auto' },
   action: {
     height: 30,
     paddingHorizontal: 10,

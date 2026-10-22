@@ -6,10 +6,12 @@ import {
   ASSET_META,
   SOURCES,
   VISIBLE_TYPES,
+  totalAssets,
   typeCount,
   typeLabel,
   type Source,
 } from '@/src/library/taxonomy';
+import { NAV_SECTIONS } from '@/src/sections';
 
 const ASSET_CAP = 8;
 const FACET_CAP = 3;
@@ -61,6 +63,15 @@ function sourceLabel(slug: Source | null): string | null {
 
 function sourceCount(slug: Source): number {
   return Object.values(ASSET_META).filter((meta) => meta.source === slug).length;
+}
+
+function sectionLabels(item: TransitionItem): string[] {
+  const labels: string[] = [];
+  for (const key of item.sections) {
+    const found = NAV_SECTIONS.find((section) => section.key === key);
+    if (found) labels.push(found.label);
+  }
+  return labels;
 }
 
 function authorCount(label: string): number {
@@ -130,7 +141,17 @@ function scoreAsset(item: TransitionItem, index: number, query: string): Scored 
     }
   }
 
-  if (rank === 0 && type && norm(type).includes(query)) rank = 8;
+  if (rank === 0 && type && norm(type).includes(query)) {
+    rank = 8;
+    hint = `category: ${type}`;
+  }
+  if (rank === 0) {
+    const section = sectionLabels(item).find((label) => norm(label).includes(query));
+    if (section) {
+      rank = 8;
+      hint = `section: ${section}`;
+    }
+  }
   if (rank === 0) return null;
   return { item, index, rank, hint, mark };
 }
@@ -177,6 +198,10 @@ function typeOptions(query: string): TypeOption[] {
       label: CRAFT_CATEGORY_LABEL,
       count: CRAFT_APPS.length,
     });
+  }
+  const allAssets = norm('All assets');
+  if (query.length >= 3 && (allAssets.startsWith(query) || wordStart(allAssets, query))) {
+    hits.unshift({ kind: 'type', slug: 'all', label: 'All assets', count: totalAssets() });
   }
   return query ? hits.slice(0, FACET_CAP) : hits;
 }
