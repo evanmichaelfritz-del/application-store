@@ -33,7 +33,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'wide',
-        trigger: 'mount, and Resize while the card is small',
+        trigger: 'Resize while the card is small',
         from: 'width 88px, height 64px',
         to: 'width 148px, height 100px',
         duration: '300ms (`--resize-dur`)',
@@ -65,7 +65,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'number-pop-in': {
     motion:
-      'Each `.t-digit` runs `@keyframes t-digit-in` for `--digit-dur: 500ms` with `--digit-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `perspective(400px) rotateX(var(--digit-tilt))`, opacity 0, `blur(var(--digit-blur))`. `--digit-tilt` is 80deg and `--digit-blur` is 2px. Delay is `calc(var(--digit-stagger) * n)` and `--digit-stagger` is 50ms. Replay rewrites the row.',
+      'Each `.t-digit` runs `@keyframes t-digit-in` for `--digit-dur: 500ms` with `--digit-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `perspective(400px) rotateX(var(--digit-tilt))`, opacity 0, `blur(var(--digit-blur))`. `--digit-tilt` is 80deg and `--digit-blur` is 2px. Delay is `calc(var(--digit-stagger) * (n - 1))` and `--digit-stagger` is 50ms. Replay rewrites the row.',
     content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is a `.t-digit.gap`.',
     rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
     states: [
@@ -100,7 +100,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'off',
-        trigger: 'mount, before `.is-on`, and a bell click that removes `.is-on`',
+        trigger: 'a bell click that removes `.is-on`',
         from: 'translate(0, 0) scale(1), opacity 1',
         to: 'translate(-8.2px, 12.4px) scale(0.4), opacity 0',
         duration: 'transform `--badge-slide-dur: 260ms`, opacity 180ms',
@@ -184,7 +184,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'closed',
-        trigger: 'mount, and the trigger click while open',
+        trigger: 'the trigger click while open',
         from: 'scale 1, opacity 1',
         to: 'scale(0.94), opacity 0, class `is-closing`',
         duration: '180ms (`--dropdown-close-dur`)',
@@ -289,7 +289,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'closed',
-        trigger: 'mount (`hidden` on `.backdrop`) and the Close button',
+        trigger: 'the Close button',
         from: 'scale 1, opacity 1, class `is-open`',
         to: 'scale(var(--modal-scale)) 0.94, opacity 0, class `is-closing`, then `hidden`',
         duration: '200ms (`--modal-close-dur`)',
@@ -379,7 +379,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'shown',
-        trigger: 'the layer without `.is-out`',
+        trigger: 'Swap icon removes `.is-out`',
         from: 'opacity 0, blur(2px), scale(0.25)',
         to: 'opacity 1, blur 0, scale 1',
         duration: '250ms (`--icon-swap-dur`)',
@@ -388,7 +388,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'out',
-        trigger: 'Swap icon toggles `.is-out` on both layers',
+        trigger: 'Swap icon adds `.is-out`',
         from: 'opacity 1, scale 1, blur 0',
         to: 'opacity 0, blur(2px), scale(0.25)',
         duration: '250ms (`--icon-swap-dur`)',
@@ -453,7 +453,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'rest',
-        trigger: 'mount and mouseleave, which call place(null)',
+        trigger: 'mouseleave calls place(null)',
         from: 'the hovered translateY and scale',
         to: 'strength 0, scale 1, zIndex 1',
         duration: '320ms (`--avatar-dur`)',
@@ -500,7 +500,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'stacked',
-        trigger: 'mount, mouseleave, and a click that removes `.is-spread`',
+        trigger: 'mouseleave, and a click that removes `.is-spread`',
         from: 'the spread transforms',
         to: 'no transform on the cards',
         duration: '420ms (`--stack-dur`)',
@@ -614,11 +614,11 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'loading',
-        trigger: 'mount, until reveal, and Reveal while the content is showing',
-        from: 'content without `.is-hidden`',
-        to: '`.t-skel` opacity 0.5 at 50%, `.t-content.is-hidden` opacity 0 and blur(2px)',
-        duration: 'pulse 1000ms (`--pulse-dur`), reveal 250ms (`--reveal-dur`)',
-        easing: 'pulse linear, reveal ease-in-out (`--reveal-ease`)',
+        trigger: 'on load `.t-content` already has `.is-hidden` and `.t-skel` runs `t-pulse`. Reveal while the content is showing calls reset(), which adds `.is-hidden`',
+        from: '',
+        to: '`.t-skel` opacity 0.5 at 50%. reset() sets `.t-content.is-hidden` to opacity 0 and blur(2px)',
+        duration: 'pulse 1000ms (`--pulse-dur`) on load. reset() fades over 250ms (`--reveal-dur`)',
+        easing: 'pulse linear. reset() uses ease-in-out (`--reveal-ease`)',
         delay: '',
       },
       {
@@ -683,8 +683,8 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: 'the stylesheet before the script measures',
         from: '',
         to: 'width 86px, translateX(3px), background #ffffff on a bar of #f1f1f1',
-        duration: '250ms (`--tabs-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--tabs-ease`)',
+        duration: '',
+        easing: '',
         delay: '',
       },
       {
@@ -1088,7 +1088,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'closed',
-        trigger: 'mount, open is false, and the minimize control',
+        trigger: 'the minimize control',
         from: 'the open pill',
         to: 'width 84px, height 84px, border-radius 42px, scale(0.667), gradient #fbfaf9 to #f1efec',
         duration: 'width 520ms, border-radius 440ms, transform 540ms',
@@ -1271,7 +1271,7 @@ You cannot blur+contrast the real buttons — that softens icons and breaks Safa
 Use **two layers**:
 
 1. **Silhouette (behind)** — SVG with one white circle (r=20) per item, all sharing a goo filter on the SVG \`<g>\`. Drop-shadow on the SVG element.
-2. **Content (above)** — real \`<button>\`s with transparent backgrounds and crisp SVG icons. Hit targets stay interactive.
+2. **Content (above)** — real \`<button>\`s with transparent backgrounds and crisp SVG icons.
 
 Toggle open/close by applying the **same** \`translate(x,y)\` to each content slot **and** its matching SVG circle so the liquid and icons stay pixel-synced.
 
@@ -1294,7 +1294,7 @@ If pieces that should merge look separate, raise blur or reduce gap — bridging
 ## Interaction
 
 - Click hub: toggle open/closed; \`aria-expanded\` + \`aria-label\` (\`Open menu\` / \`Close menu\`).
-- Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
+- Satellite buttons: \`tabindex="-1"\` when closed, \`tabindex="0"\` when open; click closes menu.
 - Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
 
 ## Document
@@ -1318,7 +1318,7 @@ ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
 
 - The goo filter stays on the SVG circles. The buttons are a second layer with transparent backgrounds, so the icons stay crisp.
 - Reduced motion writes transition \`none\` and duration 0ms, and the stylesheet sets \`.slot\`, \`.plus\`, \`.sat-icon\`, and \`.blob\` to \`transition: none\`.
-- Satellite tabIndex is -1 while closed and 0 while open. A satellite click sets open false. The hub aria-label is \`Open menu\` or \`Close menu\`.
+- Satellite buttons use \`tabindex="-1"\` while closed and \`tabindex="0"\` while open. A satellite click sets open false. The hub aria-label is \`Open menu\` or \`Close menu\`.
 - Blob transform-origin is the literal \`100px 100px\`.
 
 ## Setup
