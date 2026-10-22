@@ -3,7 +3,7 @@ import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import { ORB_LOCKS } from '@/src/closedNetwork/orbLocks';
-import { TILT_MOTION, TILT_RN } from './demos/tiltMotion';
+import { TILT_RN } from './demos/tiltMotion';
 
 export type PromptState = {
   name: string;
@@ -27,653 +27,686 @@ export type PromptLock = {
 
 const LOCKS: Record<string, PromptLock> = {
   'card-resize': {
-    motion: 'Width/height morph 300ms (`tokens.morph`) with `ease.outEase`. Wide is 148×100. Small is 88×64.',
+    motion:
+      '`.t-resize` starts at width 148px and height 100px. Resize writes 88px by 64px, then 148px by 100px. Width and height transition over `--resize-dur: 300ms` with `--resize-ease: cubic-bezier(0.22, 1, 0.36, 1)`.',
     rn: 'Reanimated width/height timing in `CardResizeDemo`. Copy emits portable CSS `.t-resize`.',
     states: [
       {
         name: 'wide',
-        trigger: 'mount, and Animate while the card is small',
-        from: 'width 88, height 64',
-        to: 'width 148, height 100',
-        duration: '300ms (`tokens.morph`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`ease.outEase`, the `timed` default)',
-        delay: 'none',
+        trigger: 'mount, and Resize while the card is small',
+        from: 'width 88px, height 64px',
+        to: 'width 148px, height 100px',
+        duration: '300ms (`--resize-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--resize-ease`)',
+        delay: '',
       },
       {
         name: 'small',
-        trigger: 'Animate while the card is wide',
-        from: 'width 148, height 100',
-        to: 'width 88, height 64',
-        duration: '300ms (`tokens.morph`)',
+        trigger: 'Resize while the card is wide',
+        from: 'width 148px, height 100px',
+        to: 'width 88px, height 64px',
+        duration: '300ms (`--resize-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        delay: '',
       },
     ],
     gotchas: [
-      'Reduced motion uses `withTiming` duration 0.',
-      'The card keeps radius 14. The bars are 8px tall; the short bar is 62% width.',
-      'Copy CSS uses the same 300ms and cubic-bezier(0.22, 1, 0.36, 1) on width and height (`--resize-dur`, `--resize-ease`).',
+      'Reduced motion sets the transition to none.',
+      'The card keeps border-radius 14px and padding 14px. Each bar is height 8px. The short bar is width 62%.',
+      'The button label is Resize.',
     ],
     setup:
-      '`CardResizeDemo` (`src/demos/CardResize.tsx`). Shared values start at 148 and 100. `AnimateButton` toggles `small`, and the effect writes both axes with `timed`.',
+      '`.t-resize` is width 148px and height 100px, background #fff, border-radius 14px, padding 14px. The Resize button toggles `card.style.width` and `card.style.height` between 148px/100px and 88px/64px.',
     checklist: [
-      'Wide is 148×100 and small is 88×64.',
-      'Both axes use `tokens.morph` (300ms) and `ease.outEase`.',
-      'Reduced motion snaps to the target size.',
+      'Wide is 148px by 100px and small is 88px by 64px.',
+      'Both axes use `--resize-dur: 300ms` and `--resize-ease: cubic-bezier(0.22, 1, 0.36, 1)`.',
+      'Reduced motion sets the transition to none.',
     ],
   },
   'number-pop-in': {
     motion:
-      'Per-digit perspective rotateX 80deg → 0, blur 2px → 0, stagger 50ms. Replay cycles three values. Rotate, opacity, and blur use `springs.default` (damping 20, stiffness 280).',
-    content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. Spaces are digits in the row.',
+      'Each `.t-digit` runs `@keyframes t-digit-in` for `--digit-dur: 500ms` with `--digit-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `perspective(400px) rotateX(var(--digit-tilt))`, opacity 0, `blur(var(--digit-blur))`. `--digit-tilt` is 80deg and `--digit-blur` is 2px. Delay is `calc(var(--digit-stagger) * n)` and `--digit-stagger` is 50ms. Replay rewrites the row.',
+    content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is a `.t-digit.gap`.',
     rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
     states: [
       {
         name: 'enter',
-        trigger: 'mount and each Animate press (`FlipDigit` resets, then springs)',
-        from: 'rotateX 80deg, opacity 0, blur 2px',
-        to: 'rotateX 0, opacity 1, blur 0',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.default (damping 20, stiffness 280)',
-        delay: 'character index × `tokens.digitStagger` (50ms), via `withDelay`',
+        trigger: 'mount and each Replay, which rewrites the row and restarts `t-digit-in`',
+        from: 'perspective(400px) rotateX(80deg), opacity 0, blur(2px)',
+        to: 'opacity 1 and filter none',
+        duration: '500ms (`--digit-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--digit-ease`)',
+        delay: 'nth-child n waits calc(var(--digit-stagger) * (n - 1)), and `--digit-stagger` is 50ms',
       },
     ],
     gotchas: [
-      'Perspective is 400. A space is a 6px gap. The dot is 32px with marginBottom 2. Other digits are 42px / line-height 46.',
-      'Reduced motion writes rotateX 0, opacity 1, and blur 0 and skips the spring.',
-      'The key includes the set index, so each replay remounts the row. There is no separate exit animation.',
-      'Copy CSS runs `@keyframes t-digit-in` for `--digit-dur` 500ms with cubic-bezier(0.22, 1, 0.36, 1). The live card is the spring, not that 500ms timing.',
+      'The row is font-size 42px. A space is `.t-digit.gap` with width 6px.',
+      'Reduced motion sets the animation to none.',
+      'Replay advances the set index modulo 3. There is no separate exit keyframe.',
     ],
     setup:
-      '`NumberPopInDemo` (`src/demos/NumberPopIn.tsx`). `SETS` is `6 5. 7 8`, `1 4. 0 2`, `9 3. 6 1`. Animate advances the index modulo 3.',
+      'The sets are `6 5. 7 8`, `1 4. 0 2`, and `9 3. 6 1`. Replay writes one `.t-digit` per character. `@keyframes t-digit-in` uses `--digit-dur: 500ms`, `--digit-blur: 2px`, `--digit-tilt: 80deg`, and perspective 400px.',
     checklist: [
-      'The three sets play in that order, including the space characters.',
-      'Each character waits index × 50ms, then springs rotateX, opacity, and blur with damping 20 and stiffness 280.',
-      'Reduced motion shows the digits at rest.',
+      'The three sets play in that order, and a space is a 6px gap.',
+      'Each digit runs `t-digit-in` for 500ms with cubic-bezier(0.22, 1, 0.36, 1), delayed by 50ms steps.',
+      'Reduced motion sets the animation to none.',
     ],
   },
   'notification-badge': {
-    motion: 'Off state translate(-8.2px, 12.4px) scale(0.4) opacity 0. On state springs to rest (`springs.pop`: mass 0.8, damping 12, stiffness 280). Opacity timing is 180ms.',
-    content: 'Count `1` on `#e23d2d`. Starts hidden. Click the bell toggles it.',
+    motion:
+      '`.t-badge` rests at `translate(var(--badge-offset-x), var(--badge-offset-y)) scale(0.4)` and opacity 0. `--badge-offset-x` is -8.2px and `--badge-offset-y` is 12.4px. Leaving `.is-on` uses `--badge-slide-dur: 260ms`. `.is-on` moves to `translate(0, 0) scale(1)` over `--badge-pop-dur: 500ms`. Opacity is 180ms on both.',
+    content: 'Count `1` on `#e23d2d`. Starts without `.is-on`. Click the bell toggles it.',
     rn: 'Shared-value translate + scale. Copy CSS is `.t-badge`. Copy script toggles `.is-on`.',
     states: [
       {
         name: 'off',
-        trigger: 'mount (`on` is false) and Animate while the badge is on',
-        from: 'translate(0, 0), scale 1, opacity 1',
-        to: 'translate(-8.2px, 12.4px), scale 0.4, opacity 0',
-        duration: 'translate and scale are withSpring; opacity is 180ms',
-        easing: 'springs.pop (mass 0.8, damping 12, stiffness 280); opacity uses ease.outEase',
-        delay: 'none',
+        trigger: 'mount, before `.is-on`, and a bell click that removes `.is-on`',
+        from: 'translate(0, 0) scale(1), opacity 1',
+        to: 'translate(-8.2px, 12.4px) scale(0.4), opacity 0',
+        duration: 'transform `--badge-slide-dur: 260ms`, opacity 180ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--badge-slide-ease`)',
+        delay: '',
       },
       {
         name: 'on',
-        trigger: 'Animate while the badge is off',
-        from: 'translate(-8.2px, 12.4px), scale 0.4, opacity 0',
-        to: 'translate(0, 0), scale 1, opacity 1',
-        duration: 'translate and scale are withSpring; opacity is 180ms',
-        easing: 'springs.pop (mass 0.8, damping 12, stiffness 280); opacity uses cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        trigger: 'a bell click that adds `.is-on`',
+        from: 'translate(-8.2px, 12.4px) scale(0.4), opacity 0',
+        to: 'translate(0, 0) scale(1), opacity 1',
+        duration: 'transform `--badge-pop-dur: 500ms`, opacity 180ms',
+        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1) (`--badge-pop-ease`); opacity uses cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '',
+      },
+      {
+        name: 'badge',
+        trigger: '',
+        from: '',
+        to: 'min-width 18px, height 18px, padding 0 4px, border-radius 9px, background #e23d2d, color #fff, top -4px, right -4px',
+        duration: '',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'The badge starts hidden. The count is the string `1`, fill `#e23d2d`, text `#fff`, box 18×18, radius 9, sitting at top -4 and right -4 on a 40×40 bell.',
-      'Reduced motion snaps every channel with duration 0.',
-      'Copy CSS approximates the spring with `--badge-slide-dur` 260ms and `--badge-pop-dur` 500ms. The live card does not use those durations. Opacity is the only 180ms channel.',
+      'The count is the string `1`. The bell button is 48px by 48px with border-radius 12px.',
+      'Reduced motion sets the badge transition to none.',
     ],
     setup:
-      '`NotificationBadgeDemo` (`src/demos/NotificationBadge.tsx`). Shared values start at x -8.2, y 12.4, scale 0.4, opacity 0. Animate toggles `on`.',
+      '`.t-badge` is position absolute, top -4px, right -4px, min-width 18px, height 18px, padding 0 4px, border-radius 9px, background #e23d2d, color #fff. The bell click toggles `.is-on`.',
     checklist: [
-      'Off is translate(-8.2px, 12.4px), scale 0.4, opacity 0.',
-      'On springs translate and scale with `springs.pop` and fades opacity over 180ms.',
-      'The count stays `1` on `#e23d2d`.',
+      'Off is translate(-8.2px, 12.4px) scale(0.4) and opacity 0, over 260ms.',
+      'On is translate(0, 0) scale(1) and opacity 1, transform over 500ms, opacity over 180ms.',
+      'The badge is min-width 18px, height 18px, padding 0 4px, on #e23d2d.',
     ],
   },
   'text-states-swap': {
-    motion: 'Exit up 4px with blur 2px and opacity 0 over 250ms, then enter from +4px over 250ms (`tokens.fade`, ease-in-out).',
-    content: '`Transaction processing...` ↔ `Transaction completed`.',
+    motion:
+      '`.t-text-swap` transitions transform, filter, and opacity over `--text-swap-dur: 250ms` with `--text-swap-ease: ease-in-out`. `.is-exit` is `translateY(calc(var(--text-swap-translate-y) * -1))` and `blur(var(--text-swap-blur))`. `.is-enter-start` is `translateY(var(--text-swap-translate-y))` and the same blur. `--text-swap-translate-y` is 4px and `--text-swap-blur` is 2px.',
+    content: '`Transaction processing...` then `Transaction completed`.',
     rn: 'Copy CSS is `.t-text-swap`. Copy script waits 250ms before swapping the string.',
     states: [
       {
         name: 'exit',
-        trigger: 'Animate, dropped while `busy` is true',
+        trigger: 'Swap adds `.is-exit`',
         from: 'translateY 0, opacity 1, blur 0',
-        to: 'translateY -4, opacity 0, blur 2px',
-        duration: '250ms (`tokens.fade`)',
-        easing: 'ease-in-out (`ease.inOut`)',
-        delay: 'none',
+        to: 'translateY(calc(var(--text-swap-translate-y) * -1)), --text-swap-translate-y 4px, opacity 0, blur(2px)',
+        duration: '250ms (`--text-swap-dur`)',
+        easing: 'ease-in-out (`--text-swap-ease`)',
+        delay: '',
       },
       {
         name: 'enter',
-        trigger: 'the timeout that fires after the exit duration',
-        from: 'translateY 4, opacity 0, blur 2px (written before the enter timing)',
+        trigger: 'the timeout after the exit, which swaps the string and flashes `.is-enter-start`',
+        from: 'translateY(4px), opacity 0, blur(2px)',
         to: 'translateY 0, opacity 1, blur 0',
-        duration: '250ms (`tokens.fade`)',
-        easing: 'ease-in-out (`ease.inOut`)',
-        delay: '250ms, the `setTimeout` that also swaps the string',
+        duration: '250ms (`--text-swap-dur`)',
+        easing: 'ease-in-out',
+        delay: '250ms, the setTimeout that also swaps the string',
       },
     ],
     gotchas: [
-      '`busy` clears when that timeout fires, so a second press can start during the enter.',
-      'Reduced motion sets both durations to 0.',
-      'The strings are exactly `Transaction processing...` and `Transaction completed`.',
+      'The timeout is `reduce ? 0 : 250`. Reduced motion sets the transition to none.',
+      'The strings are `Transaction processing...` and `Transaction completed`.',
+      'The line is font-size 16px inside a min-height 24px slot.',
     ],
     setup:
-      '`TextStatesSwapDemo` (`src/demos/TextStatesSwap.tsx`). The index starts at 0. Animate runs `swap`.',
+      'The line starts as `Transaction processing...`. Swap adds `.is-exit`, then after 250ms writes the next string, adds `.is-enter-start`, reads `offsetWidth`, and removes `.is-enter-start`.',
     checklist: [
-      'Exit travels to -4px with blur 2px and opacity 0 in 250ms.',
-      'The string swaps after that 250ms, and the enter starts at +4px.',
-      'Presses during `busy` do nothing.',
+      'Exit uses translateY(calc(var(--text-swap-translate-y) * -1)) with blur 2px and opacity 0 in 250ms. `--text-swap-translate-y` is 4px.',
+      'The string swaps after that 250ms, and the enter starts at 4px.',
+      'Reduced motion uses a 0 timeout and transition none.',
     ],
   },
   'menu-dropdown': {
-    motion: 'Origin top left. Closed scale 0.94 and opacity 0. Open and close are both 180ms (`tokens.menu`).',
+    motion:
+      '`.t-dropdown` starts at `scale(var(--dropdown-pre-scale))` and opacity 0. `--dropdown-pre-scale` and `--dropdown-closing-scale` are 0.94. `.is-open` scales to 1 and fades to opacity 1 over `--dropdown-open-dur: 180ms`. `.is-closing` returns to scale 0.94 over `--dropdown-close-dur: 180ms`. Easing is `--dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Origin is `var(--dropdown-origin, top left)`.',
     content: 'Trigger reads `Open menu` / `Close menu`. Items: `New file` / `Add image` / `New folder`. Starts closed.',
     rn: 'Copy CSS is `.t-dropdown`. Copy script toggles `.is-open` / `.is-closing` and the trigger label.',
     states: [
       {
         name: 'closed',
-        trigger: 'mount, the trigger while open, or an item press',
+        trigger: 'mount, and the trigger click while open',
         from: 'scale 1, opacity 1',
-        to: 'scale 0.94, opacity 0, pointerEvents none',
-        duration: '180ms (`tokens.menu`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        to: 'scale(0.94), opacity 0, class `is-closing`',
+        duration: '180ms (`--dropdown-close-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--dropdown-ease`)',
+        delay: '',
       },
       {
         name: 'open',
-        trigger: 'the trigger while closed',
-        from: 'scale 0.94, opacity 0',
-        to: 'scale 1, opacity 1, pointerEvents auto',
-        duration: '180ms (`tokens.menu`)',
+        trigger: 'the trigger click while closed',
+        from: 'scale(0.94), opacity 0',
+        to: 'scale 1, opacity 1, class `is-open`',
+        duration: '180ms (`--dropdown-open-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        delay: '',
+      },
+      {
+        name: 'menu',
+        trigger: '',
+        from: '',
+        to: 'top 40px, left 0, min-width 168px, border-radius 12px, padding 6px, background #fff',
+        duration: '',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      '`transformOrigin` is `top left`. The menu is 160px wide, radius 12, padding 6, marginTop 8. Each item is 32px tall.',
-      'The trigger label is `Open menu` while closed and `Close menu` while open.',
-      'Reduced motion uses duration 0.',
+      'transform-origin is `var(--dropdown-origin, top left)`. Item buttons are padding 8px 10px, border-radius 8px, and font 13px. Hover background is #f3f3f3.',
+      'The trigger label is `Open menu` while closed and `Close menu` while open. `aria-expanded` follows that flag.',
+      'The item buttons have no click listener. Only the trigger toggles the menu. Close removes `.is-open`, adds `.is-closing`, then removes `.is-closing` after `reduce ? 0 : 180`.',
+      'Reduced motion sets the transition to none.',
     ],
     setup:
-      '`MenuDropdownDemo` (`src/demos/MenuDropdown.tsx`). `open` starts false. One derived progress drives scale `0.94 + progress * 0.06` and opacity.',
+      '`.t-dropdown` is position absolute, top 40px, left 0, min-width 168px, background #fff, border-radius 12px, padding 6px. The trigger click toggles `.is-open` and `.is-closing` and the label.',
     checklist: [
       'Closed scale is 0.94 and opacity is 0.',
-      'Open and close are both 180ms with `ease.outEase`.',
-      'Items are `New file`, `Add image`, and `New folder`, and an item press closes the menu.',
+      'Open and close are both 180ms with cubic-bezier(0.22, 1, 0.36, 1).',
+      'Items are `New file`, `Add image`, and `New folder`. Only the trigger toggles the menu.',
     ],
   },
   'confetti-burst': {
     motion:
-      'Eighteen 8×10 bits. Horizontal travel springs from 0 to `piece.x` with `springs.default` (damping 20, stiffness 280). Lift times to `-peak` in 180ms (`ease.outEase`), then springs to 0 with `springs.snap` (damping 18, stiffness 300). Spin times to `piece.rot` in 720ms (`Easing.out(Easing.quad)`). `translateY` is `Math.min(lift, 0)`. A press inside 80ms of the last spawn is ignored.',
-    content: 'Button label `Celebrate`. 18 bits. The vertical clamp keeps pieces on the rest line.',
+      'Celebrate spawns 18 `.t-confetti-piece` bits, each 6px by 8px. The loop adds `--confetti-gravity` (1800) to vy, steps x and y, and when y passes the floor sets y to the floor and multiplies vy by `--confetti-bounce` (0.35). The floor is `rect.top - host.top - 8`. Spread is `--confetti-spread: 46deg`.',
+    content: 'Button label `Celebrate`. 18 bits. The floor is `rect.top - host.top - 8`.',
     rn: 'Reanimated particles, not a full physics engine. Copy emits `.t-confetti-piece` tokens.',
     states: [
       {
-        name: 'idle',
-        trigger: 'mount, before the first Celebrate press',
-        from: 'no bits',
-        to: 'no bits',
-        duration: 'held',
+        name: 'piece',
+        trigger: '',
+        from: '',
+        to: 'each bit is width 6px, height 8px, border-radius 1px, colours #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, #ff8a3d',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
       {
         name: 'burst',
-        trigger: 'Celebrate press when 80ms have passed since the last spawn',
-        from: 'lift 0, x 0, spin 0, opacity 1',
-        to: 'x = piece.x, lift returns to 0 after peaking, spin = piece.rot',
-        duration: 'rise 180ms, then withSpring; spin 720ms',
-        easing: 'x uses springs.default; lift uses ease.outEase then springs.snap; spin uses Easing.out(Easing.quad)',
-        delay: '(id % 6) × 18ms',
+        trigger: 'Celebrate, and also the launch on load',
+        from: 'x at the button centre, y at rect.top - host.top - 8',
+        to: 'y held on that floor after a bounce of 0.35, vx multiplied by 0.72',
+        duration: 'requestAnimationFrame, gravity `--confetti-gravity` 1800',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the spawned bits',
+        to: 'translate to the same floor, with no frame loop',
+        duration: '',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      '`COUNT` is 18. There is no 1.5s settle constant in the component.',
-      'Peaks are `46 + (id % 6) * 8`. Horizontal targets are `((id % 9) - 4) * 9 + (id % 2) * 3`. Rotation is `((id * 37 + seed * 11) % 200) - 100`, and `seed` is the burst count.',
-      'Colors cycle `#ff5a5f`, `#f5c518`, `#2ecc71`, `#4da3ff`, `#b07cff`, `#ff8a3d`. Bits are 8×10 with radius 1.5.',
-      'Reduced motion sets lift 0, x to `piece.x`, and spin to `piece.rot` with opacity 1.',
-      'The copy script is a separate gravity loop (`--confetti-gravity` 1800, `--confetti-bounce` 0.35, `--confetti-spread` 46deg, floor at the button top minus 8). It is not this Reanimated sequence.',
-      'Rest Y starts at `(220 - 36) / 2 - 10 + 1` (83) until layout. Origin X starts at 120, then becomes the scene width / 2 minus 4.',
+      'The host is width 280px and height 220px. The button sits at bottom 28px.',
+      'The floor expression is `rect.top - host.top - 8`. That 8 is a raw subtraction, not an 8px length.',
+      'Angle is `-Math.PI / 2 + (i / 17 - 0.5) * spread`. Speed is `380 + (i % 5) * 50`. Rotation starts at `(i * 37) % 180` and adds `160 * dt`.',
+      'Reduced motion writes the floor translate and returns. The stylesheet also sets `.t-confetti-piece` to display none.',
     ],
     setup:
-      '`ConfettiBurstDemo` (`src/demos/ConfettiBurst.tsx`). The scene is 220px tall. The button is 36px tall. `makePieces` rebuilds when `burst` increments.',
+      '`.burst` is 280px by 220px. Each piece is 6px by 8px with border-radius 1px. `--confetti-gravity` is 1800, `--confetti-bounce` is 0.35, and `--confetti-spread` is 46deg. The floor is `rect.top - host.top - 8`.',
     checklist: [
-      'A burst spawns 18 bits and ignores a second press inside 80ms.',
-      'Horizontal motion is `springs.default`. The rise is 180ms, then `springs.snap` returns the lift. Spin lasts 720ms.',
-      '`translateY` is `Math.min(lift, 0)`, so a bit does not travel below the rest line.',
+      'A burst spawns 18 bits coloured #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, and #ff8a3d.',
+      'Each bit is 6px by 8px. Gravity is 1800 and bounce is 0.35.',
+      'The rest Y is `rect.top - host.top - 8` on every frame that crosses the floor.',
     ],
   },
   'modal-open-close': {
-    motion: 'Scale 0.94→1 and fade over 200ms (`tokens.modal`). Backdrop opacity peaks at 0.28. Close uses the same 200ms.',
-    content: 'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` Starts closed.',
+    motion:
+      '`.t-modal` starts at `scale(var(--modal-scale))` and opacity 0. `--modal-scale` is 0.94. `.is-open` scales to 1 and fades in over `--modal-open-dur: 200ms`. `.is-closing` returns to that scale over `--modal-close-dur: 200ms`. Easing is `--modal-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The backdrop background is rgba(0,0,0,.28).',
+    content: 'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` The backdrop starts `hidden`.',
     rn: 'Copy CSS is `.t-modal`. Copy script shows and hides the backdrop.',
     states: [
       {
+        name: 'panel',
+        trigger: '',
+        from: '',
+        to: '.panel width 280px, border-radius 16px, padding 20px, background #fff. .backdrop background rgba(0,0,0,.28)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
         name: 'closed',
-        trigger: 'mount, the backdrop press, or Close',
-        from: 'scale 1, sheet opacity 1, backdrop opacity 0.28',
-        to: 'scale 0.94, sheet opacity 0, backdrop opacity 0, pointerEvents none',
-        duration: '200ms (`tokens.modal`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        trigger: 'mount (`hidden` on `.backdrop`) and the Close button',
+        from: 'scale 1, opacity 1, class `is-open`',
+        to: 'scale(var(--modal-scale)) 0.94, opacity 0, class `is-closing`, then `hidden`',
+        duration: '200ms (`--modal-close-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--modal-ease`)',
+        delay: '',
       },
       {
         name: 'open',
-        trigger: 'Toggle modal',
-        from: 'scale 0.94, sheet opacity 0, backdrop opacity 0',
-        to: 'scale 1, sheet opacity 1, backdrop opacity 0.28, pointerEvents auto',
-        duration: '200ms (`tokens.modal`)',
+        trigger: 'the Toggle modal button',
+        from: 'scale(0.94), opacity 0',
+        to: 'scale 1, opacity 1, class `is-open`',
+        duration: '200ms (`--modal-open-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        delay: '',
       },
     ],
     gotchas: [
-      'Scale is `0.94 + progress * 0.06`. Backdrop opacity is `progress * 0.28`. The backdrop fill is `#0d0d0d`.',
-      'The dialog is 210px wide, radius 14, padding 16. The trigger label is `Toggle modal`.',
-      'Reduced motion uses duration 0. The layer ignores pointer events while `open` is false.',
+      'Close does not listen on the backdrop. It adds `.is-closing` and sets `hidden` after `reduce ? 0 : 200`.',
+      'The panel text colour on the paragraph is #6c6c6c. The title is `New project`.',
+      'Reduced motion uses the 0 timeout. The stylesheet does not animate the backdrop background.',
     ],
     setup:
-      '`ModalDemo` (`src/demos/ModalOpenClose.tsx`). `open` starts false. One derived progress drives the sheet and the backdrop.',
+      '`.backdrop` is position fixed, inset 0, background rgba(0,0,0,.28), and starts `hidden`. `.panel` is width 280px, background #fff, border-radius 16px, padding 20px. Toggle modal calls paint(true). Close calls paint(false).',
     checklist: [
-      'Open and close both last 200ms.',
-      'The sheet scales from 0.94 to 1 and fades with that same progress.',
-      'Backdrop opacity peaks at 0.28. The title is `New project`.',
+      'The panel is 280px wide, border-radius 16px, padding 20px.',
+      'The backdrop background is rgba(0,0,0,.28).',
+      'Open and close both last 200ms, scaling between 0.94 and 1 with cubic-bezier(0.22, 1, 0.36, 1).',
     ],
   },
   'gooey-plus-menu': {
-    motion: 'Closed-network SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms bouncy stagger 40ms; close 250ms snappy.',
+    motion: 'SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms, close 250ms. Stagger is the number 40 joined to ms.',
     content: '`+` hub + New file / Add image / New folder icons. White liquid surface; dark crisp icons.',
     rn: 'Closed network: hand-rolled SVG filter (no npm). Live store web demo may use liquid-gooey. Copy HTML, Copy CSS, and Copy script split the zero-dependency document. None of them copies the whole file.',
   },
   'page-side-by-side': {
-    motion: 'Forward/back page push, translateX 24px over 300ms (`tokens.page`). No blur.',
-    content: 'List: token `B`, `BNB`, `BNB`, `$66.11`. Detail: `$10` and `$66.11 available`.',
+    motion:
+      '`.t-page` transitions transform and opacity over `--page-slide-dur: 300ms` with `--page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1)`. `.is-exit` is `translateX(calc(var(--page-slide-distance) * -1))` and opacity 0. `.is-enter` is `translateX(var(--page-slide-distance))` and opacity 0. `--page-slide-distance` is 24px.',
+    content: 'First page `BNB` / `$66.11`. Second page `$10` / `$66.11 available`.',
     rn: 'Copy CSS is `.t-page`. Copy script swaps the two pages after 300ms.',
     states: [
       {
-        name: 'list',
-        trigger: 'mount, and a press while the detail page is showing',
-        from: 'list opacity 0 and translateX -24; detail opacity 1 and translateX 0',
-        to: 'list opacity 1 and translateX 0; detail opacity 0 and translateX 24',
-        duration: '300ms (`tokens.page`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        name: 'exit',
+        trigger: 'Next page adds `.is-exit`',
+        from: 'translateX 0, opacity 1',
+        to: 'translateX(calc(var(--page-slide-distance) * -1)), --page-slide-distance 24px, opacity 0',
+        duration: '300ms (`--page-slide-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--page-slide-ease`)',
+        delay: '',
       },
       {
-        name: 'detail',
-        trigger: 'a press on the card while the list is showing',
-        from: 'list opacity 1 and translateX 0; detail opacity 0 and translateX 24',
-        to: 'list opacity 0 and translateX -24; detail opacity 1 and translateX 0',
-        duration: '300ms (`tokens.page`)',
+        name: 'enter',
+        trigger: 'the timeout, which writes the next pair and adds `.is-enter`, then removes it on the next frames',
+        from: 'translateX(24px), opacity 0',
+        to: 'translateX 0, opacity 1',
+        duration: '300ms (`--page-slide-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: 'none',
+        delay: '300ms, the setTimeout before the swap',
+      },
+      {
+        name: 'pager',
+        trigger: '',
+        from: '',
+        to: '.pager width 220px, height 120px, border-radius 14px, background #fff',
+        duration: '',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'List translateX is `t * -24`. Detail translateX is `(1 - t) * 24`. Opacity is `1 - t` and `t`. There is no blur.',
-      'The card is 210×88, radius 14. The token disc is 32×32 on `#f3ba2f`.',
-      'Reduced motion uses duration 0.',
+      'There is no blur. The timeout is `reduce ? 0 : 300`.',
+      'The page is font-size 18px. The second line is font-size 13px and colour #6c6c6c.',
+      'Reduced motion sets the transition to none.',
     ],
     setup:
-      '`PageSideBySideDemo` (`src/demos/PageSideBySide.tsx`). `detail` starts false. Pressing the card toggles it. One derived value drives both pages.',
+      'The pairs are `BNB` / `$66.11` and `$10` / `$66.11 available`. `.pager` is 220px by 120px, border-radius 14px. Next page adds `.is-exit`, waits 300ms, then swaps the pair through `.is-enter`.',
     checklist: [
-      'The push is 24px over 300ms with `ease.outEase`.',
-      'The list shows `BNB` and `$66.11`. The detail shows `$10` and `$66.11 available`.',
-      'Reduced motion snaps between the two pages.',
+      'The push is 24px over 300ms with cubic-bezier(0.22, 1, 0.36, 1).',
+      'The first page is `BNB` and `$66.11`. The second is `$10` and `$66.11 available`.',
+      'Reduced motion uses a 0 timeout and transition none.',
     ],
   },
   'icon-swap': {
-    motion: 'Scale from 0.25 and blur 2px, cross-fade 250ms, ease-in-out.',
-    content: 'Hamburger (three lines) swaps with an X. Starts on the hamburger.',
+    motion:
+      'Both `.t-icon` layers transition opacity, filter, and transform over `--icon-swap-dur: 250ms` with `--icon-swap-ease: ease-in-out`. `.is-out` is opacity 0, `blur(var(--icon-swap-blur))`, and `scale(var(--icon-swap-start-scale))`. `--icon-swap-blur` is 2px and `--icon-swap-start-scale` is 0.25.',
+    content: 'Three-line icon swaps with an X. The X starts with `.is-out`.',
     rn: 'Copy CSS is `.t-icon`. Copy script toggles `.is-out` on the two layers.',
     states: [
       {
-        name: 'menu',
-        trigger: 'mount (`menu` is true), and a press while the X is showing',
-        from: 'hamburger opacity 0, scale 0.25, blur 2px; X opacity 1, scale 1, blur 0',
-        to: 'hamburger opacity 1, scale 1, blur 0; X opacity 0, scale 0.25, blur 2px',
-        duration: '250ms (`tokens.fade`)',
-        easing: 'ease-in-out (`ease.inOut`)',
-        delay: 'none',
+        name: 'shown',
+        trigger: 'the layer without `.is-out`',
+        from: 'opacity 0, blur(2px), scale(0.25)',
+        to: 'opacity 1, blur 0, scale 1',
+        duration: '250ms (`--icon-swap-dur`)',
+        easing: 'ease-in-out (`--icon-swap-ease`)',
+        delay: '',
       },
       {
-        name: 'close',
-        trigger: 'a press while the hamburger is showing',
-        from: 'hamburger opacity 1, scale 1, blur 0; X opacity 0, scale 0.25, blur 2px',
-        to: 'hamburger opacity 0, scale 0.25, blur 2px; X opacity 1, scale 1, blur 0',
-        duration: '250ms (`tokens.fade`)',
-        easing: 'ease-in-out (`ease.inOut`)',
-        delay: 'none',
+        name: 'out',
+        trigger: 'Swap icon toggles `.is-out` on both layers',
+        from: 'opacity 1, scale 1, blur 0',
+        to: 'opacity 0, blur(2px), scale(0.25)',
+        duration: '250ms (`--icon-swap-dur`)',
+        easing: 'ease-in-out',
+        delay: '',
       },
     ],
     gotchas: [
-      'Scale is `0.25 + (1 - t) * 0.75` on the hamburger and `0.25 + t * 0.75` on the X. Blur is `t * 2` and `(1 - t) * 2`.',
-      'The hit target is 48×48, radius 12. Each hamburger line is 2px. Each X bar is 20×2 and rotated 45° or -45°.',
-      'Reduced motion uses duration 0. `webFilter` only emits a CSS filter on web when the blur is above 0.',
+      'The slot is 48px by 48px. Each icon is position absolute, inset 0.',
+      'Reduced motion sets the transition to none.',
     ],
     setup:
-      '`IconSwapDemo` (`src/demos/IconSwap.tsx`). `menu` starts true. A press toggles it. One derived `t` drives both layers.',
+      'The first `.t-icon` is the three-line mark. The second starts with `.is-out` and is the X. Swap icon toggles `.is-out` on both. `--icon-swap-dur` is 250ms, `--icon-swap-blur` is 2px, and `--icon-swap-start-scale` is 0.25.',
     checklist: [
-      'The cross-fade, scale, and blur share one 250ms ease-in-out.',
-      'The resting icon is the three-line hamburger.',
-      'The outgoing icon ends at scale 0.25 and blur 2px.',
+      'Opacity, blur, and scale share one 250ms ease-in-out.',
+      'The resting icon is the three-line mark.',
+      '`.is-out` ends at scale 0.25 and blur 2px.',
     ],
   },
   'success-check': {
     motion:
-      'Green disc `#1f8a4c`, white stroke. Opacity, translateY 28px, rotate 80deg, and scale 0.86→1 via `springs.pop` (mass 0.8, damping 12, stiffness 280). The check draws a 28px dash after an 80ms delay, on the same spring. Turning it off times the dash to 0 in 120ms.',
+      '`.t-check` runs `t-check-in` for `--check-opacity-dur: 500ms` with `--check-ease-out: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is opacity 0, `translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)) scale(var(--check-scale-from))`. Those are 28px, 80deg, and 0.86. `.mark` draws `t-check-draw` for the same 500ms after `--check-draw-delay: 80ms`, from `stroke-dashoffset: var(--check-dash)` to 0. `--check-dash` is 28.',
     rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
     states: [
       {
-        name: 'off',
-        trigger: 'mount (`on` is false) and Animate while the check is on',
-        from: 'opacity 1, translateY 0, rotate 0, scale 1, dash 1',
-        to: 'opacity 0, translateY 28, rotate 80deg, scale 0.86, dash 0',
-        duration: 'the badge is withSpring; the dash times out in 120ms',
-        easing: 'springs.pop (mass 0.8, damping 12, stiffness 280); dash uses the `timed` default curve',
-        delay: 'none',
+        name: 'in',
+        trigger: 'paint, and Replay which removes `.t-check`, reads offsetWidth, and adds `.t-check`',
+        from: 'opacity 0, translateY(28px), rotate(80deg), scale(0.86)',
+        to: 'opacity 1, translateY(0), rotate(0), scale(1)',
+        duration: '500ms (`--check-opacity-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--check-ease-out`)',
+        delay: '',
       },
       {
-        name: 'on',
-        trigger: 'Animate while the check is off',
-        from: 'opacity 0, translateY 28, rotate 80deg, scale 0.86, dash 0',
-        to: 'opacity 1, translateY 0, rotate 0, scale 1, dash 1',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.pop (mass 0.8, damping 12, stiffness 280)',
-        delay: 'the dash waits 80ms (`withDelay`); the badge does not',
+        name: 'draw',
+        trigger: 'the same `.t-check` paint, on `.mark`',
+        from: 'stroke-dashoffset var(--check-dash), `--check-dash` 28',
+        to: 'stroke-dashoffset 0',
+        duration: '500ms (`--check-opacity-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '80ms (`--check-draw-delay`)',
       },
     ],
     gotchas: [
-      'The disc is a circle at cx 18, cy 18, r 16, fill `#1f8a4c`. The stroke is `#fff`, width 2.4, path `M11 18.5 L16 23.5 L25 13.5`, `strokeDasharray` 28. `strokeDashoffset` is `28 * (1 - dash)`.',
-      'Reduced motion snaps `t` with duration 0 and times the dash with duration 0.',
-      'Copy CSS plays `t-check-in` and `t-check-draw` for `--check-opacity-dur` 500ms with cubic-bezier(0.22, 1, 0.36, 1), and the draw delay is 80ms. The live card is `springs.pop`, and the hide dash is 120ms rather than that 500ms animation.',
-      'The component starts at `t` 0, so the stage is empty until Animate. The copy stylesheet runs `t-check-in` on `.t-check` as soon as it is painted.',
+      'The disc is circle cx 18, cy 18, r 16, fill #1f8a4c. The stroke is #fff, stroke-width 2.4, path `M11 18.5 L16 23.5 L25 13.5`.',
+      'Reduced motion sets the `.t-check` animation to none.',
+      'Replay restarts the animation by removing and re-adding `.t-check`. There is no separate hide duration.',
     ],
     setup:
-      '`SuccessCheckDemo` (`src/demos/SuccessCheck.tsx`). `on` starts false. Animate toggles it. The badge transform is opacity `t`, translateY `(1 - t) * 28`, rotate `(1 - t) * 80` degrees, scale `0.86 + t * 0.14`.',
+      'The svg is `.t-check`, 36 by 36, viewBox 0 0 36 36. Fill is #1f8a4c. `--check-y-amount` is 28px, `--check-rotate-from` is 80deg, `--check-scale-from` is 0.86, `--check-dash` is 28, and `--check-draw-delay` is 80ms.',
     checklist: [
-      'The badge uses `springs.pop` for opacity, translateY 28, rotate 80deg, and scale 0.86→1.',
-      'The 28px dash waits 80ms, then uses the same spring. Hiding the dash takes 120ms.',
-      'The disc is `#1f8a4c` and the stroke is white.',
+      'The badge enters over 500ms from translateY 28px, rotate 80deg, and scale 0.86.',
+      'The dash is 28 and waits 80ms, then draws over the same 500ms.',
+      'The disc is #1f8a4c and the stroke is #fff.',
     ],
   },
   'avatar-group-hover': {
     motion:
-      'Strength is max(0, 1 − distance × 0.45). Lift is −8px × strength. Scale is 1 + 0.06 × strength. Lift and scale use `springs.default` (damping 20, stiffness 280).',
+      '`.t-avatar` transitions transform over `--avatar-dur: 320ms`. While the row is hovered the timing is `--avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1)`. Otherwise it is `--avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1)`. The script sets `translateY(lift * strength)` and `scale(1 + (peak - 1) * strength)`. `--avatar-lift` is -8px, `--avatar-scale` is 1.06, and `--avatar-falloff` is 0.45.',
     content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
     rn: 'Copy CSS sets the avatar tokens. Copy script writes the distance-weighted transform.',
     states: [
       {
         name: 'rest',
-        trigger: 'mount (`hot` is null) and pointer leave',
-        from: 'the hovered lift and scale',
-        to: 'translateY 0, scale 1, zIndex 1',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.default (damping 20, stiffness 280)',
-        delay: 'none',
+        trigger: 'mount and mouseleave, which call place(null)',
+        from: 'the hovered translateY and scale',
+        to: 'strength 0, scale 1, zIndex 1',
+        duration: '320ms (`--avatar-dur`)',
+        easing: 'cubic-bezier(0.34, 3.85, 0.64, 1) (`--avatar-ease-out`)',
+        delay: '',
       },
       {
         name: 'hover',
-        trigger: 'hover or press on avatar index i',
+        trigger: 'mouseenter on avatar index i',
         from: 'translateY 0, scale 1',
-        to: 'translateY -8 × strength, scale 1 + 0.06 × strength, zIndex 3 when strength > 0.9',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.default (damping 20, stiffness 280)',
-        delay: 'none',
+        to: 'translateY(--avatar-lift -8px times strength), scale toward --avatar-scale 1.06, zIndex 3 when strength > 0.9',
+        duration: '320ms (`--avatar-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--avatar-ease-in`)',
+        delay: '',
+      },
+      {
+        name: 'disc',
+        trigger: '',
+        from: '',
+        to: 'width 40px, height 40px, margin-left -10px, border 2px solid #fff, colour #2a2118',
+        duration: '',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'Strength is 0 when nothing is hot, otherwise `Math.max(0, 1 - Math.abs(hot - index) * 0.45)`.',
-      'Avatars are 40×40, radius 20, border 2px `#fff`. Every avatar after the first has marginLeft -10. Initials are 11px `#2a2118`.',
-      'Reduced motion snaps the spring with duration 0.',
-      'Copy CSS transitions transform over `--avatar-dur` 320ms. The row uses `--avatar-ease-in` while hovered and `--avatar-ease-out` cubic-bezier(0.34, 3.85, 0.64, 1) otherwise. The live card has no 320ms duration.',
+      'Strength is 0 when hot is null, otherwise `Math.max(0, 1 - Math.abs(hot - j) * falloff)` with falloff `--avatar-falloff` 0.45.',
+      'The first avatar has margin-left 0. Initials are font-size 11px.',
+      'Reduced motion sets the transition to none.',
     ],
     setup:
-      '`AvatarGroupDemo` (`src/demos/AvatarGroup.tsx`). One `hot` index is shared. Each avatar writes its own lift and scale from the distance to that index.',
+      'Each `.t-avatar` is 40px by 40px with margin-left -10px, border 2px solid #fff, and colour #2a2118. mouseenter calls place(i). mouseleave calls place(null). `--avatar-lift` is -8px and `--avatar-dur` is 320ms.',
     checklist: [
-      'The hovered avatar lifts 8px and scales to 1.06. Neighbours fall off by 0.45 per step and clamp at 0.',
-      'Lift and scale use `springs.default`.',
-      'Initials and fills are JC `#d9b8a2`, AK `#b7c7d9`, MR `#d4c4a8`, SL `#c5b3d6`, TW `#a8c5b8`.',
+      'The hovered avatar uses lift -8px and scale 1.06. Neighbours fall off by 0.45 per step and clamp at 0.',
+      'The transform transition is 320ms, ease-in cubic-bezier(0.22, 1, 0.36, 1) while hovered and ease-out cubic-bezier(0.34, 3.85, 0.64, 1) otherwise.',
+      'Initials and fills are JC #d9b8a2, AK #b7c7d9, MR #d4c4a8, SL #c5b3d6, TW #a8c5b8.',
     ],
   },
   'card-stack-hover': {
     motion:
-      'Starts stacked. Spread fans to translate (−28, 10) / (0, −6) / (28, 10) and rotate −8 / 0 / 8 degrees. The spread uses `springs.layout` (damping 20, stiffness 280, mass 1).',
+      '`.t-stack-card` transitions transform over `--stack-dur: 420ms` with `--stack-ease: cubic-bezier(0.34, 1.36, 0.64, 1)`. `.is-spread` sets card 1 to `translate(-28px, 10px) rotate(-8deg)`, card 2 to `translate(0, -6px) rotate(0deg)`, and card 3 to `translate(28px, 10px) rotate(8deg)`.',
     content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
     rn: 'Copy CSS is `.t-stack-card`. Copy script toggles `.is-spread` on hover and click.',
     states: [
       {
         name: 'stacked',
-        trigger: 'mount, hover out, and a click while spread',
+        trigger: 'mount, mouseleave, and a click that removes `.is-spread`',
         from: 'the spread transforms',
-        to: 'translate 0 and rotate 0 on every card',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
+        to: 'no transform on the cards',
+        duration: '420ms (`--stack-dur`)',
+        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1) (`--stack-ease`)',
+        delay: '',
       },
       {
         name: 'spread',
-        trigger: 'hover in, and a click while stacked',
-        from: 'translate 0, rotate 0',
-        to: 'card 1 translate(-28, 10) rotate -8deg; card 2 translate(0, -6) rotate 0; card 3 translate(28, 10) rotate 8deg',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
+        trigger: 'mouseenter, and a click that adds `.is-spread`',
+        from: 'no transform',
+        to: 'translate(-28px, 10px) rotate(-8deg), translate(0, -6px) rotate(0deg), translate(28px, 10px) rotate(8deg)',
+        duration: '420ms (`--stack-dur`)',
+        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1)',
+        delay: '',
       },
     ],
     gotchas: [
-      'One shared progress multiplies those offsets. Cards are 110×74, radius 12, inside a 110×74 stack and a 180×120 hit target. zIndex is the card index plus 1.',
-      'Reduced motion snaps the spring with duration 0.',
-      'Copy CSS uses `--stack-dur` 420ms and cubic-bezier(0.34, 1.36, 0.64, 1) with the same three transforms. `--stack-fan` (18px) and `--stack-rot` (6deg) are not read by those rules.',
+      'The hit target is 180px by 120px. Each card is 110px by 74px, left 35px, top 23px, border-radius 12px, background #fff.',
+      '`--stack-fan: 18px` and `--stack-rot: 6deg` are declared. The spread rules use the translate and rotate literals above and do not read those two variables.',
+      'Reduced motion sets the transition to none.',
     ],
     setup:
-      '`CardStackHoverDemo` (`src/demos/CardStackHover.tsx`). `spread` starts false. Hover sets it true or false. Click toggles it.',
+      'mouseenter adds `.is-spread`. mouseleave removes it. Click toggles it. `--stack-dur` is 420ms and `--stack-ease` is cubic-bezier(0.34, 1.36, 0.64, 1).',
     checklist: [
-      'Rest is a stack. Spread is (−28, 10, −8°), (0, −6, 0°), (28, 10, 8°).',
-      'The progress uses `springs.layout`.',
+      'Rest has no transform. Spread is translate(-28px, 10px) rotate(-8deg), translate(0, -6px), and translate(28px, 10px) rotate(8deg).',
+      'The transition is 420ms with cubic-bezier(0.34, 1.36, 0.64, 1).',
       'Labels are `Card 1`, `Card 2`, and `Card 3`.',
     ],
   },
   'error-state-shake': {
-    motion: '`cubic-bezier(0.36, 0.07, 0.19, 0.97)`, 400ms, keyframes 0, +7px, −7px, +4.2px, −2.45px, 0.',
+    motion:
+      '`.t-shake.is-error` runs `t-shake` for `--shake-dur: 400ms` with `--shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97)`. Keyframes: 0% translateX 0, 20% `translateX(var(--shake-distance))`, 40% `translateX(calc(var(--shake-distance) * -1))`, 60% translateX(4.2px), 80% translateX(-2.45px), 100% translateX 0. `--shake-distance` is 7px. `.is-error` also sets border-color #c43a31.',
     content: 'Input starts at `hello@`. Invalid submit shows `Please enter a valid email.` Border `#c43a31`.',
     rn: 'Copy CSS is `.t-shake`. Copy script validates the email and replays `.is-error`.',
     states: [
       {
         name: 'idle',
-        trigger: 'mount, a valid Submit, or typing while an error is showing',
-        from: 'error border and the shake offset',
-        to: 'translateX 0, border rgba(0,0,0,0.1), no message',
-        duration: 'the border and message update on the next render; typing does not replay translateX',
+        trigger: 'a Submit that matches `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`',
+        from: 'border-color #c43a31 and the shake',
+        to: 'border 1px solid rgba(0,0,0,.1), message hidden',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
       {
         name: 'invalid',
-        trigger: 'Submit when `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/` fails',
+        trigger: 'Submit when that pattern fails',
         from: 'translateX 0',
-        to: 'translateX +7, then -7, then +4.2, then -2.45, then 0',
-        duration: '400ms (`tokens.shake`), five steps of 80ms',
-        easing: 'cubic-bezier(0.36, 0.07, 0.19, 0.97) (`ease.shake`)',
-        delay: 'none',
+        to: 'translateX(7px), then the negative of that distance, then translateX(4.2px), then translateX(-2.45px), then translateX 0',
+        duration: '400ms (`--shake-dur`)',
+        easing: 'cubic-bezier(0.36, 0.07, 0.19, 0.97) (`--shake-ease`)',
+        delay: '',
       },
     ],
     gotchas: [
-      'Each step is `tokens.shake / 5`. The distances are `tokens.shakePx` (7), then `-7`, then `7 * 0.6` (4.2), then `-7 * 0.35` (-2.45), then 0.',
-      'A valid submit clears the error and does not shake. Editing the field clears the error flag and does not reset `x`.',
-      'Reduced motion sets the error and returns before the sequence.',
-      'The input is 38px tall, radius 10. The message is 11px in `#c43a31` (`colors.danger`). The button label is `Submit`.',
+      'The script removes `.is-error`, reads offsetWidth, then adds `.is-error` so the animation restarts.',
+      'The field is height 38px, border-radius 10px, padding 0 10px. The message is font-size 11px and colour #c43a31. The button label is Submit.',
+      'Reduced motion sets `.t-shake.is-error` animation to none. The error border and message still show.',
     ],
     setup:
-      '`ErrorShakeDemo` (`src/demos/ErrorShake.tsx`). The field starts at `hello@`. Submit runs `shake`.',
+      'The input starts at `hello@`. Submit tests `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`. A miss shows `Please enter a valid email.` and adds `.is-error`. `--shake-distance` is 7px and `--shake-dur` is 400ms.',
     checklist: [
-      'An invalid submit shows `Please enter a valid email.` and turns the border `#c43a31`.',
-      'The shake is +7, −7, +4.2, −2.45, 0, each step 80ms, easing cubic-bezier(0.36, 0.07, 0.19, 0.97).',
-      'Reduced motion shows the error and does not move the field.',
+      'An invalid submit shows `Please enter a valid email.` and sets border-color #c43a31.',
+      'The shake is 7px, the negative of that distance, 4.2px, -2.45px, then 0, over 400ms with cubic-bezier(0.36, 0.07, 0.19, 0.97).',
+      'Reduced motion keeps the error and sets the animation to none.',
     ],
   },
   'input-clear-dissolve': {
     motion:
-      'Clear runs `FadeOutUp.duration(250).delay(index * 45)`: opacity 1→0 and translateY 0→-25. Restore runs `FadeInDown.duration(250).delay(index * 45)`: opacity 0→1 and translateY 25→0. Layout uses `layoutTransition` (`LinearTransition.springify().damping(20).stiffness(280)`).',
-    content: '`search` `recent` `files`. The empty field shows `Search`. The button is `×` while words remain and `+` when they are gone.',
+      '`.t-word.is-out` is `translateY(calc(var(--clear-out-fly) * -1))`, opacity 0, and `blur(var(--clear-blur))`. `--clear-out-fly` is 12px and `--clear-blur` is 2px. The transition is `--clear-out-dur: 250ms` with `--clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Clear sets `transitionDelay` to `(i * 45) + \'ms\'`. Restore sets that delay to `0ms` and removes `.is-out`.',
+    content: '`search` `recent` `files`. The button is `×` while the words are showing and `+` after they clear.',
     rn: 'Copy CSS is `.t-word`. Copy script sets the stagger and toggles `.is-out`.',
     states: [
       {
         name: 'clear',
-        trigger: 'the button press while any word is showing',
-        from: 'opacity 1, translateY 0',
-        to: 'opacity 0, translateY -25, then the word list is empty',
-        duration: '250ms (`FadeOutUp.duration(250)`)',
-        easing: 'FadeOutUp default',
-        delay: 'word index × 45ms',
+        trigger: 'the button while the words are showing',
+        from: 'opacity 1, translateY 0, blur 0',
+        to: 'translateY(calc(var(--clear-out-fly) * -1)), --clear-out-fly 12px, opacity 0, blur(2px), class `is-out`',
+        duration: '250ms (`--clear-out-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--clear-out-ease`)',
+        delay: '`(i * 45) + \'ms\'`',
       },
       {
         name: 'restore',
-        trigger: 'the button press while the word list is empty',
-        from: 'opacity 0, translateY 25',
-        to: 'opacity 1, translateY 0, words `search` `recent` `files`',
-        duration: '250ms (`FadeInDown.duration(250)`)',
-        easing: 'FadeInDown default',
-        delay: 'word index × 45ms',
+        trigger: 'the button while the words are cleared',
+        from: 'class `is-out`',
+        to: '`.is-out` removed, words `search` `recent` `files`',
+        duration: '250ms (`--clear-out-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '0ms',
       },
     ],
     gotchas: [
-      'Reanimated `FadeOutUp` travels to translateY -25 and `FadeInDown` starts at translateY 25. This component does not set a blur.',
-      'The layout change on the row is `layoutTransition`: reduced motion uses `LinearTransition.duration(0)`, otherwise `LinearTransition.springify().damping(20).stiffness(280)`.',
-      'Copy CSS `.t-word.is-out` uses blur 2px and translateY -12px (`--clear-out-fly`) with cubic-bezier(0.22, 1, 0.36, 1). The 45ms stagger matches. The live card does not use that 12px or that blur.',
-      'Reduced motion passes `undefined` for entering and exiting.',
+      'The delay is the number `i * 45` joined to the string `ms`.',
+      'The field is width 230px, height 40px, border-radius 12px. The button is 22px by 22px.',
+      'Reduced motion sets the word transition to none.',
     ],
     setup:
-      '`InputClearDemo` (`src/demos/InputClear.tsx`). The seed is `search recent files`. The field is 230×40, radius 12. The button label follows whether `words.length` is non-zero.',
+      'The words are `search`, `recent`, and `files`. The button starts as `×`. Clear adds `.is-out` with delay `(i * 45) + \'ms\'` and switches the label to `+`. The next click sets delay `0ms`, removes `.is-out`, and restores `×`.',
     checklist: [
-      'Clearing exits each word over 250ms with stagger 45ms, traveling to translateY -25.',
-      'Restoring enters each word over 250ms from translateY 25, with the same stagger.',
-      'The button reads `×` when words are present and `+` when the field is empty.',
+      'Clearing sets `.is-out`: translateY of `--clear-out-fly` 12px upward, opacity 0, blur 2px, over 250ms.',
+      'Each word delay is `(i * 45) + \'ms\'`. Restore uses `0ms`.',
+      'The button reads `×` while the words are showing and `+` after they clear.',
     ],
   },
   'skeleton-reveal': {
-    motion: 'Skeleton pulses to opacity 0.5 over 1000ms. Content fades in over 250ms with a 2px blur.',
-    content: '`Jane Cooper` / `jane.cooper@example.com`. Initials `JC` on `#d9b8a2`.',
+    motion:
+      '`.t-skel` runs `t-pulse` for `--pulse-dur: 1000ms` linear infinite. The 50% frame is opacity 0.5. `.t-content` transitions opacity and filter over `--reveal-dur: 250ms` with `--reveal-ease: ease-in-out`. `.is-hidden` is opacity 0 and `blur(var(--reveal-blur))`. `--reveal-blur` is 2px.',
+    content: '`Jane Cooper` / `jane.cooper@example.com`.',
     rn: 'Copy CSS is `.t-skel` / `.t-content`. Copy script reveals after 900ms and toggles on click.',
     states: [
       {
         name: 'loading',
-        trigger: 'mount, and Animate while the content is showing',
-        from: 'content opacity 1, skeleton opacity 0',
-        to: 'skeleton pulsing between opacity 1 and 0.5, content opacity 0 and blur 2px',
-        duration: 'pulse 1000ms, repeating and reversing; reveal 250ms',
-        easing: 'pulse is the default `withTiming` curve; reveal is ease-in-out (`ease.inOut`)',
-        delay: 'none',
+        trigger: 'mount, until reveal, and Reveal while the content is showing',
+        from: 'content without `.is-hidden`',
+        to: '`.t-skel` opacity 0.5 at 50%, `.t-content.is-hidden` opacity 0 and blur(2px)',
+        duration: 'pulse 1000ms (`--pulse-dur`), reveal 250ms (`--reveal-dur`)',
+        easing: 'pulse linear, reveal ease-in-out (`--reveal-ease`)',
+        delay: '',
       },
       {
         name: 'revealed',
-        trigger: 'Animate while the skeleton is showing',
-        from: 'skeleton opacity at the pulse, content opacity 0 and blur 2px',
-        to: 'skeleton opacity 0, content opacity 1 and blur 0',
-        duration: '250ms',
-        easing: 'ease-in-out (`ease.inOut`)',
-        delay: 'none',
+        trigger: 'setTimeout(reveal, 900) and the Reveal button',
+        from: 'opacity 0, blur(2px), class `is-hidden`',
+        to: 'opacity 1, filter cleared, bars display none',
+        duration: '250ms (`--reveal-dur`)',
+        easing: 'ease-in-out',
+        delay: '',
       },
     ],
     gotchas: [
-      'Skeleton opacity is `(1 - reveal) * pulse`. Skeleton blur is `reveal * 2`. Content opacity is `reveal`. Content blur is `(1 - reveal) * 2`.',
-      'While loading and motion is allowed, pulse is `withRepeat(withTiming(0.5, { duration: 1000 }), -1, true)`. Revealing or reduced motion sets pulse to 1 and stops the repeat.',
-      'The component does not reveal on a timer. The copy script calls reveal after 900ms and also on the button.',
-      'Bones use `#eeeeef` (`colors.skeleton`). The name line is 108×10 and the mail line is 150×10. The avatar slot is 40×40.',
+      'The card is width 240px, min-height 78px, border-radius 14px, padding 16px. Bones are height 12px, border-radius 6px, background #ececec. The short bone is width 62%.',
+      'The mail line is font-size 13px and colour #6c6c6c.',
+      'Reduced motion sets the pulse and the content transition to none, and the timeout is 0.',
     ],
     setup:
-      '`SkeletonRevealDemo` (`src/demos/SkeletonReveal.tsx`). `loaded` starts false. Animate toggles it. `timed(loaded ? 1 : 0, 250, ease.inOut)` writes the reveal.',
+      '`.t-content` starts with `.is-hidden`. `setTimeout(reveal, reduce ? 0 : 900)` hides the bones and removes `.is-hidden`. Reveal toggles back to the bones.',
     checklist: [
-      'The skeleton pulse reaches opacity 0.5 over 1000ms and reverses.',
+      'The skeleton pulse reaches opacity 0.5 over 1000ms and repeats.',
       'The reveal fades the content in over 250ms while a 2px blur clears.',
-      'The loaded text is `Jane Cooper` and `jane.cooper@example.com`.',
+      'The loaded text is `Jane Cooper` and `jane.cooper@example.com`. Bones are #ececec.',
     ],
   },
   'texts-reveal': {
     motion:
-      'Each line enters with `FadeInDown.duration(280).springify().damping(20).stiffness(280)`. `FadeInDown` starts at opacity 0 and translateY 25. The second line delays 50ms. Replay remounts the column. The exit is `FadeOut.duration(120)`.',
+      'Each `.t-line` runs `t-rise` for `--stagger-dur: 280ms` with `--stagger-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `translateY(var(--stagger-distance))`, opacity 0, `blur(var(--stagger-blur))`. `--stagger-distance` is 12px and `--stagger-blur` is 3px. The second line waits `--stagger-stagger: 50ms`. Replay assigns `innerHTML` to itself so the animation restarts.',
     content: '`Pull request opened` / `Review requested from 3 teammates`.',
     rn: 'Copy CSS is `.t-line`. Copy script replays by rewriting the lines.',
     states: [
       {
         name: 'enter',
-        trigger: 'mount and each Replay (`key` is `tick`)',
-        from: 'opacity 0, translateY 25',
-        to: 'opacity 1, translateY 0',
-        duration: '`FadeInDown.duration(280).springify()`',
-        easing: 'springify damping 20, stiffness 280',
-        delay: 'the second line waits 50ms; the first line does not',
-      },
-      {
-        name: 'exit',
-        trigger: 'Replay, before the column remounts',
-        from: 'opacity 1',
-        to: 'opacity 0',
-        duration: '120ms (`FadeOut.duration(120)`)',
-        easing: 'FadeOut default',
-        delay: 'none',
+        trigger: 'mount and Replay, which rewrites `innerHTML`',
+        from: 'translateY(12px), opacity 0, blur(3px)',
+        to: 'transform none, opacity 1, filter none',
+        duration: '280ms (`--stagger-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--stagger-ease`)',
+        delay: 'the second `.t-line` waits 50ms (`--stagger-stagger`)',
       },
     ],
     gotchas: [
-      'The component does not set a 12px rise or a blur. The 25px offset is the `FadeInDown` default.',
-      'Copy CSS `@keyframes t-rise` uses `--stagger-distance` 12px and `--stagger-blur` 3px over `--stagger-dur` 280ms, with cubic-bezier(0.22, 1, 0.36, 1). The second line still waits `--stagger-stagger` 50ms.',
-      'Reduced motion skips `entering` and uses `FadeOut.duration(0)`.',
+      'The title is font-size 18px. The second line is font-size 14px, font-weight 500, colour #6c6c6c.',
+      'Reduced motion sets the line animation to none.',
     ],
     setup:
-      '`TextsRevealDemo` (`src/demos/TextsReveal.tsx`). Replay increments `tick`, which remounts the column. The title is 16px. The subtitle is 13px in `colors.textSubtle`.',
+      'The lines are `Pull request opened` and `Review requested from 3 teammates`. `@keyframes t-rise` uses `--stagger-distance: 12px`, `--stagger-blur: 3px`, `--stagger-dur: 280ms`, and `--stagger-stagger: 50ms` on the second line.',
     checklist: [
       'Line one enters immediately and line two waits 50ms.',
-      'The enter builder is `FadeInDown.duration(280).springify().damping(20).stiffness(280)`.',
+      'The rise is 12px with blur 3px over 280ms and cubic-bezier(0.22, 1, 0.36, 1).',
       'The strings are `Pull request opened` and `Review requested from 3 teammates`.',
     ],
   },
   'tabs-sliding': {
     motion:
-      'Pill `translateX` springs with `springs.layout` (damping 20, stiffness 280, mass 1). Width stays 78. Rest x is 3. Each tab adds 78.',
+      '`.t-tabs-pill` transitions transform and width over `--tabs-dur: 250ms` with `--tabs-ease: cubic-bezier(0.22, 1, 0.36, 1)`. It starts at width 86px and `translateX(3px)`. A tab click sets `width` to `offsetWidth + \'px\'` and `transform` to `translateX(offsetLeft + \'px\')`. The bar background is `--tabs-bar-bg: #f1f1f1`. The pill background is `--tabs-pill-bg: #ffffff`.',
     content: 'Labels `Overview`, `Activity`, `Settings`.',
     rn: '`TabsSlidingDemo` springs `translateX` only. Copy CSS transitions `.t-tabs-pill` transform and width over 250ms, and the copy script measures `offsetWidth` and `offsetLeft`.',
     states: [
       {
-        name: 'overview',
-        trigger: 'mount and a press on Overview',
-        from: 'the previous translateX',
-        to: 'translateX 3',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
+        name: 'rest',
+        trigger: 'the stylesheet before the script measures',
+        from: '',
+        to: 'width 86px, translateX(3px), background #ffffff on a bar of #f1f1f1',
+        duration: '250ms (`--tabs-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--tabs-ease`)',
+        delay: '',
       },
       {
-        name: 'activity',
-        trigger: 'a press on Activity',
-        from: 'the previous translateX',
-        to: 'translateX 81 (1 × 78 + 3)',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
-      },
-      {
-        name: 'settings',
-        trigger: 'a press on Settings',
-        from: 'the previous translateX',
-        to: 'translateX 159 (2 × 78 + 3)',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
+        name: 'selected',
+        trigger: 'a click on Overview, Activity, or Settings, and the initial select(0)',
+        from: 'the previous width and translateX',
+        to: 'width from offsetWidth, translateX from offsetLeft',
+        duration: '250ms (`--tabs-dur`)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '',
       },
     ],
     gotchas: [
-      'The live pill width is the constant `TAB_W` (78). The component does not measure the tabs.',
-      'The bar is `#f1f1f1`, radius 999, padding 3. The pill is `#fff`. Each tab is 78×30. The active label is `#0f0f0f`. Inactive labels are `rgba(15,15,15,0.8)`.',
-      'Copy CSS animates transform and width over `--tabs-dur` 250ms with cubic-bezier(0.22, 1, 0.36, 1). The copy script sets width from `offsetWidth` and translateX from `offsetLeft`. The extra rule starts the pill at width 86 and translateX 3px.',
-      'Reduced motion snaps the spring with duration 0.',
+      'The bar is border-radius 999px with padding 3px. The pill is top 3px, bottom 3px, border-radius 999px. Each button is height 28px and padding 0 14px, colour #17181c.',
+      'Reduced motion sets the pill transition to none.',
     ],
     setup:
-      '`TabsSlidingDemo` (`src/demos/TabsSliding.tsx`). `active` starts at 0. The shared x starts at 3 and becomes `active * 78 + 3`.',
+      'The pill starts at width 86px and translateX(3px). select(i) writes `b.offsetWidth + \'px\'` and `translateX(\' + b.offsetLeft + \'px\')`, and sets `aria-selected`. `--tabs-dur` is 250ms.',
     checklist: [
-      'Overview, Activity, and Settings land the pill at translateX 3, 81, and 159.',
-      'The spring is `springs.layout`. The live pill width stays 78.',
-      'The active label is `#0f0f0f`.',
+      'The pill starts at width 86px and translateX(3px).',
+      'A tab click sets width from offsetWidth and translateX from offsetLeft over 250ms with cubic-bezier(0.22, 1, 0.36, 1).',
+      'Labels are Overview, Activity, and Settings. The bar is #f1f1f1 and the pill is #ffffff.',
     ],
   },
   'drag-drop-physics': {
@@ -768,41 +801,39 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'shimmer-text': {
     motion:
-      'Masked highlight sweeps the entire string left to right in 1200ms linear (`tokens.shimmer`), then loops. The peak crosses every glyph in the phrase, including the end of "reply". Reduced motion holds the solid highlight color.',
+      '`.t-shimmer` paints a 90deg gradient of `--shimmer-base` #7c7c7c and `--shimmer-highlight` #0d0d0d, background-size 300% 100%, and runs `t-shimmer` for `--shimmer-dur: 1200ms` linear infinite. The keyframes move background-position from 100% 0 to 0% 0. Reduced motion sets animation none and paints `color` and `-webkit-text-fill-color` as `var(--shimmer-highlight)`.',
     content: '`Generating reply`.',
     rn: 'Base line plus a duplicate highlight line. Measure the full string width and lay the highlight line out at that width (nowrap, flex-shrink 0). The ~72px window only clips that line and translates from -window to the measured width; the inner line counter-translates so the visible slice is that part of the phrase. A window-sized text box wraps to "Gene" and the sweep never reaches the rest of the phrase. Copy emits `.t-shimmer`: inline-block, fit-content, background-size 300%, no-repeat, background-position 100% → 0% over 1200ms so the 50% peak travels the whole line.',
     states: [
       {
         name: 'sweep',
-        trigger: 'layout reports a text width above 0 and motion is allowed',
-        from: 'window translateX -72',
-        to: 'window translateX equal to the measured string width, then the repeat restarts at -72',
-        duration: '1200ms (`tokens.shimmer`)',
-        easing: 'linear (`Easing.linear`)',
-        delay: 'none',
+        trigger: 'the `t-shimmer` animation while motion is allowed',
+        from: 'background-position 100% 0, gradient stops #7c7c7c and #0d0d0d',
+        to: 'background-position 0% 0',
+        duration: '1200ms (`--shimmer-dur`)',
+        easing: 'linear',
+        delay: '',
       },
       {
         name: 'held',
-        trigger: 'reduced motion, or before the string has a width',
-        from: 'the running sweep',
-        to: 'translateX 0 and a single solid `#0d0d0d` line',
-        duration: 'the animation is cancelled',
+        trigger: 'prefers-reduced-motion',
+        from: 'the running gradient',
+        to: 'animation none, color var(--shimmer-highlight), -webkit-text-fill-color var(--shimmer-highlight), and `--shimmer-highlight` is #0d0d0d',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
     ],
     gotchas: [
-      'The clip window is 72×26. The base color is `#7c7c7c`. The highlight is `#0d0d0d`. Type is 20px / line-height 26, medium.',
-      'The mask on web is `linear-gradient(90deg, transparent 0%, #000 28%, #000 72%, transparent 100%)`. The inner line counter-translates by the same x.',
-      'A width change of 1px or less does not restart the measurement.',
-      'Copy CSS sweeps `background-position` from 100% to 0% over `--shimmer-dur` 1200ms on a 300% gradient. It is not the 72px mask. Reduced motion in that CSS holds `--shimmer-highlight`.',
+      'The type is font-size 32px and font-weight 600. The element is inline-block and width fit-content, with background-clip text and text-fill transparent while the animation runs.',
+      'The reduced-motion colour is the highlight #0d0d0d. The running gradient uses both #7c7c7c and #0d0d0d.',
     ],
     setup:
-      '`ShimmerTextDemo` (`src/demos/ShimmerText.tsx`). The string is `Generating reply`. `onLayout` rounds the clip width and stores it. The effect cancels the shared value, then starts `withRepeat(withTiming(textW, { duration: 1200, easing: Easing.linear }), -1, false)` from -72.',
+      'The string is `Generating reply`. `--shimmer-dur` is 1200ms, `--shimmer-base` is #7c7c7c, and `--shimmer-highlight` is #0d0d0d. `t-shimmer` moves background-position from 100% 0 to 0% 0.',
     checklist: [
-      'The window starts at -72 and reaches the measured string width in 1200ms, linear, then loops.',
-      'The highlight line is the full string width, nowrap, flex-shrink 0.',
-      'Reduced motion shows the solid `#0d0d0d` phrase and no second line.',
+      'The sweep runs 1200ms linear and loops, from background-position 100% to 0%.',
+      'The gradient uses #7c7c7c and #0d0d0d on a 300% background.',
+      'Reduced motion stops the animation and paints #0d0d0d through `--shimmer-highlight`.',
     ],
   },
   'image-generation-loader': {
@@ -868,88 +899,96 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'tooltip-open-close': {
     motion:
-      '400ms delay in, travel + fade; out instant. Travel uses `springs.layout` (damping 20, stiffness 280, mass 1).',
+      '`.tip-wrap` is padding-top 40px. `.t-tt` is position absolute, top 0, and `left: var(--tt-x, 0px)`. It starts at `scale(var(--tt-scale))` and opacity 0. `--tt-scale` is 0.98. `.is-on` scales to 1 and fades to opacity 1 over `--tt-in-dur: 180ms` after `--tt-delay: 400ms`, easing `--tt-in-ease: ease-out`. `.is-off` sets transition-duration to `--tt-out-dur: 0ms` and transition-delay to 0ms. The script writes `--tt-x` as `(slot * 44) + \'px\'`. `--tt-slot` is 44px.',
     rn: 'Three triggers: Aa/Edit, ↗/Share, ···/More. The bubble travels by 44px per slot with no delay. Fade-in waits 400ms and lasts 180ms. Hide is instant. Copy CSS is `.t-tt`. Copy script sets `--tt-x`.',
     states: [
       {
-        name: 'travel',
-        trigger: 'hover or press on a trigger',
-        from: 'the previous slot',
-        to: 'translateX = index × 44, and the label becomes Edit, Share, or More',
-        duration: 'withSpring, no fixed duration',
-        easing: 'springs.layout (damping 20, stiffness 280, mass 1)',
-        delay: 'none',
+        name: 'anchor',
+        trigger: '',
+        from: '',
+        to: '.tip-wrap padding-top: 40px. .t-tt position absolute, top: 0, left: var(--tt-x, 0px), height 28px, padding 0 8px',
+        duration: '',
+        easing: '',
+        delay: '',
       },
       {
         name: 'show',
-        trigger: 'the same hover or press',
-        from: 'opacity 0, scale 0.98',
-        to: 'opacity 1, scale 1',
-        duration: '180ms',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`ease.outEase`)',
-        delay: '400ms (`tokens.tooltipDelay`) via `withDelay`',
+        trigger: 'mouseenter or focus, which adds `.is-on` and sets `--tt-x` to (slot * 44) + px',
+        from: 'scale(var(--tt-scale)) 0.98, opacity 0',
+        to: 'scale 1, opacity 1, label Edit, Share, or More',
+        duration: '180ms (`--tt-in-dur`)',
+        easing: 'ease-out (`--tt-in-ease`)',
+        delay: '400ms (`--tt-delay`)',
       },
       {
         name: 'hide',
-        trigger: 'hover out or press out',
-        from: 'opacity 1',
+        trigger: 'mouseleave or blur, which adds `.is-off`',
+        from: 'opacity 1, class `is-on`',
         to: 'opacity 0',
-        duration: '0ms',
-        easing: 'withTiming duration 0',
-        delay: 'none',
+        duration: '0ms (`--tt-out-dur`)',
+        easing: '',
+        delay: '0ms',
       },
     ],
     gotchas: [
-      'The slot spring is not delayed. Only the fade and scale wait 400ms. Hide does not move the slot back.',
-      'Scale is `0.98 + shown * 0.02`. The bubble sits at top -36, height 28, radius 8, text 12px `#2f2f2f`. Each hit is 36×36, radius 10, gap 8.',
-      'Reduced motion sets `shown` with duration 0 and snaps the slot spring.',
-      'Copy CSS delays both transform and opacity by `--tt-delay` 400ms and places the bubble with `left: var(--tt-x)` instead of a spring. `--tt-out-dur` is 0ms. `--tt-in-dur` is 180ms.',
+      'The slot step is `--tt-slot: 44px`. The script multiplies the data-slot by 44 and appends the string px.',
+      'The bubble is border-radius 8px, background #fff, colour #2f2f2f, font-size 12px. Each button is 36px by 36px, border-radius 10px, and the row gap is 8px.',
+      'Reduced motion sets the `.t-tt` transition to none.',
     ],
     setup:
-      '`TooltipDemo` (`src/demos/Tooltip.tsx`). Triggers are Aa/Edit, ↗/Share, and ···/More. `shown` starts at 0 and `slot` starts at 0. The first label state is Edit.',
+      '`.tip-wrap` has padding-top 40px. `.t-tt` is top 0 and `left: var(--tt-x, 0px)`. Triggers are Aa/Edit, ↗/Share, and ···/More with data-slot 0, 1, and 2. `--tt-in-dur` is 180ms, `--tt-delay` is 400ms, and `--tt-out-dur` is 0ms.',
     checklist: [
-      'Moving between triggers springs translateX by 44px per slot with `springs.layout` and no delay.',
-      'Opacity and scale wait 400ms, then run for 180ms.',
-      'Leaving a trigger hides the bubble in 0ms.',
+      'The bubble sits in padding-top 40px, at top 0, with left var(--tt-x, 0px).',
+      'Showing waits 400ms, then runs 180ms from scale 0.98 to 1.',
+      'Leaving sets the transition duration to 0ms.',
     ],
   },
   'tilt-3d': {
-    motion: TILT_MOTION,
+    motion:
+      'Pointer move over `.t-tilt` eases rotateX and rotateY with `--tilt-follow: 120ms`. The script target is `(0.5 - ny) * 14` and `(nx - 0.5) * 18`. Perspective is `--tilt-perspective: 1000px`. On leave the same loop eases back with `--tilt-return: 520ms`. The glare uses `--tilt-glare-radius: 110px` and `--tilt-glare: 42ms`, and snaps onto the pointer on the frame the pointer enters. Position is clientX/clientY minus getBoundingClientRect.',
     content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
     rn: TILT_RN,
     states: [
       {
+        name: 'card',
+        trigger: '',
+        from: '',
+        to: '.t-tilt width 210px, height 128px, perspective 1000px. .t-tilt-card background #16171c, border-radius 16px, padding 16px',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
         name: 'follow',
-        trigger: 'pointer move over the untransformed hit box',
+        trigger: 'pointermove over the hit box',
         from: 'the current rotateX, rotateY, and glare',
-        to: 'rotateX (0.5 - ny) × 14deg, rotateY (nx - 0.5) × 18deg, glare opacity 1 at the pointer',
-        duration: 'exponential, time constant 120ms for tilt and 42ms for glare',
+        to: 'target (0.5 - ny) * 14 and (nx - 0.5) * 18, glare opacity 1 at the pointer',
+        duration: '120ms (`--tilt-follow`) for tilt, 42ms (`--tilt-glare`) for the glare',
         easing: '1 - exp(-dt / tau)',
-        delay: 'none; the glare position snaps to the pointer on the frame the pointer enters',
+        delay: '',
       },
       {
         name: 'return',
-        trigger: 'pointer leave',
+        trigger: 'pointerleave',
         from: 'the current tilt and glare',
-        to: 'rotateX 0, rotateY 0, glare opacity 0, glare back toward the card center',
-        duration: 'exponential, time constant 520ms, then the frame loop stops',
-        easing: '1 - exp(-dt / 520)',
-        delay: 'none',
+        to: 'rotateX 0deg, rotateY 0deg, glare opacity 0',
+        duration: '520ms (`--tilt-return`)',
+        easing: '1 - exp(-dt / tau)',
+        delay: '',
       },
     ],
     gotchas: [
-      'nx and ny come from clientX/clientY minus `getBoundingClientRect` on the hit box, clamped to the 210×128 card. Do not read offsetX or offsetY.',
-      'Perspective is 1000. The glare disc is 220px (radius 110) with stops rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.32) 26%, rgba(255,255,255,0.08) 46%, rgba(255,255,255,0) 68%, screen blend.',
-      'The loop stops once the pointer is gone and abs(rotateX) < 0.04, abs(rotateY) < 0.04, and glare opacity < 0.02. It then writes exact zeros.',
-      'Reduced motion returns before aiming. The copy stylesheet forces `transform: none` and glare opacity 0 under `prefers-reduced-motion`.',
-      'Do not call `withTiming` or `withSpring` on every move, and do not spring the card home on pointer-up while the cursor is still inside.',
+      'nx and ny come from clientX and clientY minus getBoundingClientRect, clamped to the 210px by 128px box. The script does not read offsetX or offsetY.',
+      'The glare radius is `--tilt-glare-radius: 110px`. The stops are rgba(255,255,255,0.78), rgba(255,255,255,0.32), rgba(255,255,255,0.08), and rgba(255,255,255,0). Blend is screen.',
+      'The loop stops once the pointer is gone and abs(rotateX) < 0.04, abs(rotateY) < 0.04, and glare opacity < 0.02. It then writes rotateX(0deg) rotateY(0deg).',
+      'Reduced motion returns before aiming. The stylesheet sets `.t-tilt-card` transform to none and glare opacity to 0.',
     ],
     setup:
-      'The constants live in `src/demos/tiltMotion.ts` (`TILT`). The hit target is 210×128. The card is `#16171c`, radius 16, padding 16. Copy HTML, Copy CSS, and Copy script are the `.t-tilt` document built from those constants.',
+      '`.t-tilt` is 210px by 128px with `--tilt-perspective: 1000px`. The card is #16171c, border-radius 16px, padding 16px. `--tilt-follow` is 120ms, `--tilt-glare` is 42ms, and `--tilt-return` is 520ms.',
     checklist: [
-      'Max tilt is 14deg on X and 18deg on Y, perspective 1000.',
-      'Follow time constant is 120ms. Glare time constant is 42ms and snaps on enter. Return time constant is 520ms.',
-      'Pointer position is measured on the untransformed hit box.',
+      'The card is 210px by 128px, #16171c, radius 16px, perspective 1000px.',
+      'Follow is 120ms. Glare is 42ms and snaps on enter. Return is 520ms.',
+      'Pointer position is clientX/clientY minus getBoundingClientRect on `.t-tilt`.',
     ],
   },
   'thinking-orbs': {
@@ -1042,71 +1081,71 @@ const LOCKS: Record<string, PromptLock> = {
   ...ORB_LOCKS,
   'preview-tools': {
     motion:
-      'A cream pill 84px tall, radius 42, gradient #fbfaf9 to #f1efec. Closed, the same pill scales to 0.667 and the held tool peeks from the top at 42px wide. Open, it widens and seats pencil, pen, fineliner, marker, highlighter, brush, fountain, and eraser. Each tool is a 30 by 88 shaded drawing, sunk with margin-bottom -20px and translateY(6px). The active tool uses translateY(-12px). A 26px conic color wheel swaps those tools for 26px radius-8 swatches. Marks are filled outline rings. Pencil is size 1 graphite at 0.85 alpha. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is a flat size 28 #fff01f multiply swipe at 0.75 alpha. Brush is size 14 and tapers at the lift. Fountain is size 8 with a 45 degree nib at 0.85 contrast. Eraser is size 28 destination-out. Alignment draws 1px #9B5CFF boxes, full-width lines at each control top, center, and bottom, and vertical lines across the row. Annotate lets a click on a control open a note card on that control. Copy writes markdown with label, selector, note, and box.',
+      'A cream pill 84px tall, radius 42px, gradient #fbfaf9 to #f1efec. Closed, `.pt-morph` is scale(0.667). Open, it widens and seats pencil, pen, fineliner, marker, highlighter, brush, fountain, and eraser. Each tool is a 30 by 88 shaded drawing, sunk with margin-bottom -20px and translateY(6px). The active tool uses translateY(-12px). A 26px conic colour wheel swaps those tools for 26px radius-8 swatches. Marks are filled outline rings. Pencil is size 1 graphite at 0.85 alpha. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is a flat size 28 #fff01f swipe at 0.75 alpha. Brush is size 14 and tapers at the lift. Fountain is size 8 with a 45 degree nib at 0.85 contrast. Eraser is size 28 destination-out. Alignment draws #9B5CFF boxes and lines with stroke-width 1, full-width lines at each control top, center, and bottom, and vertical lines across the row. Annotate lets a click on a control open a note card on that control. The note lists label, selector, note, and box.',
     content:
       'The stage is 520px tall and the card spans the grid. The sample row is centered: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The pill sits at the bottom. Guides and the note card stay hidden until the pill opens. Round chrome is 36px in #8a8a8e. Minimize is the four-corner collapse mark.',
     rn: 'Copy HTML, Copy CSS, and Copy script are this same pill. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card. Do not render text chips labeled Pen, Marker, or Eraser.',
     states: [
       {
         name: 'closed',
-        trigger: 'mount (`INITIAL_CHROME.open` is false) and the minimize control',
+        trigger: 'mount, open is false, and the minimize control',
         from: 'the open pill',
-        to: '84×84, scale 0.667, padding 0, gap 0, the held tool peeking from the top',
-        duration: 'the React styles swap with no duration; Copy CSS transforms over 540ms',
-        easing: 'Copy CSS uses cubic-bezier(0.22, 0.9, 0.16, 1)',
-        delay: 'none',
+        to: 'width 84px, height 84px, border-radius 42px, scale(0.667), gradient #fbfaf9 to #f1efec',
+        duration: 'width 520ms, border-radius 440ms, transform 540ms',
+        easing: 'cubic-bezier(0.22, 0.9, 0.16, 1)',
+        delay: '',
       },
       {
         name: 'open',
-        trigger: 'the peek press while closed (`toggleOpen`)',
-        from: 'scale 0.667, width 84',
-        to: 'scale 1, width max-content, padding 32, gap 8, height 84, radius 42',
-        duration: 'Copy CSS: width 520ms, border-radius 440ms, transform 540ms',
+        trigger: 'the peek press while closed',
+        from: 'scale(0.667), width 84px',
+        to: 'scale(1), width max-content, padding 0 32px, gap 8px, height 84px, border-radius 42px',
+        duration: 'width 520ms, border-radius 440ms, transform 540ms',
         easing: 'cubic-bezier(0.22, 0.9, 0.16, 1)',
-        delay: 'none',
+        delay: '',
       },
       {
         name: 'instrument',
-        trigger: 'a tool press while open (`pickPen`)',
+        trigger: 'a tool press while open',
         from: 'translateY(6px), margin-bottom -20px',
         to: 'the active tool translateY(-12px); the others stay sunk',
-        duration: 'style swap',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
       {
         name: 'palette',
-        trigger: 'the color wheel while open (`toggleFace`)',
-        from: 'the eight 30×88 tools',
-        to: '26×26 radius-8 swatches; the active swatch scale 1.08 and translateY(-1px)',
-        duration: 'style swap',
+        trigger: 'the colour wheel while open',
+        from: 'the tool drawings',
+        to: 'swatches width 26px, height 26px, border-radius 8px; the active swatch scale(1.08) translateY(-1px)',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
       {
         name: 'annotate',
         trigger: 'the annotate control while open, then a press on a sample control',
         from: 'draw mode',
-        to: 'a note card on that control; Copy writes markdown with label, selector, note, and box',
-        duration: 'style swap',
+        to: 'a note card on that control listing label, selector, note, and box. Guides use #9B5CFF. Highlighter fill is #fff01f. Ink starts at #111111. Round controls are #8a8a8e',
+        duration: '',
         easing: '',
-        delay: 'none',
+        delay: '',
       },
     ],
     gotchas: [
-      'Closing sets `open` false, `face` back to instruments, and clears the draft. Opening forces `hand` draw and `face` instruments.',
-      '`index.tsx` applies `morphClosed` (scale 0.667) in the same render as the open layout. It has no timing config. The 520ms, 440ms, and 540ms numbers are the Copy CSS transition on `.pt-morph`.',
-      'Guides draw only when the pill is open, `guides` is true, and every sample control has a frame. Lines are 1px `#9B5CFF`.',
-      'Pencil is size 1 graphite at 0.85 alpha. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is a flat size 28 `#fff01f` multiply swipe at 0.75 alpha. Brush is size 14 and tapers at the lift. Fountain is size 8 with a 45° nib at 0.85 contrast. Eraser is size 28 destination-out.',
-      'The stage is 520px tall. The sample row is a 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, and a 32px black send disc.',
+      'Closing sets open false, face back to instruments, and clears the draft. Opening sets face to instruments.',
+      '`.pt-morph` transitions width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
+      'Guides draw only when the pill is open and guides are on. Stroke is #9B5CFF and stroke-width is 1.',
+      'Pencil is size 1 graphite at alpha 0.85. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is size 28, fill #fff01f, alpha 0.75. Brush is size 14 and tapers at the lift. Fountain is size 8 with nibContrast 0.85. Eraser is size 28 and destination-out.',
+      'The stage is height 520px. Sample controls use height 32px and 26px. `.pt-round` is 36px. The stage background controls use #17181c.',
     ],
     setup:
-      '`INITIAL_CHROME` in `src/demos/preview-tools/model.ts` starts closed, on instruments, in draw, with guides on, pen `pen`, and color `#111111`. The pill gradient is `#fbfaf9` to `#f1efec`. Copy HTML, Copy CSS, and Copy script are `src/demos/preview-tools/copy.ts`.',
+      'The pill starts closed: `.pt-morph` is 84px by 84px, border-radius 42px, scale(0.667), gradient #fbfaf9 to #f1efec. Colour starts at #111111. Guides use #9B5CFF. The note lists label, selector, note, and box.',
     checklist: [
-      'Closed is an 84×84 pill at scale 0.667.',
-      'The Copy open transition is width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
+      'Closed is an 84px by 84px pill at scale(0.667) and radius 42px.',
+      'The open transition is width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
       'The active tool uses translateY(-12px). The other tools use translateY(6px) and margin-bottom -20px.',
-      'A note lists label, selector, note, and box. There is no second card and no text chips labeled Pen, Marker, or Eraser.',
+      'A note lists label, selector, note, and box.',
     ],
   },
   'border-beam': {
@@ -1195,16 +1234,6 @@ const LOCKS: Record<string, PromptLock> = {
 function buildGooeyPlusPrompt(): string {
   return `# AGENT_PROMPT — Gooey plus menu
 
-Closed-network rebuild brief. This document is the **only** source of truth.
-
-## Hard rules
-
-- Do **not** fetch external pages, docs, npm registries, CDNs, or product sites.
-- Do **not** \`npm install liquid-gooey\` or any other package for this piece.
-- Do **not** invent demos beyond this piece.
-- Output must run offline as a single HTML file (or equivalent inline HTML/CSS/JS).
-- The portable recreation is plain HTML + CSS + JS with an SVG goo filter.
-
 ## Goal
 
 Recreate a **gooey plus menu**:
@@ -1228,10 +1257,10 @@ Recreate a **gooey plus menu**:
 | Goo blur | \`6\` (feGaussianBlur stdDeviation) |
 | Goo contrast | \`18\` (feColorMatrix alpha slope) |
 | Contrast intercept | \`-8.67\` (≈ \`-(contrast/2 - 0.5)\`) |
-| Open motion | 550ms, \`cubic-bezier(0.34, 1.56, 0.64, 1)\`, stagger 40ms |
+| Open motion | 550ms, \`cubic-bezier(0.34, 1.56, 0.64, 1)\`, stagger \`40\` then \`'ms'\` |
 | Close motion | 250ms, \`cubic-bezier(0.22, 1, 0.36, 1)\`, stagger 0 |
 | Plus rotate | 0° → 45° over 250ms ease-in-out when open |
-| Icon reveal | opacity 0→1 + blur 2→0; delay 120ms + i×stagger on open |
+| Icon reveal | opacity 0→1 + blur 2px→0; open delay \`(120 + i * stagger) + 'ms'\` |
 | Shadow | \`0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05), 0 4px 42px rgba(0,0,0,.06)\` on the SVG layer |
 | Reduced motion | all transitions duration 0 / none |
 
@@ -1268,13 +1297,9 @@ If pieces that should merge look separate, raise blur or reduce gap — bridging
 - Satellite buttons: \`tabIndex={-1}\` when closed, \`0\` when open; click closes menu.
 - Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
 
-## Deliverable
+## Document
 
-Ship a **single self-contained HTML document** that matches the tokens above. No imports. No build step.
-
-## Reference implementation (closed network)
-
-Paste this into a file and open it:
+The asset is this HTML document:
 
 \`\`\`html
 ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
@@ -1282,35 +1307,36 @@ ${GOOEY_PLUS_CLOSED_NETWORK_HTML}
 
 ## States
 
-- **closed** — mount (\`useState(false)\`). satellite x/y 0,0 stacked at left 80px, top 80px → held. until the hub click. no travel. delay none
-- **open** — hub click while closed. satellite offsets 0,0 → New file -54,-34, Add image 0,-64, New folder 54,-34. 550ms. cubic-bezier(0.34, 1.56, 0.64, 1). stagger 40ms (\`i * 40\`)
-- **close** — hub click while open, or a satellite click. those offsets → 0,0. 250ms. cubic-bezier(0.22, 1, 0.36, 1). stagger 0
-- **plus** — the same open flag. rotate 0° → 45° while \`.as-pm-open\` is set. 250ms. ease-in-out. delay none
-- **icons** — the same open flag. opacity 0 and blur 2px → opacity 1 and blur 0. 180ms while open (120ms while closing). delay \`120 + i * 40\` ms on open, otherwise 0
+- **closed** — \`apply(false)\` on load. satellites stacked at left 80px, top 80px, offsets \`{ x: 0, y: 0 }\`. held until the hub click. 0ms when reduced motion is set
+- **open** — hub click while closed. offsets \`{ x: -54, y: -34 }\`, \`{ x: 0, y: -64 }\`, \`{ x: 54, y: -34 }\`, hub \`{ x: 0, y: 0 }\`. 550ms. cubic-bezier(0.34, 1.56, 0.64, 1). delay \`(i * 40) + 'ms'\` for the first three
+- **close** — hub click while open, or a satellite click. those offsets return to \`{ x: 0, y: 0 }\`. 250ms. cubic-bezier(0.22, 1, 0.36, 1). delay 0ms
+- **plus** — \`.liquid.is-open .plus\` rotates to 45deg. 250ms. ease-in-out
+- **icons** — opacity 0 and blur(2px) to opacity 1 and blur(0). the open rule is 180ms. the base rule is 120ms. open delay is \`(120 + i * stagger) + 'ms'\`, otherwise 0ms
+- **surface** — stage #f9f9f9, fill #ffffff, icons #17181c. group 200px by 140px. buttons 40px. shadow rgba(0,0,0,.06), rgba(0,0,0,.05), and rgba(0,0,0,.06)
 
 ## Gotchas
 
 - The goo filter stays on the SVG circles. The buttons are a second layer with transparent backgrounds, so the icons stay crisp.
-- Reduced motion sets the item transition to duration 0, the stagger to 0, and the icon delay to 0. The plus and icon CSS transitions are \`none\`.
-- Satellite \`tabIndex\` is -1 while closed and 0 while open. A satellite click closes the menu. The hub \`aria-label\` is \`Open menu\` or \`Close menu\`.
-- \`GooeyPlusMenu.web.tsx\` passes these same durations into \`liquid-gooey\`. This document is the SVG file and does not install that package.
+- Reduced motion writes transition \`none\` and duration 0ms, and the stylesheet sets \`.slot\`, \`.plus\`, \`.sat-icon\`, and \`.blob\` to \`transition: none\`.
+- Satellite tabIndex is -1 while closed and 0 while open. A satellite click sets open false. The hub aria-label is \`Open menu\` or \`Close menu\`.
+- Blob transform-origin is the literal \`100px 100px\`.
 
 ## Setup
 
-Stage \`#f9f9f9\`. Group 200×140. Buttons 40×40, transparent, radius 50%. Rest slot \`left: 80px; top: 80px\`. Filter id \`goo\`: \`feGaussianBlur\` stdDeviation 6, then a color matrix with alpha slope 18 and intercept -8.67. Icon color \`#17181c\`. The shadow on the SVG layer is \`0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05), 0 4px 42px rgba(0,0,0,.06)\`.
+Stage background \`#f9f9f9\`. Group 200px by 140px. Buttons 40px by 40px, transparent, border-radius 50%. Rest slot \`left: 80px; top: 80px\`. Filter id \`goo\`: feGaussianBlur stdDeviation 6, then a color matrix with alpha slope 18 and intercept -8.67. Icon colour \`#17181c\`. The SVG shadow is \`0 0 0 1px rgba(0,0,0,.06)\`, \`0 2px 6px rgba(0,0,0,.05)\`, and \`0 4px 42px rgba(0,0,0,.06)\`.
 
-## Acceptance checklist
+## Checklist
 
-- [ ] No npm / CDN / network required to run
-- [ ] White liquid discs with dark crisp icons
-- [ ] Visible melt necks while opening/closing
-- [ ] Offsets and timings match the table
-- [ ] Safari works (filter is on SVG content, not CSS url() on HTML)
-- [ ] Reduced-motion collapses transitions
+- [ ] Discs are 40px, fill #ffffff, icons #17181c, on a stage of #f9f9f9
+- [ ] Rest slot is left 80px and top 80px inside a 200px by 140px group
+- [ ] Open is 550ms with cubic-bezier(0.34, 1.56, 0.64, 1). Close is 250ms with cubic-bezier(0.22, 1, 0.36, 1)
+- [ ] The plus rotates 45deg over 250ms ease-in-out
+- [ ] Icons use 120ms and 180ms with blur 2px. The filter blur is stdDeviation 6 and the alpha slope is 18
+- [ ] Reduced motion sets those transitions to none
 
 ## Out of scope
 
-Do not pull liquid-gooey from npm.
+Do not invent a second menu or a different icon set.
 `;
 }
 
@@ -1366,6 +1392,32 @@ const ORB_PROMPT_IDS = new Set([
   'orb-working',
 ]);
 
+/** Generic cards whose prompt is the pasted Copy, not the shared rebuild brief. */
+const COPY_PROMPT_IDS = new Set([
+  'card-resize',
+  'number-pop-in',
+  'notification-badge',
+  'text-states-swap',
+  'menu-dropdown',
+  'confetti-burst',
+  'modal-open-close',
+  'gooey-plus-menu',
+  'page-side-by-side',
+  'icon-swap',
+  'success-check',
+  'avatar-group-hover',
+  'card-stack-hover',
+  'error-state-shake',
+  'input-clear-dissolve',
+  'skeleton-reveal',
+  'texts-reveal',
+  'tabs-sliding',
+  'shimmer-text',
+  'tooltip-open-close',
+  'tilt-3d',
+  'preview-tools',
+]);
+
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
 
@@ -1377,10 +1429,11 @@ function buildPrompt(id: string): string {
   const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
   const stage = filled(lock.content);
   const orbPrompt = ORB_PROMPT_IDS.has(id);
+  const copyPrompt = COPY_PROMPT_IDS.has(id);
   const subtitle = orbPrompt ? item.subtitle.replace(/ from the preview$/, '') : item.subtitle;
   const blocks = [
     `# AGENT_PROMPT — ${item.title}`,
-    orbPrompt
+    orbPrompt || copyPrompt
       ? ''
       : `Closed-network rebuild brief. This document is the source of truth.
 
