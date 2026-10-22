@@ -1,10 +1,10 @@
 /**
- * Fail the build when a generated prompt still contains the off-scope boilerplate.
- * Missing States / Gotchas / Setup / Checklist sections are printed and do not fail:
- * those fields stay empty until a later asset PR fills them.
+ * Fail the build when a generated prompt still contains the off-scope boilerplate,
+ * or when it lacks a States, Gotchas, Setup, or Checklist section.
  *
  * A prompt that is byte-identical to a file under src/demos or public/prompts is
- * hand-written. Banned words in that file do not fail this check.
+ * hand-written. Those files stay frozen, so banned words and missing sections in
+ * them are printed and do not fail this check.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -82,6 +82,12 @@ const BANNED = [
   bannedPhrase('Helix'),
   bannedPhrase('grok.me'),
   bannedPhrase('peptide'),
+  // The MIT grant says "publish, distribute". That clause is the license text
+  // pasted above a bundle, not the store-process word.
+  {
+    label: 'Publish',
+    pattern: /(?<![A-Za-z0-9_-])Publish(?![A-Za-z0-9_-])(?!\s*,\s*distribute)/gi,
+  },
   bannedPhrase('Publish product code'),
   bannedPhrase('Card chrome'),
   bannedPhrase('SHA'),
@@ -153,17 +159,21 @@ for (const item of generatedPrompts) {
     }
   }
   const missing = missingSections(text);
-  if (missing.length) warnings.push(`${item.id}: ${missing.join(', ')}`);
+  if (missing.length) {
+    const line = `${item.id}: ${missing.join(', ')}`;
+    if (hand) warnings.push(line);
+    else hits.push(`missing sections: ${line}`);
+  }
 }
 
 if (skipped.length) {
   console.log(`hand-written prompts skipped for banned words: ${skipped.join(', ')}`);
 }
 if (warnings.length) {
-  console.log('missing sections (warning):');
+  console.log('missing sections (hand-written, warning):');
   for (const line of warnings) console.log(`  ${line}`);
 } else {
-  console.log('missing sections (warning): none');
+  console.log('missing sections (hand-written, warning): none');
 }
 console.log(`banned hits: ${hits.length}`);
 if (hits.length) {
