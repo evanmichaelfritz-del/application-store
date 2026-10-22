@@ -13,7 +13,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -197,6 +197,10 @@ function Found({ item }: { item: TransitionItem }) {
       void loadCopyScript(item.id).then(write);
       return;
     }
+    if (activeKind === 'css') {
+      void loadCopyCss(item.id).then(write);
+      return;
+    }
     write(codeSlot(item.id, activeKind));
   };
   const skill = skillFor(item.id);
@@ -221,7 +225,26 @@ function Found({ item }: { item: TransitionItem }) {
   };
   useEffect(() => {
     if (!skill) return;
-    fetchSkill(false);
+    let ignore = false;
+    const token = skillLoad.current + 1;
+    skillLoad.current = token;
+    skillBody.current = null;
+    setSkillPhase('loading');
+    void loadSkill(item.id).then(
+      (text) => {
+        if (ignore || skillLoad.current !== token) return;
+        skillBody.current = text;
+        setSkillPhase('ready');
+      },
+      () => {
+        if (ignore || skillLoad.current !== token) return;
+        skillBody.current = null;
+        setSkillPhase('error');
+      },
+    );
+    return () => {
+      ignore = true;
+    };
   }, [item.id, skill]);
   const copySkill = () => {
     if (skillPhase === 'error') {
@@ -358,6 +381,10 @@ function Found({ item }: { item: TransitionItem }) {
             };
             if (activeKind === 'script' && scriptIsLazy(item.id)) {
               void loadCopyScript(item.id).then(write);
+              return;
+            }
+            if (activeKind === 'css') {
+              void loadCopyCss(item.id).then(write);
               return;
             }
             write(codeSlot(item.id, activeKind));
@@ -778,6 +805,10 @@ const CodeBody = memo(function CodeBody({ id, kind, defer }: { id: string; kind:
       };
       if (kind === 'script' && scriptIsLazy(id)) {
         void loadCopyScript(id).then(finish).catch(() => finish(''));
+        return;
+      }
+      if (kind === 'css') {
+        void loadCopyCss(id).then(finish).catch(() => finish(''));
         return;
       }
       try {

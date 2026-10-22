@@ -11,8 +11,8 @@ import { Liquid } from 'liquid-gooey';
 
 const PRO_LOCKED = 'Pro-locked on the original';
 const BOUNCE_HINT = `${PRO_LOCKED}; teaser only; not wired on the original`;
-const FONT = 'Inter, Inter_400Regular, system-ui, sans-serif';
-const FONT_MED = 'Inter, Inter_500Medium, system-ui, sans-serif';
+const FONT = 'Inter_400Regular, Inter, system-ui, sans-serif';
+const FONT_MED = 'Inter_500Medium, Inter, system-ui, sans-serif';
 
 const DARK_SHADOW =
   '0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 6px 0 rgba(0, 0, 0, 0.05), 0 4px 42px 0 rgba(0, 0, 0, 0.24)';
@@ -133,7 +133,7 @@ const CSS = `
   position: absolute; left: 50%; top: 50%; width: 261px; height: 46px; margin: -23px 0 0 -130.5px;
   border-radius: 54px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px;
   color: var(--gd-ink, #fbfbfb); cursor: grab; touch-action: none; user-select: none; box-sizing: border-box;
-  font-family: Inter, Inter_500Medium, system-ui, sans-serif;
+  font-family: Inter_500Medium, Inter, system-ui, sans-serif;
   font-size: 13px;
 }
 .as-gooey .dgc-chip {

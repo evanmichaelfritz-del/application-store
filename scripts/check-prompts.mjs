@@ -327,7 +327,8 @@ if (skillHits.length) {
 
 /**
  * Gooey Copy embeds the latin Inter woff2 and ships its OFL text in the bundle
- * header. Dropping the face, the licence file, or the header block fails the build.
+ * header. The blob is checked on the Copy CSS payload, not the prompt.
+ * Dropping the face, the licence file, or the header block fails the build.
  */
 const fontHits = [];
 const oflPath = join(root, 'public/fonts/OFL.txt');
@@ -361,8 +362,13 @@ if (woffBytes) {
   const woffHash = createHash('sha256').update(woffBytes).digest('hex');
   if (!woffHash.startsWith('3100e775')) fontHits.push(`inter-latin.woff2 sha256 ${woffHash.slice(0, 8)} != 3100e775`);
   const embedded = woffBytes.toString('base64');
-  const gooeyPrompt = generatedPrompts.find((item) => item.id === 'gooey');
-  if (!gooeyPrompt || !gooeyPrompt.prompt.includes(embedded)) {
+  let css = '';
+  try {
+    css = await loaded.embedGooeyFont(loaded.copyTextFor('gooey', 'css'));
+  } catch (error) {
+    fontHits.push(`gooey Copy CSS payload failed: ${error instanceof Error ? error.message : 'unknown'}`);
+  }
+  if (!css.includes(embedded)) {
     fontHits.push('gooey Copy CSS is missing the Inter woff2 data URI');
   }
 }

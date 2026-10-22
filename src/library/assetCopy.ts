@@ -1,6 +1,6 @@
 import { promptFor } from '@/src/agentPrompts';
 import { TRANSITIONS } from '@/src/catalog';
-import { copyTextFor } from '@/src/closedNetwork/previewSources';
+import { copyTextFor, embedGooeyFont } from '@/src/closedNetwork/previewSources';
 import {
   loadPublicPrompt,
   loadYogeshOrbCreatorPrompt,
@@ -13,6 +13,11 @@ export type CodeKind = 'html' | 'css' | 'script';
 /** One slot of the card's Copy HTML / Copy CSS / Copy script payload. */
 export function codeSlot(id: string, kind: CodeKind): string {
   return copyTextFor(id, kind);
+}
+
+/** Copy CSS, with the Gooey face filled in when this copy is built. */
+export function loadCopyCss(id: string): Promise<string> {
+  return embedGooeyFont(copyTextFor(id, 'css'));
 }
 
 /**

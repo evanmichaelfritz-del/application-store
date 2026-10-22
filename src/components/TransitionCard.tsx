@@ -4,7 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
-import { loadAssetPrompt, loadCopyScript, loadSkill, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
@@ -111,7 +111,27 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
 
   useEffect(() => {
     if (!skill) return;
-    fetchSkill(false);
+    let ignore = false;
+    const token = skillLoad.current + 1;
+    skillLoad.current = token;
+    setSkillPhase('loading');
+    setSkillText(null);
+    setSkillCopied(false);
+    void loadSkill(item.id).then(
+      (text) => {
+        if (ignore || skillLoad.current !== token) return;
+        setSkillText(text);
+        setSkillPhase('ready');
+      },
+      () => {
+        if (ignore || skillLoad.current !== token) return;
+        setSkillText(null);
+        setSkillPhase('error');
+      },
+    );
+    return () => {
+      ignore = true;
+    };
   }, [item.id, skill]);
 
   useEffect(() => {
@@ -135,6 +155,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     };
     if (kind === 'script' && scriptIsLazy(item.id)) {
       void loadCopyScript(item.id).then(write);
+      return;
+    }
+    if (kind === 'css') {
+      void loadCopyCss(item.id).then(write);
       return;
     }
     write(copyTextFor(item.id, kind));
