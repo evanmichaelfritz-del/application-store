@@ -5,7 +5,8 @@ import { hideCopiedToast, paintCopiedToast } from '@/src/copyToastDom';
 type CopyToastContextValue = {
   visible: boolean;
   nonce: number;
-  show: () => void;
+  message: string;
+  show: (message?: string) => void;
 };
 
 const CopyToastContext = createContext<CopyToastContextValue | null>(null);
@@ -13,10 +14,12 @@ const CopyToastContext = createContext<CopyToastContextValue | null>(null);
 export function CopyToastProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [nonce, setNonce] = useState(0);
+  const [message, setMessage] = useState('Copied');
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const show = useCallback(() => {
-    if (Platform.OS === 'web') paintCopiedToast();
+  const show = useCallback((next = 'Copied') => {
+    setMessage(next);
+    if (Platform.OS === 'web') paintCopiedToast(next);
     setNonce((n) => n + 1);
     setVisible(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -27,7 +30,7 @@ export function CopyToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CopyToastContext.Provider value={{ visible, nonce, show }}>{children}</CopyToastContext.Provider>
+    <CopyToastContext.Provider value={{ visible, nonce, message, show }}>{children}</CopyToastContext.Provider>
   );
 }
 

@@ -566,6 +566,18 @@ function setupSection(setup: string | undefined): string {
   return `## Setup\n\n${text}`;
 }
 
+const ORB_PROMPT_IDS = new Set([
+  'orb-agent-listening',
+  'orb-agent-planning',
+  'orb-agent-shaping',
+  'orb-agent-thinking',
+  'orb-searching',
+  'orb-solving',
+  'orb-state-picker',
+  'orb-thinking',
+  'orb-working',
+]);
+
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
 
@@ -576,9 +588,13 @@ function buildPrompt(id: string): string {
   const parts = previewDocumentParts(id);
   const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
   const stage = filled(lock.content);
+  const orbPrompt = ORB_PROMPT_IDS.has(id);
+  const subtitle = orbPrompt ? item.subtitle.replace(/ from the preview$/, '') : item.subtitle;
   const blocks = [
     `# AGENT_PROMPT — ${item.title}`,
-    `Closed-network rebuild brief. This document is the source of truth.
+    orbPrompt
+      ? ''
+      : `Closed-network rebuild brief. This document is the source of truth.
 
 - Do not fetch external pages, docs, or product sites.
 - Do not invent demos beyond this piece.`,
@@ -586,9 +602,9 @@ function buildPrompt(id: string): string {
 
 - id: \`${item.id}\`
 - title: ${item.title}
-- subtitle: ${item.subtitle}`,
+- subtitle: ${subtitle}`,
     stage ? `## Stage content\n\n${stage}` : '',
-    `## Motion lock\n\n${lock.motion}`,
+    `## ${orbPrompt ? 'Animation spec' : 'Motion lock'}\n\n${lock.motion}`,
     statesSection(lock.states),
     listSection('Gotchas', lock.gotchas, '- '),
     setupSection(lock.setup),

@@ -2,53 +2,58 @@
  * Known gaps from the Oct 14, 2026 asset audit (main a201892).
  * Keyed by catalog slug. Only FAIL rows are listed, and only the gaps that
  * row's "What's missing" cell states. Yogesh Orb Creator and Yogesh Thinking
- * Orbs passed and are absent, so the page keeps "None logged".
+ * Orbs passed and are absent. The nine orb-family cards log the measured
+ * Canvas2D coverage residual and the live-card paint lag.
  */
+const MAE_METHOD =
+  'MAE is the mean per-channel absolute difference over the full canvas RGB at device pixels.';
+const LIVE_LAG = 'The live card paints about 32 ms behind this Copy.';
+
 export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
-  'orb-agent-listening': [
-    'Live is a dark Skia particle orb (20px chip); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8234 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .col, .controls, .is-on, .label, .picker, .pill, .trigger.',
-  ],
-  'orb-agent-planning': [
-    'Live is a dark Skia particle orb (20px chip); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8160 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .col, .controls, .is-on, .label, .picker, .pill, .trigger.',
-  ],
-  'orb-agent-shaping': [
-    'Live is a dark Skia particle orb (20px chip); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8167 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .col, .controls, .is-on, .label, .picker, .pill, .trigger.',
-  ],
-  'orb-agent-thinking': [
-    'Live is a dark Skia particle orb (20px chip); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8211 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .col, .controls, .is-on, .label, .picker, .pill, .trigger.',
-  ],
-  'orb-searching': [
-    'Live is a dark Skia particle orb (64px); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8108 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .agent, .chip, .col, .controls, .is-on, .muted, .picker, .trigger.',
-  ],
-  'orb-solving': [
-    'Live is a dark Skia particle orb (64px); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8189 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .agent, .chip, .col, .controls, .is-on, .muted, .picker, .trigger.',
-  ],
-  'orb-state-picker': [
-    '10.4 KB template; no per-state values, no Skia stage code, no setup/gotchas, no parity checklist.',
-    'Copy is a 64px 2D-canvas sketch, not the live Skia stage.',
-    'Unused .trigger/.col/.pill/.chip/.label/.agent/.muted; unreachable "shaping" drawing.',
+  'orb-working': [
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 28.72 versus live 28.79 (was 27.43) and MAE at 1.04 (was 1.72).',
+    MAE_METHOD,
+    LIVE_LAG,
   ],
   'orb-thinking': [
-    'Live is a dark Skia particle orb (64px); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8204 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .agent, .chip, .col, .controls, .is-on, .muted, .picker, .trigger.',
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.50 versus live 32.58 (was 30.60) and MAE at 0.78 (was 2.28).',
+    MAE_METHOD,
+    LIVE_LAG,
   ],
-  'orb-working': [
-    'Live is a dark Skia particle orb (64px); Copy is a white pill with a simplified 2D-canvas/CSS glyph. Same failure as Orb state picker.',
-    'Template prompt (8086 B) with no Skia/shader code, no per-state values (0 ms timings stated), no setup/gotchas and no checklist.',
-    'Unused CSS: .agent, .chip, .col, .controls, .is-on, .muted, .picker, .trigger.',
+  'orb-searching': [
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.80 versus live 33.02 (was 30.21) and MAE at 2.37 (was 3.16).',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-solving': [
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 33.99 versus live 34.72 (was 31.47) and MAE at 2.23 (was 3.64).',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-agent-thinking': [
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 40.30 versus live 39.41 (was 34.63) and MAE at 2.57 (was 4.84).',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-agent-listening': [
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 44.22 versus live 43.63 (was 36.62) and MAE at 4.04 (was 7.09).',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-agent-planning': [
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 47.44 versus live 48.00 (was 38.04) and MAE at 3.52 (was 9.96).',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-agent-shaping': [
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 55.11 versus live 55.20 (was 42.18) and MAE at 11.21 (was 13.17). The morph dots still miss the live edge.',
+    MAE_METHOD,
+    LIVE_LAG,
+  ],
+  'orb-state-picker': [
+    '20px Working uses radius ×1.12 +0.03 and alpha ×0.92 (luma 27.12 versus live 26.74, MAE 2.15; was 32.11 and 5.52). Searching uses radius ×1.18 +0.06 and alpha ×1.02 (luma 27.52 versus live 27.52, MAE 3.84; was 29.43 and 4.94). Connecting uses radius ×1.10 +0.02 and alpha ×1.12 (luma 18.92 versus live 19.10, MAE 1.07; was 21.69 and 3.00). The other 20px states keep radius ×1.26 +0.02 and alpha ×1.12: Solving luma 33.44 versus 33.48 (MAE 7.28), Listening 33.77 versus 33.12 (MAE 4.34), Composing 37.38 versus 38.04 (MAE 3.81), Breathing 29.81 versus 28.82 (MAE 2.79). 64px keeps radius +0.12 and alpha ×1.08: Working 17.26 versus 17.37 (MAE 1.14), Searching 21.48 versus 21.72 (MAE 2.54), Solving 22.74 versus 23.52 (MAE 2.38), Listening 20.37 versus 20.57 (MAE 1.80), Connecting 20.07 versus 19.88 (MAE 1.25), Composing 31.41 versus 32.24 (MAE 3.55), Breathing 21.32 versus 21.40 (MAE 0.84).',
+    MAE_METHOD,
+    LIVE_LAG,
   ],
   'drag-drop-physics': [],
   'preview-tools': [

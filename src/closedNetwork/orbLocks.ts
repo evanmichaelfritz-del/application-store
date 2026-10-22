@@ -4,7 +4,7 @@ import type { PromptLock } from '@/src/agentPrompts';
 export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-state-picker': {
     "motion": "One Skia canvas. State chips swap the engine preset in place; size chips resize it; neither remounts the canvas or resets t. Engine mapping at 64px: working → orbits speed 1.885 (516 dots at t 0.6); searching → globe speed 2.015 (204 dots at t 0.6); solving → rubik speed 1.82 (138 dots at t 0.6); listening → wave speed 4.388 (134 dots at t 0.6); connecting → web speed 3.315 (48 dots, 81 lines at t 0.6); composing → ribbon speed 2.34 (566 dots at t 0.6); breathing → ring speed 3.24 (484 dots at t 0.6). At 20px: working → orbits speed 3.9 (39 dots at t 0.6); searching → globe speed 2.665 (54 dots at t 0.6); solving → rubik speed 1.95 (30 dots at t 0.6); listening → wave speed 3.998 (42 dots at t 0.6); connecting → web speed 6.63 (9 dots at t 0.6); composing → ribbon speed 3.12 (208 dots at t 0.6); breathing → ring speed 3.78 (120 dots at t 0.6). Pause freezes the current t and keeps the picture; Play resumes at the wall-clock phase. Reduced motion holds t = 0.6. All motion is linear in wall time, no easing, no delay.",
-    "content": "Left column 100 wide, centred, gap 6: the orb, a Pause/Play button (height 26, padding 10, radius 36, fill `rgba(255,255,255,0.06)`, 12px weight 500 `#ededed`), then size chips `64px`, `20px` and a locked `32px`. Right column: label `State` (11/14, `#979797`), then chips Working, Searching, Solving, Listening, Connecting, Composing, Breathing, plus locked Weaving and Shaping. Chips: height 24, padding 8, radius 36, gap 4, wrap; idle fill `rgba(255,255,255,0.06)` text `#ededed`; selected fill `#f4f4f5` text `#111111`; locked opacity 0.4 and disabled. Text 11px weight 500 `Inter, ui-sans-serif, system-ui, sans-serif`. Row: horizontal, gap 8, padding 10 × 8, scrollable. Defaults: state listening, size 64, playing.",
+    "content": "Left column 100 wide, centred, gap 6: the orb, a Pause/Play button (height 26, padding 10, radius 36, fill `rgba(255,255,255,0.06)`, 12px weight 500 `#ededed`), a Reset button with those same metrics, then size chips `64px`, `20px` and a locked `32px`. Right column: label `State` (11/14, `#979797`), then chips Working, Searching, Solving, Listening, Connecting, Composing, Breathing, plus locked Weaving and Shaping. Chips: height 24, padding 8, radius 36, gap 4, wrap; idle fill `rgba(255,255,255,0.06)` text `#ededed`; selected fill `#f4f4f5` text `#111111`; locked opacity 0.4 and disabled. Text 11px weight 500 `Inter, ui-sans-serif, system-ui, sans-serif`. Row: horizontal, gap 8, padding 10 × 8, scrollable. Defaults: state listening, size 64, playing.",
     "rn": "`<ThinkingOrb state={state} size={size} paused={paused} />` inside `OrbClockProvider`, in a nested-scroll ScrollView. Chips are Pressables with accessibilityRole `radio` and accessibilityState `{ selected, disabled }`. The pause button has accessibilityRole `button` and label `Pause` / `Play`. Pause toggles with a functional update `(value) => !value`.",
     "states": [
       {
@@ -62,6 +62,15 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
         "delay": "0ms"
       },
       {
+        "name": "Reset",
+        "trigger": "Press Reset",
+        "from": "current state, size, and pause flag",
+        "to": "same chips and pause flag. The clock ref starts empty: a paused orb snaps its frozen t to the current wall-clock phase and stays paused; a playing orb keeps wall-clock t; reduced motion stays at t = 0.6",
+        "duration": "0ms",
+        "easing": "none",
+        "delay": "0ms"
+      },
+      {
         "name": "Reduced motion",
         "trigger": "In-app flag or system reduce-motion",
         "from": "live or frozen t",
@@ -105,6 +114,7 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
       "Connecting at 64px draws 41 nodes worth of web: 48 dots and 81 lines at t 0.6.",
       "Weaving, Shaping and 32px are at opacity 0.4 and do nothing when pressed.",
       "Pause freezes the frame and the button reads Play; Play resumes at the current wall-clock phase, not where it stopped.",
+      "Reset keeps the selected state, size, and pause flag. A paused orb snaps to the current wall-clock phase and stays paused.",
       "Reduced motion: every state is still at t 0.6.",
       "Selected chip is `#f4f4f5` with `#111111` text; idle chips `rgba(255,255,255,0.06)` with `#ededed` text."
     ]

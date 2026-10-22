@@ -48,6 +48,7 @@ export default function PlaygroundScreen() {
   const { show } = useCopyToast();
   const [backHover, setBackHover] = useState(false);
   const [backPressed, setBackPressed] = useState(false);
+  const [scriptRetry, setScriptRetry] = useState(false);
   const current = buttons.find((button) => button.key === selectedKey) ?? first;
   const parts = useMemo(() => splitPreviewDocument(code), [code]);
 
@@ -77,13 +78,15 @@ export default function PlaygroundScreen() {
     if (promptIsLazy(button.id) || !button.prompt) void loadAssetPrompt(button.id).then(setPrompt);
     setMode('code');
     dirty.current = false;
+    setScriptRetry(false);
     showDocument(button.code);
   };
 
   const runPreview = () => {
     setMode('code');
     if (dirty.current || !current) {
-      setPreviewHtml(code);
+      const origin = typeof window === 'undefined' ? '' : window.location.origin;
+      setPreviewHtml(withPreviewOrigin(code, origin));
       return;
     }
     showDocument(current.code);
@@ -158,12 +161,21 @@ export default function PlaygroundScreen() {
                   />
                   {parts.script ? (
                     <Action
-                      label="Copy script"
+                      label={scriptRetry ? 'Retry' : 'Copy script'}
                       onPress={() => {
                         if (current && scriptIsLazy(current.id)) {
-                          void loadCopyScript(current.id).then(copyPart);
+                          void loadCopyScript(current.id)
+                            .then((text) => {
+                              setScriptRetry(false);
+                              copyPart(text);
+                            })
+                            .catch(() => {
+                              setScriptRetry(true);
+                              show("Couldn't copy");
+                            });
                           return;
                         }
+                        setScriptRetry(false);
                         copyPart(parts.script);
                       }}
                       testID="copy-script"
