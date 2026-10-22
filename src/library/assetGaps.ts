@@ -10,39 +10,39 @@ const SKIA_FRAME_DELAY =
 
 export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'orb-working': [
-    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 28.78 versus live 28.79 (was 27.43) and MAE at 0.94 (was 1.29).',
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 28.72 versus live 28.79 (was 27.43) and MAE at 0.78 (was 1.29).',
     SKIA_FRAME_DELAY,
   ],
   'orb-thinking': [
-    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.56 versus live 32.58 (was 30.60) and MAE at 0.75 (was 1.71).',
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.50 versus live 32.58 (was 30.60) and MAE at 0.58 (was 1.71).',
     SKIA_FRAME_DELAY,
   ],
   'orb-searching': [
-    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.85 versus live 33.02 (was 30.21) and MAE at 1.94 (was 2.37).',
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 32.80 versus live 33.02 (was 30.21) and MAE at 1.78 (was 2.37).',
     SKIA_FRAME_DELAY,
   ],
   'orb-solving': [
-    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 34.04 versus live 34.72 (was 31.47) and MAE at 1.84 (was 2.73).',
+    '64px coverage compensation (radius +0.12, alpha ×1.08) leaves reduced-motion mean luma at 33.99 versus live 34.72 (was 31.47) and MAE at 1.67 (was 2.73).',
     SKIA_FRAME_DELAY,
   ],
   'orb-agent-thinking': [
-    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 40.36 versus live 39.41 (was 34.63) and MAE at 1.95 (was 3.63).',
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 40.30 versus live 39.41 (was 34.63) and MAE at 1.93 (was 3.63).',
     SKIA_FRAME_DELAY,
   ],
   'orb-agent-listening': [
-    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 44.24 versus live 43.63 (was 36.62) and MAE at 3.03 (was 5.32).',
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 44.22 versus live 43.63 (was 36.62) and MAE at 3.03 (was 5.32).',
     SKIA_FRAME_DELAY,
   ],
   'orb-agent-planning': [
-    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 47.48 versus live 48.00 (was 38.04) and MAE at 2.65 (was 7.47).',
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 47.44 versus live 48.00 (was 38.04) and MAE at 2.64 (was 7.47).',
     SKIA_FRAME_DELAY,
   ],
   'orb-agent-shaping': [
-    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 55.11 versus live 55.20 (was 42.18) and MAE at 8.40 (was 9.88). The morph dots still miss the live edge.',
+    '20px coverage compensation (radius ×1.26 +0.02, alpha ×1.12) leaves reduced-motion mean luma at 55.11 versus live 55.20 (was 42.18) and MAE at 8.41 (was 9.88). The morph dots still miss the live edge.',
     SKIA_FRAME_DELAY,
   ],
   'orb-state-picker': [
-    'Same per-size coverage as the single cards (64px radius +0.12 and alpha ×1.08; 20px radius ×1.26 +0.02 and alpha ×1.12). Reduced-motion luma on those cards is within 1 level of live. Residual MAE remains, worst on Agent shaping at 20px (8.40, was 9.88) and Solving at 64px (1.84, was 2.73).',
+    'Same per-size coverage as the single cards (64px radius +0.12 and alpha ×1.08; 20px radius ×1.26 +0.02 and alpha ×1.12). Reduced-motion luma on those cards is within 1 level of live. Residual MAE remains, worst on Agent shaping at 20px (8.41, was 9.88) and Searching at 64px (1.78, was 2.37).',
     SKIA_FRAME_DELAY,
   ],
   'drag-drop-physics': [],
