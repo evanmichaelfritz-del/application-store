@@ -419,14 +419,15 @@ const orbHits = [];
 for (const id of ORB_FAMILY) {
   const prompt = generatedPrompts.find((item) => item.id === id)?.prompt ?? '';
   const script = copyScript(prompt);
-  if (!script.includes('var OrbEngine = {') || !script.includes('MODE_FRAMES: vt') || !script.includes('resolvePreset: Lt') || !script.includes('paintFrame: ht')) {
+  const engineKeys = ['var OrbEngine = {', 'MODE_FRAMES:', 'resolvePreset:', 'paintFrame:'];
+  if (engineKeys.some((key) => !script.includes(key))) {
     orbHits.push(`${id}: prompt is missing the portable renderer`);
   }
   if (id === 'orb-state-picker') {
-    if (script.includes('function xt(') || script.includes('shaping:')) {
+    if (script.includes('shaping:') || script.includes('morph:')) {
       orbHits.push(`${id}: prompt still includes the unreachable shaping drawing`);
     }
-  } else if (!script.includes('function xt(')) {
+  } else if (!script.includes('shaping:')) {
     orbHits.push(`${id}: prompt is missing the shared renderer`);
   }
   let css = '';

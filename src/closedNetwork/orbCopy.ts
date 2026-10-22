@@ -1,7 +1,7 @@
 import { ORB_ENGINE_JS, orbEngineSource } from '@/src/closedNetwork/orbEngineSource';
 
 /**
- * Closed-network paint of the vendored thinking-orbs 0.3.1 engine.
+ * Closed-network paint of the pinned thinking-orbs@0.3.1 engine.
  * One module is inlined into every orb Copy script. Live cards stay on ThinkingOrb.
  */
 export const ORB_PREVIEW_CSS = `body { background: #0c0c0c; color: #ededed; }
@@ -38,6 +38,12 @@ canvas { display: block; }
 }
 .chips button { height: 24px; padding: 0 8px; border-radius: 36px; font-size: 11px; }
 #orb-pause { height: 26px; padding: 0 10px; border-radius: 36px; font-size: 12px; }
+.orb-reset {
+  appearance: none; border: 0; cursor: pointer;
+  background: rgba(255,255,255,0.06); color: #ededed;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 500;
+  height: 26px; padding: 0 10px; border-radius: 36px; font-size: 12px;
+}
 .chips button.is-on { background: #f4f4f5; color: #111111; }
 .chips button:disabled { opacity: 0.4; cursor: default; }`;
 
@@ -147,6 +153,7 @@ const PICKER = `  function mark() {
     var button = event.target.closest('button');
     if (!button || button.disabled) return;
     if (button.id === 'orb-pause') { setPaused(!paused); return; }
+    if (button.id === 'orb-reset') { frozen = null; kick(); return; }
     if (button.getAttribute('data-orb-state')) card.setAttribute('data-state', button.getAttribute('data-orb-state'));
     if (button.getAttribute('data-orb-size')) card.setAttribute('data-size', button.getAttribute('data-orb-size'));
     mark();
@@ -193,6 +200,7 @@ export function orbPickerSource(): { html: string; extraCss: string; script: str
   <div class="stage-col">
     <canvas id="orb" width="64" height="64" aria-label="Listening"></canvas>
     <button type="button" id="orb-pause" aria-label="Pause">Pause</button>
+    <button type="button" class="orb-reset" id="orb-reset" aria-label="Reset">Reset</button>
     <div class="chips">
       <button type="button" role="radio" data-orb-size="64" aria-checked="true">64px</button>
       <button type="button" role="radio" data-orb-size="20" aria-checked="false">20px</button>
