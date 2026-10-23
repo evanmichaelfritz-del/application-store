@@ -165,8 +165,9 @@ function ChatShell({ short, children }: { short: boolean; children: ReactNode })
   return (
     <div
       style={{
-        width: 448,
-        maxWidth: '100%',
+        width: '100%',
+        maxWidth: 448,
+        minWidth: 0,
         boxSizing: 'border-box',
         borderRadius: 20,
         background: 'rgba(29, 29, 29, 0.7)',
@@ -187,7 +188,7 @@ function ChatShell({ short, children }: { short: boolean; children: ReactNode })
       >
         Build anything...
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{children}</div>
+      {children}
     </div>
   );
 }
@@ -220,24 +221,27 @@ function V2Composer({ preset, theme, strength }: { preset: MetalFxPreset; theme:
   const autoTargets = useMemo(() => [autoChipRef], []);
   return (
     <ChatShell short>
-      <PlusButton />
-      <div style={{ flex: 1 }} />
-      <ComposerChip label="Agent" />
-      <ComposerChip label="Auto" chipRef={autoChipRef} />
-      <MetalFx
-        key="v2"
-        ref={sendRef}
-        preset={preset}
-        variant="circle"
-        theme={theme}
-        reflectionTargets={autoTargets}
-        innerShadow
-        strength={strength}
-      >
-        <button type="button" aria-label="Send" style={circleFace('default')}>
-          <ArrowUpIcon />
-        </button>
-      </MetalFx>
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
+        <PlusButton />
+        <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }}>
+          <ComposerChip label="Agent" />
+          <ComposerChip label="Auto" chipRef={autoChipRef} />
+          <MetalFx
+            key="v2"
+            ref={sendRef}
+            preset={preset}
+            variant="circle"
+            theme={theme}
+            reflectionTargets={autoTargets}
+            innerShadow
+            strength={strength}
+          >
+            <button type="button" aria-label="Send" style={circleFace('default')}>
+              <ArrowUpIcon />
+            </button>
+          </MetalFx>
+        </div>
+      </div>
     </ChatShell>
   );
 }
@@ -262,7 +266,7 @@ function PlaygroundCircle({
   useMetalBend(sendRef);
   const searchTargets = useMemo(() => [searchRef], []);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, maxWidth: '100%', minWidth: 0 }}>
       <label
         ref={searchRef}
         style={{
@@ -270,7 +274,9 @@ function PlaygroundCircle({
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          width: 180,
+          width: '100%',
+          maxWidth: 180,
+          minWidth: 0,
           height: 40,
           borderRadius: 999,
           padding: '10px 8px 10px 12px',
@@ -348,6 +354,7 @@ export function LiquidMetalCard() {
   };
   const shell: CSSProperties = {
     width: '100%',
+    minWidth: 0,
     boxSizing: 'border-box',
     background: tokens.stage,
     borderRadius: 14,
@@ -355,10 +362,11 @@ export function LiquidMetalCard() {
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
+    overflow: 'hidden',
   };
   return (
     <div data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} style={shell}>
-      <div style={{ minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+      <div style={{ minHeight: 168, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} /> : null}
         {slot === 'playground' ? (
           <PlaygroundCircle
