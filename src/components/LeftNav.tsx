@@ -1,9 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Link } from 'expo-router';
-import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 import { CRAFT_APPS, CRAFT_CATEGORY_LABEL, CRAFT_CATEGORY_SLUG } from '@/src/library/craftApps';
 import {
   EMPTY_FILTERS,
@@ -15,11 +12,9 @@ import {
   type GalleryFilters,
 } from '@/src/library/taxonomy';
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
-import { springs, sprung } from '@/src/motion';
 import { colors, fonts } from '@/src/theme';
 
 type RowKey = 'all' | 'apps' | ComponentType;
-type RowBox = { y: number; height: number };
 
 const NAV_ROW_HOVER = '#f1f1f1';
 const NAV_SELECTED = '#e0e0e0';
@@ -34,90 +29,51 @@ export function LeftNav({
   typeSlug: string | null;
   filters: GalleryFilters;
   compact: boolean;
-  /** Unknown asset pages keep the rail and highlight no row. */
   idle?: boolean;
 }) {
-  const { reduceMotion } = useReduceMotion();
   const matched = VISIBLE_TYPES.find((type) => type.slug === typeSlug)?.slug;
   const active: RowKey | null = idle ? null : typeSlug === CRAFT_CATEGORY_SLUG ? 'apps' : (matched ?? 'all');
-  const [boxes, setBoxes] = useState<Partial<Record<RowKey, RowBox>>>({});
   const [railHover, setRailHover] = useState<RowKey | null>(null);
-  const pillY = useSharedValue(0);
-  const pillH = useSharedValue(32);
-
-  useEffect(() => {
-    if (active == null) return;
-    const box = boxes[active];
-    if (!box) return;
-    pillY.value = sprung(box.y, springs.layout, reduceMotion);
-    pillH.value = sprung(box.height, springs.layout, reduceMotion);
-  }, [active, boxes, pillH, pillY, reduceMotion]);
-
-  const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: pillY.value }],
-    height: pillH.value,
-  }));
-
-  const onRowLayout = (key: RowKey) => (e: LayoutChangeEvent) => {
-    const { y, height } = e.nativeEvent.layout;
-    setBoxes((prev) => {
-      const last = prev[key];
-      if (last && last.y === y && last.height === height) return prev;
-      return { ...prev, [key]: { y, height } };
-    });
-  };
 
   return (
     <View
       {...viewWeb(compact ? {} : { dataSet: { storeSidebar: 'dock' } })}
       style={[styles.rail, compact && styles.railStacked]}
     >
-      <View style={styles.railStack}>
-        {active == null ? null : (
-          <Animated.View
-            pointerEvents="none"
-            {...viewWeb({ dataSet: { focusRing: 'true' } })}
-            style={[styles.railPill, railHover === active && styles.railPillHover, pillStyle]}
-          />
-        )}
+      <NavRow
+        label="All assets"
+        count={totalAssets()}
+        active={active === 'all'}
+        hovered={railHover === 'all'}
+        href={galleryHref(null, filters)}
+        testID="nav-count-all"
+        onHoverIn={() => setRailHover((current) => (current === 'all' ? current : 'all'))}
+        onHoverOut={() => setRailHover((current) => (current === 'all' ? null : current))}
+      />
+      <NavRow
+        label={CRAFT_CATEGORY_LABEL}
+        count={CRAFT_APPS.length}
+        active={active === 'apps'}
+        hovered={railHover === 'apps'}
+        href={galleryHref(CRAFT_CATEGORY_SLUG, EMPTY_FILTERS)}
+        testID="nav-count-apps"
+        onHoverIn={() => setRailHover((current) => (current === 'apps' ? current : 'apps'))}
+        onHoverOut={() => setRailHover((current) => (current === 'apps' ? null : current))}
+      />
+      <Text style={styles.eyebrow}>Components</Text>
+      {VISIBLE_TYPES.map((type) => (
         <NavRow
-          label="All assets"
-          count={totalAssets()}
-          active={active === 'all'}
-          hovered={railHover === 'all'}
-          href={galleryHref(null, filters)}
-          testID="nav-count-all"
-          onLayout={onRowLayout('all')}
-          onHoverIn={() => setRailHover((current) => (current === 'all' ? current : 'all'))}
-          onHoverOut={() => setRailHover((current) => (current === 'all' ? null : current))}
+          key={type.slug}
+          label={type.label}
+          count={typeCount(type.slug)}
+          active={type.slug === active}
+          hovered={railHover === type.slug}
+          href={galleryHref(type.slug, filters)}
+          testID={`nav-count-${type.slug}`}
+          onHoverIn={() => setRailHover((current) => (current === type.slug ? current : type.slug))}
+          onHoverOut={() => setRailHover((current) => (current === type.slug ? null : current))}
         />
-        <NavRow
-          label={CRAFT_CATEGORY_LABEL}
-          count={CRAFT_APPS.length}
-          active={active === 'apps'}
-          hovered={railHover === 'apps'}
-          href={galleryHref(CRAFT_CATEGORY_SLUG, EMPTY_FILTERS)}
-          testID="nav-count-apps"
-          onLayout={onRowLayout('apps')}
-          onHoverIn={() => setRailHover((current) => (current === 'apps' ? current : 'apps'))}
-          onHoverOut={() => setRailHover((current) => (current === 'apps' ? null : current))}
-        />
-        <Text style={styles.eyebrow}>Components</Text>
-        {VISIBLE_TYPES.map((type) => (
-          <NavRow
-            key={type.slug}
-            label={type.label}
-            count={typeCount(type.slug)}
-            active={type.slug === active}
-            hovered={railHover === type.slug}
-            href={galleryHref(type.slug, filters)}
-            testID={`nav-count-${type.slug}`}
-            onLayout={onRowLayout(type.slug)}
-            onHoverIn={() => setRailHover((current) => (current === type.slug ? current : type.slug))}
-            onHoverOut={() => setRailHover((current) => (current === type.slug ? null : current))}
-          />
-        ))}
-      </View>
+      ))}
     </View>
   );
 }
@@ -129,7 +85,6 @@ function NavRow({
   hovered,
   href,
   testID,
-  onLayout,
   onHoverIn,
   onHoverOut,
 }: {
@@ -139,14 +94,12 @@ function NavRow({
   hovered: boolean;
   href: ReturnType<typeof galleryHref>;
   testID: string;
-  onLayout: (event: LayoutChangeEvent) => void;
   onHoverIn: () => void;
   onHoverOut: () => void;
 }) {
   return (
     <Link href={href} asChild>
       <Pressable
-        onLayout={onLayout}
         onHoverIn={onHoverIn}
         onHoverOut={onHoverOut}
         accessibilityRole="link"
@@ -158,7 +111,9 @@ function NavRow({
         })}
         style={StyleSheet.flatten([
           styles.row,
+          active && styles.rowOn,
           !active && hovered && styles.rowHover,
+          active && hovered && styles.rowOnHover,
           styles.pointer,
         ])}
       >
@@ -206,19 +161,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 6,
   },
-  railStack: {
-    position: 'relative',
-  },
-  railPill: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    borderRadius: 10,
-    backgroundColor: NAV_SELECTED,
-  },
-  railPillHover: {
-    backgroundColor: NAV_SELECTED_HOVER,
-  },
   row: {
     height: 32,
     paddingHorizontal: 10,
@@ -227,8 +169,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    zIndex: 1,
     boxSizing: 'border-box',
+  },
+  rowOn: {
+    backgroundColor: NAV_SELECTED,
+  },
+  rowOnHover: {
+    backgroundColor: NAV_SELECTED_HOVER,
   },
   rowHover: {
     backgroundColor: NAV_ROW_HOVER,
