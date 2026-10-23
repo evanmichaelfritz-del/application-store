@@ -1,10 +1,10 @@
 /**
- * Fail the build when a generated prompt still contains the off-scope boilerplate.
- * Missing States / Gotchas / Setup / Checklist sections are printed and do not fail:
- * those fields stay empty until a later asset PR fills them.
+ * Fail the build when a generated prompt still contains the off-scope boilerplate,
+ * or when it lacks a States, Gotchas, Setup, or Checklist section.
  *
  * A prompt that is byte-identical to a file under src/demos or public/prompts is
- * hand-written. Banned words in that file do not fail this check.
+ * hand-written. Those files stay frozen, so banned words and missing sections in
+ * them are printed and do not fail this check.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -82,6 +82,12 @@ const BANNED = [
   bannedPhrase('Helix'),
   bannedPhrase('grok.me'),
   bannedPhrase('peptide'),
+  // The MIT grant says "publish, distribute". That clause is the license text
+  // pasted above a bundle, not the store-process word.
+  {
+    label: 'Publish',
+    pattern: /(?<![A-Za-z0-9_-])Publish(?![A-Za-z0-9_-])(?!\s*,\s*distribute)/gi,
+  },
   bannedPhrase('Publish product code'),
   bannedPhrase('Card chrome'),
   bannedPhrase('SHA'),
@@ -133,6 +139,86 @@ function missingSections(text) {
   return SECTIONS.filter((section) => !section.pattern.test(text)).map((section) => section.label);
 }
 
+/**
+ * The 22 generic prompts describe the pasted Copy. The shared brief, repo
+ * paths, and "live card" stay on the other generated prompts, which must
+ * remain byte-identical, so these bans and the States-literal check apply
+ * only here.
+ */
+const GENERIC_IDS = new Set([
+  'card-resize',
+  'number-pop-in',
+  'notification-badge',
+  'text-states-swap',
+  'menu-dropdown',
+  'confetti-burst',
+  'modal-open-close',
+  'gooey-plus-menu',
+  'page-side-by-side',
+  'icon-swap',
+  'success-check',
+  'avatar-group-hover',
+  'card-stack-hover',
+  'error-state-shake',
+  'input-clear-dissolve',
+  'skeleton-reveal',
+  'texts-reveal',
+  'tabs-sliding',
+  'shimmer-text',
+  'tooltip-open-close',
+  'tilt-3d',
+  'preview-tools',
+]);
+
+const GENERIC_BANS = [
+  bannedPhrase('Closed-network'),
+  bannedPhrase('live card'),
+  { label: 'src/', pattern: /(?<![A-Za-z0-9_-])src\//gi },
+];
+
+function fenceBodies(text, langs) {
+  const bodies = [];
+  const pattern = new RegExp('```(?:' + langs + ')\\n([\\s\\S]*?)```', 'g');
+  for (const match of text.matchAll(pattern)) bodies.push(match[1]);
+  return bodies;
+}
+
+/** CSS and script the prompt pastes, including style/script inside an HTML document. */
+function copyStyleAndScript(text) {
+  const parts = [...fenceBodies(text, 'css|js|javascript')];
+  for (const html of fenceBodies(text, 'html')) {
+    for (const match of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) parts.push(match[1]);
+    for (const match of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) parts.push(match[1]);
+  }
+  return parts.join('\n');
+}
+
+function statesBody(text) {
+  const match = text.match(/^## States\b[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m);
+  return match ? match[1] : '';
+}
+
+/** px, ms, and colour tokens written in States. Longest hex wins so #fff is not a prefix. */
+const STATE_VALUE = /(?<![\d.])-?\d+(?:\.\d+)?(?:px|ms)|(?<![#\w])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![0-9a-fA-F])|rgba?\([^)]*\)|hsla?\([^)]*\)/g;
+
+function statesValuesMissingFromCopy(text) {
+  const source = copyStyleAndScript(text);
+  const missing = [];
+  const seen = new Set();
+  for (const match of statesBody(text).matchAll(STATE_VALUE)) {
+    const token = match[0];
+    if (seen.has(token)) continue;
+    seen.add(token);
+    const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let pattern;
+    if (token.endsWith('px') || token.endsWith('ms')) pattern = new RegExp(`(?<![\\d.])${escaped}(?!\\d)`);
+    else if (token.startsWith('#')) pattern = new RegExp(`${escaped}(?![0-9a-fA-F])`);
+    else pattern = new RegExp(escaped);
+    if (!pattern.test(source)) missing.push(token);
+  }
+  return missing;
+}
+
 const hits = [];
 const warnings = [];
 const skipped = [];
@@ -151,19 +237,32 @@ for (const item of generatedPrompts) {
       ban.pattern.lastIndex = 0;
       if (ban.pattern.test(text)) hits.push(`${item.id}: ${ban.label}`);
     }
+    if (GENERIC_IDS.has(item.id)) {
+      for (const ban of GENERIC_BANS) {
+        ban.pattern.lastIndex = 0;
+        if (ban.pattern.test(text)) hits.push(`${item.id}: ${ban.label}`);
+      }
+      for (const token of statesValuesMissingFromCopy(text)) {
+        hits.push(`${item.id}: States value ${token} is not in Copy CSS/script`);
+      }
+    }
   }
   const missing = missingSections(text);
-  if (missing.length) warnings.push(`${item.id}: ${missing.join(', ')}`);
+  if (missing.length) {
+    const line = `${item.id}: ${missing.join(', ')}`;
+    if (hand) warnings.push(line);
+    else hits.push(`missing sections: ${line}`);
+  }
 }
 
 if (skipped.length) {
   console.log(`hand-written prompts skipped for banned words: ${skipped.join(', ')}`);
 }
 if (warnings.length) {
-  console.log('missing sections (warning):');
+  console.log('missing sections (hand-written, warning):');
   for (const line of warnings) console.log(`  ${line}`);
 } else {
-  console.log('missing sections (warning): none');
+  console.log('missing sections (hand-written, warning): none');
 }
 console.log(`banned hits: ${hits.length}`);
 if (hits.length) {
