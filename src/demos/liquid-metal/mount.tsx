@@ -3,7 +3,8 @@ import { LiquidMetalCard } from './card.web';
 
 const root = document.getElementById('parity-root');
 if (root) {
-  // 448 chat + 16px card padding each side + 12px stage padding each side.
-  root.style.width = '504px';
-  createRoot(root).render(<LiquidMetalCard />);
+  // Fill a narrow wrapper. Cap at the wide preview: 448 chat + 16px card padding each side + 12px stage padding each side.
+  root.style.width = '100%';
+  root.style.maxWidth = '504px';
+  createRoot(root).render(<LiquidMetalCard copy />);
 }
