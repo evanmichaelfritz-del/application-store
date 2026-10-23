@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'metal-fx';
 
 /**
@@ -161,13 +161,13 @@ const circleFace = (cursor: 'default' | 'pointer'): CSSProperties => ({
   cursor,
 });
 
-function ChatShell({ short, children }: { short: boolean; children: ReactNode }) {
+function ChatShell({ short, fit, children }: { short: boolean; fit: boolean; children: ReactNode }) {
   return (
     <div
       style={{
-        width: '100%',
-        maxWidth: 448,
-        minWidth: 0,
+        width: fit ? '100%' : 448,
+        maxWidth: fit ? 448 : '100%',
+        ...(fit ? { minWidth: 0 } : {}),
         boxSizing: 'border-box',
         borderRadius: 20,
         background: 'rgba(29, 29, 29, 0.7)',
@@ -188,7 +188,7 @@ function ChatShell({ short, children }: { short: boolean; children: ReactNode })
       >
         Build anything...
       </div>
-      {children}
+      {fit ? children : <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{children}</div>}
     </div>
   );
 }
@@ -214,34 +214,57 @@ function PlusButton() {
   );
 }
 
-function V2Composer({ preset, theme, strength }: { preset: MetalFxPreset; theme: Exclude<MetalFxTheme, 'auto'>; strength: number }) {
+function V2Composer({
+  preset,
+  theme,
+  strength,
+  fit,
+}: {
+  preset: MetalFxPreset;
+  theme: Exclude<MetalFxTheme, 'auto'>;
+  strength: number;
+  fit: boolean;
+}) {
   const autoChipRef = useRef<HTMLDivElement>(null);
   const sendRef = useRef<HTMLDivElement>(null);
   useMetalBend(sendRef);
   const autoTargets = useMemo(() => [autoChipRef], []);
+  const send = (
+    <MetalFx
+      key="v2"
+      ref={sendRef}
+      preset={preset}
+      variant="circle"
+      theme={theme}
+      reflectionTargets={autoTargets}
+      innerShadow
+      strength={strength}
+    >
+      <button type="button" aria-label="Send" style={circleFace('default')}>
+        <ArrowUpIcon />
+      </button>
+    </MetalFx>
+  );
   return (
-    <ChatShell short>
-      <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
-        <PlusButton />
-        <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }}>
+    <ChatShell short fit={fit}>
+      {fit ? (
+        <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
+          <PlusButton />
+          <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }}>
+            <ComposerChip label="Agent" />
+            <ComposerChip label="Auto" chipRef={autoChipRef} />
+            {send}
+          </div>
+        </div>
+      ) : (
+        <>
+          <PlusButton />
+          <div style={{ flex: 1 }} />
           <ComposerChip label="Agent" />
           <ComposerChip label="Auto" chipRef={autoChipRef} />
-          <MetalFx
-            key="v2"
-            ref={sendRef}
-            preset={preset}
-            variant="circle"
-            theme={theme}
-            reflectionTargets={autoTargets}
-            innerShadow
-            strength={strength}
-          >
-            <button type="button" aria-label="Send" style={circleFace('default')}>
-              <ArrowUpIcon />
-            </button>
-          </MetalFx>
-        </div>
-      </div>
+          {send}
+        </>
+      )}
     </ChatShell>
   );
 }
@@ -253,6 +276,7 @@ function PlaygroundCircle({
   paused,
   disableGlow,
   disableReflection,
+  fit,
 }: {
   preset: MetalFxPreset;
   theme: Exclude<MetalFxTheme, 'auto'>;
@@ -260,13 +284,20 @@ function PlaygroundCircle({
   paused: boolean;
   disableGlow: boolean;
   disableReflection: boolean;
+  fit: boolean;
 }) {
   const searchRef = useRef<HTMLLabelElement>(null);
   const sendRef = useRef<HTMLDivElement>(null);
   useMetalBend(sendRef);
   const searchTargets = useMemo(() => [searchRef], []);
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, maxWidth: '100%', minWidth: 0 }}>
+    <div
+      style={
+        fit
+          ? { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, maxWidth: '100%', minWidth: 0 }
+          : { display: 'flex', alignItems: 'center', gap: 12 }
+      }
+    >
       <label
         ref={searchRef}
         style={{
@@ -274,9 +305,8 @@ function PlaygroundCircle({
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          width: '100%',
-          maxWidth: 180,
-          minWidth: 0,
+          width: fit ? '100%' : 180,
+          ...(fit ? { maxWidth: 180, minWidth: 0 } : {}),
           height: 40,
           borderRadius: 999,
           padding: '10px 8px 10px 12px',
@@ -328,6 +358,13 @@ function PlaygroundCircle({
 }
 
 export function LiquidMetalCard() {
+  const shellRef = useRef<HTMLDivElement>(null);
+  // The detail preview is the wide prod layout. Gallery cards and the Copy mount are not inside it.
+  const [onAssetPage, setOnAssetPage] = useState(false);
+  useLayoutEffect(() => {
+    setOnAssetPage(Boolean(shellRef.current?.closest('[data-testid="asset-preview"]')));
+  }, []);
+  const fit = !onAssetPage;
   const [preset, setPreset] = useState<MetalFxPreset>('chromatic');
   const [specimen, setSpecimen] = useState<Specimen>('v2');
   const [slot, setSlot] = useState<Specimen | null>('v2');
@@ -354,7 +391,7 @@ export function LiquidMetalCard() {
   };
   const shell: CSSProperties = {
     width: '100%',
-    minWidth: 0,
+    ...(fit ? { minWidth: 0, overflow: 'hidden' } : {}),
     boxSizing: 'border-box',
     background: tokens.stage,
     borderRadius: 14,
@@ -362,12 +399,17 @@ export function LiquidMetalCard() {
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
-    overflow: 'hidden',
   };
   return (
-    <div data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} style={shell}>
-      <div style={{ minHeight: 168, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} /> : null}
+    <div ref={shellRef} data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} data-fit={fit ? 'gallery' : 'page'} style={shell}>
+      <div
+        style={
+          fit
+            ? { minHeight: 168, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }
+            : { minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
+        }
+      >
+        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} /> : null}
         {slot === 'playground' ? (
           <PlaygroundCircle
             preset={preset}
@@ -376,6 +418,7 @@ export function LiquidMetalCard() {
             paused={paused}
             disableGlow={disableGlow}
             disableReflection={disableReflection}
+            fit={fit}
           />
         ) : null}
         {slot === 'package' ? (
