@@ -357,14 +357,27 @@ function PlaygroundCircle({
   );
 }
 
-export function LiquidMetalCard() {
+export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   const shellRef = useRef<HTMLDivElement>(null);
-  // The detail preview is the wide prod layout. Gallery cards and the Copy mount are not inside it.
+  // The detail preview is the wide prod layout. Gallery cards are not inside it.
   const [onAssetPage, setOnAssetPage] = useState(false);
+  // A Copy host of 504px fits the 448px page composer. Anything narrower shrinks.
+  const [narrow, setNarrow] = useState(false);
   useLayoutEffect(() => {
-    setOnAssetPage(Boolean(shellRef.current?.closest('[data-testid="asset-preview"]')));
-  }, []);
-  const fit = !onAssetPage;
+    const el = shellRef.current;
+    if (!el) return;
+    setOnAssetPage(Boolean(el.closest('[data-testid="asset-preview"]')));
+    if (!copy) return;
+    const measure = () => setNarrow(el.getBoundingClientRect().width < 504);
+    measure();
+    if (typeof ResizeObserver !== 'function') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [copy]);
+  const galleryFit = !copy && !onAssetPage;
+  const shrink = copy && narrow;
+  const fit = galleryFit || shrink;
   const [preset, setPreset] = useState<MetalFxPreset>('chromatic');
   const [specimen, setSpecimen] = useState<Specimen>('v2');
   const [slot, setSlot] = useState<Specimen | null>('v2');
@@ -401,12 +414,14 @@ export function LiquidMetalCard() {
     gap: 14,
   };
   return (
-    <div ref={shellRef} data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} data-fit={fit ? 'gallery' : 'page'} style={shell}>
+    <div ref={shellRef} data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} data-fit={shrink ? 'fluid' : galleryFit ? 'gallery' : 'page'} style={shell}>
       <div
         style={
-          fit
+          galleryFit
             ? { minHeight: 168, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }
-            : { minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
+            : shrink
+              ? { minHeight: 168, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
+              : { minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
         }
       >
         {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} /> : null}

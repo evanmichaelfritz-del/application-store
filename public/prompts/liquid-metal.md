@@ -18,7 +18,7 @@ libraries.dev/metal opens on family v2 (`metal.tsx` line 233 `useState<Family>("
 - `innerShadow`
 - `strength={strength * 0.9}` (`0.81` at `STRENGTH = 90`)
 
-It does not pass `paused`, so this row runs. The chat is 448px wide, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The placeholder is 70% (`.mx-chat-input--short`). Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
+It does not pass `paused`, so this row runs. The chat is up to 448px wide and shrinks to fit narrower containers, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The stage padding is 12px. The placeholder is 70% (`.mx-chat-input--short`). Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
 
 `sites/home/src/metal.tsx` line 25 is `const STRENGTH = 90`. Line 258 passes `strength={STRENGTH / 100}`. The circle then multiplies by `0.9`, so it receives `0.81`.
 
@@ -40,7 +40,7 @@ It does not pass `paused`, so this row runs. The chat is 448px wide, radius 20, 
 - `innerShadow`
 - `reflectionTargets` is the Search label, not Auto
 
-The search field is 180×40. The circle is 40×40. This row starts paused. No Glow and No Reflection are this row's controls. The Pause control changes only this specimen.
+The search field is up to 180px wide and 40px tall, and it shrinks with the chat. The circle is 40×40. This row starts paused. No Glow and No Reflection are this row's controls. The Pause control changes only this specimen.
 
 ### v1 family row (not rendered)
 
