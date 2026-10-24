@@ -190,7 +190,7 @@ function ChatShell({ short, fit, children }: { short: boolean; fit: boolean; chi
       >
         Build anything...
       </div>
-      {fit ? children : <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{children}</div>}
+      {children}
     </div>
   );
 }
@@ -252,24 +252,21 @@ function V2Composer({
   );
   return (
     <ChatShell short fit={fit}>
-      {fit ? (
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
-          <PlusButton />
-          <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }}>
-            <ComposerChip label="Agent" />
-            <ComposerChip label="Auto" chipRef={autoChipRef} />
-            {send}
-          </div>
-        </div>
-      ) : (
-        <>
-          <PlusButton />
-          <div style={{ flex: 1 }} />
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 12 }}>
+        <PlusButton />
+        {fit ? null : <div style={{ flex: 1 }} />}
+        <div
+          style={
+            fit
+              ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 }
+              : { display: 'contents' }
+          }
+        >
           <ComposerChip label="Agent" />
           <ComposerChip label="Auto" chipRef={autoChipRef} />
           {send}
-        </>
-      )}
+        </div>
+      </div>
     </ChatShell>
   );
 }
@@ -368,10 +365,16 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   const [onAssetPage, setOnAssetPage] = useState(false);
   // A Copy host of 504px fits the 448px page composer. Anything narrower shrinks.
   const [narrow, setNarrow] = useState(false);
+  // MetalFx mounts only after this measurement. The first render would otherwise
+  // use the gallery tree, then this effect would destroy that copy and mount
+  // another in the same turn. The shared context's lost event then stops the
+  // replacement after one frame.
+  const [placed, setPlaced] = useState(false);
   useLayoutEffect(() => {
     const el = shellRef.current;
     if (!el) return;
     setOnAssetPage(Boolean(el.closest('[data-testid="asset-preview"]')));
+    setPlaced(true);
     if (!copy) return;
     const measure = () => setNarrow(el.getBoundingClientRect().width < 504);
     measure();
@@ -408,20 +411,39 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   const circleStrength = (pageStrength / 100) * 0.9;
   const paused = pausedBySpecimen[specimen];
   const mountedPaused = slot ? pausedBySpecimen[slot] : false;
+  const shownSlot = placed ? slot : null;
+  // Theme changes drop the reflection canvases and build new ones. They paint
+  // from the frame callback, and a paused copy that already drew a frame does
+  // not run that callback. Let the shader through until those canvases paint,
+  // then freeze on that frame. The control stays on Play.
+  const seenTheme = useRef(theme);
+  const [releasePause, setReleasePause] = useState(false);
+  const shaderPaused = mountedPaused && !releasePause;
   useEffect(() => {
-    if (slot == null) {
-      // A copy that mounts while the shared clock is frozen never paints its first frame.
+    if (slot == null || !mountedPaused) {
       resumeShared();
+      setReleasePause(false);
       return;
     }
-    if (!mountedPaused) {
-      resumeShared();
-      return;
-    }
-    // `paused` holds the bitmap. Freeze shader time after that copy so Play does not jump.
-    const id = requestAnimationFrame(() => pauseShared());
-    return () => cancelAnimationFrame(id);
-  }, [slot, mountedPaused]);
+    const themeChanged = seenTheme.current !== theme;
+    seenTheme.current = theme;
+    if (themeChanged) setReleasePause(true);
+    // A new copy mounts while the shared clock is frozen and never paints.
+    // Release the clock, give the reflection pass its 66ms cadence, then freeze.
+    resumeShared();
+    let handle = 0;
+    const started = performance.now();
+    const pump = () => {
+      if (performance.now() - started < 160) {
+        handle = requestAnimationFrame(pump);
+        return;
+      }
+      pauseShared();
+      setReleasePause(false);
+    };
+    handle = requestAnimationFrame(pump);
+    return () => cancelAnimationFrame(handle);
+  }, [slot, mountedPaused, fit, theme]);
   const togglePause = () => {
     const next = !pausedBySpecimen[specimen];
     if (slot === specimen) {
@@ -456,20 +478,20 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
               : { minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
         }
       >
-        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} paused={mountedPaused} /> : null}
-        {slot === 'playground' ? (
+        {shownSlot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} paused={shaderPaused} /> : null}
+        {shownSlot === 'playground' ? (
           <PlaygroundCircle
             preset={preset}
             theme={theme}
             strength={circleStrength}
-            paused={mountedPaused}
+            paused={shaderPaused}
             disableGlow={disableGlow}
             disableReflection={disableReflection}
             fit={fit}
           />
         ) : null}
-        {slot === 'package' ? (
-          <MetalFx key="package" preset={preset} variant="button" theme={theme} strength={1} paused={mountedPaused}>
+        {shownSlot === 'package' ? (
+          <MetalFx key="package" preset={preset} variant="button" theme={theme} strength={1} paused={shaderPaused}>
             <button
               type="button"
               style={{
