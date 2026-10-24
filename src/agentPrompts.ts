@@ -1150,7 +1150,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'border-beam': {
     motion:
-      'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease. The glow is a multi-layer drift: outside opacity layers about 2.3s and 1.9s (and others ~2.4 to 3.6s); x/y position layers ~3.3 to 4.3s; width/height layers drift slower, about 5 to 9s; inner layer about 3.0s and 2.4s; still unsynchronised, no single loop length. md, sm, and line keep moving under reduced motion. Pulse is static. Fades are 0.5s out and 0.6s in, ease. The package duration fallback is 2.3 for pulse when duration is unset. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+      'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease. The glow is unsynchronised multi-layer drift driven by JS oscillators with different periods and no single loop length. Inner layer periods are about 1.6 to 3.6s (for example --bop-br 3.0s and --bgh 2.4s). Outside opacity layers are about 1.9 to 3.6s (for example 2.3s, 3.0s, 1.9s, and 3.6s). Outside x/y position layers are about 3.3 to 4.3s. Outside width/height layers are slower, about 5.2 to 9.0s. Hue is a linear sweep, about 16s inner and 14s outer. Light theme differs and has the outside opacity layers off. Under reduced motion, pulse-inner and pulse-outside render no glow (opacity 0; the glow is hidden, not frozen). md, sm, and line have no reduced-motion rule and keep moving. Fades are 0.5s out and 0.6s in, ease. For pulse, 2.3 is the duration fallback, the normaliser (periods scale by duration/2.3), and one outside opacity layer\'s period. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
       'Build from the behaviour and values in this prompt; do not read or copy Pro/paid source or page source. Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the 36×36 icon, labelled Pro-locked, and stays selectable. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. Light is a package option and paints the stage #f6f6f6. The card opens on #171717.',
     rn: 'Web CSS from `border-beam@1.4.1`. The card opens on dark `#171717`. Light is a package option and paints `#f6f6f6`. `active` starts true. Colours are colorful and mono. sm is the 36×36 icon, labelled Pro-locked, and stays selectable.',
@@ -1170,21 +1170,21 @@ const LOCKS: Record<string, PromptLock> = {
         from: 'glow in',
         to: 'glow out',
         duration: 'multi-layer drift, no single loop length',
-        easing: 'outside opacity about 2.3s and 1.9s (others ~2.4 to 3.6s); x/y ~3.3 to 4.3s; width/height about 5 to 9s; inner about 3.0s and 2.4s',
+        easing: 'JS oscillators: inner about 1.6 to 3.6s; outside opacity about 1.9 to 3.6s; outside x/y about 3.3 to 4.3s; outside width/height about 5.2 to 9.0s',
         delay: 'pulse-outside uses the five `--sub-*` vars',
       },
     ],
     gotchas: [
       'The chat inner div uses `boxSizing: \'border-box\'` so the box stays 348×122 and the send control stays 28×28.',
       '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
-      'Small is labelled Pro-locked. The 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. Light is a package option and paints the stage #f6f6f6. The card opens on #171717.',
+      'Small is labelled Pro-locked. The 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. The card opens on #171717. mono ::before and ::after filters are none.',
     ],
     setup:
       'Peer is React. The module is `border-beam@1.4.1`. Strength starts at 1. The MIT text and the React LICENSE sit in front of the bundle.',
     checklist: [
       'Default size is md, color is colorful, theme is dark, strength is 1. The stage is #171717 and the host is width 100%.',
       'md beam-spin is 1.96s linear. beam-hue-shift is 12s ease-in-out. beam-fade-in is 0.6s ease. beam-fade-out is 0.5s ease.',
-      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. The glow is a multi-layer drift: outside opacity layers about 2.3s and 1.9s (and others ~2.4 to 3.6s); x/y position layers ~3.3 to 4.3s; width/height layers drift slower, about 5 to 9s; inner layer about 3.0s and 2.4s; still unsynchronised, no single loop length.',
+      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. The glow is unsynchronised multi-layer drift driven by JS oscillators with different periods and no single loop length. Inner layer periods are about 1.6 to 3.6s. Outside opacity layers are about 1.9 to 3.6s. Outside x/y position layers are about 3.3 to 4.3s. Outside width/height layers are slower, about 5.2 to 9.0s.',
       'The chat is 348×122 and the send control is 28×28.',
     ],
   },
