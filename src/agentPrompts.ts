@@ -1190,10 +1190,10 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'liquid-metal': {
     motion:
-      'The card opens on the v2 composer, which runs with `useMetalBend`. The Live mode New pill is a later row at 0.72. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). The v2 circle and the playground receive strength 0.81.',
+      'The card opens on the v2 composer, which runs with `useMetalBend`. The Live mode New pill is a later row at 0.72. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). Pause freezes the mounted specimen on the current frame: `paused` holds that canvas and `pauseShared` stops shader time, so Play continues from the same frame. The v2 circle and the playground receive strength 0.81.',
     content:
-      'Default is the v2 composer: chromatic, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, strength 0.81, running (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). The Live mode New pill is `MetalBadge` at 0.72. The playground is Search plus a 40×40 circle and starts paused. The v1 gold row is `metal-fx@1.0.4` and is not rendered. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
-    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The v2 composer mounts running. The playground starts paused. The next specimen mounts only after the previous `MetalFx` unmounts.',
+      'Default is the v2 composer: chromatic, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, strength 0.81, running (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). The Live mode New pill is `MetalBadge` at 0.72. The playground is Search plus a 40×40 circle and starts paused. Pause on the mounted specimen holds the current frame and stops shader time. The label is Play while paused and Pause while running. The v1 gold row is `metal-fx@1.0.4` and is not rendered. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
+    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The v2 composer mounts running. The playground starts paused. Pause freezes the mounted specimen and Play continues from that frame. The next specimen mounts only after the previous `MetalFx` unmounts.',
     states: [
       {
         name: 'running',
@@ -1206,18 +1206,18 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'paused',
-        trigger: 'playground',
-        from: 'useState(true)',
-        to: 'last frame held',
+        trigger: 'Pause',
+        from: 'current frame',
+        to: 'held frame',
         duration: 'until Play',
         easing: '',
-        delay: 'metal.tsx line 237; the v2 composer does not pass paused',
+        delay: 'pauseShared stops shader time; resumeShared continues from the same frame',
       },
     ],
     gotchas: [
       'v2 composer (`metal-examples-v2.tsx` line 59 and lines 87–94, opened by `metal.tsx` lines 233 and 258): chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
       'Live mode New pill (`metal-examples-v2.tsx` line 108): MetalBadge multiplies page strength 0.9 by metalOpacity 0.8, so the pill is 0.72. It is not the composer circle.',
-      'Playground (`metal.tsx` CircleStageV2 lines 169 and 177–186, paused at line 237): Search reflection, innerShadow, useMetalBend, starts paused, strength 0.81.',
+      'Playground (`metal.tsx` CircleStageV2 lines 169 and 177–186, paused at line 237): Search reflection, innerShadow, useMetalBend, starts paused, strength 0.81. Pause freezes the mounted specimen, including the v2 composer and the package default. Shader time stops, and Play continues from the same frame.',
       'The v1 gold row is metal-fx@1.0.4 and is not rendered on this card.',
       'The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original.',
       'Do not recolor the child to `#111111`.',
@@ -1226,7 +1226,7 @@ const LOCKS: Record<string, PromptLock> = {
       'Peer is React. The module is `metal-fx@2.0.11`. WebGL2 is probed inside `MetalFx`. `useMetalBend` is the package bend. The MIT text, the React LICENSE, and the package NOTICE sit in front of the bundle.',
     checklist: [
       'The default specimen is the v2 composer: chromatic, innerShadow, useMetalBend, reflection on Auto, running, strength 0.81.',
-      'The Live mode New pill is 0.72. The playground circle is a separate row and starts paused.',
+      'The Live mode New pill is 0.72. The playground circle is a separate row and starts paused. Pause freezes the mounted specimen on the current frame. Shader time stops. Play continues from that frame.',
       'The 140×40 strength-1 button is labelled package default. The v1 gold row is not rendered.',
     ],
   },
