@@ -1,6 +1,6 @@
 # AGENT_PROMPT — Image generation loader
 
-Recreate this image-generation loader only. Build from the behaviour and values in this prompt. Do not read or copy Pro/paid source or page source. Work from the public demo behaviour only. The recreate targets this asset, not the author's site.
+Recreate this image-generation loader only. Build from the behaviour and values in this prompt. Do not read or copy Pro/paid source or page source. Work from the public demo behaviour only. The recreate targets this asset, not the author's site. The MIT listing under Component is the module already shipped with this asset.
 
 The page card and Copy run one WebGL2 worker. The worker source below is `public/img-fx/organic-worker.js`. Copy embeds those same bytes as `WORKER_SOURCE` and builds the worker from a blob URL. The page card loads `/img-fx/organic-worker.js`. Both resolve a pool photo through the mosaic. Desktop 1280 is the gate.
 
@@ -8,7 +8,7 @@ A 1280×900 desktop capture, device pixel ratio 1, compared the visible canvas t
 
 | Surface | Clock | What the canvas is | Error |
 | --- | --- | --- | --- |
-| Page card | 0ms | baked mosaic still | luma 166.9. Mean absolute error about 52–64 against the three photos |
+| Page card | 0ms | baked mosaic still | luma 229.5. `/img-fx/organic-still@2x.png` at 48×48 is luma 229.9, mean absolute error 113–126 against the three photos |
 | Page card | 400–3200ms | live light field | luma about 235. Mean absolute error about 8–10 against the baked still, about 120 against the photos |
 | Page card | 4000ms | mosaic again | the auto cycle has returned to the field |
 | Page card | 5000–6200ms | `/img-fx/2.png` | mean absolute error 0.96, then 0.88 |
@@ -99,7 +99,7 @@ A missing context posts `{ type: 'error' }` and draws nothing. The program binds
 | `u_distortion` | 0.3 |
 | `u_complexity` | 0.2 |
 | `u_shape` | 0.52 |
-| `u_flicker` | 0 |
+| `u_flicker` | inert. Declared in GLSL and optimised out. The boot write of 0 is a no-op |
 | `u_vignette`, `u_vigOpacity` | 0, 0 |
 | `u_blur` | 1 |
 | `u_highlight` | 0.7 |
@@ -115,9 +115,10 @@ A missing context posts `{ type: 'error' }` and draws nothing. The program binds
 | `u_fadeStr` | 1 |
 | `u_dotMode` | 1 on the visible pass. The mask sample pass uses 0 |
 | `u_outMode` | 0 on the visible pass. The mask sample pass uses 1 |
-| `u_effect` | 22 |
-| `u_sweepEase` | 0 |
-| `u_color1` … `u_color7` | `#e3e3e3`, `#ffffff`, `#f5f5f5`, `#f5f5f5`, `#080808`, `#f5f5f5`, `#f5f5f5`, each alpha 1 |
+| `u_effect` | inert. Declared in GLSL and optimised out. The boot write of 22 is a no-op |
+| `u_sweepEase` | inert. Declared in GLSL and optimised out. The boot write of 0 is a no-op |
+| `u_color1` … `u_color5` | `#e3e3e3`, `#ffffff`, `#f5f5f5`, `#f5f5f5`, `#080808`, each alpha 1 |
+| `u_color6`, `u_color7`, `u_alpha6`, `u_alpha7` | inert. Declared in GLSL and optimised out. The boot writes are no-ops |
 | `u_cardBg` | `#f5f5f5` |
 
 `present` fills the display canvas with `#f5f5f5`, draws the shader bitmap at `shaderOpacity` with smoothing off, then the photo overlay at `overlayOpacity` with smoothing on, and posts `transferToImageBitmap()`. The host blits that bitmap with `imageSmoothingEnabled = false` and closes it. Dot mode 1 is the square cell grid (`u_dotMode < 1.5`), with gap `u_gap * 0.35 / scaleBoost`. The visible pass calls `drawShader(1, 0.18, 0)`.
