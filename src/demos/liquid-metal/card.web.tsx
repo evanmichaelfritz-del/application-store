@@ -417,16 +417,27 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   // not run that callback. Let the shader through until those canvases paint,
   // then freeze on that frame. The control stays on Play.
   const seenTheme = useRef(theme);
+  // The repaint pump is only for a copy that has not painted yet: the first
+  // mount while paused, or a new slot, fit, or theme. A Pause click on the
+  // copy that is already showing already called pauseShared(). Running the
+  // pump there lets shader time move under the held bitmap, so Play jumps
+  // ahead by the pump length.
+  const pumpKey = useRef('');
   const [releasePause, setReleasePause] = useState(false);
   const shaderPaused = mountedPaused && !releasePause;
   useEffect(() => {
+    const themeChanged = seenTheme.current !== theme;
+    seenTheme.current = theme;
     if (slot == null || !mountedPaused) {
+      pumpKey.current = slot == null ? '' : `${slot}|${fit}|${theme}`;
       resumeShared();
       setReleasePause(false);
       return;
     }
-    const themeChanged = seenTheme.current !== theme;
-    seenTheme.current = theme;
+    const key = `${slot}|${fit}|${theme}`;
+    const newCopy = key !== pumpKey.current;
+    pumpKey.current = key;
+    if (!newCopy) return;
     if (themeChanged) setReleasePause(true);
     // A new copy mounts while the shared clock is frozen and never paints.
     // Release the clock, give the reflection pass its 66ms cadence, then freeze.
