@@ -1,8 +1,8 @@
 # AGENT_PROMPT — Border Beam
 
-Recreate this Border Beam card only. Pro source, paid source, and the author's page source were not read or copied. Every colour, size, duration, easing, and beam-path time below was measured on the running card and on the Copy that mounts the same card. The MIT listing under Component is the module already shipped with this asset.
+Recreate this Border Beam card only. Build from the behaviour and values in this prompt; do not read or copy Pro/paid source or page source. The MIT listing under Component is the module already shipped with this asset.
 
-The Copy drops the shared light sheet. This card does not use a `#f9f9f9` page, a `min(480px, 100%)` cap, `button.trigger`, or `.col`. The Copy CSS is:
+The Copy CSS is:
 
 ```css
 html, body {
@@ -13,30 +13,30 @@ html, body {
 #parity-root { width: 100%; }
 ```
 
-`#parity-root` fills its host. At a 1280px-wide host the card measures 1280×394. The stage is `#171717`, radius 14px, padding 16px, gap 14px. Phone widths are a known gap.
+`#parity-root` fills its host. Body background is `#171717` (`rgb(23, 23, 23)`). At a 1280px-wide host the card is 1280×394. The stage radius is 14px, padding is 16px, and gap is 14px. At 300px the card renders clean.
 
 ## Piece
 
-The card opens on `md`, `colorful`, theme `dark`, strength `1` (the slider reads 100%, and the host sets `--beam-strength: 1`), and `active` true. Sizes are `md`, `sm`, `line`, `pulse-inner`, and `pulse-outside`. Colours on the card are `colorful` and `mono`. `ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` stay selectable and are labelled Pro-locked. Light is a package option, not the opening theme. The separate border-beam site starts its slider at 70%; this card starts at 100%.
+The card opens on `md`, `colorful`, theme `dark`, strength `1` (the slider reads 100%, and the host sets `--beam-strength: 1`), and `active` true. Sizes are `md`, `sm`, `line`, `pulse-inner`, and `pulse-outside`. Colours are `colorful` and `mono`. `ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` stay selectable and are labelled Pro-locked. Light is a package option. The opening theme is dark.
 
 - `md` wraps the chat field, 348×122, radius 20, placeholder `Build anything...`, chips Agent and Auto, a 28×28 send control. The inner div sets `boxSizing: 'border-box'` so the 122px height includes the `7px 7px 8px` padding, and the send control sets `boxSizing: 'border-box'` so its `28×28` box includes `padding: 0 8px`.
 - `sm` wraps the icon example, a 36×36 button, radius 20, with a 12×12 square of radius 2. Small is labelled Pro-locked and stays selectable.
 - `line` wraps a search shell 366×42, outer radius 64, and passes `borderRadius` 20 so the beam follows the inner field. The package duration fallback for `line` is already 3.1.
 - `pulse-inner` and `pulse-outside` wrap the page demo card: width 250, padding `24px 26px`, radius 16, background `#1d1d1d`, three bars (10px title at 55% width, 8px full, 8px at 78% width) with 10px gaps. That content is 94px tall. `pulse-outside` also passes `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.
 
-`ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` are labelled Pro-locked on the original. Light theme is absent from the page and stays a package option, not on the original. The eight color names are the `BorderBeamColorVariant` union.
+`ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` are labelled Pro-locked. Light is a package option. The opening theme is dark. The eight color names are the `BorderBeamColorVariant` union.
 
 Dark stage `#171717`. Light stage `#f6f6f6` when that package option is selected. Mock fills and type follow the theme tokens in the specimen section.
 
 ## States
 
-| Control | On the original page | Package default |
+| Control | Value | Package default |
 | --- | --- | --- |
 | `size` | `md`, `sm`, `line`, `pulse-inner`, `pulse-outside`. Opens on `md`. `sm` is the 36×36 example and is labelled Pro-locked | |
-| `colorVariant` | `colorful`, `mono`. Page default `colorful` | `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold` are Pro-locked on the original |
-| `theme` | dark only | `light` and `auto` (light is a package option, not on the original). This specimen pins `dark` or `light` |
+| `colorVariant` | `colorful`, `mono`. Opens on `colorful` | `ocean`, `sunset`, `forest`, `candy`, `ice`, `gold` are labelled Pro-locked |
+| `theme` | dark | `light` and `auto` (light is a package option). This specimen pins `dark` or `light` |
 | `strength` | slider starts at `100%` | package default `1`. This card writes `--beam-strength: 1` |
-| `active` | example row runs; playground starts paused | package default `true`. This specimen starts `true` |
+| `active` | starts `true` | package default `true`. This specimen starts `true` |
 
 | Prop | Values | Package fallback |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ Size presets (`sizePresets`):
 
 The chat, icon, and search specimens supply their own radii (20, 20, and the explicit line value 20). The pulse demo card supplies radius 16. The preset radius is the fallback when the child radius cannot be read.
 
-`pulse-outside` custom properties, read from the running host:
+`pulse-outside` custom properties:
 
 | custom property | value |
 | --- | --- |
@@ -104,7 +104,7 @@ Hue range: `U = o === "line" ? Math.min(n, 13) : n` with `n = 30`. Line travel t
 
 Brightness: `b ?? F.brightness ?? 1.3`. Saturation: `g ?? F.saturation`. Strength writes `--beam-strength` clamped with `Math.max(0, Math.min(1, f))`. This card starts at `1`. A strength of 40% writes `--beam-strength: 0.4`.
 
-Measured animation on the running Copy, same names and times as the card in the app:
+Host animation:
 
 | size | host animation | duration | easing | iteration |
 | --- | --- | --- | --- | --- |
@@ -112,7 +112,7 @@ Measured animation on the running Copy, same names and times as the card in the 
 | `line` | `beam-travel`, `beam-edge-fade`, `beam-breathe`, `beam-spike`, `beam-spike2`, `beam-fade-in` | `3.1s`, `3.1s`, `4s`, `4.1s`, `5.3s`, `0.6s` | `linear`, `linear`, `ease-in-out`, `ease-in-out`, `ease-in-out`, `ease` | infinite, infinite, infinite, infinite, infinite, 1 |
 | `pulse-inner`, `pulse-outside` | `beam-fade-in` | `0.6s` | `ease` | 1 |
 
-On `md` and `sm`, `::before` and `::after` run `beam-hue-shift` for `12s` with `ease-in-out`, infinite. The filter is `hue-rotate(<travel>) brightness(1.3) saturate(1.2)`. The bloom layer is `blur(8px) brightness(1.3) saturate(1.2)` and, on `md`, radius `19px`. The beam path is that conic mask. Its `from` angle is the spin position, so a still frame is mid-travel (one frame read `from 76.5184deg`) and is not a fixed pink outline.
+On `md` and `sm`, `::before` and `::after` run `beam-hue-shift` for `12s` with `ease-in-out`, infinite. The filter is `hue-rotate(<travel>) brightness(1.3) saturate(1.2)`. The bloom layer is `blur(8px) brightness(1.3) saturate(1.2)` and, on `md`, radius `19px`. The beam path is that conic mask. Its `from` angle is the spin position.
 
 `md` colorful stops on `::before` include `rgba(255, 50, 100, 0.45)`, `rgba(40, 140, 255, 0.45)`, `rgba(50, 200, 80, 0.45)`, `rgba(30, 185, 170, 0.45)`, and `rgba(100, 70, 255, 0.45)`. The mask is a conic-gradient that is clear, then `rgba(255, 255, 255, 0.1)` at 36%, `rgba(255, 255, 255, 0.35)` at 44%, white from 52% to 80%, then back down.
 
@@ -120,7 +120,7 @@ Pause replaces `beam-fade-in` with `beam-fade-out` at `0.5s` `ease` while `beam-
 
 `line` keeps `beam-hue-shift` at `12s` `ease-in-out`. Spike colours on that size include `rgb(255, 60, 80)` and `rgba(40, 190, 180, 0.98)`. The search shell is 366×42 with outer radius 64px. The beam host is 366×42 with radius 20px.
 
-`pulse-inner` and `pulse-outside` move on a glow loop. A position repeat measured `2320ms`, so the loop is `2.3s`. After fade-in, `pulse-outside` settles at `::before` opacity `0.34`, `::after` opacity `0.94`, bloom opacity `0.3`, bloom filter `blur(22.5px) brightness(1.9) saturate(1.2)`, bloom radius `46px`. `pulse-inner` bloom settles at opacity `0.66`, filter `blur(8px) brightness(0.75) saturate(1.2)`, radius `16px`. `pulse-outside` makes the card `434px` tall because the specimen pad is `28px`. The other sizes stay `394px` tall on a wide host.
+`pulse-inner` and `pulse-outside` move on a glow loop of `2.3s`. After fade-in, `pulse-outside` `::before` opacity is `0.34`, `::after` opacity is `0.94`, bloom opacity is `0.3`, bloom filter is `blur(22.5px) brightness(1.9) saturate(1.2)` plus a moving hue-rotate, bloom radius `46px`. `pulse-inner` bloom opacity is `0.66`, filter is `blur(8px) brightness(0.75) saturate(1.2)` plus a moving hue-rotate, radius `16px`. `pulse-outside` makes the card `434px` tall because the specimen pad is `28px`. The other sizes stay `394px` tall on a wide host.
 
 `pulse-outside` scales its glow from the child box against a 350×140 reference, clamped between 0.35 and 4, and writes `--pulse-glow-sx` and `--pulse-glow-sy`.
 
@@ -128,12 +128,12 @@ Pulse frames are skipped when `(prefers-reduced-motion: reduce)` matches. Rotate
 
 ## Gotchas
 
-- `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")`. Pin `dark` or `light` when the page theme is chosen by a control. Light is a package option, not on the original.
-- `mono` forces static colors: `r === "mono" ? true : s`.
+- `theme` `"auto"` follows `matchMedia("(prefers-color-scheme: dark)")`. Pin `dark` or `light` when the theme is chosen by a control. Light is a package option.
+- `mono` forces static colors: `r === "mono" ? true : s`. The `mono` `::after` filter is `none`.
 - Omitting `borderRadius` reads `borderTopLeftRadius` of the first child. The search shell's outer radius is 64, so `line` must pass 20.
 - The chat inner div needs `boxSizing: 'border-box'`. Without it the 122px height excludes the padding and the send control is not 28×28.
 - `pulse-inner` and `pulse-outside` wrap the 250×94 radius-16 demo card, not the chat mock.
-- `pulse-outside` passes the five `--sub-*` custom properties above, matching the original page.
+- `pulse-outside` passes the five `--sub-*` custom properties above.
 - `pulse-outside` paints its bloom outside the child (`z-index` behind the child). The wrapper overflow stays visible.
 - The pulse loop is one shared frame callback. Rotate sizes use CSS animations named per instance id.
 - `data-paused` is set when the root is not intersecting. That is the package pause, separate from `active`.
@@ -144,27 +144,25 @@ Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/ind
 
 ## Checklist
 
-- [ ] Pro source, paid source, and the author's page source were not read or copied. This prompt is this asset only.
-- [ ] Copy CSS is the dark stage sheet above: body `#171717`, `#parity-root` width `100%`. No `#f9f9f9` page, no `min(480px, 100%)` cap, no `.trigger`, no `.col`.
 - [ ] Opens on `size` `md`, `colorVariant` `colorful`, `theme` `dark`, `strength` `1` (`--beam-strength: 1`, slider `100%`), `active` true.
-- [ ] Stage is `#171717`, radius `14px`, padding `16px`, gap `14px`. A 1280px-wide host measures 1280×394.
+- [ ] Body background is `#171717` (`rgb(23, 23, 23)`). Stage radius is `14px`, padding is `16px`, gap is `14px`. A 1280px-wide host is 1280×394. `#parity-root` width is `100%`.
 - [ ] `sm` is the 36×36 radius-20 icon and stays selectable. `ocean`, `sunset`, `forest`, `candy`, `ice`, and `gold` are labelled Pro-locked. Light is a package option and paints the stage `#f6f6f6`.
 - [ ] `md` and `sm` run `beam-spin` `1.96s` `linear` infinite and `beam-fade-in` `0.6s` `ease` once. `::before` and `::after` run `beam-hue-shift` `12s` `ease-in-out` infinite, filter `brightness(1.3) saturate(1.2)` with a moving `hue-rotate`. Bloom is `blur(8px) brightness(1.3) saturate(1.2)`.
-- [ ] The `md` beam is a travelling conic mask. A still frame's `from` angle is the spin position, not a static outline. Colorful stops include `rgba(255, 50, 100, 0.45)`, `rgba(40, 140, 255, 0.45)`, `rgba(50, 200, 80, 0.45)`, `rgba(30, 185, 170, 0.45)`, and `rgba(100, 70, 255, 0.45)`.
+- [ ] The `md` beam is a travelling conic mask. The `from` angle is the spin position. Colorful stops include `rgba(255, 50, 100, 0.45)`, `rgba(40, 140, 255, 0.45)`, `rgba(50, 200, 80, 0.45)`, `rgba(30, 185, 170, 0.45)`, and `rgba(100, 70, 255, 0.45)`.
 - [ ] `line` is `3.1s` `linear` (`beam-travel` and `beam-edge-fade`), plus `beam-breathe` `4s` `ease-in-out`, `beam-spike` `4.1s` `ease-in-out`, `beam-spike2` `5.3s` `ease-in-out`, and `beam-fade-in` `0.6s` `ease`. Host radius is `20px` on the 366×42 shell.
 - [ ] Both pulse sizes fade in over `0.6s` `ease`. The glow loop repeats every `2.3s`.
 - [ ] `hueRange` is 30, and `line` caps it with `Math.min(n, 13)`.
-- [ ] `mono` forces static colors (no `hue-rotate` on the filter).
+- [ ] `mono` forces static colors. The `::after` filter is `none`.
 - [ ] Dark and light rows of `sizeThemePresets` match the table above, including pulse brightness and `hairlineOpacity` 0.
 - [ ] Pause plays `beam-fade-out` `0.5s` `ease`, then clears `data-active` and `data-fading`. Play fades back in over `0.6s` `ease`.
 - [ ] Pulse honors `(prefers-reduced-motion: reduce)`. Rotate sizes keep moving.
 - [ ] Chat specimen is 348×122 radius 20, fill `#1d1d1d`, with a 28×28 send control (`box-sizing: border-box`, padding `0 8px`, radius `36px`) and `boxSizing: 'border-box'` on the inner div.
 - [ ] `pulse-inner` and `pulse-outside` wrap the 250×94 radius-16 demo card, fill `#1d1d1d`. `pulse-outside` is 434px tall.
-- [ ] `pulse-outside` sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`. Settled opacities are `::before` `0.34`, `::after` `0.94`, bloom `0.3`, bloom filter `blur(22.5px) brightness(1.9) saturate(1.2)`.
-- [ ] `pulse-inner` bloom settles at opacity `0.66`, filter `blur(8px) brightness(0.75) saturate(1.2)`, radius `16px`.
+- [ ] `pulse-outside` sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`. Opacities are `::before` `0.34`, `::after` `0.94`, bloom `0.3`, bloom filter `blur(22.5px) brightness(1.9) saturate(1.2)` plus a moving hue-rotate.
+- [ ] `pulse-inner` bloom opacity is `0.66`, filter `blur(8px) brightness(0.75) saturate(1.2)` plus a moving hue-rotate, radius `16px`.
 - [ ] `line` passes `borderRadius` 20.
 - [ ] Offscreen pause uses `rootMargin: "256px"`.
-- [ ] Phone widths are a known gap.
+- [ ] At 300px the card renders clean.
 - [ ] The component source below is unmodified `border-beam@1.4.1`.
 
 ## Component
