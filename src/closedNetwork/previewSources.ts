@@ -49,6 +49,8 @@ type Source = {
   document?: string;
   /** When false, do not inject SNIPPETS[id] (it is not a stylesheet). */
   snippet?: boolean;
+  /** Skip the shared light sheet. This card paints its own stage. */
+  omitBase?: boolean;
 };
 
 const BASE_CSS = `* { box-sizing: border-box; }
@@ -732,8 +734,14 @@ canvas { display: block; width: 168px; height: 168px; }`,
   },
   'border-beam': {
     snippet: false,
+    omitBase: true,
     html: `<div id="parity-root"></div>`,
-    extraCss: `#parity-root { width: min(480px, 100%); }`,
+    extraCss: `html, body {
+  height: 100%;
+  margin: 0;
+  background: #171717;
+}
+#parity-root { width: 100%; }`,
     script: `(function () {
   var s = document.createElement('script');
   s.src = location.origin + '/parity/border-beam.js';
@@ -875,7 +883,7 @@ export function previewDocumentParts(id: string): PreviewParts {
   }
   const html = (source.html ?? '').trim();
   const script = (source.script ?? '').trim();
-  const css = fullCss(id, html, script, source.extraCss, source.snippet !== false);
+  const css = fullCss(id, html, script, source.extraCss, source.snippet !== false, source.omitBase === true);
   if (!html || !css) throw new Error(`Incomplete preview for ${id}`);
   return { html, css, script };
 }
@@ -1068,9 +1076,16 @@ function filterSheet(css: string, html: string, script: string): string {
   return filtered;
 }
 
-function fullCss(id: string, html: string, script: string, extra: string | undefined, useSnippet: boolean): string {
+function fullCss(
+  id: string,
+  html: string,
+  script: string,
+  extra: string | undefined,
+  useSnippet: boolean,
+  omitBase = false,
+): string {
   const motion = useSnippet ? (SNIPPETS[id] ?? '') : '';
-  const base = filterSheet(BASE_CSS, html, script);
+  const base = omitBase ? '' : filterSheet(BASE_CSS, html, script);
   const extraCss = extra === ORB_PREVIEW_CSS ? filterSheet(ORB_PREVIEW_CSS, html, script) : (extra ?? '');
   return [base, motion.trim(), extraCss.trim()].filter(Boolean).join('\n\n');
 }

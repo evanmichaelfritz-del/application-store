@@ -1150,7 +1150,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'border-beam': {
     motion:
-      'md and sm last 1.96s, line lasts 3.1s, pulse-inner and pulse-outside last 2.3s. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+      'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease and loop the glow every 2.3s. Pause plays beam-fade-out 0.5s ease. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
       'Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the live 36×36 icon example and is Pro-locked in the playground. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
     rn: 'Web CSS from `border-beam@1.4.1`. Dark on the page; light is a package option. `active` starts true. Colorful and mono are the page colors. Small is Pro-locked in the playground and stays selectable.',
@@ -1177,13 +1177,14 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'The chat inner div uses `boxSizing: \'border-box\'` so the live box stays 348×122 and the send control stays 28×28.',
       '`pulse-outside` passes `--sub-glow-offset-x`, `--sub-glow-offset-y`, `--sub-core-blur`, `--sub-bloom-blur`, and `--sub-glow-opacity-mul`.',
-      'Small is Pro-locked in the playground (beam.tsx:57). The live 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are Pro-locked on the original. Light is a package option, not on the original.',
+      'Small is labelled Pro-locked. The 36×36 icon example stays. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. Light is a package option and paints the stage #f6f6f6. The card opens on #171717.',
     ],
     setup:
-      'Peer is React. The module is `border-beam@1.4.1`. libraries.dev passes no strength (package default 1). The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
+      'Peer is React. The module is `border-beam@1.4.1`. Strength starts at 1. The 70% slider is from the separate border-beam site. The MIT text and the React LICENSE sit in front of the bundle.',
     checklist: [
-      'Default size is md, color is colorful, theme is dark, strength is 1.',
-      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card.',
+      'Default size is md, color is colorful, theme is dark, strength is 1. The stage is #171717 and the host is width 100%.',
+      'md beam-spin is 1.96s linear. beam-hue-shift is 12s ease-in-out. beam-fade-in is 0.6s ease. beam-fade-out is 0.5s ease.',
+      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card and loop every 2.3s.',
       'The chat measures 348×122 and the send control measures 28×28.',
     ],
   },
