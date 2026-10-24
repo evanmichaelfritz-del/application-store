@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
-import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'metal-fx';
+import { MetalFx, pauseShared, resumeShared, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'metal-fx';
 
 /**
  * metal-fx@2.0.11. libraries.dev/metal opens on family v2
@@ -7,8 +7,10 @@ import { MetalFx, useMetalBend, type MetalFxPreset, type MetalFxTheme } from 'me
  * The card default is that composer: chromatic, 40×40 circle, Auto reflection,
  * innerShadow, useMetalBend, strength 0.81, running
  * (metal-examples-v2.tsx:59, :87-94). The Live mode New pill is a later row
- * at strength 0.72. The playground circle starts paused. The v1 gold row is
- * metal-fx@1.0.4 and is not rendered here.
+ * at strength 0.72. The playground circle starts paused. Pause freezes the
+ * mounted specimen on the current frame: `paused` holds that canvas and
+ * `pauseShared` stops shader time, so Play continues from the same frame.
+ * The v1 gold row is metal-fx@1.0.4 and is not rendered here.
  * Light theme is a package option. Child text stays #f8f8f8.
  */
 
@@ -219,11 +221,13 @@ function V2Composer({
   theme,
   strength,
   fit,
+  paused,
 }: {
   preset: MetalFxPreset;
   theme: Exclude<MetalFxTheme, 'auto'>;
   strength: number;
   fit: boolean;
+  paused: boolean;
 }) {
   const autoChipRef = useRef<HTMLDivElement>(null);
   const sendRef = useRef<HTMLDivElement>(null);
@@ -239,6 +243,7 @@ function V2Composer({
       reflectionTargets={autoTargets}
       innerShadow
       strength={strength}
+      paused={paused}
     >
       <button type="button" aria-label="Send" style={circleFace('default')}>
         <ArrowUpIcon />
@@ -383,7 +388,11 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   const [slot, setSlot] = useState<Specimen | null>('v2');
   const [theme, setTheme] = useState<Exclude<MetalFxTheme, 'auto'>>('dark');
   const [pageStrength, setPageStrength] = useState(PAGE_STRENGTH);
-  const [paused, setPaused] = useState(true);
+  const [pausedBySpecimen, setPausedBySpecimen] = useState<Record<Specimen, boolean>>({
+    v2: false,
+    playground: true,
+    package: false,
+  });
   const [disableGlow, setDisableGlow] = useState(false);
   const [disableReflection, setDisableReflection] = useState(false);
   useEffect(() => {
@@ -397,7 +406,30 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
   }, [slot, specimen]);
   const tokens = theme === 'dark' ? DARK : LIGHT;
   const circleStrength = (pageStrength / 100) * 0.9;
-  const livePaused = specimen === 'playground' && paused;
+  const paused = pausedBySpecimen[specimen];
+  const mountedPaused = slot ? pausedBySpecimen[slot] : false;
+  useEffect(() => {
+    if (slot == null) {
+      // A copy that mounts while the shared clock is frozen never paints its first frame.
+      resumeShared();
+      return;
+    }
+    if (!mountedPaused) {
+      resumeShared();
+      return;
+    }
+    // `paused` holds the bitmap. Freeze shader time after that copy so Play does not jump.
+    const id = requestAnimationFrame(() => pauseShared());
+    return () => cancelAnimationFrame(id);
+  }, [slot, mountedPaused]);
+  const togglePause = () => {
+    const next = !pausedBySpecimen[specimen];
+    if (slot === specimen) {
+      if (next) pauseShared();
+      else resumeShared();
+    }
+    setPausedBySpecimen((current) => ({ ...current, [specimen]: next }));
+  };
   const choose = (next: Specimen) => {
     setSpecimen(next);
     setPreset(ROW_PRESET[next]);
@@ -414,7 +446,7 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
     gap: 14,
   };
   return (
-    <div ref={shellRef} data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={livePaused ? 'true' : 'false'} data-fit={shrink ? 'fluid' : galleryFit ? 'gallery' : 'page'} style={shell}>
+    <div ref={shellRef} data-testid="liquid-metal-card" data-theme={theme} data-specimen={specimen} data-paused={paused ? 'true' : 'false'} data-fit={shrink ? 'fluid' : galleryFit ? 'gallery' : 'page'} style={shell}>
       <div
         style={
           galleryFit
@@ -424,20 +456,20 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
               : { minHeight: 168, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }
         }
       >
-        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} /> : null}
+        {slot === 'v2' ? <V2Composer preset={preset} theme={theme} strength={circleStrength} fit={fit} paused={mountedPaused} /> : null}
         {slot === 'playground' ? (
           <PlaygroundCircle
             preset={preset}
             theme={theme}
             strength={circleStrength}
-            paused={paused}
+            paused={mountedPaused}
             disableGlow={disableGlow}
             disableReflection={disableReflection}
             fit={fit}
           />
         ) : null}
         {slot === 'package' ? (
-          <MetalFx key="package" preset={preset} variant="button" theme={theme} strength={1}>
+          <MetalFx key="package" preset={preset} variant="button" theme={theme} strength={1} paused={mountedPaused}>
             <button
               type="button"
               style={{
@@ -488,12 +520,10 @@ export function LiquidMetalCard({ copy = false }: { copy?: boolean } = {}) {
           <Chip label="dark" on={theme === 'dark'} tokens={tokens} onPress={() => setTheme('dark')} />
           <Chip label="light" on={theme === 'light'} tokens={tokens} packageOption onPress={() => setTheme('light')} />
           <Chip
-            label={livePaused ? 'Play' : 'Pause'}
-            on={!livePaused}
+            label={paused ? 'Play' : 'Pause'}
+            on={!paused}
             tokens={tokens}
-            onPress={() => {
-              if (specimen === 'playground') setPaused((value) => !value);
-            }}
+            onPress={togglePause}
           />
         </ControlRow>
         <ControlRow label="Options" tokens={tokens}>

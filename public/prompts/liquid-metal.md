@@ -18,7 +18,7 @@ libraries.dev/metal opens on family v2 (`metal.tsx` line 233 `useState<Family>("
 - `innerShadow`
 - `strength={strength * 0.9}` (`0.81` at `STRENGTH = 90`)
 
-It does not pass `paused`, so this row runs. The chat is up to 448px wide and shrinks to fit narrower containers, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The stage padding is 12px. The placeholder is 70% (`.mx-chat-input--short`). Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
+This row starts running. The Pause control passes `paused` to the mounted specimen and calls `pauseShared`, so the canvas holds the current frame and shader time stops. Play calls `resumeShared` and the next frame continues from that time. The chat is up to 448px wide and shrinks to fit narrower containers, radius 20, background `rgba(29, 29, 29, 0.7)`, padding `20px 16px 16px`. The stage padding is 12px. The placeholder is 70% (`.mx-chat-input--short`). Circle is 40×40, fill `#1d1d1d`, text `#f8f8f8`, border `rgba(44, 47, 54, 0.52)`.
 
 `sites/home/src/metal.tsx` line 25 is `const STRENGTH = 90`. Line 258 passes `strength={STRENGTH / 100}`. The circle then multiplies by `0.9`, so it receives `0.81`.
 
@@ -40,7 +40,7 @@ It does not pass `paused`, so this row runs. The chat is up to 448px wide and sh
 - `innerShadow`
 - `reflectionTargets` is the Search label, not Auto
 
-The search field is up to 180px wide and 40px tall, and it shrinks with the chat. The circle is 40×40. This row starts paused. No Glow and No Reflection are this row's controls. The Pause control changes only this specimen.
+The search field is up to 180px wide and 40px tall, and it shrinks with the chat. The circle is 40×40. This row starts paused. No Glow and No Reflection are this row's controls. The Pause control freezes this row the same way it freezes the v2 composer and the package default: the current frame stays, shader time stops, and Play continues from that frame. The control label is Play while paused and Pause while running.
 
 ### v1 family row (not rendered)
 
@@ -57,7 +57,7 @@ Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the 
 | specimen | v2 composer | `metal.tsx` 233 and 258, `metal-examples-v2.tsx` 59 and 87–94. `chromatic`, `innerShadow`, `useMetalBend`, reflection on Auto, running, strength `0.81` |
 | Live mode New pill | `0.72` | `metal-examples-v2.tsx` 108. `MetalBadge` multiplies page strength `0.9` by `metalOpacity` `0.8` |
 | playground | paused | `metal.tsx` `CircleStageV2` 169 and 177–186. Search + circle, `chromatic`, `innerShadow`, `useMetalBend`, reflection on Search, starts paused (`useState(true)` line 237), strength `0.81` |
-| `paused` | running on the v2 composer | The v2 composer omits `paused`. The playground starts paused |
+| `paused` | v2 running, playground paused | Pause freezes the mounted specimen on the current frame. Shader time stops. Play continues from that frame. The label is Play while paused and Pause while running |
 | page strength | `90` | `metal.tsx` line 25 `STRENGTH = 90`. The v2 circle and the playground use `strength * 0.9` (`0.81`). The New pill is `0.72` |
 | `disableGlow` | `false` | Playground control only (`CircleStageV2`) |
 | `disableReflection` | `false` | Playground control only. Clears the Search reflection |
@@ -69,7 +69,7 @@ Dark stage `#171717`. The light stage `#f6f6f6` is a package option, not on the 
 | `variant` | `button`, `circle` | `button` (package default). The v2 composer and the playground pass `circle` |
 | `theme` | `dark`, `light`, `auto` | `auto`. These rows pin `dark`. Light is a package option, not on the original |
 | `strength` | 0..1 | package default `1`. The v2 circle and the playground are `0.81`. The New pill is `0.72` |
-| `paused` | `true` holds the last frame | package default `false`. The v2 composer omits it. Playground starts `true` |
+| `paused` | `true` holds the last frame | package default `false`. The v2 composer and the package default start running. The playground starts `true`. The card pairs `paused` with `pauseShared` and `resumeShared`, so shader time stays on the held frame |
 | `glowGain` | glow multiplier | `1` |
 | `scale` | pixel-constant multiplier | `1` |
 | `innerShadow` | `true` uses the design rim | off unless passed. The v2 composer and the playground pass it |
@@ -116,11 +116,11 @@ Uniforms written each frame include `u_colorTint`, `u_repetition`, `u_softness`,
 
 ## Timing
 
-`speed` is 1 except gold dark, which is 0.85. There is one shared `requestAnimationFrame` for every live copy. `paused` true stores the last canvas and stops that copy. `IntersectionObserver` and `document.hidden` pause the loop while a copy is offscreen or the tab is hidden. `strength` is a live uniform multiplier, not a duration.
+`speed` is 1 except gold dark, which is 0.85. There is one shared `requestAnimationFrame` for every live copy. `paused` true stores the last canvas and stops that copy. The card's Pause control also calls `pauseShared`, and Play calls `resumeShared`, so `pausedMs` covers the gap and shader time continues from the same frame. `IntersectionObserver` and `document.hidden` pause the loop while a copy is offscreen or the tab is hidden. `strength` is a live uniform multiplier, not a duration.
 
 ## Gotchas
 
-- The card default is the v2 composer (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). It omits `paused` and passes `innerShadow` and `useMetalBend`, so it mounts running at `0.81`. The Live mode New pill (`metal-examples-v2.tsx` line 108) is `0.72` (`0.9 × 0.8`) and is not that circle. The playground (`metal.tsx` line 237) is `useState(true)`, so that row starts paused. The Pause control changes only the playground specimen.
+- The card default is the v2 composer (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). It passes `innerShadow` and `useMetalBend` and mounts running at `0.81`. The Live mode New pill (`metal-examples-v2.tsx` line 108) is `0.72` (`0.9 × 0.8`) and is not that circle. The playground (`metal.tsx` line 237) is `useState(true)`, so that row starts paused. The Pause control freezes the mounted specimen: the canvas holds the current frame, `pauseShared` stops shader time, and Play resumes from that frame. The v2 composer and the package default start running. The playground starts paused. The label is Play while paused and Pause while running.
 - The v2 circle and the playground use `strength * 0.9` after `STRENGTH = 90` (`metal.tsx` lines 25 and 258, and `CircleStageV2`), so each receives `0.81`. Do not give the New pill the circle's `0.81`, and do not give the composer the pill's `0.72`. The strength slider and silver/gold preset chips are a package option: Studio-locked on libraries.dev; live on the metal-fx package demo. The package default strength is `1`, used only by the labelled 140×40 button.
 - The v1 family row (`metal-examples.tsx` lines 87–99) is gold on `metal-fx-v1` (`npm:metal-fx@1.0.4`) when Version is v1. This card does not render it.
 - `isMetalFxSupported` caches one WebGL2 probe (`getContext("webgl2")`, then `WEBGL_lose_context`). When it is false, `MetalFx` renders the child with no canvas. Do not add a second fallback.
@@ -149,7 +149,7 @@ Peer is React 18 or newer. The published module is `metal-fx@2.0.11` `dist/index
 - [ ] Light theme is a package option, not on the original. Child text stays `#f8f8f8`.
 - [ ] `chromatic`, `silver`, and `gold` dark and light blocks match the table, including gold dark `speed` 0.85 and silver dark `shaderOpacity` 0.88.
 - [ ] `button` uses shader scale 1.6 and a 1px ring. `circle` uses shader scale 1.3 and a 2px ring.
-- [ ] `paused` true holds the last frame.
+- [ ] `paused` true holds the last frame. Pause on the mounted specimen stops shader time, and Play continues from the same frame. The control reads Play while paused and Pause while running.
 - [ ] A host without WebGL2 shows the child and no canvas.
 - [ ] Offscreen copies and a hidden document pause the shared loop.
 - [ ] The component source below is unmodified `metal-fx@2.0.11`.
