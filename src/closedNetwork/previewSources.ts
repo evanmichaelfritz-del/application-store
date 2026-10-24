@@ -936,10 +936,28 @@ function splitSelectors(prelude: string): string[] {
   return parts;
 }
 
+function idNames(selector: string): string[] {
+  return [...selector.matchAll(/#([A-Za-z_][\w-]*)/g)].map((match) => match[1] ?? '').filter((name) => name.length > 0);
+}
+
+/**
+ * Element and :root selectors style the preview document, so they stay.
+ * A class or id stays when that asset's HTML or script uses it, including a
+ * class the script adds or toggles. A getElementById / querySelector('#id')
+ * lookup does not count: that read is a no-op when the node is not in the markup.
+ */
+function usageHaystack(html: string, script: string): string {
+  const withoutIdLookups = script
+    .replace(/getElementById\(\s*['"][^'"]+['"]\s*\)/g, '')
+    .replace(/querySelector(?:All)?\(\s*['"]#[^'"]+['"]\s*\)/g, '');
+  return `${html}\n${withoutIdLookups}`;
+}
+
 function selectorNeeded(selector: string, haystack: string): boolean {
   const classes = classNames(selector).filter((name) => name.length > 0);
-  if (classes.length === 0) return true;
-  return classes.every((name) => tokenAppears(name, haystack));
+  const ids = idNames(selector);
+  if (classes.length === 0 && ids.length === 0) return true;
+  return [...classes, ...ids].every((name) => tokenAppears(name, haystack));
 }
 
 type CssBlock = {
@@ -1027,17 +1045,20 @@ function emitRule(block: CssBlock, haystack: string): string | null {
   const selectors = splitSelectors(block.prelude);
   const needed = selectors.filter((selector) => selectorNeeded(selector, haystack));
   if (needed.length === 0) return null;
+  // Every selector is used: the source rule, unchanged.
   if (needed.length === selectors.length) return block.raw.trim();
+  // A grouped rule keeps the original declaration block and only the selectors this asset uses.
   return `${needed.join(', ')} {${block.body}}`;
 }
 
 /**
  * Keep a shared sheet's rules only when this asset's HTML or script uses them.
- * Element, :root, and pseudo-only selectors stay. A class selector stays when
- * every class token appears. @keyframes stay when a kept rule names them.
+ * Element, :root, and pseudo-only selectors stay. A class or id stays when that
+ * token appears, including a class the script toggles. @keyframes stay when a
+ * kept rule names them. A kept rule's declaration block is the source text.
  */
 function filterSheet(css: string, html: string, script: string): string {
-  const haystack = `${html}\n${script}`;
+  const haystack = usageHaystack(html, script);
   const blocks = parseBlocks(css);
   const kept: { index: number; text: string }[] = [];
   const referenced: string[] = [];
