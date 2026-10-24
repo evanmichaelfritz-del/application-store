@@ -1387,7 +1387,7 @@ function WorkerLoader({
 
 /**
  * Web showcase of the pixels-organic light mosaic.
- * The worker is the closed-network program. Copy runs that same source.
+ * The worker is the light-mosaic program. Copy runs that same source.
  */
 export function ImageGenerationLoaderDemo() {
   const hostRef = useRef<View>(null);
