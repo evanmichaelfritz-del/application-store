@@ -1,8 +1,8 @@
 # AGENT_PROMPT — Drag & drop with physics
 
-Independent recreate of the visible behaviour of the transitions.dev demo. The demo is credited by name only. This document does not describe that demo's source.
+Recreate this drag-and-drop board only. Build from the behaviour and values in this prompt. Do not read or copy Pro/paid source or page source. Work from the public demo behaviour only. The recreate targets this asset, not the author's site.
 
-One board. The live web demo and Copy both mount `PhysicsDropCard` from `src/demos/drag-drop/card.web.tsx`. Copy is `public/parity/drag-drop-physics.js`, built by `scripts/build-parity.mjs` from `src/demos/drag-drop/mount.tsx`. At a 1280 desktop the board is the fixed size below; it does not reflow.
+One board. The web card and Copy both mount `PhysicsDropCard` from `src/demos/drag-drop/card.web.tsx`. Copy is `public/parity/drag-drop-physics.js`, built by `scripts/build-parity.mjs` from `src/demos/drag-drop/mount.tsx`. At a 1280 desktop the board is the fixed size below; it does not reflow.
 
 ## Geometry
 
@@ -109,7 +109,9 @@ The card follows both signals. `prefers-reduced-motion: reduce` is read with `ma
 - Do not spring the chip home and do not keep integrating velocity after pointer up. Do not wait a frame before applying the rest transform.
 - Do not add hover or focus styles. The chip is not tabbable. The zone highlight is the drag-over state: it is on only while the pointer is down and the chip centre is inside the zone.
 - The label must not request a font. No `fonts.gstatic.com`, no other CDN, no `@font-face` pointed at a network URL. The Inter-first system stack above is the face.
+- The chip is the cover photo, 72×72, radius 12, with no text on it. Do not replace it with a coloured tile or a text label.
 - The photo is a data URI. The board does not fetch an image.
+- Copy CSS is the shared page sheet after unused rules are dropped, plus `#parity-root { width: 213px; }`. `.col` and `button.trigger` are not in that CSS.
 - Live and Copy are the same component. Copy's document centers a 213px `#parity-root` on `#f9f9f9` and loads `/parity/drag-drop-physics.js` from the same origin. The transparent board sits on that same grey in the live frame.
 - Native `src/demos/drag-drop/index.tsx` re-exports `DragDropDemo` from `src/demos/DragDrop.tsx`, the gesture-handler scene. That scene is not the web board and it is not Copy.
 
@@ -142,6 +144,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Known gaps
+
+- Phone widths are a known gap. The board is measured at a 1280 desktop and stays 213×192. It does not reflow.
+- The puff halo edge is a smooth haze. The public demo's outline wanders more irregularly.
+- This asset's photo is the CC0 rose crop below. A different portrait is not this board.
 
 ## Checklist
 
