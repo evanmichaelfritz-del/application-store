@@ -133,6 +133,7 @@ const publicPrompt = {
   gooey: readFileSync(join(root, 'public/prompts/gooey.md'), 'utf8'),
   'drag-drop-physics': readFileSync(join(root, 'public/prompts/drag-drop-physics.md'), 'utf8'),
   'spacing-tuner': readFileSync(join(root, 'public/prompts/spacing-tuner.md'), 'utf8'),
+  'image-generation-loader': readFileSync(join(root, 'public/prompts/image-generation-loader.md'), 'utf8'),
 };
 
 function missingSections(text) {

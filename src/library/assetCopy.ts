@@ -27,7 +27,7 @@ export function prefetchCopyCss(id: string): void {
 
 /**
  * Agent prompt for this asset only.
- * Yogesh assets read public/prompts; every other asset reads promptFor.
+ * Hand-written sheets live in public/prompts. Every other asset reads promptFor.
  */
 export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'yogesh-thinking-orbs') return loadYogeshThinkingOrbsPrompt();
@@ -37,6 +37,7 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'gooey') return loadPublicPrompt('/prompts/gooey.md');
   if (id === 'drag-drop-physics') return loadPublicPrompt('/prompts/drag-drop-physics.md');
   if (id === 'spacing-tuner') return loadPublicPrompt('/prompts/spacing-tuner.md');
+  if (id === 'image-generation-loader') return loadPublicPrompt('/prompts/image-generation-loader.md');
   return Promise.resolve(promptFor(id));
 }
 
@@ -48,7 +49,8 @@ export function promptIsLazy(id: string): boolean {
     id === 'liquid-metal' ||
     id === 'gooey' ||
     id === 'drag-drop-physics' ||
-    id === 'spacing-tuner'
+    id === 'spacing-tuner' ||
+    id === 'image-generation-loader'
   );
 }
 
