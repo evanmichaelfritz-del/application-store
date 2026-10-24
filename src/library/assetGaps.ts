@@ -55,7 +55,11 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     MAE_METHOD,
     LIVE_LAG,
   ],
-  'drag-drop-physics': [],
+  'drag-drop-physics': [
+    'Phone widths are a known gap. The board is measured at a 1280 desktop and stays 213×192. It does not reflow.',
+    "The puff halo edge is a smooth haze. The public demo's outline wanders more irregularly.",
+    "This asset's photo is the CC0 rose crop below. A different portrait is not this board.",
+  ],
   'preview-tools': [
     '95.8 KB but still the generic template: code is inlined (byte-matches Copy), but there are no per-state tables, gotchas or parity checklist, and it carries the boilerplate.',
     'Unused .trigger.',
