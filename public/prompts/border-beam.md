@@ -98,7 +98,7 @@ Duration fallback, from the component:
 
 `D = i ?? (o === "line" ? 3.1 : ie ? 2.3 : 1.96)`
 
-`ie` is true for `pulse-inner` and `pulse-outside`. So `md` and `sm` are 1.96s, `line` is 3.1s, and both pulse sizes are 2.3s, unless `duration` is passed.
+`ie` is true for `pulse-inner` and `pulse-outside`. When `duration` is unset, the package duration fallback `D` is 1.96 for `md` and `sm`, 3.1 for `line`, and 2.3 for both pulse sizes. That pulse value is the `duration` argument passed into the style builder.
 
 Hue range: `U = o === "line" ? Math.min(n, 13) : n` with `n = 30`. Line travel therefore caps at 13 degrees. Other sizes use 30.
 
@@ -120,11 +120,11 @@ Pause replaces `beam-fade-in` with `beam-fade-out` at `0.5s` `ease` while `beam-
 
 `line` keeps `beam-hue-shift` at `12s` `ease-in-out`. Spike colours on that size include `rgb(255, 60, 80)` and `rgba(40, 190, 180, 0.98)`. The search shell is 366×42 with outer radius 64px. The beam host is 366×42 with radius 20px.
 
-`pulse-inner` and `pulse-outside` move on a glow loop of `2.3s`. After fade-in, `pulse-outside` `::before` opacity is `0.34`, `::after` opacity is `0.94`, bloom opacity is `0.3`, bloom filter is `blur(22.5px) brightness(1.9) saturate(1.2)` plus a moving hue-rotate, bloom radius `46px`. `pulse-inner` bloom opacity is `0.66`, filter is `blur(8px) brightness(0.75) saturate(1.2)` plus a moving hue-rotate, radius `16px`. `pulse-outside` makes the card `434px` tall because the specimen pad is `28px`. The other sizes stay `394px` tall on a wide host.
+The `pulse-inner` and `pulse-outside` glow is a multi-layer drift. Inner layer periods are about 3.0s and 2.43s. Outside layer periods are about 2.17s and 1.83s. Other layers fall between 1.4s and 3.6s. The layers are not synchronised, so there is no single loop length. After fade-in, `pulse-outside` `::before` opacity is `0.34`, `::after` opacity is `0.94`, bloom opacity is `0.3`, bloom filter is `blur(22.5px) brightness(1.9) saturate(1.2)` plus a moving hue-rotate, bloom radius `46px`. `pulse-inner` bloom opacity is `0.66`, filter is `blur(8px) brightness(0.75) saturate(1.2)` plus a moving hue-rotate, radius `16px`. `pulse-outside` makes the card `434px` tall because the specimen pad is `28px`. The other sizes stay `394px` tall on a wide host.
 
 `pulse-outside` scales its glow from the child box against a 350×140 reference, clamped between 0.35 and 4, and writes `--pulse-glow-sx` and `--pulse-glow-sy`.
 
-Pulse frames are skipped when `(prefers-reduced-motion: reduce)` matches. Rotate sizes do not add a reduced-motion stop of their own.
+`md`, `sm`, and `line` keep moving under `(prefers-reduced-motion: reduce)`. Pulse is static. Fades are `0.5s` out and `0.6s` in, both `ease`.
 
 ## Gotchas
 
@@ -150,12 +150,12 @@ Peer is React 18 or newer. The published module is `border-beam@1.4.1` `dist/ind
 - [ ] `md` and `sm` run `beam-spin` `1.96s` `linear` infinite and `beam-fade-in` `0.6s` `ease` once. `::before` and `::after` run `beam-hue-shift` `12s` `ease-in-out` infinite, filter `brightness(1.3) saturate(1.2)` with a moving `hue-rotate`. Bloom is `blur(8px) brightness(1.3) saturate(1.2)`.
 - [ ] The `md` beam is a travelling conic mask. The `from` angle is the spin position. Colorful stops include `rgba(255, 50, 100, 0.45)`, `rgba(40, 140, 255, 0.45)`, `rgba(50, 200, 80, 0.45)`, `rgba(30, 185, 170, 0.45)`, and `rgba(100, 70, 255, 0.45)`.
 - [ ] `line` is `3.1s` `linear` (`beam-travel` and `beam-edge-fade`), plus `beam-breathe` `4s` `ease-in-out`, `beam-spike` `4.1s` `ease-in-out`, `beam-spike2` `5.3s` `ease-in-out`, and `beam-fade-in` `0.6s` `ease`. Host radius is `20px` on the 366×42 shell.
-- [ ] Both pulse sizes fade in over `0.6s` `ease`. The glow loop repeats every `2.3s`.
+- [ ] Both pulse sizes fade in over `0.6s` `ease`. The glow is a multi-layer drift: inner layer periods about 3.0s and 2.43s, outside layer about 2.17s and 1.83s, other layers between 1.4s and 3.6s, not synchronised, so there is no single loop length.
 - [ ] `hueRange` is 30, and `line` caps it with `Math.min(n, 13)`.
 - [ ] `mono` forces static colors. The `::after` filter is `none`.
 - [ ] Dark and light rows of `sizeThemePresets` match the table above, including pulse brightness and `hairlineOpacity` 0.
 - [ ] Pause plays `beam-fade-out` `0.5s` `ease`, then clears `data-active` and `data-fading`. Play fades back in over `0.6s` `ease`.
-- [ ] Pulse honors `(prefers-reduced-motion: reduce)`. Rotate sizes keep moving.
+- [ ] `md`, `sm`, and `line` keep moving under `(prefers-reduced-motion: reduce)`. Pulse is static. Fades are `0.5s` out and `0.6s` in, both `ease`.
 - [ ] Chat specimen is 348×122 radius 20, fill `#1d1d1d`, with a 28×28 send control (`box-sizing: border-box`, padding `0 8px`, radius `36px`) and `boxSizing: 'border-box'` on the inner div.
 - [ ] `pulse-inner` and `pulse-outside` wrap the 250×94 radius-16 demo card, fill `#1d1d1d`. `pulse-outside` is 434px tall.
 - [ ] `pulse-outside` sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`. Opacities are `::before` `0.34`, `::after` `0.94`, bloom `0.3`, bloom filter `blur(22.5px) brightness(1.9) saturate(1.2)` plus a moving hue-rotate.

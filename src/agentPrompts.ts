@@ -1150,7 +1150,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'border-beam': {
     motion:
-      'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease and loop the glow every 2.3s. Pause plays beam-fade-out 0.5s ease. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
+      'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease. The glow is a multi-layer drift: inner layer periods about 3.0s and 2.43s, outside layer about 2.17s and 1.83s, other layers between 1.4s and 3.6s, not synchronised, so there is no single loop length. md, sm, and line keep moving under reduced motion. Pulse is static. Fades are 0.5s out and 0.6s in, ease. The package duration fallback is 2.3 for pulse when duration is unset. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
       'Build from the behaviour and values in this prompt; do not read or copy Pro/paid source or page source. Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the 36×36 icon, labelled Pro-locked, and stays selectable. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. Light is a package option and paints the stage #f6f6f6. The card opens on #171717.',
     rn: 'Web CSS from `border-beam@1.4.1`. The card opens on dark `#171717`. Light is a package option and paints `#f6f6f6`. `active` starts true. Colours are colorful and mono. sm is the 36×36 icon, labelled Pro-locked, and stays selectable.',
@@ -1169,8 +1169,8 @@ const LOCKS: Record<string, PromptLock> = {
         trigger: '`pulse-inner` or `pulse-outside`',
         from: 'glow in',
         to: 'glow out',
-        duration: '2.3s',
-        easing: 'shared frame loop',
+        duration: 'multi-layer drift, no single loop length',
+        easing: 'inner about 3.0s and 2.43s, outside about 2.17s and 1.83s, other layers 1.4s to 3.6s',
         delay: 'pulse-outside uses the five `--sub-*` vars',
       },
     ],
@@ -1184,7 +1184,7 @@ const LOCKS: Record<string, PromptLock> = {
     checklist: [
       'Default size is md, color is colorful, theme is dark, strength is 1. The stage is #171717 and the host is width 100%.',
       'md beam-spin is 1.96s linear. beam-hue-shift is 12s ease-in-out. beam-fade-in is 0.6s ease. beam-fade-out is 0.5s ease.',
-      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card and loop every 2.3s.',
+      'pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. The glow is a multi-layer drift: inner about 3.0s and 2.43s, outside about 2.17s and 1.83s, other layers 1.4s to 3.6s, not synchronised, so there is no single loop length.',
       'The chat is 348×122 and the send control is 28×28.',
     ],
   },
