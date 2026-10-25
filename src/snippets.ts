@@ -42,30 +42,45 @@ export const SNIPPETS: Record<string, string> = {
   .t-digit { animation: none !important; }
 }`,
 
-  'notification-badge': `:root {
-  --badge-slide-dur: 260ms;
-  --badge-pop-dur: 500ms;
-  --badge-offset-x: -8.2px;
-  --badge-offset-y: 12.4px;
-  --badge-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+  'notification-badge': `@property --pop { syntax: "<number>"; inherits: false; initial-value: 0; }
+:root {
+  /* springs.pop, mass 0.8, damping 12, stiffness 280. Sampled at 60 stops over 1242ms. */
+  --pop-dur: 1242ms;
+  --pop-ease: linear(0, 0.0691, 0.2417, 0.4672, 0.7015, 0.9116, 1.0764, 1.1865, 1.2424, 1.2513, 1.2248, 1.1759, 1.1172, 1.059, 1.0088, 0.9711, 0.9473, 0.9369, 0.9376, 0.9463, 0.9597, 0.9748, 0.9891, 1.0009, 1.0094, 1.0144, 1.0162, 1.0153, 1.0127, 1.0091, 1.0053, 1.0018, 0.999, 0.9972, 0.9961, 0.9959, 0.9963, 0.997, 0.998, 0.9989, 0.9998, 1.0004, 1.0008, 1.001, 1.001, 1.0009, 1.0007, 1.0004, 1.0002, 1, 0.9999, 0.9998, 0.9997, 0.9997, 0.9998, 0.9998, 0.9999, 1, 1, 1);
+  --badge-fade: 180ms;
+  --badge-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .t-badge {
-  transform: translate(var(--badge-offset-x), var(--badge-offset-y)) scale(0.4);
+  transform: translate(calc((1 - var(--pop)) * -8.2px), calc((1 - var(--pop)) * 12.4px)) scale(calc(0.4 + var(--pop) * 0.6));
   opacity: 0;
-  transition:
-    transform var(--badge-slide-dur) var(--badge-slide-ease),
-    opacity 180ms var(--badge-slide-ease);
 }
 .t-badge.is-on {
-  transform: translate(0, 0) scale(1);
-  opacity: 1;
-  transition:
-    transform var(--badge-pop-dur) var(--badge-pop-ease),
-    opacity 180ms var(--badge-slide-ease);
+  animation:
+    badge-pop var(--pop-dur) var(--pop-ease) both,
+    badge-in var(--badge-fade) var(--badge-fade-ease) both;
 }
+.t-badge.is-off {
+  animation:
+    badge-out var(--pop-dur) var(--pop-ease) both,
+    badge-fade-out var(--badge-fade) var(--badge-fade-ease) both;
+}
+@keyframes badge-pop { from { --pop: 0; } to { --pop: 1; } }
+@keyframes badge-out { from { --pop: 1; } to { --pop: 0; } }
+@keyframes badge-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes badge-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .t-badge { transition: none !important; }
+  .t-badge.is-on {
+    animation: none;
+    animation-duration: 0ms;
+    --pop: 1;
+    opacity: 1;
+  }
+  .t-badge.is-off {
+    animation: none;
+    animation-duration: 0ms;
+    --pop: 0;
+    opacity: 0;
+  }
 }`,
 
   'text-states-swap': `:root {
@@ -217,28 +232,45 @@ export const SNIPPETS: Record<string, string> = {
   .t-icon { transition: none !important; }
 }`,
 
-  'success-check': `:root {
-  --check-opacity-dur: 500ms;
-  --check-rotate-from: 80deg;
-  --check-y-amount: 28px;
-  --check-scale-from: 0.86;
-  --check-dash: 28;
-  --check-draw-delay: 80ms;
-  --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  'success-check': `@property --t { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --dash { syntax: "<number>"; inherits: true; initial-value: 0; }
+:root {
+  /* springs.pop, mass 0.8, damping 12, stiffness 280. Sampled at 60 stops over 1242ms. */
+  --pop-dur: 1242ms;
+  --pop-ease: linear(0, 0.0691, 0.2417, 0.4672, 0.7015, 0.9116, 1.0764, 1.1865, 1.2424, 1.2513, 1.2248, 1.1759, 1.1172, 1.059, 1.0088, 0.9711, 0.9473, 0.9369, 0.9376, 0.9463, 0.9597, 0.9748, 0.9891, 1.0009, 1.0094, 1.0144, 1.0162, 1.0153, 1.0127, 1.0091, 1.0053, 1.0018, 0.999, 0.9972, 0.9961, 0.9959, 0.9963, 0.997, 0.998, 0.9989, 0.9998, 1.0004, 1.0008, 1.001, 1.001, 1.0009, 1.0007, 1.0004, 1.0002, 1, 0.9999, 0.9998, 0.9997, 0.9997, 0.9998, 0.9998, 0.9999, 1, 1, 1);
+  --dash-delay: 80ms;
+  --dash-hide: 120ms;
+  --check-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
-.t-check { animation: t-check-in var(--check-opacity-dur) var(--check-ease-out) both; }
-.t-check .mark {
-  stroke-dasharray: var(--check-dash);
-  stroke-dashoffset: var(--check-dash);
-  animation: t-check-draw var(--check-opacity-dur) var(--check-ease-out) var(--check-draw-delay) forwards;
+.mark.is-on {
+  animation:
+    check-pop var(--pop-dur) var(--pop-ease) both,
+    check-dash var(--pop-dur) var(--pop-ease) var(--dash-delay) both;
 }
-@keyframes t-check-in {
-  from { opacity: 0; transform: translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)) scale(var(--check-scale-from)); }
-  to { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+.mark.is-off {
+  animation:
+    check-pop-out var(--pop-dur) var(--pop-ease) both,
+    check-dash-out var(--dash-hide) var(--check-ease) both;
 }
-@keyframes t-check-draw { to { stroke-dashoffset: 0; } }
+@keyframes check-pop { from { --t: 0; } to { --t: 1; } }
+@keyframes check-pop-out { from { --t: 1; } to { --t: 0; } }
+@keyframes check-dash { from { --dash: 0; } to { --dash: 1; } }
+@keyframes check-dash-out { from { --dash: 1; } to { --dash: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .t-check { animation: none !important; }
+  .mark.is-on {
+    animation: none;
+    animation-duration: 0ms;
+    --t: 1;
+    --dash: 1;
+    opacity: 1;
+  }
+  .mark.is-off {
+    animation: none;
+    animation-duration: 0ms;
+    --t: 0;
+    --dash: 0;
+    opacity: 0;
+  }
 }`,
 
   'avatar-group-hover': `:root {

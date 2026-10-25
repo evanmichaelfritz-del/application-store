@@ -107,9 +107,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   ],
   'modal-open-close': [],
   'notification-badge': [
-    'Generic template prompt (4208 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the stage shrinks to the bell and clips the Animate button. The card stage keeps that button inside the frame.',
   ],
   'number-pop-in': [
     'Generic template prompt (4523 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
@@ -129,10 +127,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
   ],
   'success-check': [
-    'Generic template prompt (4117 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'The live stage starts empty until Animate; Copy shows the check at rest.',
-    'The replay change was not captured by the screenshot diff ("not proven").',
+    'Phone widths are a known gap. On the asset page the stage shrinks to the badge and clips the Animate button. The card stage keeps that button inside the frame.',
   ],
   'tabs-sliding': [
     'Generic template prompt (4264 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
