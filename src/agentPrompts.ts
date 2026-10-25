@@ -3,7 +3,6 @@ import { TRANSITIONS } from './catalog';
 import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import { ORB_LOCKS } from '@/src/closedNetwork/orbLocks';
-import { TILT_RN } from './demos/tiltMotion';
 
 export type PromptState = {
   name: string;
@@ -18,18 +17,20 @@ export type PromptState = {
 export type PromptLock = {
   motion: string;
   content?: string;
-  rn: string;
   states?: readonly PromptState[];
   gotchas?: readonly string[];
   setup?: string;
   checklist?: readonly string[];
+  geometry?: string;
+  timing?: string;
+  reducedMotion?: string;
+  knownGaps?: string;
 };
 
 const LOCKS: Record<string, PromptLock> = {
   'card-resize': {
     motion:
       '`.t-resize` starts at width 148px and height 100px. Resize writes 88px by 64px, then 148px by 100px. Width and height transition over `--resize-dur: 300ms` with `--resize-ease: cubic-bezier(0.22, 1, 0.36, 1)`.',
-    rn: 'Reanimated width/height timing in `CardResizeDemo`. Copy emits portable CSS `.t-resize`.',
     states: [
       {
         name: 'wide',
@@ -67,7 +68,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'Each `.t-digit` runs `@keyframes t-digit-in` for `--digit-dur: 500ms` with `--digit-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `perspective(400px) rotateX(var(--digit-tilt))`, opacity 0, `blur(var(--digit-blur))`. `--digit-tilt` is 80deg and `--digit-blur` is 2px. Delay is `calc(var(--digit-stagger) * (n - 1))` and `--digit-stagger` is 50ms. Replay rewrites the row.',
     content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is a `.t-digit.gap`.',
-    rn: 'Reanimated per-digit rotateX. Copy HTML lists each character. Copy CSS is `.t-digit` / `t-digit-in`. Copy script cycles the three sets.',
     states: [
       {
         name: 'enter',
@@ -96,7 +96,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-badge` rests at `translate(var(--badge-offset-x), var(--badge-offset-y)) scale(0.4)` and opacity 0. `--badge-offset-x` is -8.2px and `--badge-offset-y` is 12.4px. Leaving `.is-on` uses `--badge-slide-dur: 260ms`. `.is-on` moves to `translate(0, 0) scale(1)` over `--badge-pop-dur: 500ms`. Opacity is 180ms on both.',
     content: 'Count `1` on `#e23d2d`. Starts without `.is-on`. Click the bell toggles it.',
-    rn: 'Shared-value translate + scale. Copy CSS is `.t-badge`. Copy script toggles `.is-on`.',
     states: [
       {
         name: 'off',
@@ -142,7 +141,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-text-swap` transitions transform, filter, and opacity over `--text-swap-dur: 250ms` with `--text-swap-ease: ease-in-out`. `.is-exit` is `translateY(calc(var(--text-swap-translate-y) * -1))` and `blur(var(--text-swap-blur))`. `.is-enter-start` is `translateY(var(--text-swap-translate-y))` and the same blur. `--text-swap-translate-y` is 4px and `--text-swap-blur` is 2px.',
     content: '`Transaction processing...` then `Transaction completed`.',
-    rn: 'Copy CSS is `.t-text-swap`. Copy script waits 250ms before swapping the string.',
     states: [
       {
         name: 'exit',
@@ -180,7 +178,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-dropdown` starts at `scale(var(--dropdown-pre-scale))` and opacity 0. `--dropdown-pre-scale` and `--dropdown-closing-scale` are 0.94. `.is-open` scales to 1 and fades to opacity 1 over `--dropdown-open-dur: 180ms`. `.is-closing` returns to scale 0.94 over `--dropdown-close-dur: 180ms`. Easing is `--dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Origin is `var(--dropdown-origin, top left)`.',
     content: 'Trigger reads `Open menu` / `Close menu`. Items: `New file` / `Add image` / `New folder`. Starts closed.',
-    rn: 'Copy CSS is `.t-dropdown`. Copy script toggles `.is-open` / `.is-closing` and the trigger label.',
     states: [
       {
         name: 'closed',
@@ -228,7 +225,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'Celebrate spawns 18 `.t-confetti-piece` bits, each 6px by 8px. The loop adds `--confetti-gravity` (1800) to vy, steps x and y, and when y passes the floor sets y to the floor and multiplies vy by `--confetti-bounce` (0.35). The floor is `rect.top - host.top - 8`. Spread is `--confetti-spread: 46deg`.',
     content: 'Button label `Celebrate`. 18 bits. The floor is `rect.top - host.top - 8`.',
-    rn: 'Reanimated particles, not a full physics engine. Copy emits `.t-confetti-piece` tokens.',
     states: [
       {
         name: 'piece',
@@ -274,62 +270,93 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'modal-open-close': {
     motion:
-      '`.t-modal` starts at `scale(var(--modal-scale))` and opacity 0. `--modal-scale` is 0.94. `.is-open` scales to 1 and fades in over `--modal-open-dur: 200ms`. `.is-closing` returns to that scale over `--modal-close-dur: 200ms`. Easing is `--modal-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The backdrop background is rgba(0,0,0,.28).',
-    content: 'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` The backdrop starts `hidden`.',
-    rn: 'Copy CSS is `.t-modal`. Copy script shows and hides the backdrop.',
+      'progress moves between 0 and 1 over 200ms with cubic-bezier(0.22, 1, 0.36, 1). Panel opacity equals progress. Panel scale is 0.94 + 0.06 * progress. The layer stays at opacity 1. The backdrop scrim is a sibling of the panel and its opacity is progress * 0.28.',
+    content:
+      'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` Trigger label `Toggle modal`. The modal starts closed (invisible, not interactive).',
+    geometry: `- Stage clip: height 200px. The layer fills that box and stays at opacity 1.
+- Trigger: height 34px, padding 0 12px, border-radius 10px, background #ffffff, no border, colour #0d0d0d, 13px, face Inter_500Medium (font-weight 500). Shadow \`0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05)\`.
+- Panel: width 210px, border-radius 14px, padding 16px, background #ffffff, the same shadow. Its opacity is its own.
+- Backdrop scrim: a sibling of the panel, filling the layer, background #0d0d0d. Its own opacity runs from 0 to 0.28. It is not a parent of the panel.
+- Title: 15px, colour #0d0d0d, face Inter_600SemiBold (font-weight 600), margin-bottom 6px.
+- Body: 12px, line-height 17px, colour #6c6c6c, face Inter_400Regular (font-weight 400), margin-bottom 12px.
+- Close: 13px, colour #0d0d0d, face Inter_500Medium (font-weight 500), aligned to the end of the panel. No fill, border, or padding.`,
+    timing: `progress moves between 0 and 1 over 200ms with cubic-bezier(0.22, 1, 0.36, 1), opening or closing. No delay and no stagger.
+
+- Panel opacity = progress.
+- Panel scale = 0.94 + 0.06 * progress.
+- Scrim opacity = progress * 0.28. The backdrop scrim is a sibling of the panel. The layer stays at opacity 1.
+
+\`--modal-open-dur\` and \`--modal-close-dur\` are 200ms. \`--modal-scale\` is 0.94. \`--modal-ease\` is cubic-bezier(0.22, 1, 0.36, 1).`,
+    reducedMotion:
+      'Reduced motion uses duration 0. The panel and the scrim jump to the open or closed values. The stylesheet sets those transitions to none, and the script waits 0 before it clears the closing class.',
     states: [
       {
-        name: 'panel',
-        trigger: '',
-        from: '',
-        to: '.panel width 280px, border-radius 16px, padding 20px, background #fff. .backdrop background rgba(0,0,0,.28)',
+        name: 'closed',
+        trigger: 'Close, or a press on the backdrop outside the panel',
+        from: 'scale 1, opacity 1, scrim opacity 0.28',
+        to: 'scale 0.94, opacity 0, scrim opacity 0, then not interactive',
+        duration: '200ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '',
+      },
+      {
+        name: 'open',
+        trigger: 'Toggle modal',
+        from: 'scale 0.94, opacity 0, scrim opacity 0',
+        to: 'scale 1, opacity 1, scrim opacity 0.28',
+        duration: '200ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '',
+      },
+      {
+        name: 'hover',
+        trigger: 'pointer over the trigger, the panel, or Close',
+        from: 'the resting paint',
+        to: 'no colour, shadow, or opacity change',
         duration: '',
         easing: '',
         delay: '',
       },
       {
-        name: 'closed',
-        trigger: 'the Close button',
-        from: 'scale 1, opacity 1, class `is-open`',
-        to: 'scale(var(--modal-scale)) 0.94, opacity 0, class `is-closing`, then `hidden`',
-        duration: '200ms (`--modal-close-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--modal-ease`)',
-        delay: '',
-      },
-      {
-        name: 'open',
-        trigger: 'the Toggle modal button',
-        from: 'scale(0.94), opacity 0',
-        to: 'scale 1, opacity 1, class `is-open`',
-        duration: '200ms (`--modal-open-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        name: 'panel',
+        trigger: 'a press on the panel, not on Close',
+        from: 'open',
+        to: 'stays open',
+        duration: '',
+        easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'Close does not listen on the backdrop. It adds `.is-closing` and sets `hidden` after `reduce ? 0 : 200`.',
-      'The panel text colour on the paragraph is #6c6c6c. The title is `New project`.',
-      'Reduced motion uses the 0 timeout. The stylesheet does not animate the backdrop background.',
+      'Tapping the backdrop or Close closes the modal; the trigger only opens it. Both fade out over 200ms.',
+      'A press on the panel does not close it.',
+      'Hover does not restyle the trigger, the panel, or Close.',
+      'The scrim must not be a parent of the panel\'s opacity. The backdrop wash and the panel are siblings. An ancestor opacity washes the white panel, the title, the body, Close, and the shadow.',
     ],
     setup:
-      '`.backdrop` is position fixed, inset 0, background rgba(0,0,0,.28), and starts `hidden`. `.panel` is width 280px, background #fff, border-radius 16px, padding 20px. Toggle modal calls paint(true). Close calls paint(false).',
+      'Mount the HTML, the CSS, and the script in one document. The script binds Toggle modal, Close, and the backdrop, and reads prefers-reduced-motion once. There is no install step and no run command.',
+    knownGaps: 'None.',
     checklist: [
-      'The panel is 280px wide, border-radius 16px, padding 20px.',
-      'The backdrop background is rgba(0,0,0,.28).',
-      'Open and close both last 200ms, scaling between 0.94 and 1 with cubic-bezier(0.22, 1, 0.36, 1).',
+      'The stage clip is 200px tall. The layer fills it and stays at opacity 1. The backdrop scrim fills the layer.',
+      'The trigger is 34px tall, padding 0 12px, radius 10px, #ffffff, with no border, and the label is 13px #0d0d0d.',
+      'The panel is 210px wide, radius 14px, padding 16px, #ffffff, with shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).',
+      'The layer stays at opacity 1. The backdrop scrim is a sibling of the panel, background #0d0d0d, and its opacity is progress * 0.28. The panel keeps its own opacity, so the title stays #0d0d0d and the body stays #6c6c6c.',
+      'The title is 15px #0d0d0d with margin-bottom 6px. The body is 12px, line-height 17px, #6c6c6c, margin-bottom 12px. Close is 13px #0d0d0d at the end of the panel.',
+      'Open and close last 200ms. Scale is 0.94 + 0.06 * progress. Easing is cubic-bezier(0.22, 1, 0.36, 1).',
+      'Toggle modal only opens. Close and a backdrop press both close. A press on the panel does not.',
+      'Hover does not restyle the trigger, the panel, or Close.',
+      'Reduced motion duration is 0.',
     ],
   },
   'gooey-plus-menu': {
     motion: 'SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms, close 250ms. Stagger is the number 40 joined to ms.',
     content: '`+` hub + New file / Add image / New folder icons. White liquid surface; dark crisp icons.',
-    rn: 'Closed network: hand-rolled SVG filter (no npm). Live store web demo may use liquid-gooey. Copy HTML, Copy CSS, and Copy script split the zero-dependency document. None of them copies the whole file.',
   },
   'page-side-by-side': {
     motion:
       '`.t-page` transitions transform and opacity over `--page-slide-dur: 300ms` with `--page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1)`. `.is-exit` is `translateX(calc(var(--page-slide-distance) * -1))` and opacity 0. `.is-enter` is `translateX(var(--page-slide-distance))` and opacity 0. `--page-slide-distance` is 24px.',
     content:
       'First page is a row: a 32px #f3ba2f disc with `B`, title `BNB`, subtitle `BNB`, and `$66.11` at the end of the row. Second page is `$10` / `$66.11 available`. The second page starts with `.is-enter`.',
-    rn: 'Copy CSS is `.t-page`. Copy script swaps the two pages after 300ms.',
     states: [
       {
         name: 'exit',
@@ -376,7 +403,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'Both `.t-icon` layers transition opacity, filter, and transform over `--icon-swap-dur: 250ms` with `--icon-swap-ease: ease-in-out`. `.is-out` is opacity 0, `blur(var(--icon-swap-blur))`, and `scale(var(--icon-swap-start-scale))`. `--icon-swap-blur` is 2px and `--icon-swap-start-scale` is 0.25.',
     content: 'Three-line icon swaps with an X. The X starts with `.is-out`.',
-    rn: 'Copy CSS is `.t-icon`. Copy script toggles `.is-out` on the two layers.',
     states: [
       {
         name: 'shown',
@@ -412,7 +438,6 @@ const LOCKS: Record<string, PromptLock> = {
   'success-check': {
     motion:
       '`.t-check` runs `t-check-in` for `--check-opacity-dur: 500ms` with `--check-ease-out: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is opacity 0, `translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)) scale(var(--check-scale-from))`. Those are 28px, 80deg, and 0.86. `.mark` draws `t-check-draw` for the same 500ms after `--check-draw-delay: 80ms`, from `stroke-dashoffset: var(--check-dash)` to 0. `--check-dash` is 28.',
-    rn: 'Copy CSS is `.t-check` and `.mark`. Copy script replays the animation.',
     states: [
       {
         name: 'in',
@@ -450,7 +475,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-avatar` transitions transform over `--avatar-dur: 320ms`. While the row is hovered the timing is `--avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1)`. Otherwise it is `--avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1)`. The script sets `translateY(lift * strength)` and `scale(1 + (peak - 1) * strength)`. `--avatar-lift` is -8px, `--avatar-scale` is 1.06, and `--avatar-falloff` is 0.45.',
     content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
-    rn: 'Copy CSS sets the avatar tokens. Copy script writes the distance-weighted transform.',
     states: [
       {
         name: 'rest',
@@ -497,7 +521,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-stack-card` transitions transform over `--stack-dur: 420ms` with `--stack-ease: cubic-bezier(0.34, 1.36, 0.64, 1)`. `.is-spread` sets card 1 to `translate(-28px, 10px) rotate(-8deg)`, card 2 to `translate(0, -6px) rotate(0deg)`, and card 3 to `translate(28px, 10px) rotate(8deg)`.',
     content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
-    rn: 'Copy CSS is `.t-stack-card`. Copy script toggles `.is-spread` on hover and click.',
     states: [
       {
         name: 'stacked',
@@ -535,7 +558,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-shake.is-error` runs `t-shake` for `--shake-dur: 400ms` with `--shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97)`. Keyframes: 0% translateX 0, 20% `translateX(var(--shake-distance))`, 40% `translateX(calc(var(--shake-distance) * -1))`, 60% translateX(4.2px), 80% translateX(-2.45px), 100% translateX 0. `--shake-distance` is 7px. `.is-error` also sets border-color #c43a31.',
     content: 'Input starts at `hello@`. Invalid submit shows `Please enter a valid email.` Border `#c43a31`.',
-    rn: 'Copy CSS is `.t-shake`. Copy script validates the email and replays `.is-error`.',
     states: [
       {
         name: 'idle',
@@ -573,7 +595,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-word.is-out` is `translateY(calc(var(--clear-out-fly) * -1))`, opacity 0, and `blur(var(--clear-blur))`. `--clear-out-fly` is 12px and `--clear-blur` is 2px. The transition is `--clear-out-dur: 250ms` with `--clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Clear sets `transitionDelay` to `(i * 45) + \'ms\'`. Restore sets that delay to `0ms` and removes `.is-out`.',
     content: '`search` `recent` `files`. The button is `×` while the words are showing and `+` after they clear.',
-    rn: 'Copy CSS is `.t-word`. Copy script sets the stagger and toggles `.is-out`.',
     states: [
       {
         name: 'clear',
@@ -611,7 +632,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-skel` runs `t-pulse` for `--pulse-dur: 1000ms` linear infinite. The 50% frame is opacity 0.5. `.t-content` transitions opacity and filter over `--reveal-dur: 250ms` with `--reveal-ease: ease-in-out`. `.is-hidden` is opacity 0 and `blur(var(--reveal-blur))`. `--reveal-blur` is 2px.',
     content: '`Jane Cooper` / `jane.cooper@example.com`.',
-    rn: 'Copy CSS is `.t-skel` / `.t-content`. Copy script reveals after 900ms and toggles on click.',
     states: [
       {
         name: 'loading',
@@ -649,7 +669,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'Each `.t-line` runs `t-rise` for `--stagger-dur: 280ms` with `--stagger-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `translateY(var(--stagger-distance))`, opacity 0, `blur(var(--stagger-blur))`. `--stagger-distance` is 12px and `--stagger-blur` is 3px. The second line waits `--stagger-stagger: 50ms`. Replay assigns `innerHTML` to itself so the animation restarts.',
     content: '`Pull request opened` / `Review requested from 3 teammates`.',
-    rn: 'Copy CSS is `.t-line`. Copy script replays by rewriting the lines.',
     states: [
       {
         name: 'enter',
@@ -677,7 +696,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-tabs-pill` transitions transform and width over `--tabs-dur: 250ms` with `--tabs-ease: cubic-bezier(0.22, 1, 0.36, 1)`. It starts at width 86px and `translateX(3px)`. A tab click sets `width` to `offsetWidth + \'px\'` and `transform` to `translateX(offsetLeft + \'px\')`. The bar background is `--tabs-bar-bg: #f1f1f1`. The pill background is `--tabs-pill-bg: #ffffff`.',
     content: 'Labels `Overview`, `Activity`, `Settings`.',
-    rn: '`TabsSlidingDemo` springs `translateX` only. Copy CSS transitions `.t-tabs-pill` transform and width over 250ms, and the copy script measures `offsetWidth` and `offsetLeft`.',
     states: [
       {
         name: 'rest',
@@ -715,7 +733,6 @@ const LOCKS: Record<string, PromptLock> = {
       'Pointer drag follows 1:1. Scale eases to 1.05 over 150ms. On a 0.2 px/ms drag this card painted scale 1.036 at 35ms and 1.043 at 52ms. Gain is 27.9 (5.58/0.2). Speed is the last three move events; a gap above 100ms is a hold and the next move uses only the new intervals. That drag reads 0° at 18ms, -1.865° at 34.8ms, -3.241° at 51ms, -3.788° at 67.4ms, -4.174° at 84.4ms, -4.449° at 101.2ms, -4.700° at 117.1ms, -4.892° at 134.3ms, -5.039° at 151.2ms, -5.150° at 167.4ms, -5.312° at 200.5ms, -5.415° at 234.3ms, -5.493° at 267.3ms, -5.516° at 300.5ms, -5.560° at 351ms, -5.561° at 384ms, -5.565° at 400.3ms, and -5.580° at 700ms. It does not pass -5.58°. After a 250ms hold the same drag reads -5.546° at 700ms of motion and does not pass -5.58°. The 0.1 px/ms drag reads -2.351° at 117ms and -2.685° at 217ms and does not pass -2.80°. The 0.3 px/ms drag reads -5.836° at 101ms, -7.829° at 201ms, -8.244° at 301ms, and -8.341° at 400ms, and settles at -8.370°. An 80px drag over 1200ms in 36 equal steps reads -1.574° at 118.5ms and -1.863° at 1200ms, and does not pass -3.21°. A flick of 80px in three moves 5ms apart reaches the -10° clamp at 700ms. Reduced motion snaps: -5.580° at 400ms on that 0.2 px/ms drag, and -10° on a move past the clamp. Tilt holds while the pointer is idle. The chase waits 28ms, then 44% of the target up to ±5.58° uses a 6ms time constant and the rest 70ms; past ±5.58° it waits 58ms and uses 64ms. Puff blur is stdDeviation 5, stroke 36, colour rgba(132,132,132,0.48), noise baseFrequency 0.028, filterUnits userSpaceOnUse. A miss returns over 500ms with cubic-bezier(0.34, 1.56, 0.64, 1), ≈9.75% overshoot (7.8px on 80px), starting in the pointerup frame, and ignores re-grabs. A hit eases the chip out in 229ms with up to 2px blur (0.386 at 111ms) and eases the photo in over 430ms (0.132/0.507/0.774/0.942 at 111/210/277/344ms, 0.984 at 377ms). Squash reads 0.985/0.9729/0.9703 at 45/111/210ms, then 0.9748/0.9834/0.9889/0.9957 at 278/312/345/412ms, and 0.9997 by 460ms. The puff is opacity 0 at 279ms, 0.899 with drift 2.46px and scale 1.112 at 462ms, and opacity 0 with drift 9.94px and scale 1.573 at 1462ms. The photo fades from 1832ms over 211ms (opacity about 0.68/0.41/0.25/0.14/0.07 at 32/64/100/130/163ms, gone at 211ms, blur 4px). The chip respawns from 2268ms (0.512/0.951 at 30ms, 0.794/0.979 at 63ms, 0.923/0.992 at 96ms) and is fully visible at 2410ms.',
     content:
       'Board 213×192. Chip 72×72 photo at left 141, top 0, radius 12. Zone 104×104 at left 0, top 88, radius 12, 2px dashed rgba(0,0,0,0.1), background rgba(234,234,234,0.2). Chip and filled zone share shadow 0 2px 6px rgba(0,0,0,0.11), 0 5px 20px rgba(0,0,0,0.12). While the chip centre is over the zone: border rgba(0,0,0,0.28), background rgba(234,234,234,0.55), label opacity 0.5. Label is 11px / 15px #767676, width 76, top 38 (text at 40 from the outer edge). Font stack starts with Inter, then system faces. No font download.',
-    rn: 'Web pointer events and CSS. Copy loads `/parity/drag-drop-physics.js`, the same board as the live card. Grabbing cursor is on the chip only. Native `src/demos/drag-drop/index.tsx` re-exports the gesture-handler scene in `src/demos/DragDrop.tsx`.',
     states: [
       {
         name: 'ready',
@@ -804,7 +821,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       '`.t-shimmer` paints a 90deg gradient of `--shimmer-base` #7c7c7c and `--shimmer-highlight` #0d0d0d, background-size 300% 100%, and runs `t-shimmer` for `--shimmer-dur: 1200ms` linear infinite. The keyframes move background-position from 100% 0 to 0% 0. Reduced motion sets animation none and paints `color` and `-webkit-text-fill-color` as `var(--shimmer-highlight)`.',
     content: '`Generating reply`.',
-    rn: 'Base line plus a duplicate highlight line. Measure the full string width and lay the highlight line out at that width (nowrap, flex-shrink 0). The ~72px window only clips that line and translates from -window to the measured width; the inner line counter-translates so the visible slice is that part of the phrase. A window-sized text box wraps to "Gene" and the sweep never reaches the rest of the phrase. Copy emits `.t-shimmer`: inline-block, fit-content, background-size 300%, no-repeat, background-position 100% → 0% over 1200ms so the 50% peak travels the whole line.',
     states: [
       {
         name: 'sweep',
@@ -842,7 +858,6 @@ const LOCKS: Record<string, PromptLock> = {
       'pixels-organic light mosaic. `boot` sets `u_effect` 22 and `u_dotMode` 1. `CARD_BG` is `#f5f5f5`. `startAuto` waits `Math.random() * 1500`. `scheduleIdle` waits `(2 + Math.random() * 2) * 1000`. `paintReveal` uses `easeOutCubic` for `REVEAL_SEC` (3) and `PIX_SEC` (2.55). `finishReveal` holds `HOLD_MS` (2000) unless `holdMode` is `manual`. `beginHide` fades for `FADE_MS` (300). The Reveal button posts `reveal` or `hide`. img-fx 0.5.1 has no reduced-motion handling; autoReveal keeps cycling.',
     content:
       'Card is `168px` by `168px` with `border-radius: 20px` and `background: #f5f5f5`. Photos are `/img-fx/1.png`, `/img-fx/2.png`, `/img-fx/3.png`. Button label `Reveal`.',
-    rn: 'Copy HTML, Copy CSS, and Copy script are this document. The script starts a Worker from `WORKER_SOURCE`, which is the pixels-organic program.',
     states: [
       {
         name: 'idle',
@@ -901,7 +916,6 @@ const LOCKS: Record<string, PromptLock> = {
   'tooltip-open-close': {
     motion:
       '`.tip-wrap` is padding-top 40px. `.t-tt` is position absolute, top 0, and `left: var(--tt-x, 0px)`. It starts at `scale(var(--tt-scale))` and opacity 0. `--tt-scale` is 0.98. `.is-on` scales to 1 and fades to opacity 1 over `--tt-in-dur: 180ms` after `--tt-delay: 400ms`, easing `--tt-in-ease: ease-out`. `.is-off` sets transition-duration to `--tt-out-dur: 0ms` and transition-delay to 0ms. The script writes `--tt-x` as `(slot * 44) + \'px\'`. `--tt-slot` is 44px.',
-    rn: 'Three triggers: Aa/Edit, ↗/Share, ···/More. The bubble travels by 44px per slot with no delay. Fade-in waits 400ms and lasts 180ms. Hide is instant. Copy CSS is `.t-tt`. Copy script sets `--tt-x`.',
     states: [
       {
         name: 'anchor',
@@ -948,7 +962,6 @@ const LOCKS: Record<string, PromptLock> = {
     motion:
       'Pointer move over `.t-tilt` eases rotateX and rotateY with `--tilt-follow: 120ms`. The script target is `(0.5 - ny) * 14` and `(nx - 0.5) * 18`. Perspective is `--tilt-perspective: 1000px`. On leave the same loop eases back with `--tilt-return: 520ms`. The glare uses `--tilt-glare-radius: 110px` and `--tilt-glare: 42ms`, and snaps onto the pointer on the frame the pointer enters. Position is clientX/clientY minus getBoundingClientRect.',
     content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
-    rn: TILT_RN,
     states: [
       {
         name: 'card',
@@ -995,7 +1008,6 @@ const LOCKS: Record<string, PromptLock> = {
   'thinking-orbs': {
     motion: 'Dotted Fibonacci sphere spin 9000ms linear; metallic orb swirl 7200ms linear. Reduced motion holds spin 0.4 / swirl 0.9.',
     content: '`Agent searching...` / `Agent listening...` / `Solving....` + dotted sphere / `Thinking....` + metallic orb. 56 dots.',
-    rn: 'Skia Canvas 44×44 per orb. AI skills tag. Copy emits `.t-orb`.',
     states: [
       {
         name: 'spin',
@@ -1044,7 +1056,6 @@ const LOCKS: Record<string, PromptLock> = {
       'The page has no idle loop. Morph opens in 550ms with cubic-bezier(0.34, 1.56, 0.64, 1) and stagger 40ms, and closes in 250ms with cubic-bezier(0.22, 1, 0.36, 1). Move follows the thumb with springiness 0.5, wobble 0.5, stretch 0.6, trail 0.35. Bend drops home in 400ms with cubic-bezier(0.34, 1.40, 0.64, 1).',
     content:
       'Default is the closed morph plus menu: 200×140, buttons 40×40, fill #202020, blur 6, contrast 18, waviness 0. Move is the 240×80 slider with a 24×24 thumb at translateX 84px and fill #525252. Bend is the 261×46 card. Melt is two 84×84 photos. The original page uses different photos. These are CC0: warm sunset by W.carter, https://commons.wikimedia.org/wiki/File:Sunset_over_Trommekilen_from_Norrkila_6.jpg ; cool sea by Joselodos, https://commons.wikimedia.org/wiki/File:Calm_sea,_San_Antonio,_Ibiza,_panoramic.jpg . The Waviness row stays visible on melt and is Pro-locked, same as Fill, Bounce, and Stagger.',
-    rn: 'SVG filter from `liquid-gooey@0.2.2`. The page is dark. The public playground starts on morph. Goo blur and Contrast are the public sliders. There is no play/pause control. The native card still runs the old tile demo. Embeds Inter (400/500, latin) as a data URI under the SIL Open Font License.',
     states: [
       {
         name: 'closed',
@@ -1085,7 +1096,6 @@ const LOCKS: Record<string, PromptLock> = {
       'A cream pill 84px tall, radius 42px, gradient #fbfaf9 to #f1efec. Closed, `.pt-morph` is scale(0.667). Open, it widens and seats pencil, pen, fineliner, marker, highlighter, brush, fountain, and eraser. Each tool is a 30 by 88 shaded drawing, sunk with margin-bottom -20px and translateY(6px). The active tool uses translateY(-12px). A 26px conic colour wheel swaps those tools for 26px radius-8 swatches. Marks are filled outline rings. Pencil is size 1 graphite at 0.85 alpha. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is a flat size 28 #fff01f swipe at 0.75 alpha. Brush is size 14 and tapers at the lift. Fountain is size 8 with a 45 degree nib at 0.85 contrast. Eraser is size 28 destination-out. Alignment draws #9B5CFF boxes and lines with stroke-width 1, full-width lines at each control top, center, and bottom, and vertical lines across the row. Annotate lets a click on a control open a note card on that control. The note lists label, selector, note, and box.',
     content:
       'The stage is 520px tall and the card spans the grid. The sample row is centered: 32px plus disc, 26px pills Auto and 5.5, 32px pills Fast and Quality, 32px black send disc with an up arrow. The pill sits at the bottom. Guides and the note card stay hidden until the pill opens. Round chrome is 36px in #8a8a8e. Minimize is the four-corner collapse mark.',
-    rn: 'Copy HTML, Copy CSS, and Copy script are this same pill. Guides measure data-guide controls. Draw replays stored strokes, including eraser strokes. Note markdown lists label, selector, note, and box. Do not add a second card. Do not render text chips labeled Pen, Marker, or Eraser.',
     states: [
       {
         name: 'closed',
@@ -1154,7 +1164,6 @@ const LOCKS: Record<string, PromptLock> = {
       'md and sm run beam-spin 1.96s linear and beam-fade-in 0.6s ease. Their ::before and ::after run beam-hue-shift 12s ease-in-out, filter brightness(1.3) saturate(1.2), bloom blur(8px). line runs beam-travel and beam-edge-fade 3.1s linear, beam-breathe 4s ease-in-out, beam-spike 4.1s ease-in-out, beam-spike2 5.3s ease-in-out, and beam-fade-in 0.6s ease. pulse-inner and pulse-outside fade in over 0.6s ease. The glow is unsynchronised multi-layer drift driven by JS oscillators with different periods and no single loop length. Inner layer periods are about 1.6 to 3.6s (for example --bop-br 3.0s and --bgh 2.4s). Outside opacity layers are about 1.9 to 3.6s (for example 2.3s, 3.0s, 1.9s, and 3.6s). Outside x/y position layers are about 3.3 to 4.3s. Outside width/height layers are slower, about 5.2 to 9.0s. Hue is a linear sweep, about 16s inner and 14s outer. Light theme differs and has the outside opacity layers off. Under reduced motion, pulse-inner and pulse-outside render no glow (opacity 0; the glow is hidden, not frozen). md, sm, and line have no reduced-motion rule and keep moving. Fades are 0.5s out and 0.6s in, ease. For pulse, 2.3 is the duration fallback, the normaliser (periods scale by duration/2.3), and one outside opacity layer\'s period. Strength starts at 1. pulse-outside sets `--sub-glow-offset-x: 1px`, `--sub-glow-offset-y: 0px`, `--sub-core-blur: 10px`, `--sub-bloom-blur: 19px`, `--sub-glow-opacity-mul: 1.71`.',
     content:
       'Build from the behaviour and values in this prompt; do not read or copy Pro/paid source or page source. Default size md wraps the chat, 348×122, radius 20, with a 28×28 send control (`box-sizing: border-box` on the inner row). sm is the 36×36 icon, labelled Pro-locked, and stays selectable. line wraps the 366×42 search and passes `borderRadius` 20. pulse-inner and pulse-outside wrap the 250×94 radius-16 demo card. ocean, sunset, forest, candy, ice, and gold are labelled Pro-locked. Light is a package option and paints the stage #f6f6f6. The card opens on #171717.',
-    rn: 'Web CSS from `border-beam@1.4.1`. The card opens on dark `#171717`. Light is a package option and paints `#f6f6f6`. `active` starts true. Colours are colorful and mono. sm is the 36×36 icon, labelled Pro-locked, and stays selectable.',
     states: [
       {
         name: 'travel',
@@ -1194,7 +1203,6 @@ const LOCKS: Record<string, PromptLock> = {
       'The card opens on the v2 composer, which runs with `useMetalBend`. The Live mode New pill is a later row at 0.72. The playground circle starts paused (`metal.tsx` line 237, `useState(true)`). Pause freezes shader time on the current frame. Play resumes from that frame. Pause state is per specimen. The v2 circle and the playground receive strength 0.81.',
     content:
       'Default is the v2 composer: chromatic, 40×40 circle, Auto reflection, `innerShadow`, `useMetalBend`, strength 0.81, running (`metal.tsx` lines 233 and 258, `metal-examples-v2.tsx` line 59 and lines 87–94). The Live mode New pill is `MetalBadge` at 0.72. The playground is Search plus a 40×40 circle and starts paused. Pause on the mounted specimen holds the current frame and stops shader time. The label is Play while paused and Pause while running. The v1 gold row is `metal-fx@1.0.4` and is not rendered. The 140×40 strength-1 button is the package default. Light theme is a package option, not on the original. Child text stays `#f8f8f8`.',
-    rn: 'WebGL2 from `metal-fx@2.0.11`. Dark on the page; light is a package option. The v2 composer mounts running. The playground starts paused. Pause freezes the mounted specimen and Play continues from that frame. The next specimen mounts only after the previous `MetalFx` unmounts.',
     states: [
       {
         name: 'running',
@@ -1352,6 +1360,20 @@ function filled(value: string | undefined): string {
   return value?.trim() ?? '';
 }
 
+function statesTable(states: readonly PromptState[] | undefined): string {
+  const rows = (states ?? []).filter((state) => filled(state.name));
+  if (rows.length === 0) return '## States\n\nNone.';
+  const header = '| State | Trigger | From | To | Duration | Easing | Delay |';
+  const rule = '| --- | --- | --- | --- | --- | --- | --- |';
+  const body = rows
+    .map(
+      (state) =>
+        `| ${filled(state.name)} | ${filled(state.trigger)} | ${filled(state.from)} | ${filled(state.to)} | ${filled(state.duration)} | ${filled(state.easing)} | ${filled(state.delay)} |`,
+    )
+    .join('\n');
+  return `## States\n\n${header}\n${rule}\n${body}`;
+}
+
 function statesSection(states: readonly PromptState[] | undefined): string {
   if (!states || states.length === 0) return '';
   const lines = states
@@ -1420,6 +1442,9 @@ const COPY_PROMPT_IDS = new Set([
   'preview-tools',
 ]);
 
+/** Generic cards on the canonical section order. Grows one batch at a time. */
+export const CANONICAL_IDS = new Set<string>(['modal-open-close']);
+
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
 
@@ -1474,8 +1499,54 @@ Do not invent demos beyond this piece.`,
   return blocks.filter((block) => block.trim().length > 0).join('\n\n');
 }
 
+function buildCanonicalPrompt(id: string): string {
+  const item = TRANSITIONS.find((entry) => entry.id === id);
+  const lock = LOCKS[id];
+  if (!item || !lock) return '';
+
+  const parts = previewDocumentParts(id);
+  const scriptText = parts.script || HTML_CSS_ONLY_NOTE;
+  const blocks = [
+    `# AGENT_PROMPT — ${item.title}`,
+    `## Piece
+
+- id: \`${item.id}\`
+- title: ${item.title}
+- subtitle: ${item.subtitle}`,
+    `## Stage content\n\n${filled(lock.content)}`,
+    `## Geometry and values\n\n${filled(lock.geometry)}`,
+    statesTable(lock.states),
+    `## Timing\n\n${filled(lock.timing)}`,
+    `## Reduced motion\n\n${filled(lock.reducedMotion)}`,
+    listSection('Gotchas', lock.gotchas, '- '),
+    setupSection(lock.setup),
+    `## Known gaps\n\n${filled(lock.knownGaps)}`,
+    listSection('Checklist', lock.checklist, '- [ ] '),
+    `## Code
+
+### HTML
+
+\`\`\`html
+${parts.html}
+\`\`\`
+
+### CSS
+
+\`\`\`css
+${parts.css}
+\`\`\`
+
+### Script
+
+\`\`\`js
+${scriptText}
+\`\`\``,
+  ];
+  return blocks.filter((block) => block.trim().length > 0).join('\n\n');
+}
+
 export const AGENT_PROMPTS: Record<string, string> = Object.fromEntries(
-  TRANSITIONS.map((item) => [item.id, buildPrompt(item.id)]),
+  TRANSITIONS.map((item) => [item.id, CANONICAL_IDS.has(item.id) ? buildCanonicalPrompt(item.id) : buildPrompt(item.id)]),
 );
 
 export function promptFor(id: string): string {

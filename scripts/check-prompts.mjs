@@ -71,6 +71,7 @@ await esbuild.build({
 const loaded = await import(pathToFileURL(outfile).href);
 const generatedPrompts = loaded.generatedPrompts();
 const catalogSkills = loaded.catalogSkills();
+const canonicalIds = loaded.CANONICAL_IDS;
 
 /** Word characters plus a hyphen, so Helixes and SHA-256 are not Helix or SHA. */
 function bannedPhrase(label) {
@@ -202,11 +203,16 @@ function statesBody(text) {
 /** px, ms, and colour tokens written in States. Longest hex wins so #fff is not a prefix. */
 const STATE_VALUE = /(?<![\d.])-?\d+(?:\.\d+)?(?:px|ms)|(?<![#\w])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![0-9a-fA-F])|rgba?\([^)]*\)|hsla?\([^)]*\)/g;
 
-function statesValuesMissingFromCopy(text) {
-  const source = copyStyleAndScript(text);
+function sectionBody(text, title) {
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = text.match(new RegExp(`^## ${escaped}\\b[^\\n]*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'));
+  return match ? match[1] : '';
+}
+
+function valuesMissingFromCopy(body, source) {
   const missing = [];
   const seen = new Set();
-  for (const match of statesBody(text).matchAll(STATE_VALUE)) {
+  for (const match of body.matchAll(STATE_VALUE)) {
     const token = match[0];
     if (seen.has(token)) continue;
     seen.add(token);
@@ -218,6 +224,40 @@ function statesValuesMissingFromCopy(text) {
     if (!pattern.test(source)) missing.push(token);
   }
   return missing;
+}
+
+function statesValuesMissingFromCopy(text) {
+  return valuesMissingFromCopy(statesBody(text), copyStyleAndScript(text));
+}
+
+const CANONICAL_HEADINGS = [
+  'Piece',
+  'Stage content',
+  'Geometry and values',
+  'States',
+  'Timing',
+  'Reduced motion',
+  'Gotchas',
+  'Setup',
+  'Known gaps',
+  'Checklist',
+  'Code',
+];
+
+function canonicalHeadingErrors(id, text) {
+  const headings = [...text.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
+  const errors = [];
+  if (headings.join('\n') !== CANONICAL_HEADINGS.join('\n')) {
+    errors.push(`${id}: headings are ${headings.join(' | ') || '(none)'}`);
+  }
+  const subs = [...text.matchAll(/^### (.+)$/gm)].map((match) => match[1].trim());
+  if (subs.join('\n') !== 'HTML\nCSS\nScript') {
+    errors.push(`${id}: Code subsections are ${subs.join(' | ') || '(none)'}`);
+  }
+  const codeAt = text.search(/^## Code\b/m);
+  const firstSub = text.search(/^### /m);
+  if (codeAt < 0 || firstSub < codeAt) errors.push(`${id}: Code subsections precede ## Code`);
+  return errors;
 }
 
 const hits = [];
@@ -245,6 +285,30 @@ for (const item of generatedPrompts) {
       }
       for (const token of statesValuesMissingFromCopy(text)) {
         hits.push(`${item.id}: States value ${token} is not in Copy CSS/script`);
+      }
+    }
+    if (canonicalIds.has(item.id)) {
+      // Any whitespace run or hyphen between the words. Canonical prompts only:
+      // other cards still paste the phrase inside a Copy document.
+      const spaced = {
+        label: 'closed network',
+        pattern: /(?<![A-Za-z0-9_])closed[\s-]+network(?![A-Za-z0-9_])/gi,
+      };
+      spaced.pattern.lastIndex = 0;
+      if (spaced.pattern.test(text)) hits.push(`${item.id}: closed network`);
+      // Site-process words. Whole word, any case. The Copy payload under ## Code
+      // is exempt so a literal identifier in the document does not fail the prose.
+      const prose = text.split(/^## Code\b/m)[0];
+      for (const word of ['harness', 'showcase', 'preview', 'gallery']) {
+        const pattern = new RegExp(`(?<![A-Za-z0-9_])${word}(?![A-Za-z0-9_])`, 'i');
+        if (pattern.test(prose)) hits.push(`${item.id}: ${word}`);
+      }
+      hits.push(...canonicalHeadingErrors(item.id, text));
+      const source = copyStyleAndScript(text);
+      for (const title of ['Geometry and values', 'Timing']) {
+        for (const token of valuesMissingFromCopy(sectionBody(text, title), source)) {
+          hits.push(`${item.id}: ${title} value ${token} is not in Copy CSS/script`);
+        }
       }
     }
   }

@@ -5,7 +5,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-state-picker': {
     "motion": "One Skia canvas. State chips swap the engine preset in place; size chips resize it; neither remounts the canvas or resets t. Engine mapping at 64px: working → orbits speed 1.885 (516 dots at t 0.6); searching → globe speed 2.015 (204 dots at t 0.6); solving → rubik speed 1.82 (138 dots at t 0.6); listening → wave speed 4.388 (134 dots at t 0.6); connecting → web speed 3.315 (48 dots, 81 lines at t 0.6); composing → ribbon speed 2.34 (566 dots at t 0.6); breathing → ring speed 3.24 (484 dots at t 0.6). At 20px: working → orbits speed 3.9 (39 dots at t 0.6); searching → globe speed 2.665 (54 dots at t 0.6); solving → rubik speed 1.95 (30 dots at t 0.6); listening → wave speed 3.998 (42 dots at t 0.6); connecting → web speed 6.63 (9 dots at t 0.6); composing → ribbon speed 3.12 (208 dots at t 0.6); breathing → ring speed 3.78 (120 dots at t 0.6). Pause freezes the current t and keeps the picture; Play resumes at the wall-clock phase. Reduced motion holds t = 0.6. All motion is linear in wall time, no easing, no delay.",
     "content": "Left column 100 wide, centred, gap 6: the orb, a Pause/Play button (height 26, padding 10, radius 36, fill `rgba(255,255,255,0.06)`, 12px weight 500 `#ededed`), a Reset button with those same metrics, then size chips `64px`, `20px` and a locked `32px`. Right column: label `State` (11/14, `#979797`), then chips Working, Searching, Solving, Listening, Connecting, Composing, Breathing, plus locked Weaving and Shaping. Chips: height 24, padding 8, radius 36, gap 4, wrap; idle fill `rgba(255,255,255,0.06)` text `#ededed`; selected fill `#f4f4f5` text `#111111`; locked opacity 0.4 and disabled. Text 11px weight 500 `Inter, ui-sans-serif, system-ui, sans-serif`. Row: horizontal, gap 8, padding 10 × 8, scrollable. Defaults: state listening, size 64, playing.",
-    "rn": "`<ThinkingOrb state={state} size={size} paused={paused} />` inside `OrbClockProvider`, in a nested-scroll ScrollView. Chips are Pressables with accessibilityRole `radio` and accessibilityState `{ selected, disabled }`. The pause button has accessibilityRole `button` and label `Pause` / `Play`. Pause toggles with a functional update `(value) => !value`.",
     "states": [
       {
         "name": "Default",
@@ -122,7 +121,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-solving': {
     "motion": "`state=\"solving\" size={64}` paints the `rubik` frame mode on Skia. Engine speed 1.82: t = wall seconds × 1.82. Resolved options at 64px: latRings 9, lonDensity 24, moveCount 14, rBase 0.63, rDepth 1.785, rActive 0.315, inkFar 0.62, inkSpan 0.54, rsPow 0.6, rMin 0.3, rSizeMul 1.05. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (138 dots). Light ink on dark: dots are drawn white-inverted (`dark` true).",
     "content": "64px orb, then `Solving....`. Pill row: height 74, paddingLeft 9, paddingRight 28, gap 12, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 18/24 `Inter, ui-sans-serif, system-ui, sans-serif`, color `#ededed`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb state=\"solving\" size={64} />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Solving....`. Skia Canvas 64×64, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -199,7 +197,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-thinking': {
     "motion": "motion key `msThinking` (engine state `breathing`, 64px) paints the `ring` frame mode on Skia. Engine speed 3.24: t = wall seconds × 3.24. Resolved options at 64px: lanes 3, segs 44, ghostN 0, faceOn 1, rBase 1.0516, rDepth 1.6252, rsPow 0.6, rMin 0.3, rSizeMul 0.956, spin 0, bandMul 3.627, wobMul 0.368. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (484 dots). Light ink on dark: dots are drawn white-inverted (`dark` true). Ring mode is the ribbon painter turned face-on (faceOn 1, ghostN 0): undulation moves onto the radius and there is no ghost sphere.",
     "content": "64px orb, then `Thinking....`. Pill row: height 74, paddingLeft 9, paddingRight 28, gap 12, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 18/24 `Inter, ui-sans-serif, system-ui, sans-serif`, color `#ededed`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb motionsource=\"msThinking\" />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Thinking....`. Skia Canvas 64×64, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -277,7 +274,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-agent-listening': {
     "motion": "`state=\"listening\" size={20}` paints the `wave` frame mode on Skia. Engine speed 3.998: t = wall seconds × 3.998. Resolved options at 20px: rings 5, lonDensity 13, rBase 0.96, rDepth 2.72, rsPow 0.6, rMin 0.3, rSizeMul 1.6. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (42 dots). Light ink on dark: dots are drawn white-inverted (`dark` true).",
     "content": "20px orb, then `Agent listening...`. Chip row: height 36, paddingLeft 8, paddingRight 14, gap 8, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 13/16 `Inter, ui-sans-serif, system-ui, sans-serif`: muted `Agent ` in `#8a8a8a`, then the action word in `#ffffff`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb state=\"listening\" size={20} />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Agent listening...`. Skia Canvas 20×20, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -354,7 +350,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-searching': {
     "motion": "`state=\"searching\" size={64}` paints the `globe` frame mode on Skia. Engine speed 2.015: t = wall seconds × 2.015. Resolved options at 64px: latRings 11, lonDensity 29, rBase 0.69, rDepth 1.955, rBoost 1, inkFar 0.62, inkSpan 0.54, rsPow 0.6, rMin 0.3, rSizeMul 1.15, scanMul 4.08, dimBase 0.45. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (204 dots). Light ink on dark: dots are drawn white-inverted (`dark` true). Globe overlay extras: scanMul 4.08, dimBase 0.45.",
     "content": "64px orb, then `Searching....`. Pill row: height 74, paddingLeft 9, paddingRight 28, gap 12, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 18/24 `Inter, ui-sans-serif, system-ui, sans-serif`, color `#ededed`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb state=\"searching\" size={64} />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Searching....`. Skia Canvas 64×64, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -431,7 +426,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-agent-planning': {
     "motion": "motion key `msAgentPlanning` (engine state `composing`, 20px) paints the `ribbon` frame mode on Skia. Engine speed 3.12: t = wall seconds × 3.12. Resolved options at 20px: lanes 2, segs 20, ghostN 8, rBase 1.1803, rDepth 1.8241, rsPow 0.6, rMin 0.3, rSizeMul 1.073, spin 0, bandMul 4.94, wobMul 1. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (208 dots). Light ink on dark: dots are drawn white-inverted (`dark` true).",
     "content": "20px orb, then `Agent planning...`. Chip row: height 36, paddingLeft 8, paddingRight 14, gap 8, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 13/16 `Inter, ui-sans-serif, system-ui, sans-serif`: muted `Agent ` in `#8a8a8a`, then the action word in `#ffffff`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb motionsource=\"msAgentPlanning\" />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Agent planning...`. Skia Canvas 20×20, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -509,7 +503,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-agent-thinking': {
     "motion": "motion key `msAgentThinking` (engine state `breathing`, 20px) paints the `ring` frame mode on Skia. Engine speed 3.78: t = wall seconds × 3.78. Resolved options at 20px: lanes 2, segs 15, ghostN 0, faceOn 1, rBase 1.7842, rDepth 2.7574, rsPow 0.6, rMin 0.3, rSizeMul 1.622, spin 0, bandMul 3.968, wobMul 0.565. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (120 dots). Light ink on dark: dots are drawn white-inverted (`dark` true). Ring mode, face-on, no ghost sphere.",
     "content": "20px orb, then `Agent thinking...`. Chip row: height 36, paddingLeft 8, paddingRight 14, gap 8, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 13/16 `Inter, ui-sans-serif, system-ui, sans-serif`: muted `Agent ` in `#8a8a8a`, then the action word in `#ffffff`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb motionsource=\"msAgentThinking\" />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Agent thinking...`. Skia Canvas 20×20, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -586,7 +579,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-working': {
     "motion": "`state=\"working\" size={64}` paints the `orbits` frame mode on Skia. Engine speed 1.885: t = wall seconds × 1.885. Resolved options at 64px: orbitN 12, ghostN 40, ghostR 0.9, ghostA 0.5, particles 3, partR 1.2, partRDepth 1.6, rsPow 0.6, rMin 0.3. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (516 dots). Light ink on dark: dots are drawn white-inverted (`dark` true).",
     "content": "64px orb, then `Working....`. Pill row: height 74, paddingLeft 9, paddingRight 28, gap 12, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 18/24 `Inter, ui-sans-serif, system-ui, sans-serif`, color `#ededed`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb state=\"working\" size={64} />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Working....`. Skia Canvas 64×64, one Picture per frame.",
     "states": [
       {
         "name": "Loop",
@@ -663,7 +655,6 @@ export const ORB_LOCKS: Record<string, PromptLock> = {
   'orb-agent-shaping': {
     "motion": "motion key `msAgentShaping` (engine state `shaping`, 20px) paints the `morph` frame mode on Skia. Engine speed 2.08: t = wall seconds × 2.08. Resolved options at 20px: rDot 0.021231, iconD 0.53, rMin 0.25, rSizeMul 1.011, spread 1.45. Continuous loop, linear in time, no easing and no delay. Reduced motion holds t = 0.6 (18 dots). Light ink on dark: dots are drawn white-inverted (`dark` true). Morph loop; no pinned frame time.",
     "content": "20px orb, then `Agent shaping...`. Chip row: height 36, paddingLeft 8, paddingRight 14, gap 8, radius 50, fill `rgba(29,29,29,0.72)`, 1px border `rgba(255,255,255,0.08)`. Label 13/16 `Inter, ui-sans-serif, system-ui, sans-serif`: muted `Agent ` in `#8a8a8a`, then the action word in `#ffffff`. The orb is centred on the stage with horizontal padding 12.",
-    "rn": "`<ThinkingOrb motionsource=\"msAgentShaping\" />` inside `OrbClockProvider`. The row is a View with accessibilityLabel `Agent shaping...`. Skia Canvas 20×20, one Picture per frame.",
     "states": [
       {
         "name": "Loop",

@@ -225,45 +225,125 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'modal-open-close': {
-    html: `<div class="col">
-  <button class="trigger" type="button" id="open">Toggle modal</button>
-  <div class="backdrop" id="backdrop" hidden>
+    html: `<div class="stage">
+  <button class="open-btn" type="button" id="open">Toggle modal</button>
+  <div class="layer" id="layer">
+    <div class="backdrop scrim" id="backdrop"></div>
     <div class="t-modal panel" id="modal" role="dialog" aria-label="New project">
-      <strong>New project</strong>
-      <p>Scale from 0.94 with a 200ms fade.</p>
-      <button class="trigger" type="button" id="close">Close</button>
+      <p class="title">New project</p>
+      <p class="message">Scale from 0.94 with a 200ms fade.</p>
+      <button class="close" type="button" id="close">Close</button>
     </div>
   </div>
 </div>`,
-    extraCss: `.backdrop {
-  position: fixed; inset: 0; display: grid; place-items: center;
-  background: rgba(0,0,0,.28);
+    extraCss: `.stage {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
 }
-.backdrop[hidden] { display: none !important; }
-.panel { width: 280px; background: #fff; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-.panel p { margin: 0; color: #6c6c6c; }`,
+.open-btn {
+  appearance: none;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0d0d0d;
+  font: 500 13px/normal Inter, system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 1;
+  pointer-events: none;
+}
+.layer.is-open { pointer-events: auto; }
+.layer.is-closing { pointer-events: none; }
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: #0d0d0d;
+  opacity: 0;
+  transition: opacity var(--modal-open-dur) var(--modal-ease);
+}
+.layer.is-open .backdrop { opacity: 0.28; }
+.layer.is-closing .backdrop {
+  opacity: 0;
+  transition-duration: var(--modal-close-dur);
+}
+.panel {
+  z-index: 1;
+  width: 210px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.title {
+  margin: 0 0 6px;
+  color: #0d0d0d;
+  font: 600 15px/normal Inter, system-ui, sans-serif;
+}
+.message {
+  margin: 0 0 12px;
+  color: #6c6c6c;
+  font: 400 12px/17px Inter, system-ui, sans-serif;
+}
+.close {
+  appearance: none;
+  align-self: flex-end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0d0d0d;
+  font: 500 13px/normal Inter, system-ui, sans-serif;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .backdrop { transition: none !important; }
+}`,
     script: `(function () {
-  var backdrop = document.getElementById('backdrop');
+  var layer = document.getElementById('layer');
   var modal = document.getElementById('modal');
   var open = false;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   function paint(next) {
     open = next;
     if (next) {
-      backdrop.hidden = false;
       modal.classList.remove('is-closing');
+      layer.classList.remove('is-closing');
+      void modal.offsetWidth;
       modal.classList.add('is-open');
+      layer.classList.add('is-open');
     } else {
       modal.classList.remove('is-open');
+      layer.classList.remove('is-open');
       modal.classList.add('is-closing');
+      layer.classList.add('is-closing');
       setTimeout(function () {
-        modal.classList.remove('is-closing');
-        if (!open) backdrop.hidden = true;
+        if (!open) {
+          modal.classList.remove('is-closing');
+          layer.classList.remove('is-closing');
+        }
       }, reduce ? 0 : 200);
     }
   }
   document.getElementById('open').addEventListener('click', function () { paint(true); });
-  document.getElementById('close').addEventListener('click', function () { paint(false); });
+  document.getElementById('close').addEventListener('click', function (event) {
+    event.stopPropagation();
+    paint(false);
+  });
+  document.getElementById('backdrop').addEventListener('click', function () { paint(false); });
 })();`,
   },
   'page-side-by-side': {
