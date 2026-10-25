@@ -1128,9 +1128,9 @@ const LOCKS: Record<string, PromptLock> = {
         name: 'palette',
         trigger: 'the colour wheel while open',
         from: 'the tool drawings',
-        to: 'swatches width 26px, height 26px, border-radius 8px; the active swatch scale(1.08) translateY(-1px)',
-        duration: '',
-        easing: '',
+        to: 'swatches width 26px, height 26px, border-radius 8px; the active swatch scale(1.08) translateY(-1px). Switching this face eases the row width over 520ms',
+        duration: 'width 520ms',
+        easing: 'cubic-bezier(0.22, 0.9, 0.16, 1)',
         delay: '',
       },
       {
@@ -1145,7 +1145,9 @@ const LOCKS: Record<string, PromptLock> = {
     ],
     gotchas: [
       'Closing sets open false, face back to instruments, and clears the draft. Opening sets face to instruments.',
-      '`.pt-morph` transitions width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
+      '`.pt-morph` transitions width 520ms and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1). The border-radius stays 42px, so the 440ms leg has no visible effect.',
+      'Open width is the measured max-content outer size, capped with calc(100% - 24px). The script writes that outer width in px so the 520ms width transition can interpolate. The peek and the tray swap with no fade.',
+      'Reduced motion sets the `.pt-morph` transition to none.',
       'Guides draw only when the pill is open and guides are on. Stroke is #9B5CFF and stroke-width is 1.',
       'Pencil is size 1 graphite at alpha 0.85. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is size 28, fill #fff01f, alpha 0.75. Brush is size 14 and tapers at the lift. Fountain is size 8 with nibContrast 0.85. Eraser is size 28 and destination-out.',
       'The stage is height 520px. Sample controls use height 32px and 26px. `.pt-round` is 36px. The stage background controls use #17181c.',
@@ -1154,7 +1156,7 @@ const LOCKS: Record<string, PromptLock> = {
       'The pill starts closed: `.pt-morph` is 84px by 84px, border-radius 42px, scale(0.667), gradient #fbfaf9 to #f1efec. Colour starts at #111111. Guides use #9B5CFF. The note lists label, selector, note, and box.',
     checklist: [
       'Closed is an 84px by 84px pill at scale(0.667) and radius 42px.',
-      'The open transition is width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
+      'The open transition is width 520ms and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1). The border-radius stays 42px, so the 440ms leg has no visible effect.',
       'The active tool uses translateY(-12px). The other tools use translateY(6px) and margin-bottom -20px.',
       'A note lists label, selector, note, and box.',
     ],

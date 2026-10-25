@@ -157,6 +157,7 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   z-index: 8;
   bottom: 18px;
   left: 50%;
+  box-sizing: border-box;
   transform: translateX(-50%) scale(0.667);
   transform-origin: center center;
   height: 84px;
@@ -179,6 +180,9 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   padding: 0 32px;
   gap: 8px;
   transform: translateX(-50%) scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pt-morph { transition: none; }
 }
 .pt-peek {
   border: 0;
@@ -269,6 +273,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   var colorDot = document.getElementById('pt-color-dot');
   var closeBtn = document.getElementById('pt-close');
   var slots = document.getElementById('pt-slots');
+  var morph = document.getElementById('pt-morph');
   var open = false;
   var guidesOn = true;
   var annotate = false;
@@ -299,6 +304,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     if (canvas.height !== h) canvas.height = h;
     paint();
     paintGuides();
+    fitOpenWidth(true);
   }
   function fillRing(ring) {
     ctx.beginPath();
@@ -408,9 +414,40 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     var nodes = field.querySelectorAll('[data-note]');
     for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove('is-picked');
   }
+  function openWidthPx() {
+    var cap = field.clientWidth - 24;
+    var previous = morph.style.width;
+    var previousTransition = morph.style.transition;
+    morph.style.transition = 'none';
+    morph.style.width = 'max-content';
+    var cs = getComputedStyle(morph);
+    var outer = morph.offsetWidth;
+    var extra = 0;
+    if (cs.boxSizing !== 'border-box') {
+      extra = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    }
+    var w = Math.max(0, Math.min(outer, cap) - extra);
+    morph.style.width = previous;
+    void morph.offsetWidth;
+    morph.style.transition = previousTransition;
+    return w;
+  }
+  function fitOpenWidth(snap) {
+    if (!open) return;
+    var next = openWidthPx();
+    if (snap && Math.abs(parseFloat(morph.style.width) - next) < 0.5) return;
+    if (snap) {
+      var previous = morph.style.transition;
+      morph.style.transition = 'none';
+      morph.style.width = next + 'px';
+      void morph.offsetWidth;
+      morph.style.transition = previous;
+      return;
+    }
+    morph.style.width = next + 'px';
+  }
   function setOpen(next) {
     open = next;
-    field.classList.toggle('is-open', open);
     if (open) {
       annotate = false;
       face = 'instruments';
@@ -424,6 +461,21 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     }
     field.classList.toggle('is-annotate', open && annotate);
     field.classList.toggle('is-guides', open && guidesOn);
+    if (next) {
+      morph.style.transition = 'none';
+      morph.style.transform = 'translateX(-50%) scale(0.667)';
+      morph.style.width = '84px';
+      field.classList.add('is-open');
+      var w = openWidthPx();
+      morph.style.width = '84px';
+      void morph.offsetWidth;
+      morph.style.transform = '';
+      morph.style.transition = '';
+      morph.style.width = w + 'px';
+    } else {
+      morph.style.width = '84px';
+      field.classList.remove('is-open');
+    }
     syncPeek();
     syncPointer();
     paintGuides();
@@ -568,6 +620,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     }
     syncPeek();
     syncPointer();
+    fitOpenWidth();
   }
 
   toggle.addEventListener('click', function (event) {
@@ -596,6 +649,8 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     if (!annotate) {
       hideNote();
       selectPen(pen);
+    } else {
+      fitOpenWidth();
     }
     syncPointer();
   });
@@ -609,6 +664,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     field.classList.remove('is-annotate');
     hideNote();
     syncPointer();
+    fitOpenWidth();
   });
   field.querySelectorAll('[data-pen]').forEach(function (button) {
     button.addEventListener('click', function () { selectPen(button.getAttribute('data-pen')); });
@@ -622,6 +678,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
       colorBtn.classList.remove('is-on');
       var swatches = field.querySelectorAll('[data-color]');
       for (var i = 0; i < swatches.length; i++) swatches[i].classList.toggle('is-on', swatches[i] === button);
+      fitOpenWidth();
     });
   });
   canvas.addEventListener('pointerdown', function (event) {
@@ -659,6 +716,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   });
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(field);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitOpenWidth(true); });
   resize();
   syncPointer();
 })();`;
