@@ -210,13 +210,33 @@ export function PreviewToolsDemo() {
   const morphScale = useSharedValue(MORPH_SCALE_CLOSED);
   const widthCap = fieldBox.width > MORPH_MAX_INSET ? fieldBox.width - MORPH_MAX_INSET : 0;
   const openTarget = openWidth > 0 && widthCap > 0 ? Math.min(openWidth, widthCap) : openWidth;
+  const openTargetRef = useRef(openTarget);
+  const reduceRef = useRef(reduceMotion);
+  const skipMorphEffect = useRef(false);
+  openTargetRef.current = openTarget;
+  reduceRef.current = reduceMotion;
+
+  const startMorph = (open: boolean, reduced = reduceRef.current) => {
+    const target = openTargetRef.current;
+    const widthTo = open && target > 0 ? target : MORPH_WIDTH_CLOSED;
+    morphWidth.value = timed(widthTo, MORPH_WIDTH_MS, MORPH_EASE, reduced);
+    morphRadius.value = timed(MORPH_RADIUS, MORPH_RADIUS_MS, MORPH_EASE, reduced);
+    morphScale.value = timed(open ? MORPH_SCALE_OPEN : MORPH_SCALE_CLOSED, MORPH_TRANSFORM_MS, MORPH_EASE, reduced);
+  };
 
   useEffect(() => {
-    const widthTo = chrome.open && openTarget > 0 ? openTarget : MORPH_WIDTH_CLOSED;
-    morphWidth.value = timed(widthTo, MORPH_WIDTH_MS, MORPH_EASE, reduceMotion);
-    morphRadius.value = timed(MORPH_RADIUS, MORPH_RADIUS_MS, MORPH_EASE, reduceMotion);
-    morphScale.value = timed(chrome.open ? MORPH_SCALE_OPEN : MORPH_SCALE_CLOSED, MORPH_TRANSFORM_MS, MORPH_EASE, reduceMotion);
-  }, [chrome.open, morphRadius, morphScale, morphWidth, openTarget, reduceMotion]);
+    if (skipMorphEffect.current) {
+      skipMorphEffect.current = false;
+      return;
+    }
+    startMorph(chrome.open, reduceMotion);
+  }, [chrome.open, openTarget, reduceMotion]);
+
+  const toggleTools = () => {
+    skipMorphEffect.current = true;
+    startMorph(!chrome.open);
+    setChrome(toggleOpen);
+  };
 
   const morphMotion = useAnimatedStyle(() => ({
     width: morphWidth.value,
@@ -337,7 +357,7 @@ export function PreviewToolsDemo() {
               chrome.face === 'palette' && styles.morphPalette,
             ]}
           >
-            <ToolTray chrome={chrome} setChrome={setChrome} quiet />
+            <ToolTray chrome={chrome} setChrome={setChrome} onToggle={toggleTools} quiet />
           </View>
         </View>
         <Animated.View
@@ -350,14 +370,14 @@ export function PreviewToolsDemo() {
           ]}
         >
           {chrome.open ? (
-            <ToolTray chrome={chrome} setChrome={setChrome} />
+            <ToolTray chrome={chrome} setChrome={setChrome} onToggle={toggleTools} />
           ) : (
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ expanded: false }}
               accessibilityLabel="Open tools"
               testID="preview-tools-toggle"
-              onPress={() => setChrome(toggleOpen)}
+              onPress={toggleTools}
               style={styles.peekHit}
             >
               <ToolGlyph id={held.id} color={held.id === 'highlighter' ? '#fff01f' : chrome.color} width={42} />
@@ -372,10 +392,12 @@ export function PreviewToolsDemo() {
 function ToolTray({
   chrome,
   setChrome,
+  onToggle,
   quiet = false,
 }: {
   chrome: Chrome;
   setChrome: (update: (current: Chrome) => Chrome) => void;
+  onToggle: () => void;
   quiet?: boolean;
 }) {
   const tid = (value: string) => (quiet ? undefined : value);
@@ -454,7 +476,7 @@ function ToolTray({
         accessibilityState={{ expanded: true }}
         accessibilityLabel="Close tools"
         testID={tid('preview-tools-toggle')}
-        onPress={quiet ? undefined : () => setChrome(toggleOpen)}
+        onPress={quiet ? undefined : onToggle}
         style={styles.round}
       >
         <CollapseMark />
