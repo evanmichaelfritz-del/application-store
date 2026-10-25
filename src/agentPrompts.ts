@@ -127,7 +127,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'The count is the string `1`. The bell button is 48px by 48px with border-radius 12px.',
+      'The count is the string `1`. The bell control is 40px by 40px, with no border and a transparent background. The glyph is 28px and the stroke is #0d0d0d.',
       'Reduced motion sets the badge transition to none.',
     ],
     setup:
@@ -241,7 +241,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'burst',
-        trigger: 'Celebrate, and also the launch on load',
+        trigger: 'Celebrate',
         from: 'x at the button centre, y at rect.top - host.top - 8',
         to: 'y held on that floor after a bounce of 0.35, vx multiplied by 0.72',
         duration: 'requestAnimationFrame, gravity `--confetti-gravity` 1800',
@@ -259,7 +259,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'The host is width 280px and height 220px. The button sits at bottom 28px.',
+      'The host is width 280px and height 220px. Celebrate is centered, height 36px, padding 0 14px, border-radius 10px, background #fff, and color #0d0d0d. A burst starts on that click, not when the document loads.',
       'The floor expression is `rect.top - host.top - 8`. That 8 is a raw subtraction, not an 8px length.',
       'Angle is `-Math.PI / 2 + (i / 17 - 0.5) * spread`. Speed is `380 + (i % 5) * 50`. Rotation starts at `(i * 37) % 180` and adds `160 * dt`.',
       'Reduced motion writes the floor translate and returns. The stylesheet also sets `.t-confetti-piece` to display none.',
@@ -327,12 +327,13 @@ const LOCKS: Record<string, PromptLock> = {
   'page-side-by-side': {
     motion:
       '`.t-page` transitions transform and opacity over `--page-slide-dur: 300ms` with `--page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1)`. `.is-exit` is `translateX(calc(var(--page-slide-distance) * -1))` and opacity 0. `.is-enter` is `translateX(var(--page-slide-distance))` and opacity 0. `--page-slide-distance` is 24px.',
-    content: 'First page `BNB` / `$66.11`. Second page `$10` / `$66.11 available`.',
+    content:
+      'First page is a row: a 32px #f3ba2f disc with `B`, title `BNB`, subtitle `BNB`, and `$66.11` at the end of the row. Second page is `$10` / `$66.11 available`. The second page starts with `.is-enter`.',
     rn: 'Copy CSS is `.t-page`. Copy script swaps the two pages after 300ms.',
     states: [
       {
         name: 'exit',
-        trigger: 'Next page adds `.is-exit`',
+        trigger: 'a click that adds `.is-exit` on the first page',
         from: 'translateX 0, opacity 1',
         to: 'translateX(calc(var(--page-slide-distance) * -1)), --page-slide-distance 24px, opacity 0',
         duration: '300ms (`--page-slide-dur`)',
@@ -341,34 +342,34 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'enter',
-        trigger: 'the timeout, which writes the next pair and adds `.is-enter`, then removes it on the next frames',
+        trigger: 'a click that removes `.is-enter` on the second page',
         from: 'translateX(24px), opacity 0',
         to: 'translateX 0, opacity 1',
         duration: '300ms (`--page-slide-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: '300ms, the setTimeout before the swap',
+        delay: '',
       },
       {
         name: 'pager',
         trigger: '',
         from: '',
-        to: '.pager width 220px, height 120px, border-radius 14px, background #fff',
+        to: '.pager width 210px, height 88px, border-radius 14px, background #fff',
         duration: '',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'There is no blur. The timeout is `reduce ? 0 : 300`.',
-      'The page is font-size 18px. The second line is font-size 13px and colour #6c6c6c.',
+      'There is no blur and no separate timeout. A click toggles `.is-exit` on the first page and `.is-enter` on the second together.',
+      'The disc is 32px, #f3ba2f, with `B` in #1a1200. The title and price are 14px #0d0d0d. The subtitle and the available line are 12px #767676. The amount is 28px.',
       'Reduced motion sets the transition to none.',
     ],
     setup:
-      'The pairs are `BNB` / `$66.11` and `$10` / `$66.11 available`. `.pager` is 220px by 120px, border-radius 14px. Next page adds `.is-exit`, waits 300ms, then swaps the pair through `.is-enter`.',
+      'The first page is the row with `B`, `BNB`, `BNB`, and `$66.11`. The second page is `$10` and `$66.11 available` and starts with `.is-enter`. `.pager` is 210px by 88px, border-radius 14px. A click toggles `.is-exit` and `.is-enter` together.',
     checklist: [
       'The push is 24px over 300ms with cubic-bezier(0.22, 1, 0.36, 1).',
-      'The first page is `BNB` and `$66.11`. The second is `$10` and `$66.11 available`.',
-      'Reduced motion uses a 0 timeout and transition none.',
+      'The first page is the `B` disc, `BNB`, `BNB`, and `$66.11`. The second is `$10` and `$66.11 available`.',
+      'Reduced motion sets the transition to none.',
     ],
   },
   'icon-swap': {
@@ -379,7 +380,7 @@ const LOCKS: Record<string, PromptLock> = {
     states: [
       {
         name: 'shown',
-        trigger: 'Swap icon removes `.is-out`',
+        trigger: 'a click on the chip removes `.is-out`',
         from: 'opacity 0, blur(2px), scale(0.25)',
         to: 'opacity 1, blur 0, scale 1',
         duration: '250ms (`--icon-swap-dur`)',
@@ -388,7 +389,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'out',
-        trigger: 'Swap icon adds `.is-out`',
+        trigger: 'a click on the chip adds `.is-out`',
         from: 'opacity 1, scale 1, blur 0',
         to: 'opacity 0, blur(2px), scale(0.25)',
         duration: '250ms (`--icon-swap-dur`)',
@@ -397,11 +398,11 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'The slot is 48px by 48px. Each icon is position absolute, inset 0.',
+      'The chip is 48px by 48px, border-radius 12px, background #fff. Each `.t-icon` is position absolute, 20px by 16px. The bars and the X are 2px tall and #0d0d0d.',
       'Reduced motion sets the transition to none.',
     ],
     setup:
-      'The first `.t-icon` is the three-line mark. The second starts with `.is-out` and is the X. Swap icon toggles `.is-out` on both. `--icon-swap-dur` is 250ms, `--icon-swap-blur` is 2px, and `--icon-swap-start-scale` is 0.25.',
+      'The first `.t-icon` is the three-line mark. The second starts with `.is-out` and is the X. A click on the chip toggles `.is-out` on both. `--icon-swap-dur` is 250ms, `--icon-swap-blur` is 2px, and `--icon-swap-start-scale` is 0.25.',
     checklist: [
       'Opacity, blur, and scale share one 250ms ease-in-out.',
       'The resting icon is the three-line mark.',
@@ -518,7 +519,7 @@ const LOCKS: Record<string, PromptLock> = {
       },
     ],
     gotchas: [
-      'The hit target is 180px by 120px. Each card is 110px by 74px, left 35px, top 23px, border-radius 12px, background #fff.',
+      'The hit target is 180px by 120px. Each card is 110px by 74px, left 35px, top 23px, border-radius 12px, background #fff, color #0d0d0d. The card shadow is 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).',
       '`--stack-fan: 18px` and `--stack-rot: 6deg` are declared. The spread rules use the translate and rotate literals above and do not read those two variables.',
       'Reduced motion sets the transition to none.',
     ],
