@@ -110,8 +110,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Unused CSS: .col.',
   ],
   'modal-open-close': [
-    'Generic template prompt (4644 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Showcase label and the gallery stage border are harness chrome. The stage width follows the card; the preview uses the preview width at the same 200px height.',
   ],
   'notification-badge': [
     'Generic template prompt (4208 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
