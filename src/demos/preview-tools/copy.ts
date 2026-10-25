@@ -157,6 +157,7 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   z-index: 8;
   bottom: 18px;
   left: 50%;
+  box-sizing: border-box;
   transform: translateX(-50%) scale(0.667);
   transform-origin: center center;
   height: 84px;
@@ -303,6 +304,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     if (canvas.height !== h) canvas.height = h;
     paint();
     paintGuides();
+    fitOpenWidth(true);
   }
   function fillRing(ring) {
     ctx.beginPath();
@@ -418,15 +420,31 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
     var previousTransition = morph.style.transition;
     morph.style.transition = 'none';
     morph.style.width = 'max-content';
-    var w = Math.min(morph.offsetWidth, cap);
+    var cs = getComputedStyle(morph);
+    var outer = morph.offsetWidth;
+    var extra = 0;
+    if (cs.boxSizing !== 'border-box') {
+      extra = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    }
+    var w = Math.max(0, Math.min(outer, cap) - extra);
     morph.style.width = previous;
     void morph.offsetWidth;
     morph.style.transition = previousTransition;
     return w;
   }
-  function fitOpenWidth() {
+  function fitOpenWidth(snap) {
     if (!open) return;
-    morph.style.width = openWidthPx() + 'px';
+    var next = openWidthPx();
+    if (snap && Math.abs(parseFloat(morph.style.width) - next) < 0.5) return;
+    if (snap) {
+      var previous = morph.style.transition;
+      morph.style.transition = 'none';
+      morph.style.width = next + 'px';
+      void morph.offsetWidth;
+      morph.style.transition = previous;
+      return;
+    }
+    morph.style.width = next + 'px';
   }
   function setOpen(next) {
     open = next;
@@ -698,6 +716,7 @@ export const PREVIEW_TOOLS_SCRIPT = `(function () {
   });
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(field);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitOpenWidth(true); });
   resize();
   syncPointer();
 })();`;
