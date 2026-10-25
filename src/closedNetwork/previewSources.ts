@@ -1150,7 +1150,7 @@ canvas { display: block; width: 168px; height: 168px; }`,
 }
 .row { position: relative; flex: 1; display: flex; gap: 4px; overflow: hidden; min-width: 0; }
 .word { color: #0d0d0d; font: 400 14px/17px Inter, system-ui, sans-serif; }
-.word.out { position: absolute; top: 0; }
+.word.out { position: absolute; top: 0px; }
 .placeholder { color: #8f8f8f; font: 400 14px/17px Inter, system-ui, sans-serif; }
 .x {
   width: 20px; height: 20px; display: grid; place-items: center; cursor: pointer;
@@ -1164,39 +1164,79 @@ canvas { display: block; width: 168px; height: 168px; }`,
   var row = document.getElementById('row');
   var control = document.getElementById('x');
   var cleared = false;
+  var exitSerial = 0;
+  function showPlaceholder() {
+    if (row.querySelector('.placeholder')) return;
+    var hold = document.createElement('span');
+    hold.className = 'placeholder';
+    hold.textContent = 'Search';
+    row.appendChild(hold);
+  }
+  function settle() {
+    row.textContent = '';
+    if (cleared) {
+      showPlaceholder();
+      control.textContent = '+';
+      return;
+    }
+    control.textContent = '×';
+    words.forEach(function (word) {
+      var el = document.createElement('span');
+      el.className = 'word';
+      el.textContent = word;
+      el.style.animationDuration = '0ms';
+      row.appendChild(el);
+    });
+  }
+  // files keeps top -8.5px for the whole clear. translateY still ends at -25px, so the visual offset ends at -33.5px.
+  function armExit(el, i, box) {
+    var serial = String(++exitSerial);
+    el.dataset.exit = serial;
+    el.className = 'word out';
+    el.style.left = box.left + 'px';
+    el.style.top = i === 2 ? '-8.5px' : '0px';
+    el.style.width = box.width + 'px';
+    el.style.height = box.height + 'px';
+    el.style.animationName = 'none';
+    el.style.animationDelay = (i * parseFloat(stagger)) + 'ms';
+    void el.offsetWidth;
+    el.style.animationName = 'word-out';
+    el.addEventListener('animationend', function onEnd(event) {
+      if (event.target !== el || el.dataset.exit !== serial) return;
+      el.removeEventListener('animationend', onEnd);
+      el.remove();
+    });
+  }
   function enter() {
     cleared = false;
-    row.textContent = '';
+    if (media.matches) {
+      settle();
+      return;
+    }
+    var hold = row.querySelector('.placeholder');
+    if (hold) hold.remove();
     control.textContent = '×';
     words.forEach(function (word, i) {
       var el = document.createElement('span');
-      el.className = media.matches ? 'word' : 'word in';
+      el.className = 'word in';
       el.textContent = word;
       el.style.animationDelay = (i * parseFloat(stagger)) + 'ms';
-      if (media.matches) el.style.animationDuration = '0ms';
       row.appendChild(el);
     });
   }
   function leave() {
     cleared = true;
-    var nodes = [].slice.call(row.querySelectorAll('.word'));
-    var lefts = nodes.map(function (node) { return node.offsetLeft; });
-    row.textContent = '';
-    var hold = document.createElement('span');
-    hold.className = 'placeholder';
-    hold.textContent = 'Search';
-    row.appendChild(hold);
-    control.textContent = '+';
-    if (media.matches) return;
-    nodes.forEach(function (node, i) {
-      var el = document.createElement('span');
-      el.className = 'word out';
-      el.textContent = node.textContent;
-      el.style.left = lefts[i] + 'px';
-      el.style.animationDelay = (i * parseFloat(stagger)) + 'ms';
-      el.addEventListener('animationend', function () { el.remove(); });
-      row.appendChild(el);
+    if (media.matches) {
+      settle();
+      return;
+    }
+    var live = [].slice.call(row.querySelectorAll('.word:not(.out)'));
+    var boxes = live.map(function (node) {
+      return { left: node.offsetLeft, width: node.offsetWidth, height: node.offsetHeight };
     });
+    live.forEach(function (node, i) { armExit(node, i, boxes[i]); });
+    showPlaceholder();
+    control.textContent = '+';
   }
   function toggle() {
     if (cleared) enter();
@@ -1208,8 +1248,7 @@ canvas { display: block; width: 168px; height: 168px; }`,
   });
   media.addEventListener('change', function () {
     if (!media.matches) return;
-    if (cleared) leave();
-    else enter();
+    settle();
   });
   enter();
 })();`,

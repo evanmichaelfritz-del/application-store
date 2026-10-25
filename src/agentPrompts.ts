@@ -860,29 +860,31 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'input-clear-dissolve': {
     motion:
-      'Clear and restore are linear. Clear travels translateY 0 to -25px and opacity 1 to 0 over 250ms. Restore travels translateY 25px to 0 and opacity 0 to 1 over 250ms. Delay is 45ms times the index. No blur. The words do not move sideways.',
+      'Clear and restore are linear over 250ms. search and recent travel from translateY 0 to -25px. files is at top -8.5px for the whole clear, and translateY still runs from 0 to -25px, so its visual offset runs from -8.5px to -33.5px. Opacity runs from 1 to 0. Restore travels translateY 25px to 0 and opacity 0 to 1. Delay is 45ms times the index. No blur. The words do not move sideways. A click during a fade keeps every word that is already leaving.',
     content:
       '`search`, `recent`, `files`. Cleared, the field reads `Search`. The control shows `×` while the words are showing and `+` when they are cleared. The entrance plays when the document loads.',
     geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The field is centered.
 - Field: width 230px, height 40px, border-radius 12px, background #fff, border 1px solid rgba(0, 0, 0, 0.08), padding 0 12px.
-- Row: flex 1, gap 4px, overflow hidden. Exiting words leave the row.
+- Row: flex 1, gap 4px, overflow hidden. Exiting words keep the left they had. files uses top -8.5px. search and recent use top 0px.
 - Word: 14px, line-height 17px, weight 400, colour #0d0d0d.
 - Placeholder: 14px, line-height 17px, weight 400, colour #8f8f8f. The string is Search.
 - Control: 20px by 20px. It is in the tab order. It has no role and no accessible name. The glyph is 18px, line-height 20px, colour #6c6c6c, on the system stack.`,
     timing: `Clear and restore are linear over 250ms. There is no blur, and the words do not move sideways.
 
-- Clear: translateY from 0 to -25px, opacity from 1 to 0.
-- Restore: translateY from 25px to 0, opacity from 0 to 1.
+- search and recent on clear: top 0px, translateY from 0 to -25px, opacity from 1 to 0. Visual offset ends at -25px.
+- files on clear: top -8.5px from the first frame through the end. translateY from 0 to -25px. Visual offset runs from -8.5px to -33.5px. Opacity from 1 to 0.
+- Restore: top 0px, translateY from 25px to 0, opacity from 0 to 1.
 - Word n waits n times 45ms. The first word waits 0ms.
+- A click while words are leaving keeps those words on that fade and starts the entrance. A click while words are entering restarts those same words as a clear, from opacity 1 and translateY 0, with files at top -8.5px.
 - Reduced motion swaps with no travel. The duration is 0ms.`,
     reducedMotion:
-      'Reduced motion skips both fades. Clear shows Search and + at once. Restore shows the three words and × at once. The duration is 0ms.',
+      'Reduced motion skips both fades. Clear shows Search and + at once. Restore shows the three words and × at once. Words that were still moving are removed. The duration is 0ms.',
     states: [
       {
         name: 'clear',
         trigger: 'a click or Enter on the control while the words are showing',
-        from: 'translateY 0, opacity 1',
-        to: 'translateY -25px, opacity 0',
+        from: 'opacity 1. search and recent at top 0px and translateY 0. files at top -8.5px and translateY 0',
+        to: 'opacity 0. search and recent at translateY -25px. files at top -8.5px and translateY -25px, visual offset -33.5px',
         duration: '250ms',
         easing: 'linear',
         delay: '45ms times the index',
@@ -890,8 +892,8 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
       {
         name: 'restore',
         trigger: 'a click or Enter on the control while the field is cleared',
-        from: 'translateY 25px, opacity 0',
-        to: 'translateY 0, opacity 1',
+        from: 'top 0px, translateY 25px, opacity 0',
+        to: 'top 0px, translateY 0, opacity 1',
         duration: '250ms',
         easing: 'linear',
         delay: '45ms times the index',
@@ -908,8 +910,9 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     ],
     gotchas: [
       'The control is in the tab order. It has no role and no accessible name. Enter toggles it. Space does not.',
-      'Search appears in the first slot at once, while the words are still travelling up. Each exiting word keeps the left it had. The row clips the 25px travel.',
-      'A click during a fade drops the words on screen and starts the other fade. The exit and the entrance do not play on the same word. The original can carry an entrance into an exit on that same word, so a click during the entrance does not match.',
+      'Search appears in the first slot at once, while the words are still travelling up. Each exiting word keeps the left it had. files is at top -8.5px for the whole clear and ends at visual offset -33.5px. search and recent end at -25px. The row clips the travel.',
+      'A click while words are leaving keeps those words on their own 250ms fade. The new words enter on top from opacity 0, so both sets overlap for about 250ms. Opacity of a word already leaving does not jump. The original paints the new words at opacity 1 for one frame before that entrance, and on that frame the opacities add up to about 5.1. A fast restore and clear keeps every earlier exit as well.',
+      'A click that clears during an entrance turns those same words into an exit. That exit starts again at opacity 1 and translateY 0, files at top -8.5px, with the same 45ms stagger. It does not keep the entrance offset.',
       'The glyph is × or +, 18px, line-height 20px, colour #6c6c6c. The control is 20px wide.',
     ],
     setup:
@@ -917,8 +920,9 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'The words are search, recent, and files. Cleared, the field reads Search. The glyph is ×, then +.',
-      'Clear travels to translateY -25px and opacity 0. Restore travels from translateY 25px to 0. Both are 250ms linear, with no blur.',
+      'search and recent clear to translateY -25px. files starts at top -8.5px and ends at visual offset -33.5px. Opacity ends at 0. Restore travels from translateY 25px to 0. Both are 250ms linear, with no blur.',
       'Word n waits n times 45ms. The first word waits 0ms. The words do not move sideways.',
+      'A click during a fade keeps words that are already leaving, and a clear during an entrance restarts those words from opacity 1.',
       'The field is 230px by 40px, radius 12px, background #fff. The control is 20px by 20px. The stage is 289px by 200px, radius 14px, background #f9f9f9.',
       'Enter toggles. Space does not. Reduced motion swaps at once and the duration is 0ms.',
     ],
