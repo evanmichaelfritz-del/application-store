@@ -88,9 +88,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   ],
   gooey: [],
   'input-clear-dissolve': [
-    'Generic template prompt (4336 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the field; the Copy keeps its fixed stage.',
   ],
   'icon-swap': [
     'Generic template prompt (3917 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
@@ -127,17 +125,14 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'A second click within about 100 ms restarts the sampled curve, so the pose jumps; the end pose is the same.',
   ],
   'tabs-sliding': [
-    'Generic template prompt (4264 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the bar; the Copy keeps its fixed stage.',
   ],
   'text-states-swap': [
     'Generic template prompt (4078 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
   ],
   'texts-reveal': [
-    'Generic template prompt (3618 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the column; the Copy keeps its fixed stage.',
   ],
   'tilt-3d': [
     'Generic template prompt (7900 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',

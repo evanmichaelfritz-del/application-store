@@ -589,51 +589,163 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'texts-reveal': {
-    html: `<div class="col">
+    html: `<div class="stage">
   <div class="lines" id="lines">
-    <div class="t-line">Pull request opened</div>
-    <div class="t-line">Review requested from 3 teammates</div>
+    <div class="line title">Pull request opened</div>
+    <div class="line sub">Review requested from 3 teammates</div>
   </div>
-  <button class="trigger" type="button" id="replay">Replay</button>
+  <button class="animate" type="button" id="animate" aria-label="Animate">Animate</button>
 </div>`,
-    extraCss: `.lines { display: flex; flex-direction: column; gap: 6px; font-size: 18px; font-weight: 600; }
-.lines .t-line:nth-child(2) { font-size: 14px; font-weight: 500; color: #6c6c6c; }`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.lines { width: 230px; }
+.title { margin: 0 0 4px; color: #0d0d0d; font: 500 16px/20px Inter, system-ui, sans-serif; }
+.sub { margin: 0; color: #767676; font: 400 13px/16px Inter, system-ui, sans-serif; }
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
   var lines = document.getElementById('lines');
-  document.getElementById('replay').addEventListener('click', function () {
-    lines.innerHTML = lines.innerHTML;
-  });
+  function render() {
+    lines.textContent = '';
+    var title = document.createElement('div');
+    title.className = 'line title';
+    title.textContent = 'Pull request opened';
+    var sub = document.createElement('div');
+    sub.className = 'line sub';
+    sub.textContent = 'Review requested from 3 teammates';
+    if (media.matches) {
+      title.style.animationDuration = '0ms';
+      sub.style.animationDuration = '0ms';
+    }
+    lines.appendChild(title);
+    lines.appendChild(sub);
+  }
+  document.getElementById('animate').addEventListener('click', render);
 })();`,
   },
   'tabs-sliding': {
-    html: `<div class="t-tabs" id="tabs" role="tablist">
-  <div class="t-tabs-pill" id="pill"></div>
-  <button type="button" role="tab">Overview</button>
-  <button type="button" role="tab">Activity</button>
-  <button type="button" role="tab">Settings</button>
+    html: `<div class="stage">
+  <div class="bar">
+    <div class="pill" id="pill"></div>
+    <div class="tab on" tabindex="0">Overview</div>
+    <div class="tab" tabindex="0">Activity</div>
+    <div class="tab" tabindex="0">Settings</div>
+  </div>
 </div>`,
-    extraCss: `.t-tabs { display: inline-flex; padding: 3px; }
-.t-tabs button {
-  height: 28px; padding: 0 14px; border: 0; background: transparent; position: relative; z-index: 1;
-  font: 500 13px Inter, system-ui, sans-serif; cursor: pointer; color: #17181c;
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.t-tabs-pill { left: 0; width: 86px; transform: translateX(3px); box-shadow: 0 1px 2px rgba(0,0,0,.06); }`,
+.bar { display: flex; position: relative; background: #f1f1f1; border-radius: 999px; padding: 3px; }
+.pill {
+  position: absolute; top: 3px; bottom: 3px; left: 0; width: 78px;
+  border-radius: 999px; background: #fff; transform: translateX(3px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.tab {
+  position: relative; z-index: 1; width: 78px; height: 30px;
+  display: grid; place-items: center; cursor: pointer;
+  color: rgba(15, 15, 15, 0.8); font: 500 12px/1 Inter, system-ui, sans-serif;
+}
+.tab.on { color: #0f0f0f; }`,
     script: `(function () {
-  var tabs = document.getElementById('tabs');
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var mass = 1, damping = 20, stiffness = 280;
+  var omega0 = Math.sqrt(stiffness / mass);
+  var zeta = damping / (2 * Math.sqrt(stiffness * mass));
+  var omega1 = omega0 * Math.sqrt(1 - zeta * zeta);
+  // Visible settle 530ms. The step does not snap there. dt cap 64ms.
+  var cap = '64ms';
+  var targets = ['3px', '81px', '159px'];
   var pill = document.getElementById('pill');
-  var buttons = [].slice.call(tabs.querySelectorAll('button'));
-  function select(i) {
-    var b = buttons[i];
-    pill.style.width = b.offsetWidth + 'px';
-    pill.style.transform = 'translateX(' + b.offsetLeft + 'px)';
-    buttons.forEach(function (btn, j) {
-      btn.setAttribute('aria-selected', j === i ? 'true' : 'false');
-    });
+  var tabs = [].slice.call(document.querySelectorAll('.tab'));
+  var spring = { value: 3, velocity: 0, target: 3, energy: 0, done: true };
+  var index = 0;
+  var raf = 0;
+  var last = 0;
+  function paint() {
+    pill.style.transform = 'translateX(' + spring.value + 'px)';
   }
-  buttons.forEach(function (btn, i) {
-    btn.addEventListener('click', function () { select(i); });
+  function to(target) {
+    if (media.matches) {
+      spring.value = target;
+      spring.velocity = 0;
+      spring.target = target;
+      spring.done = true;
+      pill.style.animationDuration = '0ms';
+      paint();
+      return;
+    }
+    if (spring.target === target) return;
+    var v = spring.velocity;
+    // Opposing velocity is dropped. Velocity toward the new target is kept.
+    if ((target > spring.value && v < 0) || (target < spring.value && v > 0)) v = 0;
+    spring.velocity = v;
+    spring.target = target;
+    var x0 = spring.value - target;
+    spring.energy = 0.5 * stiffness * x0 * x0 + 0.5 * mass * v * v;
+    spring.done = spring.energy === 0;
+    if (spring.done) spring.value = target;
+    kick();
+  }
+  function step(dtMs) {
+    if (spring.done) return;
+    var dt = Math.min(parseFloat(cap), Math.max(0, dtMs)) / 1000;
+    var x0 = spring.value - spring.target;
+    var v0 = spring.velocity;
+    var env = Math.exp(-zeta * omega0 * dt);
+    var sin1 = Math.sin(omega1 * dt);
+    var cos1 = Math.cos(omega1 * dt);
+    var frag = env * (sin1 * ((v0 + zeta * omega0 * x0) / omega1) + x0 * cos1);
+    spring.value = spring.target + frag;
+    spring.velocity = -zeta * omega0 * frag + env * (cos1 * (v0 + zeta * omega0 * x0) - omega1 * x0 * sin1);
+    var e = 0.5 * stiffness * (spring.target - spring.value) * (spring.target - spring.value) + 0.5 * mass * spring.velocity * spring.velocity;
+    if (spring.energy === 0 || e / spring.energy <= 6e-9) {
+      spring.value = spring.target;
+      spring.velocity = 0;
+      spring.done = true;
+    }
+  }
+  function frame(now) {
+    step(now - last);
+    last = now;
+    paint();
+    if (!spring.done) raf = requestAnimationFrame(frame);
+    else raf = 0;
+  }
+  function kick() {
+    if (raf) return;
+    last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+  function select(i) {
+    var target = parseFloat(targets[i]);
+    if (i === index && spring.target === target) return;
+    index = i;
+    tabs.forEach(function (tab, j) { tab.classList.toggle('on', j === i); });
+    to(target);
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { select(i); });
+    tab.addEventListener('keyup', function (event) {
+      if (event.key === 'Enter') select(i);
+    });
   });
-  select(0);
+  media.addEventListener('change', function () {
+    if (media.matches) to(spring.target);
+  });
+  paint();
 })();`,
   },
   'tooltip-open-close': {
@@ -1020,45 +1132,125 @@ canvas { display: block; width: 168px; height: 168px; }`,
 })();`,
   },
   'input-clear-dissolve': {
-    html: `<div class="field" id="field">
-  <div class="words" id="words">
-    <span class="t-word">search</span>
-    <span class="t-word">recent</span>
-    <span class="t-word">files</span>
+    html: `<div class="stage">
+  <div class="field">
+    <div class="row" id="row"></div>
+    <div class="x" id="x" tabindex="0">×</div>
   </div>
-  <button class="x" type="button" id="clear" aria-label="Clear">×</button>
 </div>`,
-    extraCss: `.field {
-  width: 230px; height: 40px; border-radius: 12px; background: #fff;
-  border: 1px solid rgba(0,0,0,.08); padding: 0 8px 0 12px;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.words { display: flex; gap: 4px; font-size: 14px; }
+.field {
+  width: 230px; height: 40px; border-radius: 12px; background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08); padding: 0 12px;
+  display: flex; align-items: center;
+}
+.row { position: relative; flex: 1; display: flex; gap: 4px; overflow: hidden; min-width: 0; }
+.word { color: #0d0d0d; font: 400 14px/17px Inter, system-ui, sans-serif; }
+.word.out { position: absolute; top: 0px; }
+.placeholder { color: #8f8f8f; font: 400 14px/17px Inter, system-ui, sans-serif; }
 .x {
-  width: 22px; height: 22px; border: 0; border-radius: 99px; background: #f1f1f1;
-  cursor: pointer; font-size: 14px;
+  width: 20px; height: 20px; display: grid; place-items: center; cursor: pointer;
+  color: #6c6c6c;
+  font: 400 18px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }`,
     script: `(function () {
-  var words = [].slice.call(document.querySelectorAll('.t-word'));
-  var btn = document.getElementById('clear');
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var stagger = '45ms';
+  var words = ['search', 'recent', 'files'];
+  var row = document.getElementById('row');
+  var control = document.getElementById('x');
   var cleared = false;
-  btn.addEventListener('click', function () {
-    if (!cleared) {
-      words.forEach(function (word, i) {
-        word.style.transitionDelay = (i * 45) + 'ms';
-        word.classList.add('is-out');
-      });
-      btn.textContent = '+';
-      cleared = true;
-    } else {
-      words.forEach(function (word) {
-        word.style.transitionDelay = '0ms';
-        word.classList.remove('is-out');
-      });
-      btn.textContent = '×';
-      cleared = false;
+  var exitSerial = 0;
+  function showPlaceholder() {
+    if (row.querySelector('.placeholder')) return;
+    var hold = document.createElement('span');
+    hold.className = 'placeholder';
+    hold.textContent = 'Search';
+    row.appendChild(hold);
+  }
+  function settle() {
+    row.textContent = '';
+    if (cleared) {
+      showPlaceholder();
+      control.textContent = '+';
+      return;
     }
+    control.textContent = '×';
+    words.forEach(function (word) {
+      var el = document.createElement('span');
+      el.className = 'word';
+      el.textContent = word;
+      el.style.animationDuration = '0ms';
+      row.appendChild(el);
+    });
+  }
+  // files keeps top -8.5px for the whole clear. translateY still ends at -25px, so the visual offset ends at -33.5px.
+  function armExit(el, i, box) {
+    var serial = String(++exitSerial);
+    el.dataset.exit = serial;
+    el.className = 'word out';
+    el.style.left = box.left + 'px';
+    el.style.top = i === 2 ? '-8.5px' : '0px';
+    el.style.width = box.width + 'px';
+    el.style.height = box.height + 'px';
+    el.style.animationName = 'none';
+    el.style.animationDelay = (i * parseFloat(stagger)) + 'ms';
+    void el.offsetWidth;
+    el.style.animationName = 'word-out';
+    el.addEventListener('animationend', function onEnd(event) {
+      if (event.target !== el || el.dataset.exit !== serial) return;
+      el.removeEventListener('animationend', onEnd);
+      el.remove();
+    });
+  }
+  function enter() {
+    cleared = false;
+    if (media.matches) {
+      settle();
+      return;
+    }
+    var hold = row.querySelector('.placeholder');
+    if (hold) hold.remove();
+    control.textContent = '×';
+    words.forEach(function (word, i) {
+      var el = document.createElement('span');
+      el.className = 'word in';
+      el.textContent = word;
+      el.style.animationDelay = (i * parseFloat(stagger)) + 'ms';
+      row.appendChild(el);
+    });
+  }
+  function leave() {
+    cleared = true;
+    if (media.matches) {
+      settle();
+      return;
+    }
+    var live = [].slice.call(row.querySelectorAll('.word:not(.out)'));
+    var boxes = live.map(function (node) {
+      return { left: node.offsetLeft, width: node.offsetWidth, height: node.offsetHeight };
+    });
+    live.forEach(function (node, i) { armExit(node, i, boxes[i]); });
+    showPlaceholder();
+    control.textContent = '+';
+  }
+  function toggle() {
+    if (cleared) enter();
+    else leave();
+  }
+  control.addEventListener('click', toggle);
+  control.addEventListener('keyup', function (event) {
+    if (event.key === 'Enter') toggle();
   });
+  media.addEventListener('change', function () {
+    if (!media.matches) return;
+    settle();
+  });
+  enter();
 })();`,
   },
   'drag-drop-physics': {

@@ -319,23 +319,18 @@ export const SNIPPETS: Record<string, string> = {
   .t-shake.is-error { animation: none !important; }
 }`,
 
-  'input-clear-dissolve': `:root {
-  --clear-out-dur: 250ms;
-  --clear-out-fly: 12px;
-  --clear-blur: 2px;
-  --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  'input-clear-dissolve': `.word.in { animation: word-in 250ms linear both; }
+.word.out { animation: word-out 250ms linear both; }
+@keyframes word-in {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: none; }
 }
-.t-word { display: inline-block; }
-.t-word.is-out {
-  transform: translateY(calc(var(--clear-out-fly) * -1));
-  opacity: 0;
-  filter: blur(var(--clear-blur));
-  transition: transform var(--clear-out-dur) var(--clear-out-ease),
-    opacity var(--clear-out-dur) var(--clear-out-ease),
-    filter var(--clear-out-dur) var(--clear-out-ease);
+@keyframes word-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-25px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-word { transition: none !important; }
+  .word { animation: none; animation-duration: 0ms; opacity: 1; transform: none; }
 }`,
 
   'skeleton-reveal': `:root {
@@ -353,37 +348,18 @@ export const SNIPPETS: Record<string, string> = {
   .t-content { transition: none !important; }
 }`,
 
-  'texts-reveal': `:root {
-  --stagger-dur: 280ms;
-  --stagger-distance: 12px;
-  --stagger-stagger: 50ms;
-  --stagger-blur: 3px;
-  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
-.t-line { animation: t-rise var(--stagger-dur) var(--stagger-ease) both; }
-.t-line:nth-child(2) { animation-delay: var(--stagger-stagger); }
-@keyframes t-rise {
-  from { transform: translateY(var(--stagger-distance)); opacity: 0; filter: blur(var(--stagger-blur)); }
-  to { transform: none; opacity: 1; filter: none; }
+  'texts-reveal': `.line { animation: rise 300ms linear both; }
+.sub { animation-delay: 50ms; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-line { animation: none !important; }
+  .line { animation: none; animation-duration: 0ms; opacity: 1; transform: none; }
 }`,
 
-  'tabs-sliding': `:root {
-  --tabs-dur: 250ms;
-  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --tabs-bar-bg: #f1f1f1;
-  --tabs-pill-bg: #ffffff;
-}
-.t-tabs { background: var(--tabs-bar-bg); border-radius: 999px; position: relative; }
-.t-tabs-pill {
-  position: absolute; top: 3px; bottom: 3px; border-radius: 999px;
-  background: var(--tabs-pill-bg);
-  transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease);
-}
-@media (prefers-reduced-motion: reduce) {
-  .t-tabs-pill { transition: none !important; }
+  'tabs-sliding': `@media (prefers-reduced-motion: reduce) {
+  .pill { animation-duration: 0ms; }
 }`,
 
   'drag-drop-physics': `/* The board runs from /parity/drag-drop-physics.js. */`,
