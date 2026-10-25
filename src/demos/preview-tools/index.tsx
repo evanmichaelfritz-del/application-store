@@ -1,8 +1,11 @@
 import { createElement, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { Stage } from '@/src/components/Stage';
 import { writeClipboard } from '@/src/clipboard';
+import { useReduceMotion } from '@/src/context/ReduceMotionContext';
+import { timed } from '@/src/motion';
 import { fonts } from '@/src/theme';
 import {
   GUIDE,
@@ -31,8 +34,20 @@ import {
 } from './model';
 import { COLLAPSE_SVG, toolIconSvg } from './toolIcon';
 
+const MORPH_EASE = Easing.bezier(0.22, 0.9, 0.16, 1);
+const MORPH_WIDTH_MS = 520;
+const MORPH_RADIUS_MS = 440;
+const MORPH_TRANSFORM_MS = 540;
+const MORPH_WIDTH_CLOSED = 84;
+const MORPH_RADIUS = 42;
+const MORPH_SCALE_CLOSED = 0.667;
+const MORPH_SCALE_OPEN = 1;
+const MORPH_MAX_INSET = 24;
+
 export function PreviewToolsDemo() {
+  const { reduceMotion } = useReduceMotion();
   const [chrome, setChrome] = useState<Chrome>(INITIAL_CHROME);
+  const [openWidth, setOpenWidth] = useState(0);
   const [row, setRow] = useState<Frame | null>(null);
   const [locals, setLocals] = useState<Partial<Record<string, Frame>>>({});
   const [fieldBox, setFieldBox] = useState({ width: 0, height: 0 });
@@ -190,6 +205,25 @@ export function PreviewToolsDemo() {
   const showHover =
     chrome.open && chrome.hand === 'annotate' && hoverControl && hoverFrame && hoverId !== chrome.draftId;
 
+  const morphWidth = useSharedValue(MORPH_WIDTH_CLOSED);
+  const morphRadius = useSharedValue(MORPH_RADIUS);
+  const morphScale = useSharedValue(MORPH_SCALE_CLOSED);
+  const widthCap = fieldBox.width > MORPH_MAX_INSET ? fieldBox.width - MORPH_MAX_INSET : 0;
+  const openTarget = openWidth > 0 && widthCap > 0 ? Math.min(openWidth, widthCap) : openWidth;
+
+  useEffect(() => {
+    const widthTo = chrome.open && openTarget > 0 ? openTarget : MORPH_WIDTH_CLOSED;
+    morphWidth.value = timed(widthTo, MORPH_WIDTH_MS, MORPH_EASE, reduceMotion);
+    morphRadius.value = timed(MORPH_RADIUS, MORPH_RADIUS_MS, MORPH_EASE, reduceMotion);
+    morphScale.value = timed(chrome.open ? MORPH_SCALE_OPEN : MORPH_SCALE_CLOSED, MORPH_TRANSFORM_MS, MORPH_EASE, reduceMotion);
+  }, [chrome.open, morphRadius, morphScale, morphWidth, openTarget, reduceMotion]);
+
+  const morphMotion = useAnimatedStyle(() => ({
+    width: morphWidth.value,
+    borderRadius: morphRadius.value,
+    transform: [{ scale: morphScale.value }],
+  }));
+
   return (
     <Stage style={{ height: STAGE_HEIGHT }}>
       <View
@@ -286,88 +320,37 @@ export function PreviewToolsDemo() {
             </View>
           </View>
         ) : null}
-        <View style={[styles.morph, !chrome.open && styles.morphClosed, chrome.open && chrome.face === 'palette' && styles.morphPalette]}>
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.measure}
+        >
+          <View
+            onLayout={(event) => {
+              const next = event.nativeEvent.layout.width;
+              setOpenWidth((prev) => (Math.abs(prev - next) < 0.5 ? prev : next));
+            }}
+            style={[
+              styles.measureRow,
+              widthCap > 0 && { maxWidth: widthCap },
+              chrome.face === 'palette' && styles.morphPalette,
+            ]}
+          >
+            <ToolTray chrome={chrome} setChrome={setChrome} quiet />
+          </View>
+        </View>
+        <Animated.View
+          testID="preview-tools-morph"
+          style={[
+            styles.morph,
+            !chrome.open && styles.morphClosed,
+            chrome.open && chrome.face === 'palette' && styles.morphPalette,
+            morphMotion,
+          ]}
+        >
           {chrome.open ? (
-            <>
-              <View style={[styles.slots, chrome.face === 'palette' && styles.slotsCenter]}>
-                {chrome.face === 'palette'
-                  ? SWATCHES.map((color) => {
-                      const on = chrome.color === color;
-                      return (
-                        <Pressable
-                          key={color}
-                          accessibilityRole="button"
-                          accessibilityLabel={color}
-                          accessibilityState={{ selected: on }}
-                          testID={`preview-tools-swatch-${color.slice(1)}`}
-                          onPress={() => setChrome((current) => pickColor(current, color))}
-                          style={[styles.swatch, { backgroundColor: color }, on && styles.swatchOn]}
-                        >
-                          {on ? <SwatchTick color={color} /> : null}
-                        </Pressable>
-                      );
-                    })
-                  : INSTRUMENTS.map((item) => {
-                      const on = chrome.pen === item.id;
-                      const ink = item.id === 'highlighter' ? '#fff01f' : item.id === 'eraser' ? '#c9806f' : chrome.color;
-                      return (
-                        <Pressable
-                          key={item.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={item.label}
-                          accessibilityState={{ selected: on }}
-                          testID={`preview-tools-pen-${item.id}`}
-                          onPress={() => setChrome((current) => pickPen(current, item.id))}
-                          style={[styles.instrument, on && styles.instrumentOn]}
-                        >
-                          <ToolGlyph id={item.id} color={ink} />
-                        </Pressable>
-                      );
-                    })}
-              </View>
-              <View style={styles.rule} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Color"
-                accessibilityState={{ selected: chrome.face === 'palette' }}
-                testID="preview-tools-color"
-                onPress={() => setChrome(toggleFace)}
-                style={styles.wheel}
-              >
-                <View style={[styles.wheelInk, { backgroundColor: chrome.color }]} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Alignment"
-                accessibilityState={{ selected: chrome.guides }}
-                testID="preview-tools-guides"
-                onPress={() => setChrome(toggleGuides)}
-                style={styles.round}
-              >
-                <AlignIcon on={chrome.guides} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Annotate"
-                accessibilityState={{ selected: chrome.hand === 'annotate' }}
-                testID="preview-tools-annotate"
-                onPress={() => setChrome(toggleAnnotate)}
-                style={styles.round}
-              >
-                <NoteIcon on={chrome.hand === 'annotate'} />
-              </Pressable>
-              <View style={styles.rule} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ expanded: true }}
-                accessibilityLabel="Close tools"
-                testID="preview-tools-toggle"
-                onPress={() => setChrome(toggleOpen)}
-                style={styles.round}
-              >
-                <CollapseMark />
-              </Pressable>
-            </>
+            <ToolTray chrome={chrome} setChrome={setChrome} />
           ) : (
             <Pressable
               accessibilityRole="button"
@@ -380,9 +363,103 @@ export function PreviewToolsDemo() {
               <ToolGlyph id={held.id} color={held.id === 'highlighter' ? '#fff01f' : chrome.color} width={42} />
             </Pressable>
           )}
-        </View>
+        </Animated.View>
       </View>
     </Stage>
+  );
+}
+
+function ToolTray({
+  chrome,
+  setChrome,
+  quiet = false,
+}: {
+  chrome: Chrome;
+  setChrome: (update: (current: Chrome) => Chrome) => void;
+  quiet?: boolean;
+}) {
+  const tid = (value: string) => (quiet ? undefined : value);
+  return (
+    <>
+      <View style={[styles.slots, chrome.face === 'palette' && styles.slotsCenter]}>
+        {chrome.face === 'palette'
+          ? SWATCHES.map((color) => {
+              const on = chrome.color === color;
+              return (
+                <Pressable
+                  key={color}
+                  accessibilityRole="button"
+                  accessibilityLabel={color}
+                  accessibilityState={{ selected: on }}
+                  testID={tid(`preview-tools-swatch-${color.slice(1)}`)}
+                  onPress={quiet ? undefined : () => setChrome((current) => pickColor(current, color))}
+                  style={[styles.swatch, { backgroundColor: color }, on && styles.swatchOn]}
+                >
+                  {on ? <SwatchTick color={color} /> : null}
+                </Pressable>
+              );
+            })
+          : INSTRUMENTS.map((item) => {
+              const on = chrome.pen === item.id;
+              const ink = item.id === 'highlighter' ? '#fff01f' : item.id === 'eraser' ? '#c9806f' : chrome.color;
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                  accessibilityState={{ selected: on }}
+                  testID={tid(`preview-tools-pen-${item.id}`)}
+                  onPress={quiet ? undefined : () => setChrome((current) => pickPen(current, item.id))}
+                  style={[styles.instrument, on && styles.instrumentOn]}
+                >
+                  <ToolGlyph id={item.id} color={ink} />
+                </Pressable>
+              );
+            })}
+      </View>
+      <View style={styles.rule} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Color"
+        accessibilityState={{ selected: chrome.face === 'palette' }}
+        testID={tid('preview-tools-color')}
+        onPress={quiet ? undefined : () => setChrome(toggleFace)}
+        style={styles.wheel}
+      >
+        <View style={[styles.wheelInk, { backgroundColor: chrome.color }]} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Alignment"
+        accessibilityState={{ selected: chrome.guides }}
+        testID={tid('preview-tools-guides')}
+        onPress={quiet ? undefined : () => setChrome(toggleGuides)}
+        style={styles.round}
+      >
+        <AlignIcon on={chrome.guides} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Annotate"
+        accessibilityState={{ selected: chrome.hand === 'annotate' }}
+        testID={tid('preview-tools-annotate')}
+        onPress={quiet ? undefined : () => setChrome(toggleAnnotate)}
+        style={styles.round}
+      >
+        <NoteIcon on={chrome.hand === 'annotate'} />
+      </Pressable>
+      <View style={styles.rule} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: true }}
+        accessibilityLabel="Close tools"
+        testID={tid('preview-tools-toggle')}
+        onPress={quiet ? undefined : () => setChrome(toggleOpen)}
+        style={styles.round}
+      >
+        <CollapseMark />
+      </Pressable>
+    </>
   );
 }
 
@@ -523,9 +600,9 @@ const styles = StyleSheet.create({
     bottom: 18,
     alignSelf: 'center',
     height: 84,
-    maxWidth: '96%',
     flexDirection: 'row',
     alignItems: 'flex-end',
+    justifyContent: 'center',
     gap: 8,
     paddingLeft: 32,
     paddingRight: 32,
@@ -536,14 +613,28 @@ const styles = StyleSheet.create({
       'inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 0.5px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05), 0 5px 12px rgba(0,0,0,0.09), 0 9px 20px rgba(0,0,0,0.06)',
   },
   morphClosed: {
-    width: 84,
     height: 84,
     paddingLeft: 0,
     paddingRight: 0,
     gap: 0,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    transform: [{ scale: 0.667 }],
+    justifyContent: 'center',
+  },
+  measure: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    opacity: 0,
+    zIndex: -1,
+  },
+  measureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 8,
+    paddingLeft: 32,
+    paddingRight: 32,
+    height: 84,
   },
   morphPalette: { alignItems: 'center' },
   peekHit: { width: 84, height: 84, alignItems: 'center', paddingTop: 7, cursor: 'pointer' },

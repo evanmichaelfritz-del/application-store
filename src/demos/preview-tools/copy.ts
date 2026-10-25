@@ -180,6 +180,9 @@ export const PREVIEW_TOOLS_CSS = `.pt-field {
   gap: 8px;
   transform: translateX(-50%) scale(1);
 }
+@media (prefers-reduced-motion: reduce) {
+  .pt-morph { transition: none; }
+}
 .pt-peek {
   border: 0;
   background: none;

@@ -1146,6 +1146,7 @@ const LOCKS: Record<string, PromptLock> = {
     gotchas: [
       'Closing sets open false, face back to instruments, and clears the draft. Opening sets face to instruments.',
       '`.pt-morph` transitions width 520ms, border-radius 440ms, and transform 540ms, all cubic-bezier(0.22, 0.9, 0.16, 1).',
+      'Reduced motion sets the `.pt-morph` transition to none.',
       'Guides draw only when the pill is open and guides are on. Stroke is #9B5CFF and stroke-width is 1.',
       'Pencil is size 1 graphite at alpha 0.85. Pen is size 6 and thins with speed. Fineliner stays size 2. Marker is size 18. Highlighter is size 28, fill #fff01f, alpha 0.75. Brush is size 14 and tapers at the lift. Fountain is size 8 with nibContrast 0.85. Eraser is size 28 and destination-out.',
       'The stage is height 520px. Sample controls use height 32px and 26px. `.pt-round` is 36px. The stage background controls use #17181c.',
