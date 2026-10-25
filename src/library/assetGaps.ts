@@ -107,7 +107,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   ],
   'modal-open-close': [],
   'notification-badge': [
-    'Phone widths are a known gap. On the asset page the stage shrinks to the bell and clips the Animate button. The card stage keeps that button inside the frame.',
+    'Phone widths are a known gap. At narrow widths the stage shrinks to the bell and clips the Animate button.',
   ],
   'number-pop-in': [
     'Generic template prompt (4523 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
@@ -127,7 +127,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
   ],
   'success-check': [
-    'Phone widths are a known gap. On the asset page the stage shrinks to the badge and clips the Animate button. The card stage keeps that button inside the frame.',
+    'Phone widths are a known gap. At narrow widths the stage shrinks to the badge and clips the Animate button.',
   ],
   'tabs-sliding': [
     'Generic template prompt (4264 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',

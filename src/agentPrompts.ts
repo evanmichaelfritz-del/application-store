@@ -94,7 +94,7 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'notification-badge': {
     motion:
-      'Animate toggles the badge. Horizontal position, vertical position, and scale share one spring: mass 0.8, damping 12, stiffness 280. Opacity is a separate 180ms timing. The spring runs on Reanimated 4.5.1. GentleSpringConfig supplies mass 4 only where a spring config omits mass. This spring sets mass 0.8, so that default does not replace it.',
+      'Animate toggles the badge. Horizontal position, vertical position, and scale share one spring: mass 0.8, damping 12, stiffness 280. Opacity is a separate 180ms timing. The linear() is sampled from that spring.',
     content:
       'Count `1`. The bell is not a button. The Animate button toggles the badge. The badge starts off, at the lower-left of the bell, and nothing plays when the document loads.',
     geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The bell is centered.
@@ -160,7 +160,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     ],
     gotchas: [
       'The bell does not toggle the badge. Only Animate does. The count is the string `1`.',
-      'Spring mass is 0.8, damping 12, stiffness 280. Reanimated 4.5.1 merges that over GentleSpringConfig. Mass 4 from GentleSpringConfig applies only when mass is omitted. Here mass is 0.8.',
+      'Spring mass is 0.8, damping 12, stiffness 280. The linear() is sampled from that spring.',
       'The spring progress peaks near 1.25, about 25% past the target, near 200ms. Scale peaks near 1.15. x peaks near 2px to the right of the rest point and y peaks above it. Opacity does not overshoot.',
       'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
       'A second click before the spring has rested retargets from the current value. The Copy restarts the sampled curve from the pose it encodes, which matches a toggle that starts at rest.',
@@ -168,7 +168,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
     knownGaps:
-      'Phone widths are a known gap. On the asset page the stage shrinks to the bell and clips the Animate button. The card stage keeps that button inside the frame.',
+      'Phone widths are a known gap. At narrow widths the stage shrinks to the bell and clips the Animate button.',
     checklist: [
       'Before Animate the badge is translate -8.2px 12.4px, scale 0.4, opacity 0. The count is `1` on #e23d2d.',
       'The bell is 40px by 40px and the glyph is 28px, stroke #0d0d0d, stroke-width 1.7px. Clicking the bell does nothing.',
@@ -526,7 +526,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
   },
   'success-check': {
     motion:
-      'Animate toggles the check. One spring, mass 0.8, damping 12, stiffness 280, drives opacity, translateY, rotate, and scale. The dash follows that same spring after 80ms on the way in, and hides with a 120ms timing on the way out. The spring runs on Reanimated 4.5.1. GentleSpringConfig supplies mass 4 only where a spring config omits mass. This spring sets mass 0.8, so that default does not replace it.',
+      'Animate toggles the check. One spring, mass 0.8, damping 12, stiffness 280, drives opacity, translateY, rotate, and scale. The dash follows that same spring after 80ms on the way in, and hides with a 120ms timing on the way out. The linear() is sampled from that spring.',
     content:
       'A green disc and a white check. The piece starts off, so the disc is not visible, and nothing plays when the document loads. The Animate button toggles it on, then off. The label stays Animate.',
     geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The badge is centered.
@@ -614,7 +614,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     ],
     gotchas: [
       'The label is Animate. It toggles. It does not replay a one-way entrance, and the piece does not play when the document loads.',
-      'Spring mass is 0.8, damping 12, stiffness 280. Reanimated 4.5.1 merges that over GentleSpringConfig. Mass 4 from GentleSpringConfig applies only when mass is omitted. Here mass is 0.8.',
+      'Spring mass is 0.8, damping 12, stiffness 280. The linear() is sampled from that spring.',
       'On the way in, t peaks near 1.25. translateY peaks near 7px above the rest line, rotate peaks near 20deg past 0, and scale peaks near 1.035. Opacity clamps at 1 during that overshoot, then shows the later dip under 1. The dash uses the same overshoot, so the offset goes negative before it settles.',
       'On the way out the dash does not spring. It is a 120ms cubic-bezier(0.22, 1, 0.36, 1) back to offset 28px.',
       'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
@@ -622,7 +622,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
     knownGaps:
-      'Phone widths are a known gap. On the asset page the stage shrinks to the badge and clips the Animate button. The card stage keeps that button inside the frame.',
+      'Phone widths are a known gap. At narrow widths the stage shrinks to the badge and clips the Animate button.',
     checklist: [
       'Before Animate the disc is not visible. The off pose is opacity 0, translateY 28px, rotate 80deg, scale 0.86, dash offset 28px.',
       'Animate toggles on, then off. The label is Animate.',
