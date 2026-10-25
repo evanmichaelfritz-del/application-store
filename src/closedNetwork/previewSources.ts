@@ -623,86 +623,57 @@ canvas { display: block; width: 168px; height: 168px; }`,
     snippet: false,
   },
   'confetti-burst': {
-    html: `<div class="burst" id="burst">
-  <button class="celebrate" type="button" id="celebrate">Celebrate</button>
+    html: `<div class="stage">
+  <div class="burst" id="burst">
+    <button class="celebrate" type="button" id="celebrate">Celebrate</button>
+  </div>
 </div>`,
-    extraCss: `.burst { position: relative; width: 280px; height: 220px; display: grid; place-items: center; }
-.t-confetti-piece { left: 0; top: 0; z-index: 1; }
+    extraCss: `.stage {
+  width: 289px; height: 200px; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px;
+  background: #f9f9f9; overflow: hidden; display: grid; place-items: center;
+}
+.burst { position: relative; width: 100%; height: 220px; display: grid; place-items: center; }
 .celebrate {
   position: relative; z-index: 2; appearance: none; height: 36px; padding: 0 14px;
-  border: 0; border-radius: 10px; background: #fff; color: #0d0d0d; cursor: pointer;
+  border: 0; border-radius: 10px; background: #ffffff; color: #0d0d0d; cursor: pointer;
   font: 500 13px/1 Inter, system-ui, sans-serif;
   box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
 }`,
     script: `(function () {
   var root = document.getElementById('burst');
   var btn = document.getElementById('celebrate');
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   var colors = ['#ff5a5f', '#f5c518', '#2ecc71', '#4da3ff', '#b07cff', '#ff8a3d'];
-  var pieces = [];
-  var raf = 0;
-  function cssNum(name, fallback) {
-    var n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
-    return Number.isFinite(n) ? n : fallback;
+  var seed = 0;
+  var last = 0;
+  function debounceMs() {
+    var n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--confetti-debounce'));
+    return Number.isFinite(n) ? n : 80;
   }
-  function launch() {
-    cancelAnimationFrame(raf);
-    pieces.forEach(function (p) { p.el.remove(); });
-    pieces = [];
-    var gravity = cssNum('--confetti-gravity', 1800);
-    var bounce = cssNum('--confetti-bounce', 0.35);
-    var spread = cssNum('--confetti-spread', 46) * Math.PI / 180;
-    var host = root.getBoundingClientRect();
-    var rect = btn.getBoundingClientRect();
-    var originX = rect.left - host.left + rect.width / 2;
-    var floor = rect.top - host.top - 8;
+  function spawn() {
+    var now = Date.now();
+    if (now - last < debounceMs()) return;
+    last = now;
+    seed += 1;
+    var old = root.querySelectorAll('.t-confetti-piece');
+    var k;
+    for (k = 0; k < old.length; k++) old[k].remove();
+    var reduce = reduceQuery.matches;
     var i;
     for (i = 0; i < 18; i++) {
       var el = document.createElement('span');
       el.className = 't-confetti-piece';
       el.style.background = colors[i % colors.length];
+      el.style.setProperty('--x', String(((i % 9) - 4) * 9 + (i % 2) * 3));
+      el.style.setProperty('--peak', String(46 + (i % 6) * 8));
+      el.style.setProperty('--rot', String(((i * 37 + seed * 11) % 200) - 100));
+      el.style.setProperty('--slot', String(i % 6));
+      if (reduce) el.style.animationDuration = '0ms';
       root.appendChild(el);
-      var angle = -Math.PI / 2 + (i / 17 - 0.5) * spread;
-      var speed = 380 + (i % 5) * 50;
-      pieces.push({
-        el: el,
-        x: originX,
-        y: floor,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        rot: (i * 37) % 180
-      });
+      el.classList.add('is-on');
     }
-    if (reduce) {
-      pieces.forEach(function (p) {
-        p.el.style.transform = 'translate(' + p.x + 'px,' + floor + 'px)';
-      });
-      return;
-    }
-    var last = performance.now();
-    function tick(now) {
-      var dt = Math.min(0.032, (now - last) / 1000);
-      last = now;
-      var alive = false;
-      pieces.forEach(function (p) {
-        p.vy += gravity * dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        if (p.y > floor) {
-          p.y = floor;
-          p.vy *= -bounce;
-          p.vx *= 0.72;
-          if (Math.abs(p.vy) < 50) p.vy = 0;
-        }
-        p.rot += 160 * dt;
-        p.el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px) rotate(' + p.rot + 'deg)';
-        if (Math.abs(p.vy) > 12 || p.y < floor - 1) alive = true;
-      });
-      if (alive) raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
   }
-  btn.addEventListener('click', launch);
+  btn.addEventListener('click', spawn);
 })();`,
   },
   'gooey-plus-menu': {

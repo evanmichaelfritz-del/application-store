@@ -223,14 +223,38 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'confetti-burst': {
     motion:
-      'Celebrate spawns 18 `.t-confetti-piece` bits, each 6px by 8px. The loop adds `--confetti-gravity` (1800) to vy, steps x and y, and when y passes the floor sets y to the floor and multiplies vy by `--confetti-bounce` (0.35). The floor is `rect.top - host.top - 8`. Spread is `--confetti-spread: 46deg`.',
-    content: 'Button label `Celebrate`. 18 bits. The floor is `rect.top - host.top - 8`.',
+      'Celebrate spawns 18 bits. Horizontal travel is a spring of mass 4, damping 20, and stiffness 280. Vertical travel rises for 180ms, then a spring of mass 4, damping 18, and stiffness 300, clamped so it does not pass below the rest line. Spin is 720ms ease-out quad.',
+    content:
+      'Button label `Celebrate`. No bits until that click. Then 18 bits. The first accepted click uses seed 1. A second accepted click replaces them and increases the seed by 1.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden.
+- Scene: height 220px, the bits and the button centered in it.
+- Button: height 36px, padding 0 14px, border-radius 10px, background #ffffff, colour #0d0d0d, 13px, weight 500. Shadow \`0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05)\`.
+- Bit: width 8px, height 10px, border-radius 1.5px. Rest top 83px. Horizontal origin \`calc(50% - 4px)\`. Colours #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, #ff8a3d, repeating in that order.
+- Placement, for index i and seed s: x = ((i % 9) - 4) * 9 + (i % 2) * 3. Peak = 46 + (i % 6) * 8. Delay slot = i % 6. Rotation = ((i * 37 + s * 11) % 200) - 100.`,
+    timing: `Three clocks start together after the bit's delay.
+
+- Horizontal: spring, mass 4, damping 20, stiffness 280, from 0 to that bit's x. The Copy plays the sampled curve as linear() over 2080ms. The curve overshoots, then settles on the target.
+- Vertical: 180ms cubic-bezier(0.22, 1, 0.36, 1) from 0 to the negative peak, then a spring, mass 4, damping 18, stiffness 300, back to 0. Values below the rest line are clamped, so the downward overshoot stays hidden and the later upward bounce still shows. The Copy plays that clamped curve as linear() over 2592ms.
+- Spin: 720ms ease-out quad from 0 to the target angle, sampled as linear().
+- Delay: (index mod 6) * 18ms. Indexes that share a remainder start together.
+- A Celebrate click closer than 80ms to the previous accepted click does not spawn.`,
+    reducedMotion:
+      'Reduced motion skips the curves. The 18 bits appear at their spread positions: x at the target, y on the rest line, rotation at the target. The duration is 0ms.',
     states: [
+      {
+        name: 'rest',
+        trigger: 'before Celebrate',
+        from: '',
+        to: 'no bits',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
       {
         name: 'piece',
         trigger: '',
         from: '',
-        to: 'each bit is width 6px, height 8px, border-radius 1px, colours #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, #ff8a3d',
+        to: 'width 8px, height 10px, border-radius 1.5px, colours #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, #ff8a3d',
         duration: '',
         easing: '',
         delay: '',
@@ -238,34 +262,58 @@ const LOCKS: Record<string, PromptLock> = {
       {
         name: 'burst',
         trigger: 'Celebrate',
-        from: 'x at the button centre, y at rect.top - host.top - 8',
-        to: 'y held on that floor after a bounce of 0.35, vx multiplied by 0.72',
-        duration: 'requestAnimationFrame, gravity `--confetti-gravity` 1800',
-        easing: '',
-        delay: '',
+        from: 'x 0, y 0, rotation 0',
+        to: 'x at the spread target, y on the rest line, rotation at the target',
+        duration: '2080ms horizontal, 2592ms vertical, 720ms spin',
+        easing: 'sampled linear()',
+        delay: '18ms times (index mod 6)',
       },
       {
         name: 'reduced',
         trigger: 'prefers-reduced-motion',
-        from: 'the spawned bits',
-        to: '`.t-confetti-piece` is display none, so the pieces stay hidden',
+        from: 'the click',
+        to: 'the 18 bits at their spread positions',
+        duration: '0ms',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'debounce',
+        trigger: 'a second Celebrate inside 80ms',
+        from: 'the current burst',
+        to: 'the same bits, seed unchanged',
+        duration: '80ms',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'hover',
+        trigger: 'pointer over Celebrate',
+        from: 'the button paint',
+        to: 'the same paint',
         duration: '',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The host is width 280px and height 220px. Celebrate is centered, height 36px, padding 0 14px, border-radius 10px, background #fff, and color #0d0d0d. A burst starts on that click, not when the document loads.',
-      'The floor expression is `rect.top - host.top - 8`. That 8 is a raw subtraction, not an 8px length.',
-      'Angle is `-Math.PI / 2 + (i / 17 - 0.5) * spread`. Speed is `380 + (i % 5) * 50`. Rotation starts at `(i * 37) % 180` and adds `160 * dt`.',
-      'Reduced motion writes the floor translate and returns. The stylesheet also sets `.t-confetti-piece` to display none.',
+      'Nothing spawns when the document loads. The first accepted click uses seed 1. Each later accepted click removes the bits and spawns 18 new ones with the seed increased by 1.',
+      'x = ((i % 9) - 4) * 9 + (i % 2) * 3. Peak = 46 + (i % 6) * 8. Rotation = ((i * 37 + seed * 11) % 200) - 100.',
+      'The vertical value is clamped with min(lift, 0). The spring still travels past 0, and that part does not draw. The bounce back above the rest line does draw.',
+      'The bits are pointer-events none, so Celebrate stays clickable while they overlap it.',
+      'Horizontal spring mass is 4, damping 20, stiffness 280. Snap spring mass is 4, damping 18, stiffness 300.',
     ],
     setup:
-      '`.burst` is 280px by 220px. Each piece is 6px by 8px with border-radius 1px. `--confetti-gravity` is 1800, `--confetti-bounce` is 0.35, and `--confetti-spread` is 46deg. The floor is `rect.top - host.top - 8`.',
+      'Mount the HTML, the CSS, and the script in one document. The script reads `--confetti-debounce` (80ms) and prefers-reduced-motion, then spawns on Celebrate. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'A burst spawns 18 bits coloured #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, and #ff8a3d.',
-      'Each bit is 6px by 8px. Gravity is 1800 and bounce is 0.35.',
-      'The rest Y is `rect.top - host.top - 8` on every frame that crosses the floor.',
+      'Before Celebrate there are no bits. The click spawns 18, coloured #ff5a5f, #f5c518, #2ecc71, #4da3ff, #b07cff, and #ff8a3d.',
+      'Each bit is 8px by 10px, border-radius 1.5px, top 83px, left calc(50% - 4px).',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. The scene is 220px tall. The button is 36px tall, radius 10px, #ffffff, label 13px #0d0d0d.',
+      'Horizontal motion is the mass 4, damping 20, stiffness 280 spring, played over 2080ms. Vertical motion is 180ms cubic-bezier(0.22, 1, 0.36, 1) then the mass 4, damping 18, stiffness 300 spring, played over 2592ms, clamped at the rest line. Spin is 720ms.',
+      'Delay is 18ms times (index mod 6). A second click inside 80ms does not spawn.',
+      'Reduced motion shows the bits at their spread positions and the duration is 0ms.',
+      'Hover does not restyle Celebrate.',
     ],
   },
   'modal-open-close': {
@@ -1445,7 +1493,7 @@ const COPY_PROMPT_IDS = new Set([
 ]);
 
 /** Generic cards on the canonical section order. Grows one batch at a time. */
-export const CANONICAL_IDS = new Set<string>(['modal-open-close']);
+export const CANONICAL_IDS = new Set<string>(['modal-open-close', 'confetti-burst']);
 
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();
