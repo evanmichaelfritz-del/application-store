@@ -138,14 +138,15 @@ const SOURCES: Record<string, Source> = {
   },
   'notification-badge': {
     html: `<button class="bell" type="button" id="bell" aria-label="Notifications">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.7">
-    <path d="M6 9a6 6 0 1 1 12 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 0 0 4 0"/>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="1.7">
+    <path d="M6 9a6 6 0 1 1 12 0c0 3.2.8 4.8 1.6 6H4.4C5.2 13.8 6 12.2 6 9Z"/>
+    <path d="M10 18a2 2 0 0 0 4 0" stroke-linecap="round"/>
   </svg>
   <span class="t-badge" id="badge">1</span>
 </button>`,
     extraCss: `.bell {
-  position: relative; width: 48px; height: 48px; border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.08); background: #fff; cursor: pointer;
+  appearance: none; position: relative; width: 40px; height: 40px; padding: 0;
+  border: 0; background: transparent; cursor: pointer; display: grid; place-items: center;
 }
 .t-badge {
   position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
@@ -266,61 +267,82 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'page-side-by-side': {
-    html: `<div class="col">
-  <div class="pager"><div class="t-page" id="page"></div></div>
-  <button class="trigger" type="button" id="next">Next page</button>
-</div>`,
+    html: `<button class="pager" type="button" id="pager">
+  <div class="t-page" id="list">
+    <div class="row">
+      <span class="avatar">B</span>
+      <span class="names">
+        <span class="name">BNB</span>
+        <span class="sub">BNB</span>
+      </span>
+      <span class="price">$66.11</span>
+    </div>
+  </div>
+  <div class="t-page is-enter" id="detail">
+    <span class="amount">$10</span>
+    <span class="avail">$66.11 available</span>
+  </div>
+</button>`,
     extraCss: `.pager {
-  width: 220px; height: 120px; background: #fff; border-radius: 14px;
-  display: grid; place-items: center; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  appearance: none; position: relative; width: 210px; height: 88px; padding: 0;
+  border: 0; border-radius: 14px; background: #fff; overflow: hidden; cursor: pointer;
+  text-align: left; color: #0d0d0d; font: 500 14px/1 Inter, system-ui, sans-serif;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.t-page { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 18px; font-weight: 600; }
-.t-page span { font-size: 13px; font-weight: 500; color: #6c6c6c; }`,
+.t-page {
+  position: absolute; inset: 0; padding: 16px;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+}
+.row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 16px; background: #f3ba2f; color: #1a1200;
+  display: grid; place-items: center; font-size: 14px; font-weight: 600; flex: none;
+}
+.names { display: flex; flex-direction: column; }
+.name { font-size: 14px; font-weight: 500; line-height: 18px; color: #0d0d0d; }
+.sub { font-size: 12px; font-weight: 400; line-height: 16px; color: #767676; }
+.price { margin-left: auto; font-size: 14px; font-weight: 500; color: #0d0d0d; }
+.amount { font-size: 28px; font-weight: 600; line-height: 32px; color: #0d0d0d; }
+.avail { font-size: 12px; font-weight: 400; line-height: 16px; color: #767676; }`,
     script: `(function () {
-  var page = document.getElementById('page');
-  var pages = [
-    ['BNB', '$66.11'],
-    ['$10', '$66.11 available']
-  ];
-  var i = 0;
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function render() {
-    page.innerHTML = '<strong>' + pages[i][0] + '</strong><span>' + pages[i][1] + '</span>';
-  }
-  render();
-  document.getElementById('next').addEventListener('click', function () {
-    page.classList.add('is-exit');
-    setTimeout(function () {
-      i = (i + 1) % pages.length;
-      page.classList.remove('is-exit');
-      page.classList.add('is-enter');
-      render();
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () { page.classList.remove('is-enter'); });
-      });
-    }, reduce ? 0 : 300);
+  var list = document.getElementById('list');
+  var detail = document.getElementById('detail');
+  var on = false;
+  document.getElementById('pager').addEventListener('click', function () {
+    on = !on;
+    list.classList.toggle('is-exit', on);
+    detail.classList.toggle('is-enter', !on);
   });
 })();`,
   },
   'icon-swap': {
-    html: `<div class="col">
-  <div class="icon-slot" id="slot">
-    <span class="t-icon" id="icon-a" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </span>
-    <span class="t-icon is-out" id="icon-b" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17181c" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </span>
-  </div>
-  <button class="trigger" type="button" id="swap">Swap icon</button>
-</div>`,
-    extraCss: `.icon-slot { position: relative; width: 48px; height: 48px; }
-.t-icon { position: absolute; inset: 0; display: grid; place-items: center; }`,
+    html: `<button class="icon-slot" type="button" id="slot" aria-label="Swap icon">
+  <span class="t-icon" id="icon-a" aria-hidden="true">
+    <span class="bars"><i></i><i></i><i></i></span>
+  </span>
+  <span class="t-icon is-out" id="icon-b" aria-hidden="true">
+    <span class="x"></span>
+  </span>
+</button>`,
+    extraCss: `.icon-slot {
+  appearance: none; position: relative; width: 48px; height: 48px; padding: 0; border: 0;
+  border-radius: 12px; background: #fff; cursor: pointer;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.t-icon { position: absolute; left: 14px; top: 16px; width: 20px; height: 16px; }
+.bars { display: flex; flex-direction: column; justify-content: space-between; width: 20px; height: 16px; }
+.bars i { display: block; width: 20px; height: 2px; margin: 0; border-radius: 1px; background: #0d0d0d; }
+.x { position: relative; width: 20px; height: 16px; }
+.x::before, .x::after {
+  content: ""; position: absolute; left: 0; top: 7px; width: 20px; height: 2px;
+  border-radius: 1px; background: #0d0d0d;
+}
+.x::before { transform: rotate(45deg); }
+.x::after { transform: rotate(-45deg); }`,
     script: `(function () {
   var a = document.getElementById('icon-a');
   var b = document.getElementById('icon-b');
-  document.getElementById('swap').addEventListener('click', function () {
+  document.getElementById('slot').addEventListener('click', function () {
     a.classList.toggle('is-out');
     b.classList.toggle('is-out');
   });
@@ -522,11 +544,16 @@ canvas { display: block; width: 168px; height: 168px; }`,
   },
   'confetti-burst': {
     html: `<div class="burst" id="burst">
-  <button class="trigger celebrate" type="button" id="celebrate">Celebrate</button>
+  <button class="celebrate" type="button" id="celebrate">Celebrate</button>
 </div>`,
-    extraCss: `.burst { position: relative; width: 280px; height: 220px; }
+    extraCss: `.burst { position: relative; width: 280px; height: 220px; display: grid; place-items: center; }
 .t-confetti-piece { left: 0; top: 0; z-index: 1; }
-.celebrate { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2; }`,
+.celebrate {
+  position: relative; z-index: 2; appearance: none; height: 36px; padding: 0 14px;
+  border: 0; border-radius: 10px; background: #fff; color: #0d0d0d; cursor: pointer;
+  font: 500 13px/1 Inter, system-ui, sans-serif;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}`,
     script: `(function () {
   var root = document.getElementById('burst');
   var btn = document.getElementById('celebrate');
@@ -596,7 +623,6 @@ canvas { display: block; width: 168px; height: 168px; }`,
     raf = requestAnimationFrame(tick);
   }
   btn.addEventListener('click', launch);
-  launch();
 })();`,
   },
   'gooey-plus-menu': {
@@ -652,7 +678,8 @@ canvas { display: block; width: 168px; height: 168px; }`,
     extraCss: `.t-stack { position: relative; width: 180px; height: 120px; cursor: pointer; }
 .t-stack-card {
   position: absolute; left: 35px; top: 23px; width: 110px; height: 74px;
-  border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  border-radius: 12px; background: #fff; color: #0d0d0d;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
   display: grid; place-items: center; font-size: 13px; font-weight: 500;
 }`,
     script: `(function () {
