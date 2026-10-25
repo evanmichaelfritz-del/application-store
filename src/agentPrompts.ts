@@ -860,39 +860,67 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'input-clear-dissolve': {
     motion:
-      '`.t-word.is-out` is `translateY(calc(var(--clear-out-fly) * -1))`, opacity 0, and `blur(var(--clear-blur))`. `--clear-out-fly` is 12px and `--clear-blur` is 2px. The transition is `--clear-out-dur: 250ms` with `--clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Clear sets `transitionDelay` to `(i * 45) + \'ms\'`. Restore sets that delay to `0ms` and removes `.is-out`.',
-    content: '`search` `recent` `files`. The button is `×` while the words are showing and `+` after they clear.',
+      'Clear and restore are linear. Clear travels translateY 0 to -25px and opacity 1 to 0 over 250ms. Restore travels translateY 25px to 0 and opacity 0 to 1 over 250ms. Delay is 45ms times the index. No blur. The words do not move sideways.',
+    content:
+      '`search`, `recent`, `files`. Cleared, the field reads `Search`. The control shows `×` while the words are showing and `+` when they are cleared. The entrance plays when the document loads.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The field is centered.
+- Field: width 230px, height 40px, border-radius 12px, background #fff, border 1px solid rgba(0, 0, 0, 0.08), padding 0 12px.
+- Row: flex 1, gap 4px, overflow hidden. Exiting words leave the row.
+- Word: 14px, line-height 17px, weight 400, colour #0d0d0d.
+- Placeholder: 14px, line-height 17px, weight 400, colour #8f8f8f. The string is Search.
+- Control: 20px by 20px. It is in the tab order. It has no role and no accessible name. The glyph is 18px, line-height 20px, colour #6c6c6c, on the system stack.`,
+    timing: `Clear and restore are linear over 250ms. There is no blur, and the words do not move sideways.
+
+- Clear: translateY from 0 to -25px, opacity from 1 to 0.
+- Restore: translateY from 25px to 0, opacity from 0 to 1.
+- Word n waits n times 45ms. The first word waits 0ms.
+- Reduced motion swaps with no travel. The duration is 0ms.`,
+    reducedMotion:
+      'Reduced motion skips both fades. Clear shows Search and + at once. Restore shows the three words and × at once. The duration is 0ms.',
     states: [
       {
         name: 'clear',
-        trigger: 'the button while the words are showing',
-        from: 'opacity 1, translateY 0, blur 0',
-        to: 'translateY(calc(var(--clear-out-fly) * -1)), --clear-out-fly 12px, opacity 0, blur(2px), class `is-out`',
-        duration: '250ms (`--clear-out-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--clear-out-ease`)',
-        delay: '`(i * 45) + \'ms\'`',
+        trigger: 'a click or Enter on the control while the words are showing',
+        from: 'translateY 0, opacity 1',
+        to: 'translateY -25px, opacity 0',
+        duration: '250ms',
+        easing: 'linear',
+        delay: '45ms times the index',
       },
       {
         name: 'restore',
-        trigger: 'the button while the words are cleared',
-        from: 'class `is-out`',
-        to: '`.is-out` removed, words `search` `recent` `files`',
-        duration: '250ms (`--clear-out-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: '0ms',
+        trigger: 'a click or Enter on the control while the field is cleared',
+        from: 'translateY 25px, opacity 0',
+        to: 'translateY 0, opacity 1',
+        duration: '250ms',
+        easing: 'linear',
+        delay: '45ms times the index',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click or Enter',
+        to: 'the cleared field or the three words, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'The delay is the number `i * 45` joined to the string `ms`.',
-      'The field is width 230px, height 40px, border-radius 12px. The button is 22px by 22px.',
-      'Reduced motion sets the word transition to none.',
+      'The control is in the tab order. It has no role and no accessible name. Enter toggles it. Space does not.',
+      'Search appears in the first slot at once, while the words are still travelling up. Each exiting word keeps the left it had. The row clips the 25px travel.',
+      'A click during a fade drops the words on screen and starts the other fade. The exit and the entrance do not play on the same word. The original can carry an entrance into an exit on that same word, so a click during the entrance does not match.',
+      'The glyph is × or +, 18px, line-height 20px, colour #6c6c6c. The control is 20px wide.',
     ],
     setup:
-      'The words are `search`, `recent`, and `files`. The button starts as `×`. Clear adds `.is-out` with delay `(i * 45) + \'ms\'` and switches the label to `+`. The next click sets delay `0ms`, removes `.is-out`, and restores `×`.',
+      'Mount the HTML, the CSS, and the script in one document. The script writes the words, reads prefers-reduced-motion, and toggles on click and Enter. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Clearing sets `.is-out`: translateY of `--clear-out-fly` 12px upward, opacity 0, blur 2px, over 250ms.',
-      'Each word delay is `(i * 45) + \'ms\'`. Restore uses `0ms`.',
-      'The button reads `×` while the words are showing and `+` after they clear.',
+      'The words are search, recent, and files. Cleared, the field reads Search. The glyph is ×, then +.',
+      'Clear travels to translateY -25px and opacity 0. Restore travels from translateY 25px to 0. Both are 250ms linear, with no blur.',
+      'Word n waits n times 45ms. The first word waits 0ms. The words do not move sideways.',
+      'The field is 230px by 40px, radius 12px, background #fff. The control is 20px by 20px. The stage is 289px by 200px, radius 14px, background #f9f9f9.',
+      'Enter toggles. Space does not. Reduced motion swaps at once and the duration is 0ms.',
     ],
   },
   'skeleton-reveal': {
@@ -934,65 +962,141 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'texts-reveal': {
     motion:
-      'Each `.t-line` runs `t-rise` for `--stagger-dur: 280ms` with `--stagger-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `translateY(var(--stagger-distance))`, opacity 0, `blur(var(--stagger-blur))`. `--stagger-distance` is 12px and `--stagger-blur` is 3px. The second line waits `--stagger-stagger: 50ms`. Replay assigns `innerHTML` to itself so the animation restarts.',
-    content: '`Pull request opened` / `Review requested from 3 teammates`.',
+      'Both lines rise linearly over 300ms, from translateY 25px and opacity 0 to rest and opacity 1. The subtitle waits 50ms. There is no blur. Animate removes the lines and mounts them again.',
+    content:
+      '`Pull request opened` and `Review requested from 3 teammates`. The label is Animate. The lines play when the document loads, and Animate mounts them again.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The column is centered.
+- Column: width 230px.
+- Title: 16px, line-height 20px, weight 500, colour #0d0d0d, margin 0 0 4px.
+- Subtitle: 13px, line-height 16px, weight 400, colour #767676, margin 0.
+- Entrance: translateY 25px, opacity 0. There is no blur.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing: `Each line runs one linear rise of 300ms. translateY goes from 25px to 0 and opacity goes from 0 to 1, together. There is no blur and no overshoot.
+
+- The title starts at once.
+- The subtitle waits 50ms and holds translateY 25px, opacity 0, through that delay.
+- Reduced motion shows the settled lines. The duration is 0ms.`,
+    reducedMotion:
+      'Reduced motion skips the rise. Both lines are at rest and opaque, and Animate still mounts them again. The duration is 0ms.',
     states: [
       {
         name: 'enter',
-        trigger: 'mount and Replay, which rewrites `innerHTML`',
-        from: 'translateY(12px), opacity 0, blur(3px)',
-        to: 'transform none, opacity 1, filter none',
-        duration: '280ms (`--stagger-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--stagger-ease`)',
-        delay: 'the second `.t-line` waits 50ms (`--stagger-stagger`)',
+        trigger: 'the document loads, and each Animate, which mounts the lines again',
+        from: 'translateY 25px, opacity 0',
+        to: 'translateY 0, opacity 1',
+        duration: '300ms',
+        easing: 'linear',
+        delay: '50ms on the subtitle',
       },
-    ],
-    gotchas: [
-      'The title is font-size 18px. The second line is font-size 14px, font-weight 500, colour #6c6c6c.',
-      'Reduced motion sets the line animation to none.',
-    ],
-    setup:
-      'The lines are `Pull request opened` and `Review requested from 3 teammates`. `@keyframes t-rise` uses `--stagger-distance: 12px`, `--stagger-blur: 3px`, `--stagger-dur: 280ms`, and `--stagger-stagger: 50ms` on the second line.',
-    checklist: [
-      'Line one enters immediately and line two waits 50ms.',
-      'The rise is 12px with blur 3px over 280ms and cubic-bezier(0.22, 1, 0.36, 1).',
-      'The strings are `Pull request opened` and `Review requested from 3 teammates`.',
-    ],
-  },
-  'tabs-sliding': {
-    motion:
-      '`.t-tabs-pill` transitions transform and width over `--tabs-dur: 250ms` with `--tabs-ease: cubic-bezier(0.22, 1, 0.36, 1)`. It starts at width 86px and `translateX(3px)`. A tab click sets `width` to `offsetWidth + \'px\'` and `transform` to `translateX(offsetLeft + \'px\')`. The bar background is `--tabs-bar-bg: #f1f1f1`. The pill background is `--tabs-pill-bg: #ffffff`.',
-    content: 'Labels `Overview`, `Activity`, `Settings`.',
-    states: [
       {
-        name: 'rest',
-        trigger: 'the stylesheet before the script measures',
-        from: '',
-        to: 'width 86px, translateX(3px), background #ffffff on a bar of #f1f1f1',
+        name: 'hover',
+        trigger: 'pointer over Animate',
+        from: 'background rgba(243, 243, 243, 0.94), border rgba(0, 0, 0, 0.08)',
+        to: 'background #d9d9e2, border rgba(0, 0, 0, 0.35)',
         duration: '',
         easing: '',
         delay: '',
       },
       {
-        name: 'selected',
-        trigger: 'a click on Overview, Activity, or Settings, and the initial select(0)',
-        from: 'the previous width and translateX',
-        to: 'width from offsetWidth, translateX from offsetLeft',
-        duration: '250ms (`--tabs-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        name: 'pressed',
+        trigger: 'pointer down on Animate',
+        from: 'the hover paint',
+        to: 'background #b7b7c2, border rgba(0, 0, 0, 0.5)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the entrance pose',
+        to: 'translateY 0, opacity 1, with no travel',
+        duration: '0ms',
+        easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The bar is border-radius 999px with padding 3px. The pill is top 3px, bottom 3px, border-radius 999px. Each button is height 28px and padding 0 14px, colour #17181c.',
-      'Reduced motion sets the pill transition to none.',
+      'The label is Animate, and that is the accessible name. It is a button. Enter and Space both activate it.',
+      'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
+      'Animate removes the lines and mounts them again, so the rise starts over from translateY 25px and opacity 0. The old lines do not fade. The original removes them the same way.',
+      'A second click during the rise starts a new rise. It does not continue the lines that were on screen.',
     ],
     setup:
-      'The pill starts at width 86px and translateX(3px). select(i) writes `b.offsetWidth + \'px\'` and `translateX(\' + b.offsetLeft + \'px\')`, and sets `aria-selected`. `--tabs-dur` is 250ms.',
+      'Mount the HTML, the CSS, and the script in one document. The script mounts the two lines again on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The pill starts at width 86px and translateX(3px).',
-      'A tab click sets width from offsetWidth and translateX from offsetLeft over 250ms with cubic-bezier(0.22, 1, 0.36, 1).',
-      'Labels are Overview, Activity, and Settings. The bar is #f1f1f1 and the pill is #ffffff.',
+      'The lines are `Pull request opened` and `Review requested from 3 teammates`.',
+      'The title is 16px, line-height 20px, colour #0d0d0d. The subtitle is 13px, line-height 16px, colour #767676. The column is 230px wide.',
+      'The rise is translateY 25px to 0 and opacity 0 to 1, linear, over 300ms. The subtitle waits 50ms. There is no blur.',
+      'The button label is Animate. Hover paints #d9d9e2. Pressed paints #b7b7c2.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion shows the settled lines and the duration is 0ms.',
+    ],
+  },
+  'tabs-sliding': {
+    motion:
+      'The pill x follows a spring, mass 1, damping 20, stiffness 280. The script steps that spring from the current position. Overview rests at 3px, Activity at 81px, Settings at 159px. A full travel is within half a pixel by 530ms.',
+    content:
+      'Labels `Overview`, `Activity`, `Settings`. Overview starts selected. The pill rests on Overview. Nothing else plays when the document loads.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The bar is centered.
+- Bar: background #f1f1f1, border-radius 999px, padding 3px.
+- Pill: width 78px, top 3px, bottom 3px, left 0, border-radius 999px, background #fff, shadow 0 1px 3px rgba(0, 0, 0, 0.04). It rests at translateX 3px.
+- Tab: width 78px, height 30px, 12px, weight 500. Inactive colour rgba(15, 15, 15, 0.8). Active colour #0f0f0f.
+- Rests: Overview 3px, Activity 81px, Settings 159px.`,
+    timing: `The pill x follows a spring, mass 1, damping 20, stiffness 280. The script steps that spring from the current position. A full travel from rest is within half a pixel of the target by 530ms, and that is the visible settle. The step does not snap at 530ms. Each step uses the closed form and caps the interval at 64ms.
+
+- Overview rests at 3px. Activity rests at 81px. Settings rests at 159px. The gap is 78px.
+- A click or Enter on another tab sets that rest as the target.
+- Velocity is kept when it already points at the new target. Velocity that points away is dropped.
+- Reduced motion snaps. The duration is 0ms.`,
+    reducedMotion:
+      'Reduced motion places the pill on the selected rest with no travel. The duration is 0ms.',
+    states: [
+      {
+        name: 'rest',
+        trigger: 'the document loads, on Overview',
+        from: '',
+        to: 'translateX 3px, pill width 78px, background #fff, bar #f1f1f1',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'move',
+        trigger: 'a click or Enter on a tab that is not the selected one',
+        from: 'the current translateX',
+        to: 'translateX 3px, 81px, or 159px',
+        duration: '530ms visible settle',
+        easing: 'spring, mass 1, damping 20, stiffness 280',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click or Enter',
+        to: 'the selected rest, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
+      },
+    ],
+    gotchas: [
+      'Each tab is in the tab order. It has no role. The accessible name is its label. Enter selects it. Space does not.',
+      'A click or Enter on the selected tab does nothing.',
+      'Spring mass is 1, damping 20, stiffness 280. The script steps that spring. A second tab continues from the current position. Velocity that points away from the new target is dropped. Velocity that already points at the new target is kept.',
+      'On a 78px travel the pill passes the rest by about 10% and peaks near 88.5px. The visible settle is 530ms. The step does not snap there.',
+      'The pill starts on the click. The original waits one frame, so the first moments sit apart.',
+    ],
+    setup:
+      'Mount the HTML, the CSS, and the script in one document. The script steps the spring and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
+    checklist: [
+      'Labels are Overview, Activity, and Settings. Overview starts selected and the pill rests at translateX 3px.',
+      'The pill is 78px wide on a bar of #f1f1f1. The pill is #fff. Inactive labels are rgba(15, 15, 15, 0.8). The active label is #0f0f0f.',
+      'The rests are 3px, 81px, and 159px. The spring is mass 1, damping 20, stiffness 280. A full travel is within half a pixel by 530ms.',
+      'Enter selects a tab. Space does not. A click on the selected tab does nothing.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'drag-drop-physics': {
@@ -1720,6 +1824,9 @@ export const CANONICAL_IDS = new Set<string>([
   'number-pop-in',
   'avatar-group-hover',
   'card-stack-hover',
+  'tabs-sliding',
+  'texts-reveal',
+  'input-clear-dissolve',
 ]);
 
 function buildPrompt(id: string): string {
