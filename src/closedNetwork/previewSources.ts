@@ -227,7 +227,8 @@ const SOURCES: Record<string, Source> = {
   'modal-open-close': {
     html: `<div class="stage">
   <button class="open-btn" type="button" id="open">Toggle modal</button>
-  <div class="backdrop" id="backdrop">
+  <div class="layer" id="layer">
+    <div class="backdrop scrim" id="backdrop"></div>
     <div class="t-modal panel" id="modal" role="dialog" aria-label="New project">
       <p class="title">New project</p>
       <p class="message">Scale from 0.94 with a 200ms fade.</p>
@@ -255,26 +256,30 @@ const SOURCES: Record<string, Source> = {
   cursor: pointer;
   box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.backdrop {
+.layer {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
+  opacity: 1;
+  pointer-events: none;
+}
+.layer.is-open { pointer-events: auto; }
+.layer.is-closing { pointer-events: none; }
+.backdrop {
+  position: absolute;
+  inset: 0;
   background: #0d0d0d;
   opacity: 0;
-  pointer-events: none;
   transition: opacity var(--modal-open-dur) var(--modal-ease);
 }
-.backdrop.is-open {
-  opacity: 0.28;
-  pointer-events: auto;
-}
-.backdrop.is-closing {
+.layer.is-open .backdrop { opacity: 0.28; }
+.layer.is-closing .backdrop {
   opacity: 0;
-  pointer-events: none;
   transition-duration: var(--modal-close-dur);
 }
 .panel {
+  z-index: 1;
   width: 210px;
   background: #ffffff;
   border-radius: 14px;
@@ -308,7 +313,7 @@ const SOURCES: Record<string, Source> = {
   .backdrop { transition: none !important; }
 }`,
     script: `(function () {
-  var backdrop = document.getElementById('backdrop');
+  var layer = document.getElementById('layer');
   var modal = document.getElementById('modal');
   var open = false;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -316,19 +321,19 @@ const SOURCES: Record<string, Source> = {
     open = next;
     if (next) {
       modal.classList.remove('is-closing');
-      backdrop.classList.remove('is-closing');
+      layer.classList.remove('is-closing');
       void modal.offsetWidth;
       modal.classList.add('is-open');
-      backdrop.classList.add('is-open');
+      layer.classList.add('is-open');
     } else {
       modal.classList.remove('is-open');
-      backdrop.classList.remove('is-open');
+      layer.classList.remove('is-open');
       modal.classList.add('is-closing');
-      backdrop.classList.add('is-closing');
+      layer.classList.add('is-closing');
       setTimeout(function () {
         if (!open) {
           modal.classList.remove('is-closing');
-          backdrop.classList.remove('is-closing');
+          layer.classList.remove('is-closing');
         }
       }, reduce ? 0 : 200);
     }
@@ -338,10 +343,7 @@ const SOURCES: Record<string, Source> = {
     event.stopPropagation();
     paint(false);
   });
-  backdrop.addEventListener('click', function (event) {
-    if (event.target.closest('#modal')) return;
-    paint(false);
-  });
+  document.getElementById('backdrop').addEventListener('click', function () { paint(false); });
 })();`,
   },
   'page-side-by-side': {

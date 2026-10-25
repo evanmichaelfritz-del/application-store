@@ -270,13 +270,13 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'modal-open-close': {
     motion:
-      'progress moves between 0 and 1 over 200ms with cubic-bezier(0.22, 1, 0.36, 1). Panel opacity equals progress. Panel scale is 0.94 + 0.06 * progress. Backdrop opacity is progress * 0.28.',
+      'progress moves between 0 and 1 over 200ms with cubic-bezier(0.22, 1, 0.36, 1). Panel opacity equals progress. Panel scale is 0.94 + 0.06 * progress. The layer stays at opacity 1. The backdrop scrim is a sibling of the panel and its opacity is progress * 0.28.',
     content:
       'Title `New project`. Body `Scale from 0.94 with a 200ms fade.` Trigger label `Toggle modal`. The modal starts closed (invisible, not interactive).',
-    geometry: `- Stage clip: height 200px. The backdrop fills that box.
+    geometry: `- Stage clip: height 200px. The layer fills that box and stays at opacity 1.
 - Trigger: height 34px, padding 0 12px, border-radius 10px, background #ffffff, no border, colour #0d0d0d, 13px, face Inter_500Medium (font-weight 500). Shadow \`0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05)\`.
-- Panel: width 210px, border-radius 14px, padding 16px, background #ffffff, the same shadow.
-- Backdrop: background #0d0d0d. Opacity runs from 0 to 0.28.
+- Panel: width 210px, border-radius 14px, padding 16px, background #ffffff, the same shadow. Its opacity is its own.
+- Backdrop scrim: a sibling of the panel, filling the layer, background #0d0d0d. Its own opacity runs from 0 to 0.28. It is not a parent of the panel.
 - Title: 15px, colour #0d0d0d, face Inter_600SemiBold (font-weight 600), margin-bottom 6px.
 - Body: 12px, line-height 17px, colour #6c6c6c, face Inter_400Regular (font-weight 400), margin-bottom 12px.
 - Close: 13px, colour #0d0d0d, face Inter_500Medium (font-weight 500), aligned to the end of the panel. No fill, border, or padding.`,
@@ -284,17 +284,17 @@ const LOCKS: Record<string, PromptLock> = {
 
 - Panel opacity = progress.
 - Panel scale = 0.94 + 0.06 * progress.
-- Backdrop opacity = progress * 0.28.
+- Scrim opacity = progress * 0.28. The backdrop scrim is a sibling of the panel. The layer stays at opacity 1.
 
 \`--modal-open-dur\` and \`--modal-close-dur\` are 200ms. \`--modal-scale\` is 0.94. \`--modal-ease\` is cubic-bezier(0.22, 1, 0.36, 1).`,
     reducedMotion:
-      'Reduced motion uses duration 0. The panel and the backdrop jump to the open or closed values. The stylesheet sets those transitions to none, and the script waits 0 before it clears the closing class.',
+      'Reduced motion uses duration 0. The panel and the scrim jump to the open or closed values. The stylesheet sets those transitions to none, and the script waits 0 before it clears the closing class.',
     states: [
       {
         name: 'closed',
         trigger: 'Close, or a press on the backdrop outside the panel',
-        from: 'scale 1, opacity 1, backdrop opacity 0.28',
-        to: 'scale 0.94, opacity 0, backdrop opacity 0, then not interactive',
+        from: 'scale 1, opacity 1, scrim opacity 0.28',
+        to: 'scale 0.94, opacity 0, scrim opacity 0, then not interactive',
         duration: '200ms',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
@@ -302,8 +302,8 @@ const LOCKS: Record<string, PromptLock> = {
       {
         name: 'open',
         trigger: 'Toggle modal',
-        from: 'scale 0.94, opacity 0, backdrop opacity 0',
-        to: 'scale 1, opacity 1, backdrop opacity 0.28',
+        from: 'scale 0.94, opacity 0, scrim opacity 0',
+        to: 'scale 1, opacity 1, scrim opacity 0.28',
         duration: '200ms',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
@@ -331,16 +331,16 @@ const LOCKS: Record<string, PromptLock> = {
       'Tapping the backdrop or Close closes the modal; the trigger only opens it. Both fade out over 200ms.',
       'A press on the panel does not close it.',
       'Hover does not restyle the trigger, the panel, or Close.',
+      'The scrim must not be a parent of the panel\'s opacity. The backdrop wash and the panel are siblings. An ancestor opacity washes the white panel, the title, the body, Close, and the shadow.',
     ],
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script binds Toggle modal, Close, and the backdrop, and reads prefers-reduced-motion once. There is no install step and no run command.',
-    knownGaps:
-      'The gallery frame adds a Showcase label and a stage border. Those are harness chrome. The stage width follows the card; this document uses the preview width at the same 200px height.',
+    knownGaps: 'None.',
     checklist: [
-      'The stage clip is 200px tall and the backdrop fills it.',
+      'The stage clip is 200px tall. The layer fills it and stays at opacity 1. The backdrop scrim fills the layer.',
       'The trigger is 34px tall, padding 0 12px, radius 10px, #ffffff, with no border, and the label is 13px #0d0d0d.',
       'The panel is 210px wide, radius 14px, padding 16px, #ffffff, with shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).',
-      'The backdrop is #0d0d0d and its opacity is progress * 0.28.',
+      'The layer stays at opacity 1. The backdrop scrim is a sibling of the panel, background #0d0d0d, and its opacity is progress * 0.28. The panel keeps its own opacity, so the title stays #0d0d0d and the body stays #6c6c6c.',
       'The title is 15px #0d0d0d with margin-bottom 6px. The body is 12px, line-height 17px, #6c6c6c, margin-bottom 12px. Close is 13px #0d0d0d at the end of the panel.',
       'Open and close last 200ms. Scale is 0.94 + 0.06 * progress. Easing is cubic-bezier(0.22, 1, 0.36, 1).',
       'Toggle modal only opens. Close and a backdrop press both close. A press on the panel does not.',

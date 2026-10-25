@@ -109,9 +109,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
     'Unused CSS: .col.',
   ],
-  'modal-open-close': [
-    'Showcase label and the gallery stage border are harness chrome. The stage width follows the card; the preview uses the preview width at the same 200px height.',
-  ],
+  'modal-open-close': [],
   'notification-badge': [
     'Generic template prompt (4208 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',

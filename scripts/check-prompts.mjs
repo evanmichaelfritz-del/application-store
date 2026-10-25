@@ -288,9 +288,21 @@ for (const item of generatedPrompts) {
       }
     }
     if (canonicalIds.has(item.id)) {
-      const spaced = bannedPhrase('closed network');
+      // Any whitespace run or hyphen between the words. Canonical prompts only:
+      // other cards still paste the phrase inside a Copy document.
+      const spaced = {
+        label: 'closed network',
+        pattern: /(?<![A-Za-z0-9_])closed[\s-]+network(?![A-Za-z0-9_])/gi,
+      };
       spaced.pattern.lastIndex = 0;
       if (spaced.pattern.test(text)) hits.push(`${item.id}: closed network`);
+      // Site-process words. Whole word, any case. The Copy payload under ## Code
+      // is exempt so a literal identifier in the document does not fail the prose.
+      const prose = text.split(/^## Code\b/m)[0];
+      for (const word of ['harness', 'showcase', 'preview', 'gallery']) {
+        const pattern = new RegExp(`(?<![A-Za-z0-9_])${word}(?![A-Za-z0-9_])`, 'i');
+        if (pattern.test(prose)) hits.push(`${item.id}: ${word}`);
+      }
       hits.push(...canonicalHeadingErrors(item.id, text));
       const source = copyStyleAndScript(text);
       for (const title of ['Geometry and values', 'Timing']) {
