@@ -66,30 +66,79 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'number-pop-in': {
     motion:
-      'Each `.t-digit` runs `@keyframes t-digit-in` for `--digit-dur: 500ms` with `--digit-ease: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is `perspective(400px) rotateX(var(--digit-tilt))`, opacity 0, `blur(var(--digit-blur))`. `--digit-tilt` is 80deg and `--digit-blur` is 2px. Delay is `calc(var(--digit-stagger) * (n - 1))` and `--digit-stagger` is 50ms. Replay rewrites the row.',
-    content: '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is a `.t-digit.gap`.',
+      'Animate advances the set. Each character springs in with mass 4, damping 20, stiffness 280: rotateX from 80deg to 0, opacity from 0 to 1, and blur from 2px to 0. The linear() is sampled from that spring over 3782ms. Delay is 50ms per character. The row also plays when the document loads.',
+    content:
+      '`6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is a 6px gap. The dot is the smaller glyph. The label is Animate. The row plays on load, and Animate mounts the next set.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The row is centered, aligned to the end of the line.
+- Digit: 42px, line-height 46px, letter-spacing -1px, colour #0d0d0d, weight 600.
+- Dot: 32px, margin-bottom 2px. It keeps the 46px line-height.
+- Space: width 6px. It still takes the entrance.
+- Entrance: perspective 400px, rotateX 80deg, opacity 0, blur 2px.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing: `Each character runs one spring, mass 4, damping 20, stiffness 280, from 0 to 1. The linear() is sampled from that spring over 3782ms. \`--digit-dur\` is 3782ms. Character n waits (n - 1) times 50ms. \`--digit-stagger\` is 50ms.
+
+- rotateX = (1 - progress) * 80deg, with perspective 400px.
+- opacity = progress, clamped to the 0 to 1 range when progress travels past 1.
+- blur = max(0px, (1 - progress) * 2px). The blur does not go negative.
+
+The spring passes the target by about 37%, then settles. 3782ms is when its energy falls through its stop.`,
+    reducedMotion:
+      'Reduced motion skips the entrance. The characters are upright, opaque, and sharp, and Animate still changes the set. The duration is 0ms.',
     states: [
       {
         name: 'enter',
-        trigger: 'mount and each Replay, which rewrites the row and restarts `t-digit-in`',
-        from: 'perspective(400px) rotateX(80deg), opacity 0, blur(2px)',
-        to: 'opacity 1 and filter none',
-        duration: '500ms (`--digit-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--digit-ease`)',
-        delay: 'nth-child n waits calc(var(--digit-stagger) * (n - 1)), and `--digit-stagger` is 50ms',
+        trigger: 'the document loads, and each Animate, which mounts the next set',
+        from: 'perspective 400px, rotateX 80deg, opacity 0, blur 2px',
+        to: 'rotateX 0, opacity 1, blur 0',
+        duration: '3782ms',
+        easing: 'sampled linear()',
+        delay: '50ms times the character index',
+      },
+      {
+        name: 'hover',
+        trigger: 'pointer over Animate',
+        from: 'background rgba(243, 243, 243, 0.94), border rgba(0, 0, 0, 0.08)',
+        to: 'background #d9d9e2, border rgba(0, 0, 0, 0.35)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'pressed',
+        trigger: 'pointer down on Animate',
+        from: 'the hover paint',
+        to: 'background #b7b7c2, border rgba(0, 0, 0, 0.5)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the entrance pose',
+        to: 'rotateX 0, opacity 1, blur 0, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'The row is font-size 42px. A space is `.t-digit.gap` with width 6px.',
-      'Reduced motion sets the animation to none.',
-      'Replay advances the set index modulo 3. There is no separate exit keyframe.',
+      'The label is Animate, and that is the accessible name. It is a button. The row has no separate accessible name.',
+      'Spring mass is 4, damping 20, stiffness 280. The linear() is sampled from that spring.',
+      'Progress peaks near 1.37, about 37% past the target, near 400ms. rotateX peaks near 30deg past 0. Opacity clamps at 1 during that overshoot, then shows the later dip under 1. Blur is 0 through the overshoot.',
+      'Animate replaces the row. The next set starts at the entrance pose. It does not continue the previous characters, which is how the original mounts each set.',
+      'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
     ],
     setup:
-      'The sets are `6 5. 7 8`, `1 4. 0 2`, and `9 3. 6 1`. Replay writes one `.t-digit` per character. `@keyframes t-digit-in` uses `--digit-dur: 500ms`, `--digit-blur: 2px`, `--digit-tilt: 80deg`, and perspective 400px.',
+      'Mount the HTML, the CSS, and the script in one document. The script writes one character per span and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The three sets play in that order, and a space is a 6px gap.',
-      'Each digit runs `t-digit-in` for 500ms with cubic-bezier(0.22, 1, 0.36, 1), delayed by 50ms steps.',
-      'Reduced motion sets the animation to none.',
+      'The first set is `6 5. 7 8`, then `1 4. 0 2`, then `9 3. 6 1`. A space is 6px wide. The dot is 32px with margin-bottom 2px.',
+      'Digits are 42px, line-height 46px, letter-spacing -1px, colour #0d0d0d. The stage is 289px by 200px, radius 14px, background #f9f9f9.',
+      'rotateX, opacity, and blur follow the mass 4, damping 20, stiffness 280 spring, played over 3782ms, staggered by 50ms.',
+      'The button label is Animate. Hover paints #d9d9e2. Pressed paints #b7b7c2.',
+      'Reduced motion shows the settled row and the duration is 0ms.',
     ],
   },
   'notification-badge': {
@@ -633,85 +682,143 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
   },
   'avatar-group-hover': {
     motion:
-      '`.t-avatar` transitions transform over `--avatar-dur: 320ms`. While the row is hovered the timing is `--avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1)`. Otherwise it is `--avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1)`. The script sets `translateY(lift * strength)` and `scale(1 + (peak - 1) * strength)`. `--avatar-lift` is -8px, `--avatar-scale` is 1.06, and `--avatar-falloff` is 0.45.',
-    content: 'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`.',
+      'Each disc has its own lift and scale spring, mass 4, damping 20, stiffness 280. The script steps that spring from the current value. Lift is -8px times strength. Scale is 1 + 0.06 times strength. Strength is 1 at the hot disc and falls off by 0.45 per step, clamped at 0.',
+    content:
+      'Initials JC, AK, MR, SL, TW on `#d9b8a2`, `#b7c7d9`, `#d4c4a8`, `#c5b3d6`, `#a8c5b8`. The row starts at rest. Nothing plays when the document loads.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The row is centered.
+- Disc: 40px by 40px, border-radius 20px, border 2px solid #fff, colour #2a2118, 11px, weight 500. Later discs use margin-left -10px. The first uses 0.
+- Fills: #d9b8a2, #b7c7d9, #d4c4a8, #c5b3d6, #a8c5b8.
+- Rest: translateY 0, scale 1. Hot: translateY -8px, and scale gains 0.06. \`--avatar-lift\` is -8px and \`--avatar-scale\` is 0.06.`,
+    timing: `Lift and scale each follow a spring, mass 4, damping 20, stiffness 280. A full travel from rest settles by 3782ms. \`--avatar-dur\` is 3782ms. The script steps the spring from the current value instead of restarting a curve at 0.
+
+- strength = 0 when nothing is hot, otherwise max(0, 1 - distance * 0.45). \`--avatar-falloff\` is 0.45.
+- translateY = -8px * strength, along that spring.
+- scale = 1 + 0.06 * strength, along that spring.
+- z-index is 3 when strength is above 0.9, otherwise 1. The z-index changes with the hot disc and does not spring.
+
+Moving to a neighbour retargets both springs. Velocity is kept only when it already points at the new target.`,
+    reducedMotion:
+      'Reduced motion places every disc on its target translate and scale with no travel. The duration is 0ms.',
     states: [
       {
         name: 'rest',
-        trigger: 'mouseleave calls place(null)',
-        from: 'the hovered translateY and scale',
-        to: 'strength 0, scale 1, zIndex 1',
-        duration: '320ms (`--avatar-dur`)',
-        easing: 'cubic-bezier(0.34, 3.85, 0.64, 1) (`--avatar-ease-out`)',
+        trigger: 'pointer leaves the row, pointer up, or Enter up',
+        from: 'the hot translateY and scale',
+        to: 'translateY 0, scale 1, z-index 1',
+        duration: '3782ms',
+        easing: 'spring, mass 4, damping 20, stiffness 280',
         delay: '',
       },
       {
         name: 'hover',
-        trigger: 'mouseenter on avatar index i',
+        trigger: 'pointer enters a disc',
         from: 'translateY 0, scale 1',
-        to: 'translateY(--avatar-lift -8px times strength), scale toward --avatar-scale 1.06, zIndex 3 when strength > 0.9',
-        duration: '320ms (`--avatar-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--avatar-ease-in`)',
+        to: 'translateY -8px times strength, scale 1 + 0.06 times strength, z-index 3 on the hot disc',
+        duration: '3782ms',
+        easing: 'spring, mass 4, damping 20, stiffness 280',
         delay: '',
       },
       {
-        name: 'disc',
-        trigger: '',
-        from: '',
-        to: 'width 40px, height 40px, margin-left -10px, border 2px solid #fff, colour #2a2118',
-        duration: '',
+        name: 'press',
+        trigger: 'pointer down, or Enter, on a disc',
+        from: 'the current lift',
+        to: 'the same pose as hover for that disc',
+        duration: '3782ms',
+        easing: 'spring, mass 4, damping 20, stiffness 280',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the pointer or Enter change',
+        to: 'the target pose, with no travel',
+        duration: '0ms',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'Strength is 0 when hot is null, otherwise `Math.max(0, 1 - Math.abs(hot - j) * falloff)` with falloff `--avatar-falloff` 0.45.',
-      'The first avatar has margin-left 0. Initials are font-size 11px.',
-      'Reduced motion sets the transition to none.',
+      'Each hit target is in the tab order. It has no role and no accessible name. Enter holds that disc’s lift until the key is released. Space does nothing.',
+      'Pointer up clears the hot disc even while the pointer is still inside, so the row springs back. That matches the original.',
+      'Spring mass is 4, damping 20, stiffness 280. The script steps that spring. A second change continues from the current value. Velocity that points away from the new target is dropped.',
+      'On a full travel the lift passes -8px by about 37% and peaks near 11px above the rest line. Scale peaks near 1.08. Neighbours use the same progress at a smaller strength.',
+      'The first disc has no negative margin. The others overlap it by 10px.',
     ],
     setup:
-      'Each `.t-avatar` is 40px by 40px with margin-left -10px, border 2px solid #fff, and colour #2a2118. mouseenter calls place(i). mouseleave calls place(null). `--avatar-lift` is -8px and `--avatar-dur` is 320ms.',
+      'Mount the HTML, the CSS, and the script in one document. The script reads the lift, scale, and falloff variables and prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The hovered avatar uses lift -8px and scale 1.06. Neighbours fall off by 0.45 per step and clamp at 0.',
-      'The transform transition is 320ms, ease-in cubic-bezier(0.22, 1, 0.36, 1) while hovered and ease-out cubic-bezier(0.34, 3.85, 0.64, 1) otherwise.',
-      'Initials and fills are JC #d9b8a2, AK #b7c7d9, MR #d4c4a8, SL #c5b3d6, TW #a8c5b8.',
+      'Discs are 40px, border 2px solid #fff, radius 20px, margin-left -10px after the first. Initials are 11px, colour #2a2118.',
+      'Fills are JC #d9b8a2, AK #b7c7d9, MR #d4c4a8, SL #c5b3d6, TW #a8c5b8.',
+      'The hot disc lifts by -8px and gains 0.06 scale. Falloff is 0.45. z-index is 3 only on that disc.',
+      'The spring is mass 4, damping 20, stiffness 280, and a full travel settles by 3782ms.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion jumps and the duration is 0ms.',
     ],
   },
   'card-stack-hover': {
     motion:
-      '`.t-stack-card` transitions transform over `--stack-dur: 420ms` with `--stack-ease: cubic-bezier(0.34, 1.36, 0.64, 1)`. `.is-spread` sets card 1 to `translate(-28px, 10px) rotate(-8deg)`, card 2 to `translate(0, -6px) rotate(0deg)`, and card 3 to `translate(28px, 10px) rotate(8deg)`.',
-    content: 'Labels `Card 1`, `Card 2`, `Card 3`.',
+      'One spring, mass 1, damping 20, stiffness 280, drives a shared progress from 0 to 1. The script steps that spring from the current value. Hover spreads the cards. Leaving stacks them. A click toggles. Enter toggles.',
+    content:
+      'Labels `Card 1`, `Card 2`, `Card 3`. The stack starts closed. Nothing plays when the document loads.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The hit target is centered.
+- Hit target: 180px by 120px. It is in the tab order and has no role and no accessible name.
+- Stack: 110px by 74px, left 35px, top 23px inside the hit target.
+- Card: 110px by 74px, border-radius 12px, background #fff, colour #0d0d0d, 13px, weight 500. Shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).
+- Spread, at progress 1: card 1 translate -28px 10px rotate -8deg, card 2 translate 0px -6px rotate 0deg, card 3 translate 28px 10px rotate 8deg. z-index is 1, 2, then 3.`,
+    timing: `Progress follows a spring, mass 1, damping 20, stiffness 280. A full travel from rest settles by 984ms. \`--stack-dur\` is 984ms. The script steps the spring from the current value.
+
+- Card 1: x = -28px * progress, y = 10px * progress, rotate = -8deg * progress.
+- Card 2: x = 0px, y = -6px * progress, rotate = 0deg.
+- Card 3: x = 28px * progress, y = 10px * progress, rotate = 8deg * progress.
+
+The spring passes the target by about 10%, then settles. Hover sets the target to 1. Leaving, or a toggle that closes, sets it to 0.`,
+    reducedMotion:
+      'Reduced motion places the cards on the stacked pose or the spread pose with no travel. The duration is 0ms.',
     states: [
       {
         name: 'stacked',
-        trigger: 'mouseleave, and a click that removes `.is-spread`',
-        from: 'the spread transforms',
-        to: 'no transform on the cards',
-        duration: '420ms (`--stack-dur`)',
-        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1) (`--stack-ease`)',
+        trigger: 'pointer leaves the hit target, or a click or Enter that closes it',
+        from: 'the spread translates and rotates',
+        to: 'translate 0px, rotate 0deg',
+        duration: '984ms',
+        easing: 'spring, mass 1, damping 20, stiffness 280',
         delay: '',
       },
       {
         name: 'spread',
-        trigger: 'mouseenter, and a click that adds `.is-spread`',
-        from: 'no transform',
-        to: 'translate(-28px, 10px) rotate(-8deg), translate(0, -6px) rotate(0deg), translate(28px, 10px) rotate(8deg)',
-        duration: '420ms (`--stack-dur`)',
-        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1)',
+        trigger: 'pointer enters the hit target, or a click or Enter that opens it',
+        from: 'translate 0px, rotate 0deg',
+        to: 'translate -28px 10px rotate -8deg, translate 0px -6px, translate 28px 10px rotate 8deg',
+        duration: '984ms',
+        easing: 'spring, mass 1, damping 20, stiffness 280',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the pointer, click, or Enter change',
+        to: 'the stacked pose or the spread pose, with no travel',
+        duration: '0ms',
+        easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The hit target is 180px by 120px. Each card is 110px by 74px, left 35px, top 23px, border-radius 12px, background #fff, color #0d0d0d. The card shadow is 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).',
-      '`--stack-fan: 18px` and `--stack-rot: 6deg` are declared. The spread rules use the translate and rotate literals above and do not read those two variables.',
-      'Reduced motion sets the transition to none.',
+      'The hit target is in the tab order. It has no role and no accessible name. Enter toggles the spread. Space does not.',
+      'A click toggles while the pointer remains inside. Hover opens the stack, and leaving closes it. That matches the original.',
+      'Spring mass is 1, damping 20, stiffness 280. The script steps that spring. A second change continues from the current value. Velocity that points away from the new target is dropped.',
+      'On a full travel, progress peaks near 1.10. Card 1’s x passes -28px by a few pixels, and its rotate passes -8deg.',
+      'The cards sit 35px from the hit target’s left and 23px from its top. That is the centered 110px by 74px stack inside the 180px by 120px target.',
     ],
     setup:
-      'mouseenter adds `.is-spread`. mouseleave removes it. Click toggles it. `--stack-dur` is 420ms and `--stack-ease` is cubic-bezier(0.34, 1.36, 0.64, 1).',
+      'Mount the HTML, the CSS, and the script in one document. The script reads each card’s --x, --y, and --r and prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Rest has no transform. Spread is translate(-28px, 10px) rotate(-8deg), translate(0, -6px), and translate(28px, 10px) rotate(8deg).',
-      'The transition is 420ms with cubic-bezier(0.34, 1.36, 0.64, 1).',
-      'Labels are `Card 1`, `Card 2`, and `Card 3`.',
+      'Labels are `Card 1`, `Card 2`, and `Card 3`. The stack starts closed.',
+      'Spread is translate -28px 10px rotate -8deg, translate 0px -6px, and translate 28px 10px rotate 8deg.',
+      'The spring is mass 1, damping 20, stiffness 280, and a full travel settles by 984ms.',
+      'The hit target is 180px by 120px. Cards are 110px by 74px, radius 12px, background #fff, colour #0d0d0d, left 35px, top 23px.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Enter toggles. Reduced motion jumps and the duration is 0ms.',
     ],
   },
   'error-state-shake': {
@@ -1605,7 +1712,15 @@ const COPY_PROMPT_IDS = new Set([
 ]);
 
 /** Generic cards on the canonical section order. Grows one batch at a time. */
-export const CANONICAL_IDS = new Set<string>(['modal-open-close', 'confetti-burst', 'notification-badge', 'success-check']);
+export const CANONICAL_IDS = new Set<string>([
+  'modal-open-close',
+  'confetti-burst',
+  'notification-badge',
+  'success-check',
+  'number-pop-in',
+  'avatar-group-hover',
+  'card-stack-hover',
+]);
 
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();

@@ -112,25 +112,44 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'number-pop-in': {
-    html: `<div class="col">
-  <div class="digits" id="digits" aria-label="6 5. 7 8"></div>
-  <button class="trigger" type="button" id="replay">Replay</button>
+    html: `<div class="stage">
+  <div class="row" id="row"></div>
+  <button class="animate" type="button" id="animate" aria-label="Animate">Animate</button>
 </div>`,
-    extraCss: `.digits { font-size: 42px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: flex-end; }
-.t-digit.gap { width: 6px; }`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.row { display: flex; align-items: flex-end; }
+.t-digit { font: 600 42px/46px Inter, system-ui, sans-serif; letter-spacing: -1px; color: #0d0d0d; }
+.t-digit.dot { font-size: 32px; margin-bottom: 2px; }
+.t-digit.gap { width: 6px; }
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
-  var root = document.getElementById('digits');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var sets = ['6 5. 7 8', '1 4. 0 2', '9 3. 6 1'];
   var i = 0;
+  var row = document.getElementById('row');
   function render() {
-    root.setAttribute('aria-label', sets[i]);
-    root.innerHTML = sets[i].split('').map(function (ch) {
-      if (ch === ' ') return '<span class="t-digit gap">&nbsp;</span>';
-      return '<span class="t-digit">' + ch + '</span>';
-    }).join('');
+    row.textContent = '';
+    sets[i].split('').forEach(function (ch) {
+      var el = document.createElement('span');
+      el.className = 't-digit' + (ch === '.' ? ' dot' : '') + (ch === ' ' ? ' gap' : '');
+      el.textContent = ch;
+      if (reduce) el.style.animationDuration = '0ms';
+      row.appendChild(el);
+    });
   }
   render();
-  document.getElementById('replay').addEventListener('click', function () {
+  document.getElementById('animate').addEventListener('click', function () {
     i = (i + 1) % sets.length;
     render();
   });
@@ -734,62 +753,270 @@ canvas { display: block; width: 168px; height: 168px; }`,
     snippet: false,
   },
   'avatar-group-hover': {
-    html: `<div class="t-avatars" id="avatars">
-  <span class="t-avatar" style="background:#d9b8a2">JC</span>
-  <span class="t-avatar" style="background:#b7c7d9">AK</span>
-  <span class="t-avatar" style="background:#d4c4a8">MR</span>
-  <span class="t-avatar" style="background:#c5b3d6">SL</span>
-  <span class="t-avatar" style="background:#a8c5b8">TW</span>
+    html: `<div class="stage">
+  <div class="row" id="row">
+    <div class="hit" tabindex="0"><span class="disc jc">JC</span></div>
+    <div class="hit" tabindex="0"><span class="disc ak">AK</span></div>
+    <div class="hit" tabindex="0"><span class="disc mr">MR</span></div>
+    <div class="hit" tabindex="0"><span class="disc sl">SL</span></div>
+    <div class="hit" tabindex="0"><span class="disc tw">TW</span></div>
+  </div>
 </div>`,
-    extraCss: `.t-avatars { display: flex; align-items: center; }
-.t-avatar {
-  width: 40px; height: 40px; margin-left: -10px; border-radius: 50%;
-  border: 2px solid #fff; display: grid; place-items: center;
-  color: #2a2118; font-size: 11px; font-weight: 500;
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.t-avatar:first-child { margin-left: 0; }`,
+.row { display: flex; align-items: center; }
+.hit { cursor: pointer; }
+.disc {
+  width: 40px; height: 40px; border-radius: 20px; margin-left: -10px;
+  border: 2px solid #fff; display: grid; place-items: center;
+  color: #2a2118; font: 500 11px/1 Inter, system-ui, sans-serif;
+}
+.hit:first-child .disc { margin-left: 0; }
+.jc { background: #d9b8a2; }
+.ak { background: #b7c7d9; }
+.mr { background: #d4c4a8; }
+.sl { background: #c5b3d6; }
+.tw { background: #a8c5b8; }`,
     script: `(function () {
-  var root = document.getElementById('avatars');
-  var avatars = [].slice.call(root.querySelectorAll('.t-avatar'));
-  function cssNum(name, fallback) {
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var mass = 4, damping = 20, stiffness = 280;
+  var omega0 = Math.sqrt(stiffness / mass);
+  var zeta = damping / (2 * Math.sqrt(stiffness * mass));
+  var omega1 = omega0 * Math.sqrt(1 - zeta * zeta);
+  var settle = '3782ms';
+  function num(name, fallback) {
     var n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
     return Number.isFinite(n) ? n : fallback;
   }
-  function place(hot) {
-    var lift = cssNum('--avatar-lift', -8);
-    var falloff = cssNum('--avatar-falloff', 0.45);
-    var peak = cssNum('--avatar-scale', 1.06);
-    avatars.forEach(function (el, j) {
-      var strength = hot == null ? 0 : Math.max(0, 1 - Math.abs(hot - j) * falloff);
-      el.style.transform = 'translateY(' + (lift * strength) + 'px) scale(' + (1 + (peak - 1) * strength) + ')';
-      el.style.zIndex = strength > 0.9 ? '3' : '1';
-    });
+  function Spring(value) {
+    this.value = value;
+    this.velocity = 0;
+    this.target = value;
+    this.energy = 0;
+    this.born = 0;
+    this.done = true;
   }
-  avatars.forEach(function (el, i) {
-    el.addEventListener('mouseenter', function () { place(i); });
-    el.addEventListener('mouseleave', function () { place(null); });
+  Spring.prototype.to = function (target) {
+    if (media.matches) {
+      this.value = target;
+      this.velocity = 0;
+      this.target = target;
+      this.done = true;
+      return;
+    }
+    if (this.target === target && !this.done) return;
+    var v = this.velocity;
+    if ((target > this.value && v < 0) || (target < this.value && v > 0)) v = 0;
+    this.velocity = v;
+    this.target = target;
+    var x0 = this.value - target;
+    this.energy = 0.5 * stiffness * x0 * x0 + 0.5 * mass * v * v;
+    this.born = performance.now();
+    this.done = this.energy === 0;
+    if (this.done) this.value = target;
+  };
+  Spring.prototype.step = function (dtMs, now) {
+    if (this.done) return;
+    if (now - this.born >= parseFloat(settle)) {
+      this.value = this.target;
+      this.velocity = 0;
+      this.done = true;
+      return;
+    }
+    var dt = Math.min(64, Math.max(0, dtMs)) / 1000;
+    var x0 = this.value - this.target;
+    var v0 = this.velocity;
+    var env = Math.exp(-zeta * omega0 * dt);
+    var sin1 = Math.sin(omega1 * dt);
+    var cos1 = Math.cos(omega1 * dt);
+    var frag = env * (sin1 * ((v0 + zeta * omega0 * x0) / omega1) + x0 * cos1);
+    this.value = this.target + frag;
+    this.velocity = -zeta * omega0 * frag + env * (cos1 * (v0 + zeta * omega0 * x0) - omega1 * x0 * sin1);
+    var e = 0.5 * stiffness * (this.target - this.value) * (this.target - this.value) + 0.5 * mass * this.velocity * this.velocity;
+    if (this.energy === 0 || e / this.energy <= 6e-9) {
+      this.value = this.target;
+      this.velocity = 0;
+      this.done = true;
+    }
+  };
+  var hits = [].slice.call(document.querySelectorAll('.hit'));
+  var discs = hits.map(function (hit) { return hit.querySelector('.disc'); });
+  var lifts = discs.map(function () { return new Spring(0); });
+  var scales = discs.map(function () { return new Spring(1); });
+  var hot = null;
+  var raf = 0;
+  var last = 0;
+  function strength(j) {
+    if (hot == null) return 0;
+    return Math.max(0, 1 - Math.abs(hot - j) * num('--avatar-falloff', 0.45));
+  }
+  function retarget() {
+    var lift = num('--avatar-lift', -8);
+    var gain = num('--avatar-scale', 0.06);
+    discs.forEach(function (disc, j) {
+      var s = strength(j);
+      lifts[j].to(lift * s);
+      scales[j].to(1 + gain * s);
+      disc.style.zIndex = s > 0.9 ? '3' : '1';
+      if (media.matches) disc.style.animationDuration = '0ms';
+    });
+    kick();
+  }
+  function paint(now) {
+    var dt = now - last;
+    last = now;
+    var moving = false;
+    discs.forEach(function (disc, j) {
+      lifts[j].step(dt, now);
+      scales[j].step(dt, now);
+      disc.style.transform = 'translateY(' + lifts[j].value + 'px) scale(' + scales[j].value + ')';
+      if (!lifts[j].done || !scales[j].done) moving = true;
+    });
+    if (moving) raf = requestAnimationFrame(paint);
+    else raf = 0;
+  }
+  function kick() {
+    if (raf) return;
+    last = performance.now();
+    raf = requestAnimationFrame(paint);
+  }
+  function setHot(index) {
+    hot = index;
+    retarget();
+  }
+  var row = document.getElementById('row');
+  hits.forEach(function (hit, i) {
+    hit.addEventListener('pointerenter', function () { setHot(i); });
+    hit.addEventListener('pointerleave', function (event) {
+      var next = event.relatedTarget;
+      if (next && next.closest && next.closest('.row') === row) return;
+      setHot(null);
+    });
+    hit.addEventListener('pointerdown', function () { setHot(i); });
+    hit.addEventListener('pointerup', function () { setHot(null); });
+    hit.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') setHot(i);
+    });
+    hit.addEventListener('keyup', function (event) {
+      if (event.key === 'Enter') setHot(null);
+    });
   });
-  place(null);
 })();`,
   },
   'card-stack-hover': {
-    html: `<div class="t-stack" id="stack">
-  <div class="t-stack-card">Card 1</div>
-  <div class="t-stack-card">Card 2</div>
-  <div class="t-stack-card">Card 3</div>
+    html: `<div class="stage">
+  <div class="hit" id="hit" tabindex="0">
+    <div class="stack">
+      <div class="card">Card 1</div>
+      <div class="card">Card 2</div>
+      <div class="card">Card 3</div>
+    </div>
+  </div>
 </div>`,
-    extraCss: `.t-stack { position: relative; width: 180px; height: 120px; cursor: pointer; }
-.t-stack-card {
-  position: absolute; left: 35px; top: 23px; width: 110px; height: 74px;
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.hit { position: relative; width: 180px; height: 120px; cursor: pointer; }
+.stack { position: absolute; left: 35px; top: 23px; width: 110px; height: 74px; }
+.card {
+  position: absolute; left: 0; top: 0; width: 110px; height: 74px;
   border-radius: 12px; background: #fff; color: #0d0d0d;
   box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
-  display: grid; place-items: center; font-size: 13px; font-weight: 500;
+  display: grid; place-items: center; font: 500 13px/1 Inter, system-ui, sans-serif;
 }`,
     script: `(function () {
-  var stack = document.getElementById('stack');
-  stack.addEventListener('mouseenter', function () { stack.classList.add('is-spread'); });
-  stack.addEventListener('mouseleave', function () { stack.classList.remove('is-spread'); });
-  stack.addEventListener('click', function () { stack.classList.toggle('is-spread'); });
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var mass = 1, damping = 20, stiffness = 280;
+  var omega0 = Math.sqrt(stiffness / mass);
+  var zeta = damping / (2 * Math.sqrt(stiffness * mass));
+  var omega1 = omega0 * Math.sqrt(1 - zeta * zeta);
+  var settle = '984ms';
+  var hit = document.getElementById('hit');
+  var cards = [].slice.call(hit.querySelectorAll('.card'));
+  var spread = false;
+  var spring = { value: 0, velocity: 0, target: 0, energy: 0, born: 0, done: true };
+  var raf = 0;
+  var last = 0;
+  function to(target) {
+    if (media.matches) {
+      spring.value = target;
+      spring.velocity = 0;
+      spring.target = target;
+      spring.done = true;
+      cards.forEach(function (card) { card.style.animationDuration = '0ms'; });
+      paint(performance.now());
+      return;
+    }
+    if (spring.target === target && !spring.done) return;
+    var v = spring.velocity;
+    if ((target > spring.value && v < 0) || (target < spring.value && v > 0)) v = 0;
+    spring.velocity = v;
+    spring.target = target;
+    var x0 = spring.value - target;
+    spring.energy = 0.5 * stiffness * x0 * x0 + 0.5 * mass * v * v;
+    spring.born = performance.now();
+    spring.done = spring.energy === 0;
+    if (spring.done) spring.value = target;
+    kick();
+  }
+  function step(dtMs, now) {
+    if (spring.done) return;
+    if (now - spring.born >= parseFloat(settle)) {
+      spring.value = spring.target;
+      spring.velocity = 0;
+      spring.done = true;
+      return;
+    }
+    var dt = Math.min(64, Math.max(0, dtMs)) / 1000;
+    var x0 = spring.value - spring.target;
+    var v0 = spring.velocity;
+    var env = Math.exp(-zeta * omega0 * dt);
+    var sin1 = Math.sin(omega1 * dt);
+    var cos1 = Math.cos(omega1 * dt);
+    var frag = env * (sin1 * ((v0 + zeta * omega0 * x0) / omega1) + x0 * cos1);
+    spring.value = spring.target + frag;
+    spring.velocity = -zeta * omega0 * frag + env * (cos1 * (v0 + zeta * omega0 * x0) - omega1 * x0 * sin1);
+    var e = 0.5 * stiffness * (spring.target - spring.value) * (spring.target - spring.value) + 0.5 * mass * spring.velocity * spring.velocity;
+    if (spring.energy === 0 || e / spring.energy <= 6e-9) {
+      spring.value = spring.target;
+      spring.velocity = 0;
+      spring.done = true;
+    }
+  }
+  function paint(now) {
+    var dt = now - last;
+    last = now;
+    step(dt, now);
+    cards.forEach(function (card) {
+      var cs = getComputedStyle(card);
+      var x = parseFloat(cs.getPropertyValue('--x')) * spring.value;
+      var y = parseFloat(cs.getPropertyValue('--y')) * spring.value;
+      var r = parseFloat(cs.getPropertyValue('--r')) * spring.value;
+      card.style.transform = 'translate(' + x + 'px, ' + y + 'px) rotate(' + r + 'deg)';
+    });
+    if (!spring.done) raf = requestAnimationFrame(paint);
+    else raf = 0;
+  }
+  function kick() {
+    if (raf) return;
+    last = performance.now();
+    raf = requestAnimationFrame(paint);
+  }
+  function setSpread(next) {
+    spread = next;
+    to(spread ? 1 : 0);
+  }
+  hit.addEventListener('pointerenter', function () { setSpread(true); });
+  hit.addEventListener('pointerleave', function () { setSpread(false); });
+  hit.addEventListener('click', function () { setSpread(!spread); });
+  hit.addEventListener('keyup', function (event) {
+    if (event.key === 'Enter') setSpread(!spread);
+  });
 })();`,
   },
   'input-clear-dissolve': {
