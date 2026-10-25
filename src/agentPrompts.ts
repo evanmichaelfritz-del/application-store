@@ -167,8 +167,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     ],
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
-    knownGaps:
-      'Phone widths are a known gap. At narrow widths the stage shrinks to the bell and clips the Animate button.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'Before Animate the badge is translate -8.2px 12.4px, scale 0.4, opacity 0. The count is `1` on #e23d2d.',
       'The bell is 40px by 40px and the glyph is 28px, stroke #0d0d0d, stroke-width 1.7px. Clicking the bell does nothing.',
@@ -618,11 +617,11 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
       'On the way in, t peaks near 1.25. translateY peaks near 7px above the rest line, rotate peaks near 20deg past 0, and scale peaks near 1.035. Opacity clamps at 1 during that overshoot, then shows the later dip under 1. The dash uses the same overshoot, so the offset goes negative before it settles.',
       'On the way out the dash does not spring. It is a 120ms cubic-bezier(0.22, 1, 0.36, 1) back to offset 28px.',
       'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
+      'A second click within about 100 ms restarts the sampled curve from its start, so the pose jumps instead of continuing from its current value like the original; the end pose is the same.',
     ],
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
-    knownGaps:
-      'Phone widths are a known gap. At narrow widths the stage shrinks to the badge and clips the Animate button.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'Before Animate the disc is not visible. The off pose is opacity 0, translateY 28px, rotate 80deg, scale 0.86, dash offset 28px.',
       'Animate toggles on, then off. The label is Animate.',

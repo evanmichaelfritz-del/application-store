@@ -107,7 +107,8 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   ],
   'modal-open-close': [],
   'notification-badge': [
-    'Phone widths are a known gap. At narrow widths the stage shrinks to the bell and clips the Animate button.',
+    'Phone widths are a known gap. On the asset page at narrow widths the original\'s stage shrinks to the bell and clips the Animate button; the Copy keeps its fixed stage.',
+    'A second click within about 100 ms restarts the sampled curve, so the pose jumps; the end pose is the same.',
   ],
   'number-pop-in': [
     'Generic template prompt (4523 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
@@ -127,7 +128,8 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
   ],
   'success-check': [
-    'Phone widths are a known gap. At narrow widths the stage shrinks to the badge and clips the Animate button.',
+    'Phone widths are a known gap. On the asset page at narrow widths the original\'s stage shrinks to the badge and clips the Animate button; the Copy keeps its fixed stage.',
+    'A second click within about 100 ms restarts the sampled curve, so the pose jumps; the end pose is the same.',
   ],
   'tabs-sliding': [
     'Generic template prompt (4264 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
