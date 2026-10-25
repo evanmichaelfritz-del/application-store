@@ -1,8 +1,6 @@
-# AGENT_PROMPT — Abrar influencer Overview (closed network)
+# AGENT_PROMPT — Abrar influencer Overview
 
-This prompt matches build SHA `5a7e3b30f316185e405f8a56817d1f6d297bbb22`.
-
-You are rebuilding the Abrar influencer Overview dashboard from scratch in Palantir Code Workspace. Assume the network is unavailable. Do not browse, fetch, or open any website. Do not instruct anyone to visit X, cal.com, grok.me, or any other URL. Every layout value, colour, label, KPI, chart recipe, icon name, and code pattern you need is inlined below. Do not invent UI or numbers past what is specified here. Do not rely on any source tree being present on disk — implement from this prompt alone.
+You are rebuilding the Abrar influencer Overview dashboard from scratch in Palantir Code Workspace. Assume the network is unavailable. Do not browse, fetch, or open any website. Do not instruct anyone to visit X, cal.com, or any other URL. Every layout value, colour, label, KPI, chart recipe, icon name, and code pattern you need is inlined below. Do not invent UI or numbers past what is specified here. Do not rely on any source tree being present on disk — implement from this prompt alone.
 
 ## Mission and scope
 
@@ -22,6 +20,16 @@ Project root is the folder containing `app.json`. All values needed to rebuild a
 - Single screen: plain `App.tsx` (or one expo-router route). No nav stack.
 - Data: one `src/data/overview.ts` of constants. Flag inferred fields in comments.
 - Layout: target **1440×900**, **minWidth 1280**. Outer horizontal `ScrollView` so widths under 1280 scroll, not reflow. Sidebar width **240**. Main = inset white panel, radius 16, 1px border `#EAEAEC`, inset 8 from top/right/bottom (and left — code uses margin 8 on all four sides).
+
+## Setup
+
+The locked stack above is the whole stand-up. This prompt does not give an install or run command.
+
+- Expo + React Native + TypeScript (RN Web for gates).
+- Drawing: `react-native-svg` only. No `@shopify/react-native-skia`, no `LoadSkiaWeb`, no Reanimated.
+- Font: Inter via `@expo-google-fonts/inter` (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`) + `useFonts`; hold splash until loaded. Icons: `@expo/vector-icons` Ionicons.
+- Single screen: plain `App.tsx` (or one expo-router route). No nav stack.
+- Data: one `src/data/overview.ts` of constants.
 
 ## Colours (`src/theme.ts`)
 
@@ -49,6 +57,16 @@ Nothing animates. No mount fades, stagger, count-up, bar grow-in, hex pop-in, or
 - Filter chips: active white chip moves instantly; page numbers stay locked. Needs-action red 6px dot is static.
 - Work chevron: default expanded; press toggles children and flips chevron instantly (no height/rotate tween). Measure/Account chevrons are static up (expanded).
 - Connect / Skip / Next / View full report / switcher collapse: press then no-op stub. Setup "2 of 4" never changes.
+
+## States
+
+Nothing animates. Pressed and selected treatments are the instant swaps already specified above and in the sidebar.
+
+- **Pressed:** rows and chips take a grey-100 fill (or one step darker than rest). Black pills (Connect, Next, Add funds) use opacity 0.85. Release reverts instantly. No scale, ripple, or hover style.
+- **Selected nav:** Overview is the white pill (radius 8, text 600). Other sidebar items are pressable, show the pressed state, and stay on Overview.
+- **Filter chips:** the active chip is the white chip. Page numbers stay locked. The Needs-action red 6px dot is static.
+- **Work chevron:** starts expanded; press toggles the children and flips the chevron instantly. Measure and Account chevrons stay up.
+- **Stubs:** Connect, Skip, Next, View full report, and the switcher collapse press, then no-op. Finish-setup "2 of 4" never changes.
 
 ## Sidebar (width 240, bg = page grey, no divider line to main)
 
@@ -241,7 +259,7 @@ From `Sidebar.tsx` profile row — what the code actually does:
 - **Border:** none — the avatar style sets no `borderWidth` / `borderColor`.
 - Beside it: name **Maria Bell** 13/600, subtitle **Plan & billing** 12 secondary, trailing `ellipsis-vertical` 16 muted.
 
-For a closed-network rebuild, ship an equivalent `assets/maria-bell.png` (or the same bytes) and `require` it the same way. Do not substitute initials unless you lack the asset and document that deviation.
+For an offline rebuild, ship an equivalent `assets/maria-bell.png` (or the same bytes) and `require` it the same way. Do not substitute initials unless you lack the asset and document that deviation.
 
 ## Main — header & filters
 
@@ -435,14 +453,14 @@ function hexSubpath(cx: number, cy: number, size: number) {
 - No `Math.random` at render time.
 - No Skia / CanvasKit / `LoadSkiaWeb`.
 - No dark mode / Appearance theme switch that changes the product chrome.
-- No new grok.me app.
+- No hosted deployment instructions.
 - No out-of-scope screens (Lumen, secondary analytics, Influencify, Cal.com).
 - Do not browse or fetch any website while building.
 - Do not depend on an on-disk source tree; this prompt is the sole SoT.
 
 ## Corrections vs earlier prompt drafts
 
-Fixed where prior wording contradicted SHA `5a7e3b30f316185e405f8a56817d1f6d297bbb22` code:
+Fixed where prior wording contradicted the Overview code:
 
 1. **Workspace mark colour** `#3B82F6` added to the palette block (was missing; only `tileBlue #3B6FD6` was listed).
 2. **Workspace switcher** is WorkspaceMark (blue tile + white rounded-rect glyph), not a photo/initials "avatar".
@@ -450,7 +468,20 @@ Fixed where prior wording contradicted SHA `5a7e3b30f316185e405f8a56817d1f6d297b
 4. **Collapse control** is custom Views, not an Ionicon.
 5. **Search** icon size is **15**, not 16.
 6. **Main panel** insets are 8 on all four sides (including left), not only top/right/bottom.
-7. Removed dependence on an on-disk reference tree; SHA is recorded for identity only; all rebuild values are inlined.
+7. Removed dependence on an on-disk reference tree; all rebuild values are inlined.
+
+## Gotchas
+
+Restated from Forbidden and from the corrections above. No new rules.
+
+- No animation, springs, fades, layout transitions, Reanimated, Skia, CanvasKit, or `LoadSkiaWeb`.
+- No hover menus, tooltips, or a dark-mode switch that changes the product chrome.
+- No invented values, extra KPIs, routes, or out-of-scope screens (Lumen, secondary analytics, Influencify, Cal.com).
+- No `Math.random` at render time. Do not browse or fetch any website while building. Do not depend on an on-disk source tree.
+- No hosted deployment instructions.
+- Workspace mark colour is `#3B82F6` (the palette also keeps `tileBlue #3B6FD6`). The switcher is WorkspaceMark, not a photo or initials.
+- Profile avatar is an `Image` of `assets/maria-bell.png`: 32×32 circle, grey-200 backdrop, no border, no initials.
+- Collapse control is custom Views, not an Ionicon. Search icon size is 15. Main panel inset is 8 on all four sides.
 
 ## Appendix A — full `src/theme.ts`
 
