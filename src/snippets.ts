@@ -119,16 +119,47 @@ export const SNIPPETS: Record<string, string> = {
   .t-dropdown { transition: none !important; }
 }`,
 
-  'confetti-burst': `:root {
-  --confetti-gravity: 1800;
-  --confetti-bounce: 0.35;
-  --confetti-spread: 46deg;
+  'confetti-burst': `@property --bit-x { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --bit-y { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --bit-r { syntax: "<number>"; inherits: false; initial-value: 0; }
+:root {
+  /* Vertical rise is 180ms cubic-bezier(0.22, 1, 0.36, 1), then the snap spring. Downward travel is clamped. */
+  --confetti-debounce: 80ms;
+  --confetti-x-ease: linear(0, 0.0087, 0.0338, 0.0736, 0.1262, 0.1899, 0.2625, 0.3423, 0.4272, 0.5155, 0.6053, 0.695, 0.783, 0.868, 0.9487, 1.0242, 1.0933, 1.1556, 1.2104, 1.2574, 1.2963, 1.3272, 1.35, 1.3651, 1.3727, 1.3734, 1.3676, 1.3559, 1.3389, 1.3175, 1.2922, 1.2639, 1.2332, 1.2008, 1.1675, 1.1339, 1.1005, 1.068, 1.0368, 1.0074, 0.9801, 0.9553, 0.9331, 0.9138, 0.8974, 0.8841, 0.8738, 0.8665, 0.862, 0.8602, 0.861, 0.8641, 0.8693, 0.8763, 0.885, 0.8949, 0.9059, 0.9177, 0.93, 0.9425, 0.9551, 0.9674, 0.9794, 0.9908, 1.0015, 1.0113, 1.0202, 1.0281, 1.0349, 1.0405, 1.045, 1.0484, 1.0507, 1.052, 1.0523, 1.0516, 1.0501, 1.0479, 1.045, 1.0415, 1.0377, 1.0334, 1.0289, 1.0243, 1.0196, 1.0149, 1.0103, 1.0059, 1.0018, 0.9979, 0.9944, 0.9912, 0.9884, 0.986, 0.9841, 0.9826, 0.9815, 0.9808, 0.9805, 0.9805, 0.9809, 0.9816, 0.9825, 0.9837, 0.985, 0.9866, 0.9882, 0.9899, 0.9916, 0.9934, 0.9951, 0.9968, 0.9984, 0.9999, 1.0013, 1.0026, 1.0037, 1.0047, 1.0055, 1.0062, 1.0067, 1.007, 1.0072, 1.0073, 1.0072, 1.0071, 1.0068, 1.0064, 1.0059, 1.0054, 1);
+  --confetti-y-ease: linear(0, 0.3625, 0.6245, 0.7896, 0.886, 0.9405, 0.9706, 0.9868, 0.9949, 0.9985, 0.9998, 1, 0.9947, 0.9719, 0.9328, 0.8791, 0.8129, 0.7362, 0.6513, 0.5602, 0.465, 0.3679, 0.2707, 0.1753, 0.0833, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0202, 0.0534, 0.0834, 0.1097, 0.1322, 0.1507, 0.1651, 0.1754, 0.1818, 0.1844, 0.1833, 0.179, 0.1717, 0.1617, 0.1494, 0.1351, 0.1194, 0.1026, 0.085, 0.0671, 0.0492, 0.0316, 0.0147, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.004, 0.0101, 0.0156, 0.0204, 0.0245, 0.0279, 0.0305, 0.0324, 0.0336, 0.034, 0.0338, 0.033, 0.0316, 0.0297, 0.0274, 0.0248, 0.0219, 0.0188, 0.0155, 0.0122, 0.0089, 0.0057, 0.0026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0008, 0.0019, 0.0029, 0.0038, 0.0046, 0.0052, 0.0056, 0.006, 0.0062, 0.0063, 0.0062, 0.0061, 0.0058, 0.0055, 0.005, 0.0046, 0.004, 0.0034, 0.0028, 0);
+  --confetti-spin-ease: linear(0, 0.044, 0.0869, 0.1289, 0.1699, 0.2099, 0.2489, 0.2869, 0.324, 0.36, 0.3951, 0.4291, 0.4622, 0.4943, 0.5254, 0.5556, 0.5847, 0.6128, 0.64, 0.6662, 0.6914, 0.7156, 0.7388, 0.761, 0.7822, 0.8025, 0.8217, 0.84, 0.8573, 0.8736, 0.8889, 0.9032, 0.9165, 0.9289, 0.9402, 0.9506, 0.96, 0.9684, 0.9758, 0.9822, 0.9877, 0.9921, 0.9956, 0.998, 0.9995, 1);
 }
-/* RN: Reanimated particles with gravity + floor bounce.
-   Web CSS cannot do this physics — keep the JS/Reanimated loop. */
-.t-confetti-piece { position: absolute; width: 6px; height: 8px; border-radius: 1px; }
+.t-confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 10px;
+  border-radius: 1.5px;
+  top: 83px;
+  left: calc(50% - 4px);
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  translate: calc(var(--bit-x) * var(--x) * 1px) calc(var(--bit-y) * var(--peak) * -1px);
+  rotate: calc(var(--bit-r) * var(--rot) * 1deg);
+}
+.t-confetti-piece.is-on {
+  opacity: 1;
+  animation:
+    bit-x 2080ms var(--confetti-x-ease) calc(var(--slot) * 18ms) both,
+    bit-y 2592ms var(--confetti-y-ease) calc(var(--slot) * 18ms) both,
+    bit-r 720ms var(--confetti-spin-ease) calc(var(--slot) * 18ms) both;
+}
+@keyframes bit-x { from { --bit-x: 0; } to { --bit-x: 1; } }
+@keyframes bit-y { from { --bit-y: 0; } to { --bit-y: 1; } }
+@keyframes bit-r { from { --bit-r: 0; } to { --bit-r: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .t-confetti-piece { display: none !important; }
+  .t-confetti-piece.is-on {
+    animation: none;
+    opacity: 1;
+    --bit-x: 1;
+    --bit-y: 0;
+    --bit-r: 1;
+  }
 }`,
 
   'modal-open-close': `:root {

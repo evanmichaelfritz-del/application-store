@@ -85,11 +85,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
     'Unused CSS: .col, .trigger.',
   ],
-  'confetti-burst': [
-    'Generic template prompt (5707 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col.',
-  ],
+  'confetti-burst': ['Phone widths are a known gap.'],
   'error-state-shake': [
     'Generic template prompt (4189 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
