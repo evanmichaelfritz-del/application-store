@@ -72,18 +72,14 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'The state list is partial (open/closed only).',
   ],
   'avatar-group-hover': [
-    'Generic template prompt (4720 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .is-hot, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
   ],
   'card-resize': [
     'Generic template prompt (3630 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
     'Smaller trigger label differs from live.',
   ],
   'card-stack-hover': [
-    'Generic template prompt (3937 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the hit target; the Copy keeps its fixed stage.',
   ],
   'confetti-burst': ['Phone widths are a known gap.'],
   'error-state-shake': [
@@ -111,8 +107,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'A second click within about 100 ms restarts the sampled curve, so the pose jumps; the end pose is the same.',
   ],
   'number-pop-in': [
-    'Generic template prompt (4523 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the digits; the Copy keeps its fixed stage.',
   ],
   'page-side-by-side': [
     'Generic template prompt (4289 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',

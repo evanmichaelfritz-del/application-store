@@ -15,17 +15,19 @@ export const SNIPPETS: Record<string, string> = {
   .t-resize { transition: none !important; }
 }`,
 
-  'number-pop-in': `:root {
-  --digit-dur: 500ms;
+  'number-pop-in': `@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+:root {
+  /* mass 4, damping 20, stiffness 280. Sampled at 60 stops over 3782ms. */
+  --digit-dur: 3782ms;
   --digit-stagger: 50ms;
-  --digit-blur: 2px;
-  --digit-tilt: 80deg;
-  --digit-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --digit-ease: linear(0, 0.1266, 0.4283, 0.7847, 1.0950, 1.2974, 1.3729, 1.3381, 1.2316, 1.0986, 0.9785, 0.8964, 0.8618, 0.8698, 0.9069, 0.9562, 1.0025, 1.0355, 1.0509, 1.0499, 1.0371, 1.0190, 1.0012, 0.9880, 0.9814, 0.9810, 0.9853, 0.9919, 0.9987, 1.0039, 1.0068, 1.0072, 1.0058, 1.0034, 1.0008, 0.9988, 0.9976, 0.9973, 0.9977, 0.9986, 0.9996, 1.0004, 1.0009, 1.0010, 1.0009, 1.0006, 1.0002, 0.9999, 0.9997, 0.9996, 0.9997, 0.9998, 0.9999, 1.0000, 1.0001, 1.0001, 1.0001, 1.0001, 1.0000, 1);
 }
 .t-digit {
   display: inline-block;
-  transform-origin: center bottom;
-  animation: t-digit-in var(--digit-dur) var(--digit-ease) both;
+  opacity: var(--p);
+  transform: perspective(400px) rotateX(calc((1 - var(--p)) * 80deg));
+  filter: blur(max(0px, calc((1 - var(--p)) * 2px)));
+  animation: digit-in var(--digit-dur) var(--digit-ease) both;
 }
 .t-digit:nth-child(2) { animation-delay: calc(var(--digit-stagger) * 1); }
 .t-digit:nth-child(3) { animation-delay: calc(var(--digit-stagger) * 2); }
@@ -34,12 +36,16 @@ export const SNIPPETS: Record<string, string> = {
 .t-digit:nth-child(6) { animation-delay: calc(var(--digit-stagger) * 5); }
 .t-digit:nth-child(7) { animation-delay: calc(var(--digit-stagger) * 6); }
 .t-digit:nth-child(8) { animation-delay: calc(var(--digit-stagger) * 7); }
-@keyframes t-digit-in {
-  from { transform: perspective(400px) rotateX(var(--digit-tilt)); opacity: 0; filter: blur(var(--digit-blur)); }
-  to { transform: perspective(400px) rotateX(0deg); opacity: 1; filter: blur(0); }
-}
+@keyframes digit-in { from { --p: 0; } to { --p: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .t-digit { animation: none !important; }
+  .t-digit {
+    animation: none;
+    animation-duration: 0ms;
+    --p: 1;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
 }`,
 
   'notification-badge': `@property --pop { syntax: "<number>"; inherits: false; initial-value: 0; }
@@ -274,31 +280,25 @@ export const SNIPPETS: Record<string, string> = {
 }`,
 
   'avatar-group-hover': `:root {
+  /* mass 4, damping 20, stiffness 280. The script steps this spring. */
   --avatar-lift: -8px;
-  --avatar-dur: 320ms;
-  --avatar-scale: 1.06;
+  --avatar-scale: 0.06;
   --avatar-falloff: 0.45;
-  --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
-  --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
+  --avatar-dur: 3782ms;
 }
-.t-avatar { transition: transform var(--avatar-dur) var(--avatar-ease-in); }
-.t-avatars:not(:hover) .t-avatar { transition-timing-function: var(--avatar-ease-out); }
 @media (prefers-reduced-motion: reduce) {
-  .t-avatar { transition: none !important; }
+  .disc { transition: none; animation-duration: 0ms; }
 }`,
 
   'card-stack-hover': `:root {
-  --stack-fan: 18px;
-  --stack-rot: 6deg;
-  --stack-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
-  --stack-dur: 420ms;
+  /* mass 1, damping 20, stiffness 280. The script steps this spring. */
+  --stack-dur: 984ms;
 }
-.t-stack-card { transition: transform var(--stack-dur) var(--stack-ease); }
-.t-stack.is-spread .t-stack-card:nth-child(1) { transform: translate(-28px, 10px) rotate(-8deg); }
-.t-stack.is-spread .t-stack-card:nth-child(2) { transform: translate(0, -6px) rotate(0deg); }
-.t-stack.is-spread .t-stack-card:nth-child(3) { transform: translate(28px, 10px) rotate(8deg); }
+.card:nth-child(1) { --x: -28px; --y: 10px; --r: -8deg; z-index: 1; }
+.card:nth-child(2) { --x: 0px; --y: -6px; --r: 0deg; z-index: 2; }
+.card:nth-child(3) { --x: 28px; --y: 10px; --r: 8deg; z-index: 3; }
 @media (prefers-reduced-motion: reduce) {
-  .t-stack-card { transition: none !important; }
+  .card { transition: none; animation-duration: 0ms; }
 }`,
 
   'error-state-shake': `:root {
