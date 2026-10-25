@@ -94,47 +94,87 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'notification-badge': {
     motion:
-      '`.t-badge` rests at `translate(var(--badge-offset-x), var(--badge-offset-y)) scale(0.4)` and opacity 0. `--badge-offset-x` is -8.2px and `--badge-offset-y` is 12.4px. Leaving `.is-on` uses `--badge-slide-dur: 260ms`. `.is-on` moves to `translate(0, 0) scale(1)` over `--badge-pop-dur: 500ms`. Opacity is 180ms on both.',
-    content: 'Count `1` on `#e23d2d`. Starts without `.is-on`. Click the bell toggles it.',
+      'Animate toggles the badge. Horizontal position, vertical position, and scale share one spring: mass 0.8, damping 12, stiffness 280. Opacity is a separate 180ms timing. The linear() is sampled from that spring.',
+    content:
+      'Count `1`. The bell is not a button. The Animate button toggles the badge. The badge starts off, at the lower-left of the bell, and nothing plays when the document loads.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The bell is centered.
+- Bell: 40px by 40px. Glyph 28px by 28px, stroke #0d0d0d, stroke-width 1.7px. The second path uses a round cap.
+- Badge: top -4px, right -4px, min-width 18px, height 18px, padding 0 4px, border-radius 9px, background #e23d2d, colour #fff, 10px, weight 600.
+- Off pose: translate -8.2px 12.4px, scale 0.4, opacity 0.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing: `The spring and the fade start together when Animate is pressed. There is no delay.
+
+- Position and scale: spring, mass 0.8, damping 12, stiffness 280. On, it runs from 0 to 1. Off, from a rest at 1 back to 0. The Copy plays that curve as linear() over 1242ms. The curve passes the target by about 25%, then settles. 1242ms is when the spring energy falls through its stop and the value snaps to the target.
+- Opacity: 180ms, cubic-bezier(0.22, 1, 0.36, 1), from 0 to 1 on the way in and from 1 to 0 on the way out. \`--badge-fade\` is 180ms.
+
+x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * progress.`,
+    reducedMotion:
+      'Reduced motion skips both curves. Turning the badge on places it at translate 0, scale 1, opacity 1. Turning it off returns the off pose. The duration is 0ms.',
     states: [
       {
         name: 'off',
-        trigger: 'a bell click that removes `.is-on`',
-        from: 'translate(0, 0) scale(1), opacity 1',
-        to: 'translate(-8.2px, 12.4px) scale(0.4), opacity 0',
-        duration: 'transform `--badge-slide-dur: 260ms`, opacity 180ms',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--badge-slide-ease`)',
+        trigger: 'Animate, while the badge is on and at rest',
+        from: 'translate 0, scale 1, opacity 1',
+        to: 'translate -8.2px 12.4px, scale 0.4, opacity 0',
+        duration: '1242ms spring, 180ms opacity',
+        easing: 'sampled linear(), opacity cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
       },
       {
         name: 'on',
-        trigger: 'a bell click that adds `.is-on`',
-        from: 'translate(-8.2px, 12.4px) scale(0.4), opacity 0',
-        to: 'translate(0, 0) scale(1), opacity 1',
-        duration: 'transform `--badge-pop-dur: 500ms`, opacity 180ms',
-        easing: 'cubic-bezier(0.34, 1.36, 0.64, 1) (`--badge-pop-ease`); opacity uses cubic-bezier(0.22, 1, 0.36, 1)',
+        trigger: 'Animate, while the badge is off',
+        from: 'translate -8.2px 12.4px, scale 0.4, opacity 0',
+        to: 'translate 0, scale 1, opacity 1',
+        duration: '1242ms spring, 180ms opacity',
+        easing: 'sampled linear(), opacity cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
       },
       {
-        name: 'badge',
-        trigger: '',
-        from: '',
-        to: 'min-width 18px, height 18px, padding 0 4px, border-radius 9px, background #e23d2d, color #fff, top -4px, right -4px',
+        name: 'hover',
+        trigger: 'pointer over Animate',
+        from: 'background rgba(243, 243, 243, 0.94), border rgba(0, 0, 0, 0.08)',
+        to: 'background #d9d9e2, border rgba(0, 0, 0, 0.35)',
         duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'pressed',
+        trigger: 'pointer down on Animate',
+        from: 'the hover paint',
+        to: 'background #b7b7c2, border rgba(0, 0, 0, 0.5)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the on pose or the off pose, with no travel',
+        duration: '0ms',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The count is the string `1`. The bell control is 40px by 40px, with no border and a transparent background. The glyph is 28px and the stroke is #0d0d0d.',
-      'Reduced motion sets the badge transition to none.',
+      'The bell does not toggle the badge. Only Animate does. The count is the string `1`.',
+      'Spring mass is 0.8, damping 12, stiffness 280. The linear() is sampled from that spring.',
+      'The spring progress peaks near 1.25, about 25% past the target, near 200ms. Scale peaks near 1.15. x peaks near 2px to the right of the rest point and y peaks above it. Opacity does not overshoot.',
+      'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
+      'A second click before the spring has rested retargets from the current value. The Copy restarts the sampled curve from the pose it encodes, which matches a toggle that starts at rest.',
     ],
     setup:
-      '`.t-badge` is position absolute, top -4px, right -4px, min-width 18px, height 18px, padding 0 4px, border-radius 9px, background #e23d2d, color #fff. The bell click toggles `.is-on`.',
+      'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Off is translate(-8.2px, 12.4px) scale(0.4) and opacity 0, over 260ms.',
-      'On is translate(0, 0) scale(1) and opacity 1, transform over 500ms, opacity over 180ms.',
-      'The badge is min-width 18px, height 18px, padding 0 4px, on #e23d2d.',
+      'Before Animate the badge is translate -8.2px 12.4px, scale 0.4, opacity 0. The count is `1` on #e23d2d.',
+      'The bell is 40px by 40px and the glyph is 28px, stroke #0d0d0d, stroke-width 1.7px. Clicking the bell does nothing.',
+      'On and off, position and scale use the mass 0.8, damping 12, stiffness 280 spring, played over 1242ms. Opacity is 180ms, cubic-bezier(0.22, 1, 0.36, 1).',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Animate is height 28px, right 10px, bottom 10px, label Animate.',
+      'Hover paints #d9d9e2. Pressed paints #b7b7c2.',
+      'Reduced motion jumps to the target pose and the duration is 0ms.',
     ],
   },
   'text-states-swap': {
@@ -485,38 +525,110 @@ const LOCKS: Record<string, PromptLock> = {
   },
   'success-check': {
     motion:
-      '`.t-check` runs `t-check-in` for `--check-opacity-dur: 500ms` with `--check-ease-out: cubic-bezier(0.22, 1, 0.36, 1)`. The from frame is opacity 0, `translateY(var(--check-y-amount)) rotate(var(--check-rotate-from)) scale(var(--check-scale-from))`. Those are 28px, 80deg, and 0.86. `.mark` draws `t-check-draw` for the same 500ms after `--check-draw-delay: 80ms`, from `stroke-dashoffset: var(--check-dash)` to 0. `--check-dash` is 28.',
+      'Animate toggles the check. One spring, mass 0.8, damping 12, stiffness 280, drives opacity, translateY, rotate, and scale. The dash follows that same spring after 80ms on the way in, and hides with a 120ms timing on the way out. The linear() is sampled from that spring.',
+    content:
+      'A green disc and a white check. The piece starts off, so the disc is not visible, and nothing plays when the document loads. The Animate button toggles it on, then off. The label stays Animate.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The badge is centered.
+- Badge box: 56px by 56px. The svg is 36px by 36px, viewBox 0 0 36 36.
+- Disc: circle cx 18, cy 18, r 16, fill #1f8a4c.
+- Check: path \`M11 18.5 L16 23.5 L25 13.5\`, stroke #fff, stroke-width 2.4px, round caps and joins, stroke-dasharray 28px.
+- Off pose: opacity 0, translateY 28px, rotate 80deg, scale 0.86. The dash offset is 28px.
+- On pose: opacity 1, translateY 0, rotate 0, scale 1. The dash offset is 0.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing: `Progress t is a spring, mass 0.8, damping 12, stiffness 280. On, t runs from 0 to 1. Off, from a rest at 1 back to 0. The Copy plays that curve as linear() over 1242ms. It passes the target by about 25%, then settles. 1242ms is when the spring energy falls through its stop and the value snaps to the target.
+
+- opacity = t, clamped to the 0 to 1 range when t travels past those ends.
+- translateY = (1 - t) * 28px.
+- rotate = (1 - t) * 80deg.
+- scale = 0.86 + t * 0.14.
+- Dash on: the same spring, delayed 80ms. stroke-dashoffset = (1 - dash) * 28px. \`--dash-delay\` is 80ms.
+- Dash off: 120ms, cubic-bezier(0.22, 1, 0.36, 1), from the drawn stroke back to offset 28px. \`--dash-hide\` is 120ms. That hide does not use the spring.`,
+    reducedMotion:
+      'Reduced motion skips the spring and the 120ms hide. Turning it on shows the disc, the full check, and the identity transform. Turning it off returns the off pose, including the hidden dash. The duration is 0ms.',
     states: [
       {
-        name: 'in',
-        trigger: 'paint, and Replay which removes `.t-check`, reads offsetWidth, and adds `.t-check`',
-        from: 'opacity 0, translateY(28px), rotate(80deg), scale(0.86)',
-        to: 'opacity 1, translateY(0), rotate(0), scale(1)',
-        duration: '500ms (`--check-opacity-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--check-ease-out`)',
+        name: 'off',
+        trigger: 'Animate, while the check is on and at rest',
+        from: 'opacity 1, translateY 0, rotate 0, scale 1',
+        to: 'opacity 0, translateY 28px, rotate 80deg, scale 0.86',
+        duration: '1242ms',
+        easing: 'sampled linear()',
+        delay: '',
+      },
+      {
+        name: 'on',
+        trigger: 'Animate, while the check is off',
+        from: 'opacity 0, translateY 28px, rotate 80deg, scale 0.86',
+        to: 'opacity 1, translateY 0, rotate 0, scale 1',
+        duration: '1242ms',
+        easing: 'sampled linear()',
         delay: '',
       },
       {
         name: 'draw',
-        trigger: 'the same `.t-check` paint, on `.mark`',
-        from: 'stroke-dashoffset var(--check-dash), `--check-dash` 28',
+        trigger: 'the same Animate that turns the check on',
+        from: 'stroke-dashoffset 28px',
         to: 'stroke-dashoffset 0',
-        duration: '500ms (`--check-opacity-dur`)',
+        duration: '1242ms',
+        easing: 'sampled linear()',
+        delay: '80ms',
+      },
+      {
+        name: 'hide',
+        trigger: 'the same Animate that turns the check off',
+        from: 'stroke-dashoffset 0',
+        to: 'stroke-dashoffset 28px',
+        duration: '120ms',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        delay: '80ms (`--check-draw-delay`)',
+        delay: '',
+      },
+      {
+        name: 'hover',
+        trigger: 'pointer over Animate',
+        from: 'background rgba(243, 243, 243, 0.94), border rgba(0, 0, 0, 0.08)',
+        to: 'background #d9d9e2, border rgba(0, 0, 0, 0.35)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'pressed',
+        trigger: 'pointer down on Animate',
+        from: 'the hover paint',
+        to: 'background #b7b7c2, border rgba(0, 0, 0, 0.5)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the on pose or the off pose, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
       },
     ],
     gotchas: [
-      'The disc is circle cx 18, cy 18, r 16, fill #1f8a4c. The stroke is #fff, stroke-width 2.4, path `M11 18.5 L16 23.5 L25 13.5`.',
-      'Reduced motion sets the `.t-check` animation to none.',
-      'Replay restarts the animation by removing and re-adding `.t-check`. There is no separate hide duration.',
+      'The label is Animate. It toggles. It does not replay a one-way entrance, and the piece does not play when the document loads.',
+      'Spring mass is 0.8, damping 12, stiffness 280. The linear() is sampled from that spring.',
+      'On the way in, t peaks near 1.25. translateY peaks near 7px above the rest line, rotate peaks near 20deg past 0, and scale peaks near 1.035. Opacity clamps at 1 during that overshoot, then shows the later dip under 1. The dash uses the same overshoot, so the offset goes negative before it settles.',
+      'On the way out the dash does not spring. It is a 120ms cubic-bezier(0.22, 1, 0.36, 1) back to offset 28px.',
+      'The button is 10px from the stage padding edge. The stage border is 1px, so the button sits 11px from the outer edge.',
+      'A second click within about 100 ms restarts the sampled curve from its start, so the pose jumps instead of continuing from its current value like the original; the end pose is the same.',
     ],
     setup:
-      'The svg is `.t-check`, 36 by 36, viewBox 0 0 36 36. Fill is #1f8a4c. `--check-y-amount` is 28px, `--check-rotate-from` is 80deg, `--check-scale-from` is 0.86, `--check-dash` is 28, and `--check-draw-delay` is 80ms.',
+      'Mount the HTML, the CSS, and the script in one document. The script toggles `.is-on` and `.is-off` on Animate and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The badge enters over 500ms from translateY 28px, rotate 80deg, and scale 0.86.',
-      'The dash is 28 and waits 80ms, then draws over the same 500ms.',
-      'The disc is #1f8a4c and the stroke is #fff.',
+      'Before Animate the disc is not visible. The off pose is opacity 0, translateY 28px, rotate 80deg, scale 0.86, dash offset 28px.',
+      'Animate toggles on, then off. The label is Animate.',
+      'Opacity, translateY, rotate, and scale follow the mass 0.8, damping 12, stiffness 280 spring, played over 1242ms.',
+      'The dash waits 80ms, then uses that spring. Turning off hides the dash in 120ms with cubic-bezier(0.22, 1, 0.36, 1).',
+      'The disc is #1f8a4c, 36px, inside a 56px box. The stroke is #fff at 2.4px. The stage is 289px by 200px, radius 14px, background #f9f9f9.',
+      'Hover paints #d9d9e2. Pressed paints #b7b7c2. Reduced motion jumps and the duration is 0ms.',
     ],
   },
   'avatar-group-hover': {
@@ -1493,7 +1605,7 @@ const COPY_PROMPT_IDS = new Set([
 ]);
 
 /** Generic cards on the canonical section order. Grows one batch at a time. */
-export const CANONICAL_IDS = new Set<string>(['modal-open-close', 'confetti-burst']);
+export const CANONICAL_IDS = new Set<string>(['modal-open-close', 'confetti-burst', 'notification-badge', 'success-check']);
 
 function buildPrompt(id: string): string {
   if (FULL_PROMPTS[id]) return FULL_PROMPTS[id]();

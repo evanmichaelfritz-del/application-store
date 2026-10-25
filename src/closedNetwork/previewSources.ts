@@ -137,26 +137,47 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'notification-badge': {
-    html: `<button class="bell" type="button" id="bell" aria-label="Notifications">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="1.7">
-    <path d="M6 9a6 6 0 1 1 12 0c0 3.2.8 4.8 1.6 6H4.4C5.2 13.8 6 12.2 6 9Z"/>
-    <path d="M10 18a2 2 0 0 0 4 0" stroke-linecap="round"/>
-  </svg>
-  <span class="t-badge" id="badge">1</span>
-</button>`,
-    extraCss: `.bell {
-  appearance: none; position: relative; width: 40px; height: 40px; padding: 0;
-  border: 0; background: transparent; cursor: pointer; display: grid; place-items: center;
+    html: `<div class="stage">
+  <div class="bell">
+    <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 9a6 6 0 1 1 12 0c0 3.2.8 4.8 1.6 6H4.4C5.2 13.8 6 12.2 6 9Z"/>
+      <path d="M10 18a2 2 0 0 0 4 0"/>
+    </svg>
+    <span class="t-badge" id="badge">1</span>
+  </div>
+  <button class="animate" type="button" id="animate">Animate</button>
+</div>`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
+.bell { position: relative; width: 40px; height: 40px; display: grid; place-items: center; }
+.glyph { width: 28px; height: 28px; }
+.glyph path { fill: none; stroke: #0d0d0d; stroke-width: 1.7px; }
+.glyph path + path { stroke-linecap: round; }
 .t-badge {
   position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
   padding: 0 4px; border-radius: 9px; background: #e23d2d; color: #fff;
-  font-size: 10px; font-weight: 600; display: grid; place-items: center;
-}`,
+  font: 600 10px/18px Inter, system-ui, sans-serif; display: grid; place-items: center;
+}
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var on = false;
   var badge = document.getElementById('badge');
-  document.getElementById('bell').addEventListener('click', function () {
-    badge.classList.toggle('is-on');
+  document.getElementById('animate').addEventListener('click', function () {
+    on = !on;
+    badge.classList.toggle('is-on', on);
+    badge.classList.toggle('is-off', !on);
+    if (reduce) badge.style.animationDuration = '0ms';
   });
 })();`,
   },
@@ -429,19 +450,50 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'success-check': {
-    html: `<div class="col">
-  <svg class="t-check" id="check" width="36" height="36" viewBox="0 0 36 36" aria-label="Success">
-    <circle cx="18" cy="18" r="16" fill="#1f8a4c"/>
-    <path class="mark" d="M11 18.5 L16 23.5 L25 13.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  <button class="trigger" type="button" id="replay">Replay</button>
+    html: `<div class="stage">
+  <div class="mark" id="mark">
+    <div class="badge">
+      <svg class="disc" viewBox="0 0 36 36" aria-hidden="true">
+        <circle cx="18" cy="18" r="16"/>
+        <path d="M11 18.5 L16 23.5 L25 13.5"/>
+      </svg>
+    </div>
+  </div>
+  <button class="animate" type="button" id="animate">Animate</button>
 </div>`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.mark {
+  opacity: var(--t);
+  transform: translateY(calc((1 - var(--t)) * 28px)) rotate(calc((1 - var(--t)) * 80deg)) scale(calc(0.86 + var(--t) * 0.14));
+}
+.badge { width: 56px; height: 56px; display: grid; place-items: center; }
+.disc { width: 36px; height: 36px; }
+.disc circle { fill: #1f8a4c; }
+.disc path {
+  fill: none; stroke: #fff; stroke-width: 2.4px; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 28px; stroke-dashoffset: calc((1 - var(--dash)) * 28px);
+}
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
-  var check = document.getElementById('check');
-  document.getElementById('replay').addEventListener('click', function () {
-    check.classList.remove('t-check');
-    void check.offsetWidth;
-    check.classList.add('t-check');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var on = false;
+  var mark = document.getElementById('mark');
+  document.getElementById('animate').addEventListener('click', function () {
+    on = !on;
+    mark.classList.toggle('is-on', on);
+    mark.classList.toggle('is-off', !on);
+    if (reduce) mark.style.animationDuration = '0ms';
   });
 })();`,
   },
