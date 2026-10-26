@@ -608,6 +608,7 @@ const SOURCES: Record<string, Source> = {
     player.onfinish = function () {
       input.style.animation = '';
       input.style.transform = '';
+      player.cancel();
     };
   }
   document.getElementById('validate').addEventListener('click', function () {
@@ -623,11 +624,13 @@ const SOURCES: Record<string, Source> = {
     msg.hidden = false;
     input.classList.add('is-error');
     var x = readX();
-    var running = input.getAnimations().some(function (anim) { return anim.playState === 'running'; });
+    var anims = input.getAnimations();
+    var running = anims.some(function (anim) { return anim.playState === 'running'; });
     if (running && Math.abs(x) > 0.5) {
       playFrom(x);
       return;
     }
+    anims.forEach(function (anim) { anim.cancel(); });
     input.style.animation = '';
     input.style.transform = '';
     input.classList.remove('is-error');
