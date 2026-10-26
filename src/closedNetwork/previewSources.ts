@@ -580,10 +580,10 @@ const SOURCES: Record<string, Source> = {
   </label>
   <button class="trigger" type="button" id="validate">Submit</button>
 </div>`,
-    extraCss: `.field { display: flex; flex-direction: column; gap: 6px; width: 220px; }
-.t-shake { height: 38px; border-radius: 10px; border: 1px solid rgba(0,0,0,.1); padding: 0 10px; font: 400 13px Inter, system-ui, sans-serif; }
+    extraCss: `.field { position: relative; display: block; width: 220px; padding-bottom: 20px; }
+.t-shake { display: block; width: 100%; height: 38px; border-radius: 10px; border: 1px solid rgba(0,0,0,.1); padding: 0 10px; font: 400 13px Inter, system-ui, sans-serif; }
 .t-shake.is-error { border-color: #c43a31; }
-.msg { color: #c43a31; font-size: 11px; }`,
+.msg { position: absolute; left: 0; top: calc(38px + 6px); height: 14px; line-height: 14px; margin: 0; color: #c43a31; font-size: 11px; }`,
     script: `(function () {
   var input = document.getElementById('email');
   var msg = document.getElementById('msg');

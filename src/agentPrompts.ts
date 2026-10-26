@@ -879,9 +879,9 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     content:
       'The field starts as `hello@`. Submit checks the address. A miss shows `Please enter a valid email.` and shakes the field. A match clears the message and the red border.',
     geometry: `- Ground: background #f9f9f9. The column is centered, gap 18px.
-- Field: width 220px, gap 6px.
+- Field: width 220px. A 20px slot stays under the input, so the column height does not change.
 - Input: height 38px, border-radius 10px, border 1px solid rgba(0,0,0,.1), padding 0 10px, font 400 13px. The error border is #c43a31.
-- Message: 11px, colour #c43a31. The string is \`Please enter a valid email.\` It stays hidden until a miss.
+- Message: position absolute, 6px under the input, line-height 14px, 11px, colour #c43a31. The string is \`Please enter a valid email.\` It stays hidden until a miss.
 - Submit: height 32px, padding 0 12px, border-radius 8px, border 1px solid rgba(0,0,0,.08), background #fff, colour #17181c, 13px, weight 500. The label is Submit.
 - Shake: \`--shake-distance\` is 7px. The 60% frame is translateX(4.2px). The 80% frame is translateX(-2.45px).`,
     timing:
@@ -910,11 +910,11 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     ],
     gotchas: [
       'The script removes `.is-error`, reads offsetWidth, then adds `.is-error` so the animation restarts.',
-      'The field is height 38px, border-radius 10px, padding 0 10px. The message is 11px and colour #c43a31. The button label is Submit.',
+      'The input is height 38px, border-radius 10px, padding 0 10px. The message is absolute, 6px under the input, on a 14px line, inside the 20px slot. It is 11px and colour #c43a31. The button label is Submit.',
       'Reduced motion sets `.t-shake.is-error` animation to none. The error border and message still show.',
     ],
     setup:
-      'Mount the HTML, the CSS, and the script in one document. The input starts at `hello@`. Submit tests `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`. A miss shows `Please enter a valid email.` and adds `.is-error`. There is no install step and no run command.',
+      'Mount the HTML, the CSS, and the script in one document. The input starts at `hello@`. The error line is absolute, 6px under the input, on a 14px line, inside the reserved 20px slot. Submit tests `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`. A miss shows `Please enter a valid email.` and adds `.is-error`. There is no install step and no run command.',
     knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'The field starts as `hello@`. An invalid Submit shows `Please enter a valid email.` and sets border-color #c43a31.',
