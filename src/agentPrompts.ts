@@ -265,49 +265,61 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
   },
   'menu-dropdown': {
     motion:
-      '`.t-dropdown` starts at `scale(var(--dropdown-pre-scale))` and opacity 0. `--dropdown-pre-scale` and `--dropdown-closing-scale` are 0.94. `.is-open` scales to 1 and fades to opacity 1 over `--dropdown-open-dur: 180ms`. `.is-closing` returns to scale 0.94 over `--dropdown-close-dur: 180ms`. Easing is `--dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1)`. Origin is `var(--dropdown-origin, top left)`.',
-    content: 'Trigger reads `Open menu` / `Close menu`. Items: `New file` / `Add image` / `New folder`. Starts closed.',
+      'The menu scales from 0.94 to 1 and fades from opacity 0 to 1 over 180ms with cubic-bezier(0.22, 1, 0.36, 1). The origin is top left. Close is the same ease back. An item press closes it.',
+    content:
+      'The trigger reads `Open menu` while closed and `Close menu` while open. The items read `New file`, `Add image`, and `New folder`. It starts closed.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The column is centered.
+- Column: min-width 160px, items aligned to the start.
+- Trigger: height 34px, padding 0 12px, border-radius 10px, background #ffffff, colour #0d0d0d, 13px, weight 500. Shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).
+- Menu: width 160px, margin-top 8px, padding 6px, border-radius 12px, background #ffffff, the same shadow. Origin is the top left. Closed scale is 0.94 and opacity is 0.
+- Item: height 32px, padding 0 8px, border-radius 8px, colour #0d0d0d, 13px, weight 400. No hover colour.`,
+    timing: `Open and close are both 180ms, cubic-bezier(0.22, 1, 0.36, 1), on opacity and on scale together. Scale is 0.94 when closed and 1 when open. A second click or Enter starts a new 180ms ease from the current opacity and scale. Reduced motion snaps. The duration is 0ms.`,
+    reducedMotion: 'Reduced motion snaps the menu open or closed. The duration is 0ms.',
     states: [
       {
         name: 'closed',
-        trigger: 'the trigger click while open',
-        from: 'scale 1, opacity 1',
-        to: 'scale(0.94), opacity 0, class `is-closing`',
-        duration: '180ms (`--dropdown-close-dur`)',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1) (`--dropdown-ease`)',
-        delay: '',
-      },
-      {
-        name: 'open',
-        trigger: 'the trigger click while closed',
-        from: 'scale(0.94), opacity 0',
-        to: 'scale 1, opacity 1, class `is-open`',
-        duration: '180ms (`--dropdown-open-dur`)',
+        trigger: 'a click or Enter on the trigger while open, or a click or Enter on an item',
+        from: 'opacity 1, scale 1',
+        to: 'opacity 0, scale 0.94, pointer-events none',
+        duration: '180ms',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
       },
       {
-        name: 'menu',
-        trigger: '',
-        from: '',
-        to: 'top 40px, left 0, min-width 168px, border-radius 12px, padding 6px, background #fff',
-        duration: '',
+        name: 'open',
+        trigger: 'a click or Enter on the trigger while closed',
+        from: 'opacity 0, scale 0.94',
+        to: 'opacity 1, scale 1, pointer-events auto, width 160px',
+        duration: '180ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click or Enter',
+        to: 'the open or closed pose, with no travel',
+        duration: '0ms',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'transform-origin is `var(--dropdown-origin, top left)`. Item buttons are padding 8px 10px, border-radius 8px, and font 13px. Hover background is #f3f3f3.',
-      'The trigger label is `Open menu` while closed and `Close menu` while open. `aria-expanded` follows that flag.',
-      'The item buttons have no click listener. Only the trigger toggles the menu. Close removes `.is-open`, adds `.is-closing`, then removes `.is-closing` after `reduce ? 0 : 180`.',
-      'Reduced motion sets the transition to none.',
+      'Enter on the trigger toggles the menu. Enter on an item closes it. Space does not. The trigger and the items are in the tab order. They have no role. The accessible name is the label.',
+      'An item press closes the menu. The items have no hover colour. They scale together from the top left. There is no stagger.',
+      'Pointer events are none while the menu is closed, including through the close fade, and auto as soon as the open starts. The label changes on the click.',
+      'An outside click does not close the menu. Only the trigger or an item press does.',
+      'The open and the close are the same 180ms ease. The close eases out from opacity 1. Both are at rest by 200ms. On a rapid second click, for example a close about 80ms into an open, the animation turns around immediately from the current opacity and scale.',
     ],
     setup:
-      '`.t-dropdown` is position absolute, top 40px, left 0, min-width 168px, background #fff, border-radius 12px, padding 6px. The trigger click toggles `.is-open` and `.is-closing` and the label.',
+      'Mount the HTML, the CSS, and the script in one document. The script toggles the menu and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Closed scale is 0.94 and opacity is 0.',
-      'Open and close are both 180ms with cubic-bezier(0.22, 1, 0.36, 1).',
-      'Items are `New file`, `Add image`, and `New folder`. Only the trigger toggles the menu.',
+      'The trigger reads Open menu, then Close menu. The items are New file, Add image, and New folder.',
+      'The menu is 160px wide, 8px below the trigger, radius 12px, padding 6px. Each item is 32px tall. There is no item hover colour.',
+      'Open and close are 180ms, cubic-bezier(0.22, 1, 0.36, 1), from scale 0.94 at the top left. An item press closes the menu.',
+      'Enter toggles the trigger and Enter on an item closes. Space does not.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'confetti-burst': {
@@ -1290,47 +1302,87 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'tooltip-open-close': {
     motion:
-      '`.tip-wrap` is padding-top 40px. `.t-tt` is position absolute, top 0, and `left: var(--tt-x, 0px)`. It starts at `scale(var(--tt-scale))` and opacity 0. `--tt-scale` is 0.98. `.is-on` scales to 1 and fades to opacity 1 over `--tt-in-dur: 180ms` after `--tt-delay: 400ms`, easing `--tt-in-ease: ease-out`. `.is-off` sets transition-duration to `--tt-out-dur: 0ms` and transition-delay to 0ms. The script writes `--tt-x` as `(slot * 44) + \'px\'`. `--tt-slot` is 44px.',
+      'The bubble waits 400ms, then fades and scales from 0.98 to 1 over 180ms with cubic-bezier(0.22, 1, 0.36, 1). Leaving snaps it off. The slot x is a spring of mass 1, damping 20, stiffness 280, and it starts on the enter.',
+    content:
+      'Three hits read `Aa`, `↗`, and `···`. The bubble reads `Edit`, `Share`, or `More`. It starts hidden, over the first hit, reading Edit.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The row is centered.
+- Hit: 36px by 36px, border-radius 10px, border 1px solid rgba(0, 0, 0, 0.06), background #ffffff, colour #0d0d0d, 13px, weight 500. The row gap is 8px.
+- Bubble: top -36px, left 0, height 28px, min-width 36px, padding 0 8px, border-radius 8px, background #ffffff, colour #2f2f2f, 12px, weight 500. Shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).
+- Rests: Edit at translateX 0px, Share at 44px, More at 88px. Closed scale is 0.98.`,
+    timing: `Opacity and scale wait 400ms, then run 180ms with cubic-bezier(0.22, 1, 0.36, 1), from scale 0.98 to 1. Leaving sets the duration and the delay to 0ms, so the bubble snaps off.
+
+The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that spring from the current position. A 44px travel and an 88px travel come within half a pixel of the rest. Those are the visible settles. The step does not snap there. Each step uses the closed form and caps the interval at 64ms.
+
+- Edit rests at 0px. Share rests at 44px. More rests at 88px.
+- The spring starts when the pointer enters a hit. The fade waits 400ms.
+- Velocity is kept when it already points at the new rest. Velocity that points away is dropped.
+- Reduced motion snaps the slot and the fade. The duration is 0ms and the delay is 0ms.`,
+    reducedMotion:
+      'Reduced motion snaps the bubble on or off and snaps the slot onto the hit. The duration is 0ms and the delay is 0ms. There is no travel.',
     states: [
       {
-        name: 'anchor',
-        trigger: '',
+        name: 'hidden',
+        trigger: 'the document loads',
         from: '',
-        to: '.tip-wrap padding-top: 40px. .t-tt position absolute, top: 0, left: var(--tt-x, 0px), height 28px, padding 0 8px',
+        to: 'opacity 0, scale 0.98, translateX 0px, label Edit, bubble top -36px',
         duration: '',
         easing: '',
         delay: '',
       },
       {
         name: 'show',
-        trigger: 'mouseenter or focus, which adds `.is-on` and sets `--tt-x` to (slot * 44) + px',
-        from: 'scale(var(--tt-scale)) 0.98, opacity 0',
-        to: 'scale 1, opacity 1, label Edit, Share, or More',
-        duration: '180ms (`--tt-in-dur`)',
-        easing: 'ease-out (`--tt-in-ease`)',
-        delay: '400ms (`--tt-delay`)',
+        trigger: 'the pointer enters a hit',
+        from: 'opacity 0, scale 0.98',
+        to: 'opacity 1, scale 1, label Edit, Share, or More',
+        duration: '180ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '400ms',
       },
       {
         name: 'hide',
-        trigger: 'mouseleave or blur, which adds `.is-off`',
-        from: 'opacity 1, class `is-on`',
-        to: 'opacity 0',
-        duration: '0ms (`--tt-out-dur`)',
+        trigger: 'the pointer leaves a hit',
+        from: 'the current opacity and scale',
+        to: 'opacity 0, scale 0.98',
+        duration: '0ms',
+        easing: '',
+        delay: '0ms',
+      },
+      {
+        name: 'slot',
+        trigger: 'the pointer enters a hit',
+        from: 'the current translateX',
+        to: 'translateX 0px, 44px, or 88px',
+        duration: 'visible settle on 44px and on 88px',
+        easing: 'spring, mass 1, damping 20, stiffness 280, step cap 64ms',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the pointer enter or leave',
+        to: 'the hit rest, opacity 1 or 0, with no travel',
+        duration: '0ms',
         easing: '',
         delay: '0ms',
       },
     ],
     gotchas: [
-      'The slot step is `--tt-slot: 44px`. The script multiplies the data-slot by 44 and appends the string px.',
-      'The bubble is border-radius 8px, background #fff, colour #2f2f2f, font-size 12px. Each button is 36px by 36px, border-radius 10px, and the row gap is 8px.',
-      'Reduced motion sets the `.t-tt` transition to none.',
+      'The hits are 8px apart. Moving from one to the next leaves the first, so the bubble snaps off, then enters the next, so the 400ms delay starts over. The slot spring starts on that enter, while the bubble is still transparent.',
+      'Velocity that points away from the new rest is dropped. Velocity toward the new rest is kept. On a 44px travel the overshoot is about 4.2px. On an 88px travel the overshoot is about 8.5px. The visible settle is about 370ms on 44px and 536ms on 88px. The step does not snap there.',
+      'A retarget can change the slot position by a few px between two frames, then it converges in about 3 frames.',
+      'The fade is opacity 0.805 at 450ms and 0.976 at 500ms. It is at 1 by 580ms.',
+      'Leaving during the fade snaps opacity to 0 and scale to 0.98. Coming back restarts the 400ms delay. It does not resume the fade. A click while the pointer stays on a hit does not hide the bubble.',
+      'Enter and Space do not show the bubble. The hits are in the tab order and have no role. The accessible name is the glyph.',
     ],
     setup:
-      '`.tip-wrap` has padding-top 40px. `.t-tt` is top 0 and `left: var(--tt-x, 0px)`. Triggers are Aa/Edit, ↗/Share, and ···/More with data-slot 0, 1, and 2. `--tt-in-dur` is 180ms, `--tt-delay` is 400ms, and `--tt-out-dur` is 0ms.',
+      'Mount the HTML, the CSS, and the script in one document. The script steps the slot spring and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The bubble sits in padding-top 40px, at top 0, with left var(--tt-x, 0px).',
-      'Showing waits 400ms, then runs 180ms from scale 0.98 to 1.',
-      'Leaving sets the transition duration to 0ms.',
+      'The hits read Aa, ↗, and ···. The bubble reads Edit, Share, or More, and it starts hidden on Edit.',
+      'Each hit is 36px, the gap is 8px, and the rests are 0px, 44px, and 88px. The bubble is top -36px, height 28px, scale 0.98 when hidden.',
+      'Showing waits 400ms, then runs 180ms with cubic-bezier(0.22, 1, 0.36, 1). Leaving snaps off in 0ms.',
+      'The slot spring is mass 1, damping 20, stiffness 280. A 44px travel is within half a pixel by about 370ms. An 88px travel is within half a pixel by 536ms. Opposing velocity is dropped.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'tilt-3d': {
@@ -1831,6 +1883,8 @@ export const CANONICAL_IDS = new Set<string>([
   'tabs-sliding',
   'texts-reveal',
   'input-clear-dissolve',
+  'menu-dropdown',
+  'tooltip-open-close',
 ]);
 
 function buildPrompt(id: string): string {
