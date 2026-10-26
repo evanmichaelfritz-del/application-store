@@ -587,14 +587,49 @@ const SOURCES: Record<string, Source> = {
     script: `(function () {
   var input = document.getElementById('email');
   var msg = document.getElementById('msg');
+  function readX() {
+    var t = getComputedStyle(input).transform;
+    if (!t || t === 'none') return 0;
+    return new DOMMatrix(t).m41;
+  }
+  function playFrom(x) {
+    input.getAnimations().forEach(function (anim) { anim.cancel(); });
+    input.style.animation = 'none';
+    var ease = getComputedStyle(input).getPropertyValue('--shake-ease').trim();
+    var dur = parseFloat(getComputedStyle(input).getPropertyValue('--shake-dur'));
+    var player = input.animate([
+      { transform: 'translateX(' + x.toFixed(2) + 'px)', easing: ease },
+      { transform: 'translateX(7px)', offset: 0.2, easing: ease },
+      { transform: 'translateX(-7px)', offset: 0.4, easing: ease },
+      { transform: 'translateX(4.2px)', offset: 0.6, easing: ease },
+      { transform: 'translateX(-2.45px)', offset: 0.8, easing: ease },
+      { transform: 'translateX(0px)' }
+    ], { duration: dur, fill: 'forwards' });
+    player.onfinish = function () {
+      input.style.animation = '';
+      input.style.transform = '';
+    };
+  }
   document.getElementById('validate').addEventListener('click', function () {
     var valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.value);
     if (valid) {
+      input.getAnimations().forEach(function (anim) { anim.cancel(); });
+      input.style.animation = '';
+      input.style.transform = '';
       input.classList.remove('is-error');
       msg.hidden = true;
       return;
     }
     msg.hidden = false;
+    input.classList.add('is-error');
+    var x = readX();
+    var running = input.getAnimations().some(function (anim) { return anim.playState === 'running'; });
+    if (running && Math.abs(x) > 0.5) {
+      playFrom(x);
+      return;
+    }
+    input.style.animation = '';
+    input.style.transform = '';
     input.classList.remove('is-error');
     void input.offsetWidth;
     input.classList.add('is-error');

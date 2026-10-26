@@ -291,7 +291,7 @@ export const SNIPPETS: Record<string, string> = {
 
   'error-state-shake': `:root {
   --shake-distance: 7px;
-  --shake-dur: 400ms;
+  --shake-dur: 417ms;
   --shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 .t-shake.is-error { animation: t-shake var(--shake-dur) var(--shake-ease); }
@@ -324,7 +324,7 @@ export const SNIPPETS: Record<string, string> = {
   'skeleton-reveal': `@property --reveal { syntax: "<number>"; inherits: true; initial-value: 0; }
 @property --pulse { syntax: "<number>"; inherits: true; initial-value: 1; }
 :root {
-  --pulse-dur: 1000ms;
+  --pulse-dur: 1010ms;
   --reveal-dur: 250ms;
   --reveal-blur: 2px;
   --reveal-ease: ease-in-out;
@@ -335,7 +335,7 @@ export const SNIPPETS: Record<string, string> = {
   --pulse: 1;
   opacity: calc((1 - var(--reveal)) * var(--pulse));
   filter: blur(calc(var(--reveal) * var(--reveal-blur)));
-  animation: t-pulse var(--pulse-dur) linear infinite alternate;
+  animation: t-pulse var(--pulse-dur) ease-in-out infinite alternate;
 }
 .row.is-loaded .bones { animation: none; --pulse: 1; }
 .loaded {

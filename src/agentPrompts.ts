@@ -875,7 +875,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'error-state-shake': {
     motion:
-      'An invalid Submit plays a 400ms shake on cubic-bezier(0.36, 0.07, 0.19, 0.97). The field moves 7px, then the negative of that distance, then 4.2px, then -2.45px, then back to rest. The border becomes #c43a31.',
+      'An invalid Submit plays a 417ms shake on cubic-bezier(0.36, 0.07, 0.19, 0.97). The field moves 7px, then the negative of that distance, then 4.2px, then -2.45px, then back to rest. The border becomes #c43a31.',
     content:
       'The field starts as `hello@`. Submit checks the address. A miss shows `Please enter a valid email.` and shakes the field. A match clears the message and the red border.',
     geometry: `- Ground: background #f9f9f9. The column is centered, gap 18px.
@@ -885,7 +885,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
 - Submit: height 32px, padding 0 12px, border-radius 8px, border 1px solid rgba(0,0,0,.08), background #fff, colour #17181c, 13px, weight 500. The label is Submit.
 - Shake: \`--shake-distance\` is 7px. The 60% frame is translateX(4.2px). The 80% frame is translateX(-2.45px).`,
     timing:
-      'The shake runs 400ms, cubic-bezier(0.36, 0.07, 0.19, 0.97). `--shake-dur` is 400ms and `--shake-ease` is cubic-bezier(0.36, 0.07, 0.19, 0.97). Frames are 0%, 20% at 7px, 40% at the negative of that distance, 60% at 4.2px, 80% at -2.45px, and 100% at rest. A second invalid Submit restarts the animation. Reduced motion keeps the error and does not shake.',
+      'The shake runs 417ms, cubic-bezier(0.36, 0.07, 0.19, 0.97). `--shake-dur` is 417ms and `--shake-ease` is cubic-bezier(0.36, 0.07, 0.19, 0.97). Frames are 0%, 20% at 7px, 40% at the negative of that distance, 60% at 4.2px, 80% at -2.45px, and 100% at rest. A second invalid Submit while the field is still moving continues from the current translateX. Reduced motion keeps the error and does not shake.',
     reducedMotion:
       'Reduced motion sets the shake animation to none. The error border and the message still show.',
     states: [
@@ -903,13 +903,13 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
         trigger: 'Submit when that pattern fails',
         from: 'translateX 0',
         to: 'translateX(7px), then the negative of that distance, then translateX(4.2px), then translateX(-2.45px), then translateX 0',
-        duration: '400ms (`--shake-dur`)',
+        duration: '417ms (`--shake-dur`)',
         easing: 'cubic-bezier(0.36, 0.07, 0.19, 0.97) (`--shake-ease`)',
         delay: '',
       },
     ],
     gotchas: [
-      'The script removes `.is-error`, reads offsetWidth, then adds `.is-error` so the animation restarts.',
+      'A second invalid Submit while the shake is running reads the current translateX and plays the 417ms shake from that offset. Once the shake has finished, the script removes `.is-error`, reads offsetWidth, and adds `.is-error` so it plays again from translateX 0.',
       'The input is height 38px, border-radius 10px, padding 0 10px. The message is absolute, 6px under the input, on a 14px line, inside the 20px slot. It is 11px and colour #c43a31. The button label is Submit.',
       'Reduced motion sets `.t-shake.is-error` animation to none. The error border and message still show.',
     ],
@@ -918,7 +918,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'The field starts as `hello@`. An invalid Submit shows `Please enter a valid email.` and sets border-color #c43a31.',
-      'The shake is 7px, the negative of that distance, 4.2px, -2.45px, then rest, over 400ms with cubic-bezier(0.36, 0.07, 0.19, 0.97).',
+      'The shake is 7px, the negative of that distance, 4.2px, -2.45px, then rest, over 417ms with cubic-bezier(0.36, 0.07, 0.19, 0.97).',
       'The input is 220px wide and 38px tall, radius 10px, border 1px solid rgba(0,0,0,.1). The message is 11px.',
       'Reduced motion keeps the error and sets the animation to none.',
     ],
@@ -994,7 +994,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'skeleton-reveal': {
     motion:
-      'The bones pulse from opacity 1 to 0.5 over 1000ms and reverse. The reveal moves one number from 0 to 1 over 250ms ease-in-out. Bone opacity is that gap times the pulse, and bone blur is the number times 2px. The loaded row uses the number for opacity and the gap for blur.',
+      'The bones pulse from opacity 1 to 0.5 over 1010ms ease-in-out and reverse. The reveal moves one number from 0 to 1 over 250ms ease-in-out. Bone opacity is that gap times the pulse, and bone blur is the number times 2px. The loaded row uses the number for opacity and the gap for blur.',
     content:
       '`Jane Cooper` and `jane.cooper@example.com`, with initials `JC` on the photo. The row starts as bones. The loaded row comes in on its own, and Animate toggles the bones and the loaded row.',
     geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The row is centered.
@@ -1007,7 +1007,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
 - Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
 - Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
     timing:
-      'The bones pulse from opacity 1 to 0.5 over 1000ms linear and reverse. `--pulse-dur` is 1000ms. The reveal moves `--reveal` from 0 to 1 over 250ms ease-in-out. `--reveal-dur` is 250ms. Bone opacity is (1 - reveal) times the pulse, and bone blur is reveal times 2px. Loaded opacity is reveal, and loaded blur is (1 - reveal) times 2px. The first reveal waits 900ms. A later toggle waits 0ms. Reduced motion snaps. The duration is 0ms.',
+      'The bones pulse from opacity 1 to 0.5 over 1010ms ease-in-out and reverse. `--pulse-dur` is 1010ms. The reveal moves `--reveal` from 0 to 1 over 250ms ease-in-out. `--reveal-dur` is 250ms. Bone opacity is (1 - reveal) times the pulse, and bone blur is reveal times 2px. Loaded opacity is reveal, and loaded blur is (1 - reveal) times 2px. The first reveal waits 900ms. A later toggle waits 0ms. Reduced motion snaps. The duration is 0ms.',
     reducedMotion:
       'Reduced motion shows the loaded row at once. The pulse does not run. The duration is 0ms.',
     states: [
@@ -1016,8 +1016,8 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
         trigger: 'bones are showing and motion is allowed',
         from: 'opacity 1',
         to: 'opacity 0.5, then back',
-        duration: '1000ms (`--pulse-dur`)',
-        easing: 'linear',
+        duration: '1010ms (`--pulse-dur`)',
+        easing: 'ease-in-out',
         delay: '',
       },
       {
@@ -1059,7 +1059,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
     checklist: [
       'The row is 230px by 48px. Lines are 10px tall, widths 108px and 150px, colour #eeeeef. The avatar is 40px.',
       'The loaded row shows JC, Jane Cooper, and jane.cooper@example.com. Mail is 12px, colour #767676.',
-      'The pulse reaches opacity 0.5 over 1000ms and reverses. The cross-fade is 250ms ease-in-out with blur 2px.',
+      'The pulse reaches opacity 0.5 over 1010ms ease-in-out and reverses. The cross-fade is 250ms ease-in-out with blur 2px.',
       'The first reveal waits 900ms. Animate toggles after that.',
       'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
