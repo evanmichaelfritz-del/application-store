@@ -12,7 +12,7 @@ export const SNIPPETS: Record<string, string> = {
     height var(--resize-dur) var(--resize-ease);
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-resize { transition: none !important; }
+  .t-resize { transition: none !important; transition-duration: 0ms; }
 }`,
 
   'number-pop-in': `@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
@@ -96,6 +96,7 @@ export const SNIPPETS: Record<string, string> = {
   --text-swap-ease: ease-in-out;
 }
 .t-text-swap {
+  display: inline-block;
   transition: transform var(--text-swap-dur) var(--text-swap-ease),
     filter var(--text-swap-dur) var(--text-swap-ease),
     opacity var(--text-swap-dur) var(--text-swap-ease);
@@ -112,7 +113,7 @@ export const SNIPPETS: Record<string, string> = {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-text-swap { transition: none !important; }
+  .t-text-swap { transition: none !important; transition-duration: 0ms; }
 }`,
 
   'menu-dropdown': `.menu {
@@ -290,7 +291,7 @@ export const SNIPPETS: Record<string, string> = {
 
   'error-state-shake': `:root {
   --shake-distance: 7px;
-  --shake-dur: 400ms;
+  --shake-dur: 417ms;
   --shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 .t-shake.is-error { animation: t-shake var(--shake-dur) var(--shake-ease); }
@@ -320,19 +321,31 @@ export const SNIPPETS: Record<string, string> = {
   .word { animation: none; animation-duration: 0ms; opacity: 1; transform: none; }
 }`,
 
-  'skeleton-reveal': `:root {
-  --pulse-dur: 1000ms;
+  'skeleton-reveal': `@property --reveal { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --pulse { syntax: "<number>"; inherits: true; initial-value: 1; }
+:root {
+  --pulse-dur: 1010ms;
   --reveal-dur: 250ms;
   --reveal-blur: 2px;
   --reveal-ease: ease-in-out;
 }
-.t-skel { animation: t-pulse var(--pulse-dur) linear infinite; }
-.t-content { transition: opacity var(--reveal-dur) var(--reveal-ease), filter var(--reveal-dur) var(--reveal-ease); }
-.t-content.is-hidden { opacity: 0; filter: blur(var(--reveal-blur)); }
-@keyframes t-pulse { 50% { opacity: 0.5; } }
+.row { --reveal: 0; transition: --reveal var(--reveal-dur) var(--reveal-ease); }
+.row.is-loaded { --reveal: 1; }
+.bones {
+  --pulse: 1;
+  opacity: calc((1 - var(--reveal)) * var(--pulse));
+  filter: blur(calc(var(--reveal) * var(--reveal-blur)));
+  animation: t-pulse var(--pulse-dur) ease-in-out infinite alternate;
+}
+.row.is-loaded .bones { animation: none; --pulse: 1; }
+.loaded {
+  opacity: var(--reveal);
+  filter: blur(calc((1 - var(--reveal)) * var(--reveal-blur)));
+}
+@keyframes t-pulse { from { --pulse: 1; } to { --pulse: 0.5; } }
 @media (prefers-reduced-motion: reduce) {
-  .t-skel { animation: none !important; }
-  .t-content { transition: none !important; }
+  .bones { animation: none !important; --pulse: 1; }
+  .row { transition: none !important; transition-duration: 0ms; }
 }`,
 
   'texts-reveal': `.line { animation: rise 300ms linear both; }
@@ -355,38 +368,49 @@ export const SNIPPETS: Record<string, string> = {
 
   'shimmer-text': `:root {
   --shimmer-dur: 1200ms;
+  --shimmer-end: 0px;
   --shimmer-base: #7c7c7c;
   --shimmer-highlight: #0d0d0d;
 }
-.t-shimmer {
-  display: inline-block;
-  width: fit-content;
-  background-image: linear-gradient(
-    90deg,
-    var(--shimmer-base) 0%,
-    var(--shimmer-base) 42%,
-    var(--shimmer-highlight) 50%,
-    var(--shimmer-base) 58%,
-    var(--shimmer-base) 100%
-  );
-  background-size: 300% 100%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: t-shimmer var(--shimmer-dur) linear infinite;
+.shimmer {
+  position: relative;
+  margin: 0;
+  font: 500 20px/26px Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  color: var(--shimmer-base);
 }
-@keyframes t-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: 0% 0; }
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 26px;
+  width: 72px;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 28%, #000 72%, transparent 100%);
+  animation: t-shimmer-mask var(--shimmer-dur) linear infinite;
+}
+.base { display: block; }
+.hot {
+  display: block;
+  width: max-content;
+  color: var(--shimmer-highlight);
+  white-space: nowrap;
+  animation: t-shimmer-hot var(--shimmer-dur) linear infinite;
+}
+@keyframes t-shimmer-mask {
+  from { transform: translateX(-72px); }
+  to { transform: translateX(var(--shimmer-end)); }
+}
+@keyframes t-shimmer-hot {
+  from { transform: translateX(72px); }
+  to { transform: translateX(calc(var(--shimmer-end) * -1)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .t-shimmer {
-    animation: none !important;
-    color: var(--shimmer-highlight);
-    -webkit-text-fill-color: var(--shimmer-highlight);
-  }
+  .shimmer { color: var(--shimmer-highlight); }
+  .mask, .hot { animation: none !important; animation-duration: 0ms; }
+  .mask { display: none; }
 }`,
 
   'image-generation-loader': `/* npm install img-fx three

@@ -79,24 +79,41 @@ button.trigger {
 
 const SOURCES: Record<string, Source> = {
   'card-resize': {
-    html: `<div class="col">
+    html: `<div class="stage">
   <div class="t-resize" id="card">
     <div class="bar"></div>
     <div class="bar short"></div>
   </div>
-  <button class="trigger" type="button" id="toggle">Resize</button>
+  <button class="animate" type="button" id="toggle" aria-label="Animate">Animate</button>
 </div>`,
-    extraCss: `.t-resize {
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.t-resize {
   width: 148px;
   height: 100px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
 }
-.bar { height: 8px; border-radius: 4px; background: #ececec; margin-bottom: 8px; }
-.bar.short { width: 62%; }`,
+.bar { height: 8px; width: 100%; border-radius: 4px; background: #ececec; }
+.bar.short { width: 62%; }
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
   var card = document.getElementById('card');
   var small = false;
@@ -201,17 +218,33 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'text-states-swap': {
-    html: `<div class="col">
+    html: `<div class="stage">
   <div class="swap"><span class="t-text-swap" id="line">Transaction processing...</span></div>
-  <button class="trigger" type="button" id="swap">Swap</button>
+  <button class="animate" type="button" id="animate" aria-label="Animate">Animate</button>
 </div>`,
-    extraCss: `.swap { min-height: 24px; font-size: 16px; font-weight: 600; }`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}
+.t-text-swap { display: inline-block; color: #0d0d0d; font: 500 15px Inter, system-ui, sans-serif; }
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
   var el = document.getElementById('line');
   var texts = ['Transaction processing...', 'Transaction completed'];
   var i = 0;
+  var busy = false;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.getElementById('swap').addEventListener('click', function () {
+  document.getElementById('animate').addEventListener('click', function () {
+    if (busy) return;
+    busy = true;
     el.classList.add('is-exit');
     setTimeout(function () {
       i = (i + 1) % texts.length;
@@ -220,6 +253,7 @@ const SOURCES: Record<string, Source> = {
       el.classList.add('is-enter-start');
       void el.offsetWidth;
       el.classList.remove('is-enter-start');
+      busy = false;
     }, reduce ? 0 : 250);
   });
 })();`,
@@ -546,21 +580,58 @@ const SOURCES: Record<string, Source> = {
   </label>
   <button class="trigger" type="button" id="validate">Submit</button>
 </div>`,
-    extraCss: `.field { display: flex; flex-direction: column; gap: 6px; width: 220px; }
-.t-shake { height: 38px; border-radius: 10px; border: 1px solid rgba(0,0,0,.1); padding: 0 10px; font: 400 13px Inter, system-ui, sans-serif; }
+    extraCss: `.field { position: relative; display: block; width: 220px; padding-bottom: 20px; }
+.t-shake { display: block; width: 100%; height: 38px; border-radius: 10px; border: 1px solid rgba(0,0,0,.1); padding: 0 10px; font: 400 13px Inter, system-ui, sans-serif; }
 .t-shake.is-error { border-color: #c43a31; }
-.msg { color: #c43a31; font-size: 11px; }`,
+.msg { position: absolute; left: 0; top: calc(38px + 6px); height: 14px; line-height: 14px; margin: 0; color: #c43a31; font-size: 11px; }`,
     script: `(function () {
   var input = document.getElementById('email');
   var msg = document.getElementById('msg');
+  function readX() {
+    var t = getComputedStyle(input).transform;
+    if (!t || t === 'none') return 0;
+    return new DOMMatrix(t).m41;
+  }
+  function playFrom(x) {
+    input.getAnimations().forEach(function (anim) { anim.cancel(); });
+    input.style.animation = 'none';
+    var ease = getComputedStyle(input).getPropertyValue('--shake-ease').trim();
+    var dur = parseFloat(getComputedStyle(input).getPropertyValue('--shake-dur'));
+    var player = input.animate([
+      { transform: 'translateX(' + x.toFixed(2) + 'px)', easing: ease },
+      { transform: 'translateX(7px)', offset: 0.2, easing: ease },
+      { transform: 'translateX(-7px)', offset: 0.4, easing: ease },
+      { transform: 'translateX(4.2px)', offset: 0.6, easing: ease },
+      { transform: 'translateX(-2.45px)', offset: 0.8, easing: ease },
+      { transform: 'translateX(0px)' }
+    ], { duration: dur, fill: 'forwards' });
+    player.onfinish = function () {
+      input.style.transform = '';
+      player.cancel();
+    };
+  }
   document.getElementById('validate').addEventListener('click', function () {
     var valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.value);
     if (valid) {
+      input.getAnimations().forEach(function (anim) { anim.cancel(); });
+      input.style.animation = '';
+      input.style.transform = '';
       input.classList.remove('is-error');
       msg.hidden = true;
       return;
     }
     msg.hidden = false;
+    input.classList.add('is-error');
+    var x = readX();
+    var anims = input.getAnimations();
+    var running = anims.some(function (anim) { return anim.playState === 'running'; });
+    if (running && Math.abs(x) > 0.5) {
+      playFrom(x);
+      return;
+    }
+    anims.forEach(function (anim) { anim.cancel(); });
+    input.style.animation = '';
+    input.style.transform = '';
     input.classList.remove('is-error');
     void input.offsetWidth;
     input.classList.add('is-error');
@@ -568,46 +639,72 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'skeleton-reveal': {
-    html: `<div class="col">
-  <div class="skel-card" id="card">
-    <div class="t-skel bar"></div>
-    <div class="t-skel bar short"></div>
-    <div class="t-content is-hidden" id="content">
-      <strong>Jane Cooper</strong>
-      <span>jane.cooper@example.com</span>
+    html: `<div class="stage">
+  <div class="row" id="row">
+    <div class="bones">
+      <div class="avatar bone"></div>
+      <div class="lines">
+        <div class="line"></div>
+        <div class="line long"></div>
+      </div>
+    </div>
+    <div class="loaded">
+      <div class="avatar photo"><span class="ini">JC</span></div>
+      <div class="who">
+        <p class="name">Jane Cooper</p>
+        <p class="mail">jane.cooper@example.com</p>
+      </div>
     </div>
   </div>
-  <button class="trigger" type="button" id="reveal">Reveal</button>
+  <button class="animate" type="button" id="toggle" aria-label="Animate">Animate</button>
 </div>`,
-    extraCss: `.skel-card {
-  position: relative; width: 240px; min-height: 78px; background: #fff;
-  border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.t-skel.bar { height: 12px; border-radius: 6px; background: #ececec; }
-.t-skel.short { width: 62%; }
-.t-content { position: absolute; inset: 16px; display: flex; flex-direction: column; gap: 4px; }
-.t-content span { color: #6c6c6c; font-size: 13px; }`,
+.row { position: relative; width: 230px; height: 48px; }
+.bones, .loaded { position: absolute; inset: 0; }
+.bones { display: flex; align-items: center; }
+.avatar { position: absolute; left: 0; top: 4px; width: 40px; height: 40px; border-radius: 20px; }
+.bone { background: #eeeeef; }
+.lines { margin-left: 52px; }
+.line { width: 108px; height: 10px; border-radius: 5px; background: #eeeeef; }
+.line.long { width: 150px; margin-top: 8px; }
+.loaded { display: flex; align-items: center; padding-left: 52px; }
+.photo { background: #d9b8a2; display: flex; align-items: center; justify-content: center; }
+.ini { color: #2a2118; font: 500 11px Inter, system-ui, sans-serif; }
+.name { margin: 0; color: #0d0d0d; font: 500 14px Inter, system-ui, sans-serif; }
+.mail { margin: 0; color: #767676; font: 400 12px Inter, system-ui, sans-serif; }
+.animate {
+  appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
+  padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(243, 243, 243, 0.94); color: #17181c;
+  font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
+.animate:hover { background: #d9d9e2; border-color: rgba(0, 0, 0, 0.35); }
+.animate:active { background: #b7b7c2; border-color: rgba(0, 0, 0, 0.5); }`,
     script: `(function () {
-  var content = document.getElementById('content');
-  var bars = [].slice.call(document.querySelectorAll('.t-skel'));
-  var shown = false;
+  var row = document.getElementById('row');
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function reveal() {
+  var shown = false;
+  var timer = 0;
+  function show() {
     shown = true;
-    bars.forEach(function (bar) { bar.style.display = 'none'; });
-    content.classList.remove('is-hidden');
+    row.classList.add('is-loaded');
   }
-  function reset() {
+  function hide() {
     shown = false;
-    bars.forEach(function (bar) { bar.style.display = ''; });
-    content.classList.add('is-hidden');
+    row.classList.remove('is-loaded');
   }
-  document.getElementById('reveal').addEventListener('click', function () {
-    if (shown) reset();
-    else reveal();
+  document.getElementById('toggle').addEventListener('click', function () {
+    if (timer) window.clearTimeout(timer);
+    timer = 0;
+    if (shown) hide();
+    else show();
   });
-  setTimeout(reveal, reduce ? 0 : 900);
+  // First reveal after 900ms. Reduced motion uses 0ms.
+  timer = window.setTimeout(show, reduce ? 0 : 900);
 })();`,
   },
   'texts-reveal': {
@@ -1384,8 +1481,23 @@ canvas { display: block; width: 168px; height: 168px; }`,
 })();`,
   },
   'shimmer-text': {
-    html: `<p class="t-shimmer">Generating reply</p>`,
-    extraCss: `.t-shimmer { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; }`,
+    html: `<div class="stage">
+  <p class="shimmer" id="shimmer"><span class="base">Generating reply</span><span class="mask" id="mask"><span class="hot">Generating reply</span></span></p>
+</div>`,
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
+}`,
+    script: `(function () {
+  var root = document.getElementById('shimmer');
+  var base = root.querySelector('.base');
+  function apply() {
+    root.style.setProperty('--shimmer-end', base.offsetWidth + 'px');
+  }
+  apply();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(apply);
+})();`,
   },
   'tilt-3d': {
     document: TILT_COPY_SNIPPET,

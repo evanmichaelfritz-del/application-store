@@ -30,11 +30,21 @@ export type PromptLock = {
 const LOCKS: Record<string, PromptLock> = {
   'card-resize': {
     motion:
-      '`.t-resize` starts at width 148px and height 100px. Resize writes 88px by 64px, then 148px by 100px. Width and height transition over `--resize-dur: 300ms` with `--resize-ease: cubic-bezier(0.22, 1, 0.36, 1)`.',
+      'The card starts at 148px by 100px. Animate writes 88px by 64px, then 148px by 100px. Width and height share 300ms and cubic-bezier(0.22, 1, 0.36, 1).',
+    content:
+      'Two bars on a white card. The card starts at 148px by 100px. The first bar runs the full inner width. The second bar is 62% wide. Animate toggles the card between that size and 88px by 64px.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The card is centered.
+- Card: starts at width 148px and height 100px. Small is width 88px and height 64px. Background #ffffff, border-radius 14px, padding 14px. Shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05). The bars are centered as a column with gap 8px.
+- Bar: height 8px, border-radius 4px, background #ececec, full inner width. The short bar is width 62%.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing:
+      'Width and height run together for 300ms, cubic-bezier(0.22, 1, 0.36, 1). `--resize-dur` is 300ms and `--resize-ease` is cubic-bezier(0.22, 1, 0.36, 1). A second click starts a new 300ms ease from the current size. Reduced motion snaps. The duration is 0ms.',
+    reducedMotion: 'Reduced motion snaps the card to the next size. The duration is 0ms.',
     states: [
       {
         name: 'wide',
-        trigger: 'Resize while the card is small',
+        trigger: 'Animate while the card is small',
         from: 'width 88px, height 64px',
         to: 'width 148px, height 100px',
         duration: '300ms (`--resize-dur`)',
@@ -43,25 +53,36 @@ const LOCKS: Record<string, PromptLock> = {
       },
       {
         name: 'small',
-        trigger: 'Resize while the card is wide',
+        trigger: 'Animate while the card is wide',
         from: 'width 148px, height 100px',
         to: 'width 88px, height 64px',
         duration: '300ms (`--resize-dur`)',
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         delay: '',
       },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the next size, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
+      },
     ],
     gotchas: [
-      'Reduced motion sets the transition to none.',
-      'The card keeps border-radius 14px and padding 14px. Each bar is height 8px. The short bar is width 62%.',
-      'The button label is Resize.',
+      'Width and height run on the same ease. The radius stays 14px and the padding stays 14px while the box changes.',
+      'The bars stay height 8px, radius 4px, colour #ececec, with 8px between them. The short bar stays 62%.',
+      'The control sits on the stage. Its accessible name is Animate.',
     ],
     setup:
-      '`.t-resize` is width 148px and height 100px, background #fff, border-radius 14px, padding 14px. The Resize button toggles `card.style.width` and `card.style.height` between 148px/100px and 88px/64px.',
+      'Mount the HTML, the CSS, and the script in one document. The script writes the card width and height. The stylesheet covers prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Wide is 148px by 100px and small is 88px by 64px.',
-      'Both axes use `--resize-dur: 300ms` and `--resize-ease: cubic-bezier(0.22, 1, 0.36, 1)`.',
-      'Reduced motion sets the transition to none.',
+      'The card starts at 148px by 100px and toggles to 88px by 64px.',
+      'Both axes use 300ms and cubic-bezier(0.22, 1, 0.36, 1).',
+      'The card is radius 14px, padding 14px, background #ffffff. Bars are 8px tall, radius 4px, #ececec, and the short bar is 62%.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'number-pop-in': {
@@ -228,12 +249,20 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
   },
   'text-states-swap': {
     motion:
-      '`.t-text-swap` transitions transform, filter, and opacity over `--text-swap-dur: 250ms` with `--text-swap-ease: ease-in-out`. `.is-exit` is `translateY(calc(var(--text-swap-translate-y) * -1))` and `blur(var(--text-swap-blur))`. `.is-enter-start` is `translateY(var(--text-swap-translate-y))` and the same blur. `--text-swap-translate-y` is 4px and `--text-swap-blur` is 2px.',
-    content: '`Transaction processing...` then `Transaction completed`.',
+      'The line leaves upward and the next line enters from below. Both run 250ms ease-in-out. Travel is 4px and the blur is 2px.',
+    content:
+      '`Transaction processing...`, then `Transaction completed`. The line starts on the first string. Animate swaps them.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The line is centered.
+- Line: 15px, weight 500, colour #0d0d0d. The exit ends on the negative of \`--text-swap-translate-y\` (4px), blur 2px, opacity 0. The enter starts at \`--text-swap-translate-y\` (4px), blur 2px, opacity 0.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing:
+      'Exit and enter are each 250ms, ease-in-out, on transform, filter, and opacity together. `--text-swap-dur` is 250ms, `--text-swap-translate-y` is 4px, and `--text-swap-blur` is 2px. The string swaps after the exit, so the enter waits 250ms. Reduced motion snaps. The duration is 0ms.',
+    reducedMotion: 'Reduced motion swaps the string with no travel. The duration is 0ms.',
     states: [
       {
         name: 'exit',
-        trigger: 'Swap adds `.is-exit`',
+        trigger: 'Animate adds `.is-exit`',
         from: 'translateY 0, opacity 1, blur 0',
         to: 'translateY(calc(var(--text-swap-translate-y) * -1)), --text-swap-translate-y 4px, opacity 0, blur(2px)',
         duration: '250ms (`--text-swap-dur`)',
@@ -249,18 +278,29 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
         easing: 'ease-in-out',
         delay: '250ms, the setTimeout that also swaps the string',
       },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the next string, with no travel',
+        duration: '0ms',
+        easing: '',
+        delay: '',
+      },
     ],
     gotchas: [
-      'The timeout is `reduce ? 0 : 250`. Reduced motion sets the transition to none.',
-      'The strings are `Transaction processing...` and `Transaction completed`.',
-      'The line is font-size 16px inside a min-height 24px slot.',
+      'A second click during the exit does nothing. The flag clears when the string swaps, so a click during the enter starts a new exit.',
+      '`.is-enter-start` has no transition, so the line jumps to 4px, blur 2px, and opacity 0. Removing the class plays the 250ms ease back to rest.',
+      'The strings are `Transaction processing...` and `Transaction completed`. The line is 15px, weight 500, colour #0d0d0d.',
     ],
     setup:
-      'The line starts as `Transaction processing...`. Swap adds `.is-exit`, then after 250ms writes the next string, adds `.is-enter-start`, reads `offsetWidth`, and removes `.is-enter-start`.',
+      'Mount the HTML, the CSS, and the script in one document. The script swaps the string, reads offsetWidth to flush the enter start, and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'Exit uses translateY(calc(var(--text-swap-translate-y) * -1)) with blur 2px and opacity 0 in 250ms. `--text-swap-translate-y` is 4px.',
-      'The string swaps after that 250ms, and the enter starts at 4px.',
-      'Reduced motion uses a 0 timeout and transition none.',
+      'The strings are `Transaction processing...` and `Transaction completed`. The line is 15px, weight 500, colour #0d0d0d.',
+      'Exit ends on the negative of 4px with blur 2px and opacity 0, in 250ms ease-in-out. The enter starts at 4px with the same blur.',
+      'The string swaps after that 250ms. A click during the exit does nothing.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'menu-dropdown': {
@@ -835,8 +875,19 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'error-state-shake': {
     motion:
-      '`.t-shake.is-error` runs `t-shake` for `--shake-dur: 400ms` with `--shake-ease: cubic-bezier(0.36, 0.07, 0.19, 0.97)`. Keyframes: 0% translateX 0, 20% `translateX(var(--shake-distance))`, 40% `translateX(calc(var(--shake-distance) * -1))`, 60% translateX(4.2px), 80% translateX(-2.45px), 100% translateX 0. `--shake-distance` is 7px. `.is-error` also sets border-color #c43a31.',
-    content: 'Input starts at `hello@`. Invalid submit shows `Please enter a valid email.` Border `#c43a31`.',
+      'An invalid Submit plays a 417ms shake on cubic-bezier(0.36, 0.07, 0.19, 0.97). The field moves 7px, then the negative of that distance, then 4.2px, then -2.45px, then back to rest. The border becomes #c43a31.',
+    content:
+      'The field starts as `hello@`. Submit checks the address. A miss shows `Please enter a valid email.` and shakes the field. A match clears the message and the red border.',
+    geometry: `- Ground: background #f9f9f9. The column is centered, gap 18px.
+- Field: width 220px. A 20px slot stays under the input, so the column height does not change.
+- Input: height 38px, border-radius 10px, border 1px solid rgba(0,0,0,.1), padding 0 10px, font 400 13px. The error border is #c43a31.
+- Message: position absolute, 6px under the input, line-height 14px, 11px, colour #c43a31. The string is \`Please enter a valid email.\` It stays hidden until a miss.
+- Submit: height 32px, padding 0 12px, border-radius 8px, border 1px solid rgba(0,0,0,.08), background #fff, colour #17181c, 13px, weight 500. The label is Submit.
+- Shake: \`--shake-distance\` is 7px. The 60% frame is translateX(4.2px). The 80% frame is translateX(-2.45px).`,
+    timing:
+      'The shake runs 417ms, cubic-bezier(0.36, 0.07, 0.19, 0.97). `--shake-dur` is 417ms and `--shake-ease` is cubic-bezier(0.36, 0.07, 0.19, 0.97). Frames are 0%, 20% at 7px, 40% at the negative of that distance, 60% at 4.2px, 80% at -2.45px, and 100% at rest. A second invalid Submit while the field is still moving continues from the current translateX. Reduced motion keeps the error and does not shake.',
+    reducedMotion:
+      'Reduced motion sets the shake animation to none. The error border and the message still show.',
     states: [
       {
         name: 'idle',
@@ -852,21 +903,23 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
         trigger: 'Submit when that pattern fails',
         from: 'translateX 0',
         to: 'translateX(7px), then the negative of that distance, then translateX(4.2px), then translateX(-2.45px), then translateX 0',
-        duration: '400ms (`--shake-dur`)',
+        duration: '417ms (`--shake-dur`)',
         easing: 'cubic-bezier(0.36, 0.07, 0.19, 0.97) (`--shake-ease`)',
         delay: '',
       },
     ],
     gotchas: [
-      'The script removes `.is-error`, reads offsetWidth, then adds `.is-error` so the animation restarts.',
-      'The field is height 38px, border-radius 10px, padding 0 10px. The message is font-size 11px and colour #c43a31. The button label is Submit.',
+      'A second invalid Submit while the shake is running reads the current translateX and plays the 417ms shake from that offset. Once the shake has finished, the script removes `.is-error`, reads offsetWidth, and adds `.is-error` so it plays again from translateX 0.',
+      'The input is height 38px, border-radius 10px, padding 0 10px. The message is absolute, 6px under the input, on a 14px line, inside the 20px slot. It is 11px and colour #c43a31. The button label is Submit.',
       'Reduced motion sets `.t-shake.is-error` animation to none. The error border and message still show.',
     ],
     setup:
-      'The input starts at `hello@`. Submit tests `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`. A miss shows `Please enter a valid email.` and adds `.is-error`. `--shake-distance` is 7px and `--shake-dur` is 400ms.',
+      'Mount the HTML, the CSS, and the script in one document. The input starts at `hello@`. The error line is absolute, 6px under the input, on a 14px line, inside the reserved 20px slot. Submit tests `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/`. A miss shows `Please enter a valid email.` and adds `.is-error`. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'An invalid submit shows `Please enter a valid email.` and sets border-color #c43a31.',
-      'The shake is 7px, the negative of that distance, 4.2px, -2.45px, then 0, over 400ms with cubic-bezier(0.36, 0.07, 0.19, 0.97).',
+      'The field starts as `hello@`. An invalid Submit shows `Please enter a valid email.` and sets border-color #c43a31.',
+      'The shake is 7px, the negative of that distance, 4.2px, -2.45px, then rest, over 417ms with cubic-bezier(0.36, 0.07, 0.19, 0.97).',
+      'The input is 220px wide and 38px tall, radius 10px, border 1px solid rgba(0,0,0,.1). The message is 11px.',
       'Reduced motion keeps the error and sets the animation to none.',
     ],
   },
@@ -941,39 +994,74 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'skeleton-reveal': {
     motion:
-      '`.t-skel` runs `t-pulse` for `--pulse-dur: 1000ms` linear infinite. The 50% frame is opacity 0.5. `.t-content` transitions opacity and filter over `--reveal-dur: 250ms` with `--reveal-ease: ease-in-out`. `.is-hidden` is opacity 0 and `blur(var(--reveal-blur))`. `--reveal-blur` is 2px.',
-    content: '`Jane Cooper` / `jane.cooper@example.com`.',
+      'The bones pulse from opacity 1 to 0.5 over 1010ms ease-in-out and reverse. The reveal moves one number from 0 to 1 over 250ms ease-in-out. Bone opacity is that gap times the pulse, and bone blur is the number times 2px. The loaded row uses the number for opacity and the gap for blur.',
+    content:
+      '`Jane Cooper` and `jane.cooper@example.com`, with initials `JC` on the photo. The row starts as bones. The loaded row comes in on its own, and Animate toggles the bones and the loaded row.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The row is centered.
+- Row: width 230px, height 48px.
+- Avatar: 40px by 40px, border-radius 20px, left 0, top 4px. The bone is #eeeeef. The photo is #d9b8a2.
+- Initials: \`JC\`, 11px, weight 500, colour #2a2118.
+- Lines: height 10px, border-radius 5px, background #eeeeef. The first is width 108px. The second is width 150px with margin-top 8px. The column is margin-left 52px.
+- Loaded row: inset 0, padding-left 52px, items centered. Name: \`Jane Cooper\`, 14px, weight 500, colour #0d0d0d. Mail: \`jane.cooper@example.com\`, 12px, weight 400, colour #767676.
+- Cross-fade: blur 2px. \`--reveal-blur\` is 2px.
+- Animate: height 28px, padding 0 10px, border-radius 8px, border 1px solid rgba(0, 0, 0, 0.08), background rgba(243, 243, 243, 0.94), colour #17181c, 12px, weight 500. It sits right 10px, bottom 10px. The accessible name is Animate.
+- Hover paints the button #d9d9e2 with border rgba(0, 0, 0, 0.35). Pressed paints #b7b7c2 with border rgba(0, 0, 0, 0.5).`,
+    timing:
+      'The bones pulse from opacity 1 to 0.5 over 1010ms ease-in-out and reverse. `--pulse-dur` is 1010ms. The reveal moves `--reveal` from 0 to 1 over 250ms ease-in-out. `--reveal-dur` is 250ms. Bone opacity is (1 - reveal) times the pulse, and bone blur is reveal times 2px. Loaded opacity is reveal, and loaded blur is (1 - reveal) times 2px. The first reveal waits 900ms. A later toggle waits 0ms. Reduced motion snaps. The duration is 0ms.',
+    reducedMotion:
+      'Reduced motion shows the loaded row at once. The pulse does not run. The duration is 0ms.',
     states: [
       {
-        name: 'loading',
-        trigger: 'on load `.t-content` already has `.is-hidden` and `.t-skel` runs `t-pulse`. Reveal while the content is showing calls reset(), which adds `.is-hidden`',
-        from: '',
-        to: '`.t-skel` opacity 0.5 at 50%. reset() sets `.t-content.is-hidden` to opacity 0 and blur(2px)',
-        duration: 'pulse 1000ms (`--pulse-dur`) on load. reset() fades over 250ms (`--reveal-dur`)',
-        easing: 'pulse linear. reset() uses ease-in-out (`--reveal-ease`)',
+        name: 'pulse',
+        trigger: 'bones are showing and motion is allowed',
+        from: 'opacity 1',
+        to: 'opacity 0.5, then back',
+        duration: '1010ms (`--pulse-dur`)',
+        easing: 'ease-in-out',
         delay: '',
       },
       {
-        name: 'revealed',
-        trigger: 'setTimeout(reveal, 900) and the Reveal button',
-        from: 'opacity 0, blur(2px), class `is-hidden`',
-        to: 'opacity 1, filter cleared, bars display none',
+        name: 'reveal',
+        trigger: 'the first timeout, or Animate while the bones are showing',
+        from: 'loaded opacity 0, blur 2px',
+        to: 'loaded opacity 1, blur cleared, bones at opacity 0 and blur 2px',
+        duration: '250ms (`--reveal-dur`)',
+        easing: 'ease-in-out (`--reveal-ease`)',
+        delay: '900ms the first time',
+      },
+      {
+        name: 'hide',
+        trigger: 'Animate while the loaded row is showing',
+        from: 'loaded opacity 1, blur cleared',
+        to: 'loaded opacity 0, blur 2px, bones pulsing',
         duration: '250ms (`--reveal-dur`)',
         easing: 'ease-in-out',
+        delay: '0ms',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the bones',
+        to: 'the loaded row, with no travel',
+        duration: '0ms',
+        easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The card is width 240px, min-height 78px, border-radius 14px, padding 16px. Bones are height 12px, border-radius 6px, background #ececec. The short bone is width 62%.',
-      'The mail line is font-size 13px and colour #6c6c6c.',
-      'Reduced motion sets the pulse and the content transition to none, and the timeout is 0.',
+      'The first reveal is the timeout. A click before it cancels that timeout and toggles from the current pose.',
+      'The pulse holds at 1 when the reveal starts, then the cross-fade runs. Hiding starts the pulse again.',
+      'The photo is #d9b8a2 with initials JC at 11px, weight 500, colour #2a2118. The name is 14px, weight 500, colour #0d0d0d. The mail is 12px, weight 400, colour #767676.',
     ],
     setup:
-      '`.t-content` starts with `.is-hidden`. `setTimeout(reveal, reduce ? 0 : 900)` hides the bones and removes `.is-hidden`. Reveal toggles back to the bones.',
+      'Mount the HTML, the CSS, and the script in one document. The script adds `.is-loaded` and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The skeleton pulse reaches opacity 0.5 over 1000ms and repeats.',
-      'The reveal fades the content in over 250ms while a 2px blur clears.',
-      'The loaded text is `Jane Cooper` and `jane.cooper@example.com`. Bones are #ececec.',
+      'The row is 230px by 48px. Lines are 10px tall, widths 108px and 150px, colour #eeeeef. The avatar is 40px.',
+      'The loaded row shows JC, Jane Cooper, and jane.cooper@example.com. Mail is 12px, colour #767676.',
+      'The pulse reaches opacity 0.5 over 1010ms ease-in-out and reverses. The cross-fade is 250ms ease-in-out with blur 2px.',
+      'The first reveal waits 900ms. Animate toggles after that.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
   'texts-reveal': {
@@ -1206,14 +1294,21 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
   },
   'shimmer-text': {
     motion:
-      '`.t-shimmer` paints a 90deg gradient of `--shimmer-base` #7c7c7c and `--shimmer-highlight` #0d0d0d, background-size 300% 100%, and runs `t-shimmer` for `--shimmer-dur: 1200ms` linear infinite. The keyframes move background-position from 100% 0 to 0% 0. Reduced motion sets animation none and paints `color` and `-webkit-text-fill-color` as `var(--shimmer-highlight)`.',
-    content: '`Generating reply`.',
+      'A 72px window of the hot line sweeps across the base line. The window runs from -72px to the width of the line over 1200ms linear, and it repeats without reversing. The hot line translates the other way so the glyphs stay registered.',
+    content: 'The line reads `Generating reply`. The sweep repeats.',
+    geometry: `- Stage: width 289px, height 200px, border 1px solid rgba(0, 0, 0, 0.04), border-radius 14px, background #f9f9f9, overflow hidden. The line is centered.
+- Line: 20px, line-height 26px, weight 500, colour #7c7c7c. A second copy of the same string is colour #0d0d0d.
+- Window: width 72px, height 26px. The mask is linear-gradient(90deg, transparent 0%, #000 28%, #000 72%, transparent 100%). The window's left edge runs from -72px to the width of the line. The hot copy starts at translateX(72px) and moves the other way.`,
+    timing:
+      'The sweep is 1200ms linear and repeats. `--shimmer-dur` is 1200ms. It does not reverse. The window and the hot copy share that duration so the glyphs stay registered. Reduced motion hides the window. The duration is 0ms.',
+    reducedMotion:
+      'Reduced motion paints the line #0d0d0d and hides the window. The duration is 0ms.',
     states: [
       {
         name: 'sweep',
-        trigger: 'the `t-shimmer` animation while motion is allowed',
-        from: 'background-position 100% 0, gradient stops #7c7c7c and #0d0d0d',
-        to: 'background-position 0% 0',
+        trigger: 'the window animation while motion is allowed',
+        from: 'translateX(-72px), base colour #7c7c7c, hot colour #0d0d0d',
+        to: 'the window past the end of the line, then it repeats from -72px',
         duration: '1200ms (`--shimmer-dur`)',
         easing: 'linear',
         delay: '',
@@ -1221,23 +1316,26 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
       {
         name: 'held',
         trigger: 'prefers-reduced-motion',
-        from: 'the running gradient',
-        to: 'animation none, color var(--shimmer-highlight), -webkit-text-fill-color var(--shimmer-highlight), and `--shimmer-highlight` is #0d0d0d',
-        duration: '',
+        from: 'the running window',
+        to: 'the line painted #0d0d0d, window hidden',
+        duration: '0ms',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'The type is font-size 32px and font-weight 600. The element is inline-block and width fit-content, with background-clip text and text-fill transparent while the animation runs.',
-      'The reduced-motion colour is the highlight #0d0d0d. The running gradient uses both #7c7c7c and #0d0d0d.',
+      'The window is a mask over a second copy of the string. The base line stays #7c7c7c. The hot line shows only inside the window.',
+      'The hot line moves opposite the window, from 72px toward the negative of the line width. The glyphs stay on top of the base line.',
+      'The window starts off the left edge and ends past the right edge. The sweep does not reverse.',
     ],
     setup:
-      'The string is `Generating reply`. `--shimmer-dur` is 1200ms, `--shimmer-base` is #7c7c7c, and `--shimmer-highlight` is #0d0d0d. `t-shimmer` moves background-position from 100% 0 to 0% 0.',
+      'Mount the HTML, the CSS, and the script in one document. The script sets `--shimmer-end` from the line width. The stylesheet covers prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The sweep runs 1200ms linear and loops, from background-position 100% to 0%.',
-      'The gradient uses #7c7c7c and #0d0d0d on a 300% background.',
-      'Reduced motion stops the animation and paints #0d0d0d through `--shimmer-highlight`.',
+      'The line is `Generating reply`, 20px, line-height 26px, weight 500. The base colour is #7c7c7c and the hot colour is #0d0d0d.',
+      'The window is 72px by 26px and starts at -72px. The mask fades through #000.',
+      'The sweep is 1200ms linear and repeats without reversing.',
+      'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion paints #0d0d0d and the duration is 0ms.',
     ],
   },
   'image-generation-loader': {
@@ -1885,6 +1983,11 @@ export const CANONICAL_IDS = new Set<string>([
   'input-clear-dissolve',
   'menu-dropdown',
   'tooltip-open-close',
+  'skeleton-reveal',
+  'shimmer-text',
+  'text-states-swap',
+  'card-resize',
+  'error-state-shake',
 ]);
 
 function buildPrompt(id: string): string {
