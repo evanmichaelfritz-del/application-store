@@ -96,6 +96,7 @@ export const SNIPPETS: Record<string, string> = {
   --text-swap-ease: ease-in-out;
 }
 .t-text-swap {
+  display: inline-block;
   transition: transform var(--text-swap-dur) var(--text-swap-ease),
     filter var(--text-swap-dur) var(--text-swap-ease),
     opacity var(--text-swap-dur) var(--text-swap-ease);

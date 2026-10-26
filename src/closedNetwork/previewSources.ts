@@ -227,7 +227,7 @@ const SOURCES: Record<string, Source> = {
   display: grid; place-items: center;
   border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.t-text-swap { color: #0d0d0d; font: 500 15px Inter, system-ui, sans-serif; }
+.t-text-swap { display: inline-block; color: #0d0d0d; font: 500 15px Inter, system-ui, sans-serif; }
 .animate {
   appearance: none; position: absolute; right: 10px; bottom: 10px; height: 28px;
   padding: 0 10px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.08);
