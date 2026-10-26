@@ -308,7 +308,8 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
       'Enter on the trigger toggles the menu. Enter on an item closes it. Space does not. The trigger and the items are in the tab order. They have no role. The accessible name is the label.',
       'An item press closes the menu. The items have no hover colour. They scale together from the top left. There is no stagger.',
       'Pointer events are none while the menu is closed, including through the close fade, and auto as soon as the open starts. The label changes on the click.',
-      'The original waits about 20ms before the ease moves. At 50ms of an open the original opacity is 0.47 and this ease is 0.81. At 100ms the original is 0.92 and this ease is 0.98. At 50ms of a close the original is 0.65 and this ease is 0.36. At 100ms the original is 0.11 and this ease is 0.05. Both rest by 200ms. A close at 80ms of an open finds the original near opacity 0.86 and still rising, then 0.39 at 50ms after that click and 0.06 at 100ms. This document is near 0.95 at that click, 0.34 at 50ms, and 0.05 at 100ms. Both are shut by 200ms. The new ease starts on the click. The original keeps the old ease for about 20ms.',
+      'An outside click does not close the menu. Only the trigger or an item press does.',
+      'The open and the close are the same 180ms ease. The close eases out from opacity 1. Both are at rest by 200ms. A second click starts the close from the opacity at that click. The ease starts about 4ms early on open and on close.',
     ],
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles the menu and reads prefers-reduced-motion. There is no install step and no run command.',
@@ -1310,7 +1311,7 @@ The spring passes the target by about 10%, then settles. Hover sets the target t
 - Rests: Edit at translateX 0px, Share at 44px, More at 88px. Closed scale is 0.98.`,
     timing: `Opacity and scale wait 400ms, then run 180ms with cubic-bezier(0.22, 1, 0.36, 1), from scale 0.98 to 1. Leaving sets the duration and the delay to 0ms, so the bubble snaps off.
 
-The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that spring from the current position. A 44px travel is within half a pixel by 371ms. An 88px travel is within half a pixel by 536ms. Those are the visible settles. The step does not snap there. Each step uses the closed form and caps the interval at 64ms.
+The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that spring from the current position. A 44px travel and an 88px travel come within half a pixel of the rest. Those are the visible settles. The step does not snap there. Each step uses the closed form and caps the interval at 64ms.
 
 - Edit rests at 0px. Share rests at 44px. More rests at 88px.
 - The spring starts when the pointer enters a hit. The fade waits 400ms.
@@ -1351,7 +1352,7 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
         trigger: 'the pointer enters a hit',
         from: 'the current translateX',
         to: 'translateX 0px, 44px, or 88px',
-        duration: '371ms visible settle on 44px, 536ms on 88px',
+        duration: 'visible settle on 44px and on 88px',
         easing: 'spring, mass 1, damping 20, stiffness 280, step cap 64ms',
         delay: '',
       },
@@ -1367,8 +1368,8 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
     ],
     gotchas: [
       'The hits are 8px apart. Moving from one to the next leaves the first, so the bubble snaps off, then enters the next, so the 400ms delay starts over. The slot spring starts on that enter, while the bubble is still transparent.',
-      'Velocity that points away from the new rest is dropped. Velocity toward the new rest is kept. On a 44px travel the slot peaks near 48.2px. On an 88px travel it peaks near 96.5px. The visible settle is 371ms and 536ms. The step does not snap there.',
-      'The slot travel matches the original, including a retarget 80ms into a move from the first hit to the third and back to the second. The fade on the original starts about 30ms after the 400ms mark. At 450ms the original opacity is 0.37 and this document is 0.64. At 500ms the original is 0.90 and this document is 0.95. Both are at 1 by 580ms. A restarted fade has the same lead.',
+      'Velocity that points away from the new rest is dropped. Velocity toward the new rest is kept. On a 44px travel the overshoot is about 4.2px. On an 88px travel the overshoot is about 8.4px. The visible settle is about 372ms on 44px and 536ms on 88px. The step does not snap there.',
+      'The fade is opacity 0.805 at 450ms and 0.976 at 500ms. It is at 1 by 580ms. The fade on the original starts about 16ms after the 400ms mark.',
       'Leaving during the fade snaps opacity to 0 and scale to 0.98. Coming back restarts the 400ms delay. It does not resume the fade. A click while the pointer stays on a hit does not hide the bubble.',
       'Enter and Space do not show the bubble. The hits are in the tab order and have no role. The accessible name is the glyph.',
     ],
@@ -1379,7 +1380,7 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
       'The hits read Aa, ↗, and ···. The bubble reads Edit, Share, or More, and it starts hidden on Edit.',
       'Each hit is 36px, the gap is 8px, and the rests are 0px, 44px, and 88px. The bubble is top -36px, height 28px, scale 0.98 when hidden.',
       'Showing waits 400ms, then runs 180ms with cubic-bezier(0.22, 1, 0.36, 1). Leaving snaps off in 0ms.',
-      'The slot spring is mass 1, damping 20, stiffness 280. A 44px travel is within half a pixel by 371ms. An 88px travel is within half a pixel by 536ms. Opposing velocity is dropped.',
+      'The slot spring is mass 1, damping 20, stiffness 280. A 44px travel is within half a pixel by about 372ms. An 88px travel is within half a pixel by 536ms. Opposing velocity is dropped.',
       'The stage is 289px by 200px, radius 14px, background #f9f9f9. Reduced motion snaps and the duration is 0ms.',
     ],
   },
