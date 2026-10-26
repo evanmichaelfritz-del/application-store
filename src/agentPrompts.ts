@@ -309,7 +309,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
       'An item press closes the menu. The items have no hover colour. They scale together from the top left. There is no stagger.',
       'Pointer events are none while the menu is closed, including through the close fade, and auto as soon as the open starts. The label changes on the click.',
       'An outside click does not close the menu. Only the trigger or an item press does.',
-      'The open and the close are the same 180ms ease. The close eases out from opacity 1. Both are at rest by 200ms. On a rapid second click, for example a close about 80ms into an open, the Copy turns around immediately from the current opacity, while the original keeps rising for a short moment before it turns, so the Copy reaches zero sooner. The peak opacity difference is up to about 0.3 to 0.7 for 2 to 3 frames at 1280.',
+      'The open and the close are the same 180ms ease. The close eases out from opacity 1. Both are at rest by 200ms. On a rapid second click, for example a close about 80ms into an open, the animation turns around immediately from the current opacity and scale.',
     ],
     setup:
       'Mount the HTML, the CSS, and the script in one document. The script toggles the menu and reads prefers-reduced-motion. There is no install step and no run command.',
@@ -1368,8 +1368,8 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
     ],
     gotchas: [
       'The hits are 8px apart. Moving from one to the next leaves the first, so the bubble snaps off, then enters the next, so the 400ms delay starts over. The slot spring starts on that enter, while the bubble is still transparent.',
-      'Velocity that points away from the new rest is dropped. Velocity toward the new rest is kept. On a 44px travel the overshoot is about 4.2px. On an 88px travel the overshoot is about 8.4px. The visible settle is about 370ms on 44px and 536ms on 88px. The step does not snap there.',
-      'A retarget can spike about 2.8px to 7.6px for a single frame, then converges in about 3 frames.',
+      'Velocity that points away from the new rest is dropped. Velocity toward the new rest is kept. On a 44px travel the overshoot is about 4.2px. On an 88px travel the overshoot is about 8.5px. The visible settle is about 370ms on 44px and 536ms on 88px. The step does not snap there.',
+      'A retarget can change the slot position by a few px between two frames, then it converges in about 3 frames.',
       'The fade is opacity 0.805 at 450ms and 0.976 at 500ms. It is at 1 by 580ms.',
       'Leaving during the fade snaps opacity to 0 and scale to 0.98. Coming back restarts the 400ms delay. It does not resume the fade. A click while the pointer stays on a hit does not hide the bubble.',
       'Enter and Space do not show the bubble. The hits are in the tab order and have no role. The accessible name is the glyph.',
