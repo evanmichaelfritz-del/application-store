@@ -606,7 +606,6 @@ const SOURCES: Record<string, Source> = {
       { transform: 'translateX(0px)' }
     ], { duration: dur, fill: 'forwards' });
     player.onfinish = function () {
-      input.style.animation = '';
       input.style.transform = '';
       player.cancel();
     };
