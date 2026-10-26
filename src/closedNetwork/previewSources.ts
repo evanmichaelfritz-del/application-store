@@ -225,43 +225,65 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'menu-dropdown': {
-    html: `<div class="menu">
-  <button class="trigger" type="button" id="menu-btn" aria-expanded="false">Open menu</button>
-  <div class="t-dropdown" id="menu">
-    <button type="button">New file</button>
-    <button type="button">Add image</button>
-    <button type="button">New folder</button>
+    html: `<div class="stage">
+  <div class="anchor">
+    <div class="menu-hit" id="menu-hit" tabindex="0">Open menu</div>
+    <div class="menu" id="menu">
+      <div class="item" tabindex="0">New file</div>
+      <div class="item" tabindex="0">Add image</div>
+      <div class="item" tabindex="0">New folder</div>
+    </div>
   </div>
 </div>`,
-    extraCss: `.menu { position: relative; }
-.t-dropdown {
-  position: absolute; top: 40px; left: 0; min-width: 168px;
-  background: #fff; border-radius: 12px; padding: 6px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.t-dropdown button {
-  display: block; width: 100%; text-align: left; border: 0; background: transparent;
-  padding: 8px 10px; border-radius: 8px; font: 500 13px Inter, system-ui, sans-serif; cursor: pointer;
+.anchor { min-width: 160px; display: flex; flex-direction: column; align-items: flex-start; }
+.menu-hit {
+  height: 34px; padding: 0 12px; border-radius: 10px; background: #ffffff; color: #0d0d0d;
+  font: 500 13px/34px Inter, system-ui, sans-serif; cursor: pointer;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.t-dropdown button:hover { background: #f3f3f3; }`,
+.menu {
+  width: 160px; margin-top: 8px; padding: 6px; border-radius: 12px; background: #ffffff;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.item {
+  height: 32px; padding: 0 8px; border-radius: 8px; color: #0d0d0d;
+  font: 400 13px/32px Inter, system-ui, sans-serif; cursor: pointer;
+}`,
     script: `(function () {
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var hit = document.getElementById('menu-hit');
   var menu = document.getElementById('menu');
-  var btn = document.getElementById('menu-btn');
   var open = false;
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  btn.addEventListener('click', function () {
-    if (open) {
-      menu.classList.remove('is-open');
-      menu.classList.add('is-closing');
-      setTimeout(function () { menu.classList.remove('is-closing'); }, reduce ? 0 : 180);
-    } else {
-      menu.classList.remove('is-closing');
-      menu.classList.add('is-open');
-    }
+  function paint() {
+    menu.classList.toggle('is-open', open);
+    hit.textContent = open ? 'Close menu' : 'Open menu';
+    menu.style.transitionDuration = media.matches ? '0ms' : '';
+  }
+  function toggle() {
     open = !open;
-    btn.textContent = open ? 'Close menu' : 'Open menu';
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    paint();
+  }
+  function close() {
+    if (!open) return;
+    open = false;
+    paint();
+  }
+  function onKey(event, fn) {
+    if (event.repeat || event.key !== 'Enter') return;
+    fn();
+  }
+  hit.addEventListener('click', toggle);
+  hit.addEventListener('keydown', function (event) { onKey(event, toggle); });
+  [].slice.call(menu.querySelectorAll('.item')).forEach(function (item) {
+    item.addEventListener('click', close);
+    item.addEventListener('keydown', function (event) { onKey(event, close); });
   });
+  media.addEventListener('change', paint);
 })();`,
   },
   'modal-open-close': {
@@ -749,45 +771,132 @@ const SOURCES: Record<string, Source> = {
 })();`,
   },
   'tooltip-open-close': {
-    html: `<div class="tip-wrap">
-  <div class="t-tt" id="tip">Edit</div>
-  <div class="tip-row">
-    <button type="button" data-tip="Edit" data-slot="0">Aa</button>
-    <button type="button" data-tip="Share" data-slot="1">↗</button>
-    <button type="button" data-tip="More" data-slot="2">···</button>
+    html: `<div class="stage">
+  <div class="group">
+    <div class="bubble" id="bubble">
+      <div class="face" id="face">Edit</div>
+    </div>
+    <div class="row">
+      <div class="hit" tabindex="0" data-tip="Edit" data-slot="0">Aa</div>
+      <div class="hit" tabindex="0" data-tip="Share" data-slot="1">↗</div>
+      <div class="hit" tabindex="0" data-tip="More" data-slot="2">\u00b7\u00b7\u00b7</div>
+    </div>
   </div>
 </div>`,
-    extraCss: `.tip-wrap { position: relative; padding-top: 40px; }
-.t-tt {
-  position: absolute; top: 0; height: 28px; padding: 0 8px;
-  border-radius: 8px; background: #fff; color: #2f2f2f; font-size: 12px; font-weight: 500;
-  display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); white-space: nowrap;
+    extraCss: `.stage {
+  position: relative; width: 289px; height: 200px; overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; background: #f9f9f9;
 }
-.tip-row { display: flex; gap: 8px; }
-.tip-row button {
-  width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(0,0,0,.06);
-  background: #fff; cursor: pointer; font: 500 13px Inter, system-ui, sans-serif;
+.group { position: relative; }
+.bubble { position: absolute; top: -36px; left: 0; transform: translateX(0px); pointer-events: none; }
+.face {
+  height: 28px; min-width: 36px; padding: 0 8px; border-radius: 8px; background: #ffffff;
+  color: #2f2f2f; font: 500 12px/28px Inter, system-ui, sans-serif; white-space: nowrap;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.row { display: flex; gap: 8px; }
+.hit {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff; color: #0d0d0d; cursor: pointer;
+  display: grid; place-items: center; font: 500 13px/1 Inter, system-ui, sans-serif;
 }`,
     script: `(function () {
-  var tip = document.getElementById('tip');
-  var row = document.querySelector('.tip-row');
-  function show(button) {
-    var slot = Number(button.getAttribute('data-slot')) || 0;
-    tip.textContent = button.getAttribute('data-tip') || '';
-    tip.style.setProperty('--tt-x', (slot * 44) + 'px');
-    tip.classList.remove('is-off');
-    tip.classList.add('is-on');
+  var media = matchMedia('(prefers-reduced-motion: reduce)');
+  var mass = 1, damping = 20, stiffness = 280;
+  var omega0 = Math.sqrt(stiffness / mass);
+  var zeta = damping / (2 * Math.sqrt(stiffness * mass));
+  var omega1 = omega0 * Math.sqrt(1 - zeta * zeta);
+  // Rests are 0px, 44px, and 88px.
+  // Visible settle 371ms on 44px. Visible settle 536ms on 88px. The step does not snap there. dt cap 64ms.
+  var cap = '64ms';
+  var step = '44px';
+  var bubble = document.getElementById('bubble');
+  var face = document.getElementById('face');
+  var hits = [].slice.call(document.querySelectorAll('.hit'));
+  var spring = { value: 0, velocity: 0, target: 0, energy: 0, done: true };
+  var raf = 0;
+  var last = 0;
+  function paint() {
+    bubble.style.transform = 'translateX(' + spring.value + 'px)';
+  }
+  function to(target) {
+    if (media.matches) {
+      spring.value = target;
+      spring.velocity = 0;
+      spring.target = target;
+      spring.done = true;
+      face.style.transitionDuration = '0ms';
+      face.style.transitionDelay = '0ms';
+      paint();
+      return;
+    }
+    face.style.transitionDuration = '';
+    face.style.transitionDelay = '';
+    if (spring.target === target) return;
+    var v = spring.velocity;
+    // Opposing velocity is dropped. Velocity toward the new target is kept.
+    if ((target > spring.value && v < 0) || (target < spring.value && v > 0)) v = 0;
+    spring.velocity = v;
+    spring.target = target;
+    var x0 = spring.value - target;
+    spring.energy = 0.5 * stiffness * x0 * x0 + 0.5 * mass * v * v;
+    spring.done = spring.energy === 0;
+    if (spring.done) spring.value = target;
+    kick();
+  }
+  function stepSpring(dtMs) {
+    if (spring.done) return;
+    var dt = Math.min(parseFloat(cap), Math.max(0, dtMs)) / 1000;
+    var x0 = spring.value - spring.target;
+    var v0 = spring.velocity;
+    var env = Math.exp(-zeta * omega0 * dt);
+    var sin1 = Math.sin(omega1 * dt);
+    var cos1 = Math.cos(omega1 * dt);
+    var frag = env * (sin1 * ((v0 + zeta * omega0 * x0) / omega1) + x0 * cos1);
+    spring.value = spring.target + frag;
+    spring.velocity = -zeta * omega0 * frag + env * (cos1 * (v0 + zeta * omega0 * x0) - omega1 * x0 * sin1);
+    var e = 0.5 * stiffness * (spring.target - spring.value) * (spring.target - spring.value) + 0.5 * mass * spring.velocity * spring.velocity;
+    if (spring.energy === 0 || e / spring.energy <= 6e-9) {
+      spring.value = spring.target;
+      spring.velocity = 0;
+      spring.done = true;
+    }
+  }
+  function frame(now) {
+    stepSpring(now - last);
+    last = now;
+    paint();
+    if (!spring.done) raf = requestAnimationFrame(frame);
+    else raf = 0;
+  }
+  function kick() {
+    if (raf) return;
+    last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+  function show(hit) {
+    face.textContent = hit.getAttribute('data-tip') || '';
+    face.classList.remove('is-on');
+    face.classList.add('is-off');
+    void face.offsetWidth;
+    face.classList.remove('is-off');
+    face.classList.add('is-on');
+    to(Number(hit.getAttribute('data-slot')) * parseFloat(step));
   }
   function hide() {
-    tip.classList.remove('is-on');
-    tip.classList.add('is-off');
+    face.classList.remove('is-on');
+    face.classList.add('is-off');
   }
-  [].slice.call(row.querySelectorAll('button')).forEach(function (button) {
-    button.addEventListener('mouseenter', function () { show(button); });
-    button.addEventListener('focus', function () { show(button); });
-    button.addEventListener('mouseleave', hide);
-    button.addEventListener('blur', hide);
+  hits.forEach(function (hit) {
+    hit.addEventListener('mouseenter', function () { show(hit); });
+    hit.addEventListener('mouseleave', hide);
   });
+  media.addEventListener('change', function () {
+    if (media.matches) to(spring.target);
+  });
+  paint();
 })();`,
   },
   'image-generation-loader': {

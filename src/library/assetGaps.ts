@@ -95,9 +95,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
   ],
   'menu-dropdown': [
-    'Generic template prompt (4784 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the menu; the Copy keeps its fixed stage.',
   ],
   'modal-open-close': [],
   'notification-badge': [
@@ -144,8 +142,6 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'The phase-1 counter\'s first change is one frame late (184 at 1.000 s, where the original shows 185).',
   ],
   'tooltip-open-close': [
-    'Generic template prompt (4850 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
   ],
 };

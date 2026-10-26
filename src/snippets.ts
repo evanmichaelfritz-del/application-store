@@ -115,29 +115,16 @@ export const SNIPPETS: Record<string, string> = {
   .t-text-swap { transition: none !important; }
 }`,
 
-  'menu-dropdown': `:root {
-  --dropdown-open-dur: 180ms;
-  --dropdown-close-dur: 180ms;
-  --dropdown-pre-scale: 0.94;
-  --dropdown-closing-scale: 0.94;
-  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
-.t-dropdown {
-  transform-origin: var(--dropdown-origin, top left);
-  transform: scale(var(--dropdown-pre-scale));
+  'menu-dropdown': `.menu {
+  transform-origin: top left;
+  transform: scale(0.94);
   opacity: 0;
   pointer-events: none;
-  transition: transform var(--dropdown-open-dur) var(--dropdown-ease),
-    opacity var(--dropdown-open-dur) var(--dropdown-ease);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.t-dropdown.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
-.t-dropdown.is-closing {
-  transform: scale(var(--dropdown-closing-scale));
-  opacity: 0;
-  transition-duration: var(--dropdown-close-dur);
-}
+.menu.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .t-dropdown { transition: none !important; }
+  .menu { transition-duration: 0ms; }
 }`,
 
   'confetti-burst': `@property --bit-x { syntax: "<number>"; inherits: false; initial-value: 0; }
@@ -430,25 +417,15 @@ export function Card() {
  */
 .t-img-fx-card { background: #f5f5f5; }`,
 
-  'tooltip-open-close': `:root {
-  --tt-in-dur: 180ms;
-  --tt-out-dur: 0ms;
-  --tt-scale: 0.98;
-  --tt-delay: 400ms;
-  --tt-slot: 44px;
-  --tt-in-ease: ease-out;
-}
-.t-tt {
-  left: var(--tt-x, 0px);
-  transform: scale(var(--tt-scale));
+  'tooltip-open-close': `.face {
   opacity: 0;
-  transition: transform var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay),
-    opacity var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay);
+  transform: scale(0.98);
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 400ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 400ms;
 }
-.t-tt.is-on { transform: scale(1); opacity: 1; }
-.t-tt.is-off { transition-duration: var(--tt-out-dur); transition-delay: 0ms; }
+.face.is-on { opacity: 1; transform: scale(1); }
+.face.is-off { transition-duration: 0ms; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) {
-  .t-tt { transition: none !important; }
+  .face { transition-duration: 0ms; transition-delay: 0ms; }
 }`,
 
   'tilt-3d': TILT_COPY_SNIPPET,
