@@ -75,16 +75,15 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
   ],
   'card-resize': [
-    'Generic template prompt (3630 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the card; the Copy keeps its fixed stage.',
   ],
   'card-stack-hover': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the hit target; the Copy keeps its fixed stage.',
   ],
   'confetti-burst': ['Phone widths are a known gap.'],
   'error-state-shake': [
-    'Generic template prompt (4189 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the field; the Copy has no fixed stage.',
+    'The Copy\'s Submit control is the shared trigger: 32px tall, 13px, white, with a 1px border. The original\'s button is 28px tall, 12px, on the animate fill, 8px under a 20px spacer.',
   ],
   gooey: [],
   'input-clear-dissolve': [
@@ -110,13 +109,11 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Smaller trigger label differs from live.',
   ],
   'shimmer-text': [
-    'Generic template prompt (4115 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
-    'Unused CSS: .col, .trigger.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the line; the Copy keeps its fixed stage.',
   ],
   'skeleton-reveal': [
-    'Generic template prompt (4550 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
+    'The original toggles on the button only. The Copy also reveals after 900ms, then the button toggles.',
   ],
   'success-check': [
     'Phone widths are a known gap. On the asset page at narrow widths the original\'s stage shrinks to the badge and clips the Animate button; the Copy keeps its fixed stage.',
@@ -126,8 +123,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the bar; the Copy keeps its fixed stage.',
   ],
   'text-states-swap': [
-    'Generic template prompt (4078 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the line; the Copy keeps its fixed stage.',
   ],
   'texts-reveal': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the column; the Copy keeps its fixed stage.',
