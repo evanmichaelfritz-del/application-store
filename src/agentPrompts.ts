@@ -1,6 +1,5 @@
 import abrarOverviewPrompt from './demos/abrar-overview/AGENT_PROMPT.md';
 import { TRANSITIONS } from './catalog';
-import { GOOEY_PLUS_CLOSED_NETWORK_HTML } from '@/src/closedNetwork/gooeyPlusMenu';
 import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import { ORB_LOCKS } from '@/src/closedNetwork/orbLocks';
 
@@ -25,6 +24,8 @@ export type PromptLock = {
   timing?: string;
   reducedMotion?: string;
   knownGaps?: string;
+  /** Piece subtitle when the catalog line cannot be pasted into the prompt. */
+  pieceSubtitle?: string;
 };
 
 const LOCKS: Record<string, PromptLock> = {
@@ -538,18 +539,125 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
     ],
   },
   'gooey-plus-menu': {
-    motion: 'SVG goo plus menu. blur 6 / contrast 18 / fill #fff. Open 550ms, close 250ms. Stagger is the number 40 joined to ms.',
-    content: '`+` hub + New file / Add image / New folder icons. White liquid surface; dark crisp icons.',
+    pieceSubtitle: 'SVG goo plus menu',
+    motion:
+      'Open writes transform 550ms with cubic-bezier(0.34, 1.56, 0.64, 1). Close writes transform 250ms with cubic-bezier(0.22, 1, 0.36, 1). Stagger is the number 40 joined to ms.',
+    content:
+      'A white circular hub with a dark plus. Open, the plus rotates into a cross and three buttons fan out: New file, Add image, and New folder. The white discs bridge while they are close. The icons stay on a second layer, so they stay sharp.',
+    geometry: `- Document background: #f9f9f9 (\`--stage\`). Icon colour #17181c (\`--btn-text\`). Disc fill #ffffff (\`--goo-fill\`).
+- Group: width 200px, height 140px.
+- Slot rest: left 80px, top 80px, width 40px, height 40px.
+- Button: width 40px, height 40px, border 0, padding 0, border-radius 50%, background transparent. Focus outline is 2px solid #17181c, outline-offset 2px.
+- Icons start at opacity 0 and blur(2px). While open they are opacity 1 and blur(0). The plus rotates to 45deg.
+- Blobs: four circles, r 20, centred at 100, 100, inside a group whose fill is #ffffff. Transform origin is 100px 100px.
+- Filter id goo: feGaussianBlur stdDeviation 6, then a colour matrix with alpha slope 18 and intercept -8.67. The filter region is x -80, y -80, width 360, height 300.
+- SVG shadow: drop-shadow(0 0 0 1px rgba(0,0,0,.06)), drop-shadow(0 2px 6px rgba(0,0,0,.05)), drop-shadow(0 4px 42px rgba(0,0,0,.06)).`,
+    timing: `Open writes \`transform 550ms cubic-bezier(0.34, 1.56, 0.64, 1)\`. Close writes \`transform 250ms cubic-bezier(0.22, 1, 0.36, 1)\`. For the first three slots, the open delay is the index times 40, joined to ms. The hub delay is 0ms, and the close delay is 0ms.
+
+The plus transition is transform 250ms ease-in-out. While open it is rotate(45deg).
+
+Icons transition opacity and filter over 120ms ease. While open, transition-duration is 180ms. The open delay is 120 plus the index times the stagger, joined to ms. Otherwise the delay is 0ms.
+
+The same translate is written on the slot and on its blob. Reduced motion writes transition none and duration 0ms.`,
+    reducedMotion:
+      'Reduced motion writes transition none and duration 0ms on the slots, the blobs, the plus, and the icons. The stylesheet also sets .slot, .plus, .sat-icon, and .blob to transition none.',
+    states: [
+      {
+        name: 'closed',
+        trigger: 'load, via apply(false)',
+        from: 'the rest slot',
+        to: 'each offset x 0, y 0, held until the hub click',
+        duration: '250ms when motion is allowed',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '0ms',
+      },
+      {
+        name: 'open',
+        trigger: 'hub click while closed',
+        from: 'x 0, y 0',
+        to: 'New file x -54, y -34; Add image x 0, y -64; New folder x 54, y -34; hub x 0, y 0',
+        duration: '550ms',
+        easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        delay: 'index times 40, joined to ms, for the first three slots',
+      },
+      {
+        name: 'close',
+        trigger: 'hub click while open, or a satellite click',
+        from: 'the open offsets',
+        to: 'x 0, y 0',
+        duration: '250ms',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: '0ms',
+      },
+      {
+        name: 'plus',
+        trigger: '.liquid.is-open',
+        from: 'rotate(0deg)',
+        to: 'rotate(45deg)',
+        duration: '250ms',
+        easing: 'ease-in-out',
+        delay: '',
+      },
+      {
+        name: 'icons',
+        trigger: 'the same open and close',
+        from: 'opacity 0, blur(2px)',
+        to: 'opacity 1, blur(0) while open',
+        duration: '120ms, or 180ms while open',
+        easing: 'ease',
+        delay: '120 plus the index times the stagger, joined to ms, while opening',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the next offsets, with transition none',
+        duration: '0ms',
+        easing: '',
+        delay: '0ms',
+      },
+    ],
+    gotchas: [
+      'The goo filter stays on the SVG circles. The buttons are a second layer with transparent backgrounds, so the icons stay sharp.',
+      'Open is 550ms with cubic-bezier(0.34, 1.56, 0.64, 1). Close is 250ms with cubic-bezier(0.22, 1, 0.36, 1). The stagger number is 40, joined to ms, and only while opening.',
+      'Satellite buttons use tabindex -1 while closed and tabindex 0 while open. A satellite click sets open false. The hub aria-label is Open menu or Close menu.',
+      'Blob transform-origin is the literal 100px 100px.',
+      'Reduced motion writes transition none and duration 0ms.',
+    ],
+    setup:
+      'Mount the HTML, the CSS, and the script in one document. The group is 200px by 140px. Buttons are 40px by 40px, transparent, border-radius 50%. The rest slot is left 80px and top 80px. Filter id goo uses feGaussianBlur stdDeviation 6 and a colour matrix with alpha slope 18 and intercept -8.67. The script binds the hub and the satellite buttons and reads prefers-reduced-motion once. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
+    checklist: [
+      'The discs are fill #ffffff and the icons are #17181c, on a background of #f9f9f9.',
+      'The group is 200px by 140px. The rest slot is left 80px and top 80px. Buttons are 40px.',
+      'Open is 550ms with cubic-bezier(0.34, 1.56, 0.64, 1). Close is 250ms with cubic-bezier(0.22, 1, 0.36, 1).',
+      'The plus rotates to 45deg over 250ms ease-in-out.',
+      'Icons use 120ms, and 180ms while open, with blur(2px). The filter blur is stdDeviation 6 and the alpha slope is 18.',
+      'Reduced motion writes transition none and duration 0ms.',
+    ],
   },
   'page-side-by-side': {
     motion:
       '`.t-page` transitions transform and opacity over `--page-slide-dur: 300ms` with `--page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1)`. `.is-exit` is `translateX(calc(var(--page-slide-distance) * -1))` and opacity 0. `.is-enter` is `translateX(var(--page-slide-distance))` and opacity 0. `--page-slide-distance` is 24px.',
     content:
-      'First page is a row: a 32px #f3ba2f disc with `B`, title `BNB`, subtitle `BNB`, and `$66.11` at the end of the row. Second page is `$10` / `$66.11 available`. The second page starts with `.is-enter`.',
+      'The first page is a row: a 32px disc, colour #f3ba2f, with the letter B in #1a1200, the name BNB, the line BNB, and $66.11 at the end of the row. The second page is $10 and $66.11 available. The second page starts with .is-enter, so it is offset and transparent. A click on the pager swaps the two pages.',
+    geometry: `- Document background: #f9f9f9. The pager is centered.
+- Pager: width 210px, height 88px, padding 0, border 0, border-radius 14px, background #fff, overflow hidden. The button text is 14px, weight 500, colour #0d0d0d, aligned to the start. Shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05).
+- Page: absolute, inset 0, padding 16px, column, centered on the cross axis at the start. The row is a flex line, align center, gap 10px, width 100%.
+- Disc: width 32px, height 32px, border-radius 16px, background #f3ba2f, colour #1a1200, 14px, weight 600.
+- Name: 14px, weight 500, line-height 18px, colour #0d0d0d. The second line: 12px, weight 400, line-height 16px, colour #767676.
+- Price: margin-left auto, 14px, weight 500, colour #0d0d0d.
+- Amount: 28px, weight 600, line-height 32px, colour #0d0d0d. The available line: 12px, weight 400, line-height 16px, colour #767676.`,
+    timing: `Each \`.t-page\` transitions transform and opacity together. \`--page-slide-dur\` is 300ms. \`--page-slide-ease\` is cubic-bezier(0.22, 1, 0.36, 1). \`--page-slide-distance\` is 24px.
+
+\`.is-exit\` is translateX of that distance times -1, and opacity 0. \`.is-enter\` is translateX of that distance, and opacity 0. Clearing the class returns the page to translateX 0 and opacity 1.
+
+A click toggles \`.is-exit\` on the first page and \`.is-enter\` on the second in the same turn. The second page starts in \`.is-enter\`. There is no blur and no extra delay. Reduced motion sets the transition to none.`,
+    reducedMotion: 'Reduced motion sets `.t-page` to transition none. The pages swap with no travel.',
     states: [
       {
         name: 'exit',
-        trigger: 'a click that adds `.is-exit` on the first page',
+        trigger: 'a click that adds .is-exit on the first page',
         from: 'translateX 0, opacity 1',
         to: 'translateX(calc(var(--page-slide-distance) * -1)), --page-slide-distance 24px, opacity 0',
         duration: '300ms (`--page-slide-dur`)',
@@ -558,7 +666,7 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
       },
       {
         name: 'enter',
-        trigger: 'a click that removes `.is-enter` on the second page',
+        trigger: 'a click that removes .is-enter on the second page',
         from: 'translateX(24px), opacity 0',
         to: 'translateX 0, opacity 1',
         duration: '300ms (`--page-slide-dur`)',
@@ -566,62 +674,92 @@ x = -8.2px * (1 - progress). y = 12.4px * (1 - progress). scale = 0.4 + 0.6 * pr
         delay: '',
       },
       {
-        name: 'pager',
-        trigger: '',
-        from: '',
-        to: '.pager width 210px, height 88px, border-radius 14px, background #fff',
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the other page, with transition none',
         duration: '',
         easing: '',
         delay: '',
       },
     ],
     gotchas: [
-      'There is no blur and no separate timeout. A click toggles `.is-exit` on the first page and `.is-enter` on the second together.',
-      'The disc is 32px, #f3ba2f, with `B` in #1a1200. The title and price are 14px #0d0d0d. The subtitle and the available line are 12px #767676. The amount is 28px.',
+      'The pager is one button. Both pages sit inside it. A click toggles .is-exit on the first page and .is-enter on the second together.',
+      'The travel is 24px over 300ms with cubic-bezier(0.22, 1, 0.36, 1). Opacity uses that same transition. There is no blur and no stagger.',
+      'The disc is 32px, #f3ba2f, with B in #1a1200. The name and the price are 14px #0d0d0d. The second line and the available line are 12px #767676. The amount is 28px.',
       'Reduced motion sets the transition to none.',
     ],
     setup:
-      'The first page is the row with `B`, `BNB`, `BNB`, and `$66.11`. The second page is `$10` and `$66.11 available` and starts with `.is-enter`. `.pager` is 210px by 88px, border-radius 14px. A click toggles `.is-exit` and `.is-enter` together.',
+      'Mount the HTML, the CSS, and the script in one document. The first page is the row with B, BNB, BNB, and $66.11. The second page is $10 and $66.11 available and starts with .is-enter. The pager is 210px by 88px, border-radius 14px. The script toggles .is-exit and .is-enter together, and the stylesheet covers prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'The push is 24px over 300ms with cubic-bezier(0.22, 1, 0.36, 1).',
-      'The first page is the `B` disc, `BNB`, `BNB`, and `$66.11`. The second is `$10` and `$66.11 available`.',
+      'The pager is 210px by 88px, radius 14px, background #fff.',
+      'The first page is the B disc, BNB, BNB, and $66.11. The second is $10 and $66.11 available.',
+      'The disc is 32px, #f3ba2f. The amount is 28px #0d0d0d. The second lines are 12px #767676.',
       'Reduced motion sets the transition to none.',
     ],
   },
   'icon-swap': {
     motion:
       'Both `.t-icon` layers transition opacity, filter, and transform over `--icon-swap-dur: 250ms` with `--icon-swap-ease: ease-in-out`. `.is-out` is opacity 0, `blur(var(--icon-swap-blur))`, and `scale(var(--icon-swap-start-scale))`. `--icon-swap-blur` is 2px and `--icon-swap-start-scale` is 0.25.',
-    content: 'Three-line icon swaps with an X. The X starts with `.is-out`.',
+    content:
+      'A three-line mark swaps with an X. The three-line mark starts shown. The X starts with .is-out. The chip accessible name is Swap icon.',
+    geometry: `- Document background: #f9f9f9. The chip is centered.
+- Chip: width 48px, height 48px, padding 0, border 0, border-radius 12px, background #fff. Shadow 0 4px 42px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.05). The accessible name is Swap icon.
+- Icon: position absolute, left 14px, top 16px, width 20px, height 16px.
+- Bars: three strips. Each is width 20px, height 2px, border-radius 1px, background #0d0d0d. The column fills the 20px by 16px box with space-between.
+- X: two strips, width 20px, height 2px, border-radius 1px, background #0d0d0d, top 7px. One is rotate(45deg) and the other is rotate(-45deg).`,
+    timing: `Both \`.t-icon\` layers transition opacity, filter, and transform. \`--icon-swap-dur\` is 250ms. \`--icon-swap-ease\` is ease-in-out. \`--icon-swap-blur\` is 2px. \`--icon-swap-start-scale\` is 0.25.
+
+\`.is-out\` is opacity 0, blur(var(--icon-swap-blur)), and scale(var(--icon-swap-start-scale)). Clearing \`.is-out\` returns opacity 1 and scale 1, with no blur.
+
+A click toggles \`.is-out\` on both icons in the same turn. The three-line mark starts shown. The X starts with \`.is-out\`. Reduced motion sets the transition to none.`,
+    reducedMotion: 'Reduced motion sets `.t-icon` to transition none. The icons swap with no fade, blur, or scale travel.',
     states: [
       {
         name: 'shown',
-        trigger: 'a click on the chip removes `.is-out`',
+        trigger: 'a click on the chip removes .is-out',
         from: 'opacity 0, blur(2px), scale(0.25)',
-        to: 'opacity 1, blur 0, scale 1',
+        to: 'opacity 1, scale 1',
         duration: '250ms (`--icon-swap-dur`)',
         easing: 'ease-in-out (`--icon-swap-ease`)',
         delay: '',
       },
       {
         name: 'out',
-        trigger: 'a click on the chip adds `.is-out`',
-        from: 'opacity 1, scale 1, blur 0',
+        trigger: 'a click on the chip adds .is-out',
+        from: 'opacity 1, scale 1',
         to: 'opacity 0, blur(2px), scale(0.25)',
         duration: '250ms (`--icon-swap-dur`)',
         easing: 'ease-in-out',
         delay: '',
       },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the click',
+        to: 'the other icon, with transition none',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
     ],
     gotchas: [
-      'The chip is 48px by 48px, border-radius 12px, background #fff. Each `.t-icon` is position absolute, 20px by 16px. The bars and the X are 2px tall and #0d0d0d.',
+      'The chip is 48px by 48px, border-radius 12px, background #fff. Each .t-icon is position absolute, left 14px, top 16px, 20px by 16px.',
+      'The bars and the X are height 2px, border-radius 1px, and #0d0d0d. Opacity, blur, and scale share one 250ms ease-in-out.',
+      '.is-out ends at scale 0.25 and blur(2px). The resting icon is the three-line mark. The accessible name is Swap icon.',
       'Reduced motion sets the transition to none.',
     ],
     setup:
-      'The first `.t-icon` is the three-line mark. The second starts with `.is-out` and is the X. A click on the chip toggles `.is-out` on both. `--icon-swap-dur` is 250ms, `--icon-swap-blur` is 2px, and `--icon-swap-start-scale` is 0.25.',
+      'Mount the HTML, the CSS, and the script in one document. The first .t-icon is the three-line mark. The second starts with .is-out and is the X. A click toggles .is-out on both. --icon-swap-dur is 250ms, --icon-swap-blur is 2px, and --icon-swap-start-scale is 0.25. The stylesheet covers prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'Opacity, blur, and scale share one 250ms ease-in-out.',
-      'The resting icon is the three-line mark.',
-      '`.is-out` ends at scale 0.25 and blur 2px.',
+      'The chip is 48px by 48px, radius 12px, background #fff.',
+      'The resting icon is the three-line mark. The X starts with .is-out.',
+      '.is-out ends at scale 0.25 and blur(2px). The marks are #0d0d0d and height 2px.',
+      'Reduced motion sets the transition to none.',
     ],
   },
   'success-check': {
@@ -1486,22 +1624,33 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
   'tilt-3d': {
     motion:
       'Pointer move over `.t-tilt` eases rotateX and rotateY with `--tilt-follow: 120ms`. The script target is `(0.5 - ny) * 14` and `(nx - 0.5) * 18`. Perspective is `--tilt-perspective: 1000px`. On leave the same loop eases back with `--tilt-return: 520ms`. The glare uses `--tilt-glare-radius: 110px` and `--tilt-glare: 42ms`, and snaps onto the pointer on the frame the pointer enters. Position is clientX/clientY minus getBoundingClientRect.',
-    content: 'Credit / `VISA` / `John Smith` / `4111 - 1111 - 1111 - 1111`. Dark card `#16171c`, 210×128, radius 16.',
+    content:
+      'The card reads Credit, VISA, John Smith, and 4111 - 1111 - 1111 - 1111. The face is #16171c, 210px by 128px, radius 16px. A screen-blended glare follows the pointer.',
+    geometry: `- Document background: #f9f9f9. The card is centered.
+- Hit box: width 210px, height 128px, perspective var(--tilt-perspective). \`--tilt-perspective\` is 1000px.
+- Face: width 100%, height 100%, border-radius 16px, background #16171c, padding 16px, overflow hidden. Rest transform is rotateX(0deg) rotateY(0deg).
+- Credit: 12px, weight 500, colour rgba(255,255,255,0.7).
+- VISA: 16px, weight 600, colour #fff, right 16px, top 16px.
+- Name: 13px, weight 500, colour #fff.
+- Number: 12px, weight 400, letter-spacing 0.4px, colour rgba(255,255,255,0.78).
+- Glare: inset 0, mix-blend-mode screen, opacity 0 at rest. \`--tilt-glare-radius\` is 110px. The stops are rgba(255,255,255,0.78), rgba(255,255,255,0.32), rgba(255,255,255,0.08), and rgba(255,255,255,0).`,
+    timing: `Follow uses \`--tilt-follow: 120ms\`. The glare uses \`--tilt-glare: 42ms\`. Return uses \`--tilt-return: 520ms\`. The script reads those same durations as 120, 42, and 520.
+
+Each frame, the step is capped at 48. The blend is 1 - exp(-dt / tau). While the pointer is over the card, tilt uses 120 and the glare uses 42. After the pointer leaves, both use 520.
+
+rotateX target is (0.5 - ny) * 14. rotateY target is (nx - 0.5) * 18. nx and ny come from clientX and clientY minus getBoundingClientRect on the hit box, clamped to the 210px by 128px box.
+
+On the frame the pointer enters, the glare position snaps to the pointer. Opacity eases toward 1. On leave, the targets return to rotate 0, the glare returns to the centre, and opacity eases toward 0.
+
+The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rotateY) is under 0.04, and glare opacity is under 0.02. It then writes rotateX(0deg) rotateY(0deg) and opacity 0.`,
+    reducedMotion:
+      'Reduced motion returns before aiming, so the targets stay at rest. The stylesheet sets .t-tilt-card transform to none and .t-tilt-glare opacity to 0.',
     states: [
-      {
-        name: 'card',
-        trigger: '',
-        from: '',
-        to: '.t-tilt width 210px, height 128px, perspective 1000px. .t-tilt-card background #16171c, border-radius 16px, padding 16px',
-        duration: '',
-        easing: '',
-        delay: '',
-      },
       {
         name: 'follow',
         trigger: 'pointermove over the hit box',
         from: 'the current rotateX, rotateY, and glare',
-        to: 'target (0.5 - ny) * 14 and (nx - 0.5) * 18, glare opacity 1 at the pointer',
+        to: 'rotateX (0.5 - ny) * 14, rotateY (nx - 0.5) * 18, glare opacity 1 at the pointer',
         duration: '120ms (`--tilt-follow`) for tilt, 42ms (`--tilt-glare`) for the glare',
         easing: '1 - exp(-dt / tau)',
         delay: '',
@@ -1515,19 +1664,32 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
         easing: '1 - exp(-dt / tau)',
         delay: '',
       },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion',
+        from: 'the pointer move or leave',
+        to: 'rotateX(0deg) rotateY(0deg), glare opacity 0',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
     ],
     gotchas: [
       'nx and ny come from clientX and clientY minus getBoundingClientRect, clamped to the 210px by 128px box. The script does not read offsetX or offsetY.',
-      'The glare radius is `--tilt-glare-radius: 110px`. The stops are rgba(255,255,255,0.78), rgba(255,255,255,0.32), rgba(255,255,255,0.08), and rgba(255,255,255,0). Blend is screen.',
-      'The loop stops once the pointer is gone and abs(rotateX) < 0.04, abs(rotateY) < 0.04, and glare opacity < 0.02. It then writes rotateX(0deg) rotateY(0deg).',
-      'Reduced motion returns before aiming. The stylesheet sets `.t-tilt-card` transform to none and glare opacity to 0.',
+      'The glare radius is --tilt-glare-radius: 110px. The stops are rgba(255,255,255,0.78), rgba(255,255,255,0.32), rgba(255,255,255,0.08), and rgba(255,255,255,0). Blend is screen. The glare position snaps on enter, then eases with 42ms.',
+      'The frame step is capped at 48. The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rotateY) is under 0.04, and glare opacity is under 0.02. It then writes rotateX(0deg) rotateY(0deg).',
+      'Reduced motion returns before aiming. The stylesheet sets .t-tilt-card transform to none and glare opacity to 0.',
     ],
     setup:
-      '`.t-tilt` is 210px by 128px with `--tilt-perspective: 1000px`. The card is #16171c, border-radius 16px, padding 16px. `--tilt-follow` is 120ms, `--tilt-glare` is 42ms, and `--tilt-return` is 520ms.',
+      'Mount the HTML, the CSS, and the script in one document. The hit box is 210px by 128px with --tilt-perspective 1000px. The face is #16171c, border-radius 16px, padding 16px. --tilt-follow is 120ms, --tilt-glare is 42ms, --tilt-return is 520ms, and --tilt-glare-radius is 110px. The script steps the tilt and reads prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
       'The card is 210px by 128px, #16171c, radius 16px, perspective 1000px.',
+      'The face reads Credit, VISA, John Smith, and 4111 - 1111 - 1111 - 1111.',
       'Follow is 120ms. Glare is 42ms and snaps on enter. Return is 520ms.',
-      'Pointer position is clientX/clientY minus getBoundingClientRect on `.t-tilt`.',
+      'Pointer position is clientX and clientY minus getBoundingClientRect on the hit box.',
+      'The glare stops are rgba(255,255,255,0.78), rgba(255,255,255,0.32), rgba(255,255,255,0.08), and rgba(255,255,255,0), blended with screen.',
+      'Reduced motion leaves the card at rotateX(0deg) rotateY(0deg) with glare opacity 0.',
     ],
   },
   'thinking-orbs': {
@@ -1768,118 +1930,9 @@ The slot x is a spring, mass 1, damping 20, stiffness 280. The script steps that
   },
 };
 
-function buildGooeyPlusPrompt(): string {
-  return `# AGENT_PROMPT — Gooey plus menu
-
-## Goal
-
-Recreate a **gooey plus menu**:
-
-- Closed: one white circular hub with a dark \`+\` icon.
-- Open: hub rotates to \`×\`; three satellite buttons fan out (New file, Add image, New folder) with dark outline icons.
-- While discs are near each other, the white surfaces **melt / bridge** like liquid.
-- Icons and labels stay **crisp** (never run the goo filter over the real UI).
-
-## Visual tokens (exact)
-
-| Token | Value |
-| --- | --- |
-| Stage background | \`#f9f9f9\` |
-| Liquid fill | \`#ffffff\` |
-| Icon / stroke color | \`#17181c\` |
-| Button size | 40×40px, \`border-radius: 50%\`, **transparent background** |
-| Group size | 200×140px |
-| Slot rest position | \`left: 80px; top: 80px\` (all four stacked) |
-| Open offsets | New file \`-54,-34\`; Add image \`0,-64\`; New folder \`54,-34\`; hub \`0,0\` |
-| Goo blur | \`6\` (feGaussianBlur stdDeviation) |
-| Goo contrast | \`18\` (feColorMatrix alpha slope) |
-| Contrast intercept | \`-8.67\` (≈ \`-(contrast/2 - 0.5)\`) |
-| Open motion | 550ms, \`cubic-bezier(0.34, 1.56, 0.64, 1)\`, stagger \`40\` then \`'ms'\` |
-| Close motion | 250ms, \`cubic-bezier(0.22, 1, 0.36, 1)\`, stagger 0 |
-| Plus rotate | 0° → 45° over 250ms ease-in-out when open |
-| Icon reveal | opacity 0→1 + blur 2px→0; open delay \`(120 + i * stagger) + 'ms'\` |
-| Shadow | \`0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05), 0 4px 42px rgba(0,0,0,.06)\` on the SVG layer |
-| Reduced motion | all transitions duration 0 / none |
-
-## Architecture (must follow)
-
-You cannot blur+contrast the real buttons — that softens icons and breaks Safari when using CSS \`filter: url(#...)\` on HTML.
-
-Use **two layers**:
-
-1. **Silhouette (behind)** — SVG with one white circle (r=20) per item, all sharing a goo filter on the SVG \`<g>\`. Drop-shadow on the SVG element.
-2. **Content (above)** — real \`<button>\`s with transparent backgrounds and crisp SVG icons.
-
-Toggle open/close by applying the **same** \`translate(x,y)\` to each content slot **and** its matching SVG circle so the liquid and icons stay pixel-synced.
-
-### Goo filter (copy exactly)
-
-\`\`\`svg
-<filter id="goo" filterUnits="userSpaceOnUse" x="-80" y="-80" width="360" height="300" color-interpolation-filters="sRGB">
-  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-  <feColorMatrix in="blur" type="matrix" values="
-    1 0 0 0 0
-    0 1 0 0 0
-    0 0 1 0 0
-    0 0 0 18 -8.67" result="goo" />
-  <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-</filter>
-\`\`\`
-
-If pieces that should merge look separate, raise blur or reduce gap — bridging starts roughly when blur ≳ gap between discs.
-
-## Interaction
-
-- Click hub: toggle open/closed; \`aria-expanded\` + \`aria-label\` (\`Open menu\` / \`Close menu\`).
-- Satellite buttons: \`tabindex="-1"\` when closed, \`tabindex="0"\` when open; click closes menu.
-- Prefer \`prefers-reduced-motion: reduce\` → instant snaps.
-
-## Document
-
-The asset is this HTML document:
-
-\`\`\`html
-${GOOEY_PLUS_CLOSED_NETWORK_HTML}
-\`\`\`
-
-## States
-
-- **closed** — \`apply(false)\` on load. satellites stacked at left 80px, top 80px, offsets \`{ x: 0, y: 0 }\`. held until the hub click. 0ms when reduced motion is set
-- **open** — hub click while closed. offsets \`{ x: -54, y: -34 }\`, \`{ x: 0, y: -64 }\`, \`{ x: 54, y: -34 }\`, hub \`{ x: 0, y: 0 }\`. 550ms. cubic-bezier(0.34, 1.56, 0.64, 1). delay \`(i * 40) + 'ms'\` for the first three
-- **close** — hub click while open, or a satellite click. those offsets return to \`{ x: 0, y: 0 }\`. 250ms. cubic-bezier(0.22, 1, 0.36, 1). delay 0ms
-- **plus** — \`.liquid.is-open .plus\` rotates to 45deg. 250ms. ease-in-out
-- **icons** — opacity 0 and blur(2px) to opacity 1 and blur(0). the open rule is 180ms. the base rule is 120ms. open delay is \`(120 + i * stagger) + 'ms'\`, otherwise 0ms
-- **surface** — stage #f9f9f9, fill #ffffff, icons #17181c. group 200px by 140px. buttons 40px. shadow rgba(0,0,0,.06), rgba(0,0,0,.05), and rgba(0,0,0,.06)
-
-## Gotchas
-
-- The goo filter stays on the SVG circles. The buttons are a second layer with transparent backgrounds, so the icons stay crisp.
-- Reduced motion writes transition \`none\` and duration 0ms, and the stylesheet sets \`.slot\`, \`.plus\`, \`.sat-icon\`, and \`.blob\` to \`transition: none\`.
-- Satellite buttons use \`tabindex="-1"\` while closed and \`tabindex="0"\` while open. A satellite click sets open false. The hub aria-label is \`Open menu\` or \`Close menu\`.
-- Blob transform-origin is the literal \`100px 100px\`.
-
-## Setup
-
-Stage background \`#f9f9f9\`. Group 200px by 140px. Buttons 40px by 40px, transparent, border-radius 50%. Rest slot \`left: 80px; top: 80px\`. Filter id \`goo\`: feGaussianBlur stdDeviation 6, then a color matrix with alpha slope 18 and intercept -8.67. Icon colour \`#17181c\`. The SVG shadow is \`0 0 0 1px rgba(0,0,0,.06)\`, \`0 2px 6px rgba(0,0,0,.05)\`, and \`0 4px 42px rgba(0,0,0,.06)\`.
-
-## Checklist
-
-- [ ] Discs are 40px, fill #ffffff, icons #17181c, on a stage of #f9f9f9
-- [ ] Rest slot is left 80px and top 80px inside a 200px by 140px group
-- [ ] Open is 550ms with cubic-bezier(0.34, 1.56, 0.64, 1). Close is 250ms with cubic-bezier(0.22, 1, 0.36, 1)
-- [ ] The plus rotates 45deg over 250ms ease-in-out
-- [ ] Icons use 120ms and 180ms with blur 2px. The filter blur is stdDeviation 6 and the alpha slope is 18
-- [ ] Reduced motion sets those transitions to none
-
-## Out of scope
-
-Do not invent a second menu or a different icon set.
-`;
-}
 
 /** Full custom prompts that replace the short LOCK template. */
 const FULL_PROMPTS: Record<string, () => string> = {
-  'gooey-plus-menu': buildGooeyPlusPrompt,
   'abrar-overview': () => abrarOverviewPrompt,
 };
 
@@ -1988,6 +2041,10 @@ export const CANONICAL_IDS = new Set<string>([
   'text-states-swap',
   'card-resize',
   'error-state-shake',
+  'page-side-by-side',
+  'icon-swap',
+  'tilt-3d',
+  'gooey-plus-menu',
 ]);
 
 function buildPrompt(id: string): string {
@@ -2057,7 +2114,7 @@ function buildCanonicalPrompt(id: string): string {
 
 - id: \`${item.id}\`
 - title: ${item.title}
-- subtitle: ${item.subtitle}`,
+- subtitle: ${filled(lock.pieceSubtitle) || item.subtitle}`,
     `## Stage content\n\n${filled(lock.content)}`,
     `## Geometry and values\n\n${filled(lock.geometry)}`,
     statesTable(lock.states),
