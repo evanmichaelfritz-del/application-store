@@ -68,8 +68,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'No explicit setup/gotchas section; states are partial (static dashboard).',
   ],
   'gooey-plus-menu': [
-    'Fails scope only: "Not Helix, not grok.me", a "Card copy buttons" store-process section and "load it in Application Store → Playground".',
-    'The state list is partial (open/closed only).',
+    'Phone widths are a known gap. On the asset page at 1280 the original\'s stage is 202×200 around the 200×140 group. The Copy centers that group on the document background and has no fixed stage.',
   ],
   'avatar-group-hover': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
@@ -90,8 +89,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the field; the Copy keeps its fixed stage.',
   ],
   'icon-swap': [
-    'Generic template prompt (3917 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page at 1280 the original\'s stage is 50×200 around the 48px chip. The Copy centers that chip on the document background and has no fixed stage.',
   ],
   'menu-dropdown': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the menu; the Copy keeps its fixed stage.',
@@ -105,8 +103,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the digits; the Copy keeps its fixed stage.',
   ],
   'page-side-by-side': [
-    'Generic template prompt (4289 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page at 1280 the original\'s stage is 212×200 around the 210×88 pager. The Copy centers that pager on the document background and has no fixed stage.',
   ],
   'shimmer-text': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the line; the Copy keeps its fixed stage.',
@@ -129,8 +126,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the column; the Copy keeps its fixed stage.',
   ],
   'tilt-3d': [
-    'Generic template prompt (7900 B) from a short LOCK: one motion line plus fixed springs; code inline via the template; no state table, gotchas or parity checklist; boilerplate scope lines.',
-    'Smaller trigger label differs from live.',
+    'Phone widths are a known gap. On the asset page at 1280 the original\'s stage is 212×200 around the 210×128 card. The Copy centers that card on the document background and has no fixed stage.',
   ],
   'spacing-tuner': [
     'Phone widths are a known gap. The 1440×1080 stage scales with the card, but parity is desktop web at 1280.',

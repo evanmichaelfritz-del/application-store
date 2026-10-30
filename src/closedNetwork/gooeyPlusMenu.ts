@@ -10,7 +10,7 @@ export const GOOEY_PLUS_CLOSED_NETWORK_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gooey plus menu — closed network</title>
+<title>Gooey plus menu</title>
 <style>
   :root {
     --btn-text: #17181c;
