@@ -9,7 +9,7 @@ export type PreviewControl = 'replay' | 'reset';
 
 export function previewControl(id: string): PreviewControl | null {
   const meta = ASSET_META[id];
-  if (!meta || meta.motion === 'ambient-loop') return null;
+  if (!meta || meta.motion === 'ambient-loop' || meta.motion === 'agent-skill') return null;
   if (meta.motion === 'gesture' || STATEFUL_IDS.some((item) => item === id)) return 'reset';
   return 'replay';
 }
@@ -54,7 +54,13 @@ const PROP_ENTRIES: readonly PropEntry[] = [
     ],
   },
 ];
-const INSTALL_ENTRIES: readonly InstallEntry[] = [];
+const INSTALL_ENTRIES: readonly InstallEntry[] = [
+  {
+    id: 'stageshow',
+    line: 'npx skills add benjitaylor/skills --skill stageshow',
+    deps: [],
+  },
+];
 const PARITY_ENTRIES: readonly ParityEntry[] = [
   {
     id: 'spacing-tuner',

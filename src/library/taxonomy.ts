@@ -24,6 +24,7 @@ export const COMPONENT_TYPES = [
   { slug: 'backgrounds-shaders', label: 'Backgrounds & Shaders' },
   { slug: 'loaders', label: 'Loaders' },
   { slug: 'data-display', label: 'Data display' },
+  { slug: 'ai-skills', label: 'AI skills' },
 ] as const;
 
 export const MOTIONS = [
@@ -32,6 +33,7 @@ export const MOTIONS = [
   { slug: 'scroll', label: 'Scroll', line: 'scroll' },
   { slug: 'gesture', label: 'Gesture', line: 'gesture' },
   { slug: 'ambient-loop', label: 'Ambient loop', line: 'ambient loop' },
+  { slug: 'agent-skill', label: 'Agent skill', line: 'agent skill' },
 ] as const;
 
 export const STACKS = [
@@ -41,6 +43,7 @@ export const STACKS = [
   { slug: 'web-svg-filter', label: 'Web SVG filter' },
   { slug: 'web-css', label: 'Web CSS' },
   { slug: 'web-webgl', label: 'Web WebGL' },
+  { slug: 'mit', label: 'MIT' },
 ] as const;
 
 export const SOURCES = [
@@ -51,6 +54,7 @@ export const SOURCES = [
   { slug: 'abrar', label: 'Abrar' },
   { slug: 'agentation', label: 'Agentation' },
   { slug: 'michael-filipiuk', label: 'Michael Filipiuk' },
+  { slug: 'benji-taylor', label: 'Benji Taylor' },
 ] as const;
 
 export const STATUSES = [
@@ -116,6 +120,7 @@ const ROWS: Record<string, Row> = {
   'orb-state-picker': ['inputs-pickers', 'static', 'rn-skia', 'libraries-dev', 'shipped'],
   'yogesh-orb-creator': ['inputs-pickers', 'static', 'rn-skia', 'yogesh', 'shipped'],
   'spacing-tuner': ['data-display', 'ambient-loop', 'web-css', 'michael-filipiuk', 'shipped'],
+  stageshow: ['ai-skills', 'agent-skill', 'mit', 'benji-taylor', 'shipped'],
 };
 
 export const ASSET_META: Record<string, AssetMeta> = Object.fromEntries(
@@ -135,6 +140,7 @@ const EXPECTED_COUNTS: Record<ComponentType, number> = {
   'backgrounds-shaders': 3,
   loaders: 11,
   'data-display': 4,
+  'ai-skills': 1,
 };
 
 function assertTaxonomy() {
@@ -142,7 +148,7 @@ function assertTaxonomy() {
   const metaIds = Object.keys(ASSET_META);
   const missing = catalogIds.filter((id) => !ASSET_META[id]);
   const extra = metaIds.filter((id) => !catalogIds.includes(id));
-  if (missing.length || extra.length || metaIds.length !== 40) {
+  if (missing.length || extra.length || metaIds.length !== 41) {
     throw new Error(
       `Library taxonomy out of sync with the catalog (missing: ${missing.join(', ') || 'none'}; extra: ${extra.join(', ') || 'none'}; count ${metaIds.length})`,
     );

@@ -28,6 +28,7 @@ import { LiquidMetalDemo } from './demos/liquid-metal';
 import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
 import { SpacingTunerDemo } from './demos/spacing-tuner/demo';
+import { StageshowDemo } from './demos/stageshow/demo';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -95,10 +96,11 @@ export type TransitionItem = {
   /** Skia canvas. Loaded only when the card nears the viewport. */
   skia?: true;
   /**
-   * Optional skill file served from `public/<path>`.
-   * When set, the card shows a Copy skill button. Cards without it are unchanged.
+   * Optional skill.
+   * `path` copies that public file to the clipboard.
+   * `href` downloads that same-origin file. Cards without a skill are unchanged.
    */
-  skill?: { path: string; name: string };
+  skill?: { path: string; name: string } | { href: string; filename: string; name: string };
   Demo: ComponentType;
 };
 
@@ -572,7 +574,28 @@ export const TRANSITIONS: TransitionItem[] = [
     skill: { path: 'skills/spacing-audit/SKILL.md', name: 'spacing-audit' },
     Demo: SpacingTunerDemo,
   },
+  {
+    id: 'stageshow',
+    title: 'Stageshow',
+    subtitle: 'Faux product UI stills, cursor demos and bento grids for your agent.',
+    categories: [],
+    tags: ['stageshow', 'faux UI', 'mockup', 'bento', 'cursor demo', 'hero'],
+    sections: ['tools', 'ai-skills'],
+    pro: false,
+    skill: {
+      href: '/downloads/stageshow-skill.zip',
+      filename: 'stageshow-skill.zip',
+      name: 'stageshow',
+    },
+    Demo: StageshowDemo,
+  },
 ];
+
+export function isDownloadSkill(
+  skill: NonNullable<TransitionItem['skill']>,
+): skill is { href: string; filename: string; name: string } {
+  return 'href' in skill;
+}
 
 export function itemTags(item: TransitionItem): string[] {
   return item.pro ? [...item.categories, 'pro'] : [...item.categories];

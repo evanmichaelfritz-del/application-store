@@ -1,5 +1,5 @@
 import { promptFor } from '@/src/agentPrompts';
-import { TRANSITIONS } from '@/src/catalog';
+import { isDownloadSkill, TRANSITIONS, type TransitionItem } from '@/src/catalog';
 import { copyTextFor, embedGooeyFont, prefetchGooeyFont } from '@/src/closedNetwork/previewSources';
 import {
   loadPublicPrompt,
@@ -38,6 +38,7 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'drag-drop-physics') return loadPublicPrompt('/prompts/drag-drop-physics.md');
   if (id === 'spacing-tuner') return loadPublicPrompt('/prompts/spacing-tuner.md');
   if (id === 'image-generation-loader') return loadPublicPrompt('/prompts/image-generation-loader.md');
+  if (id === 'stageshow') return loadPublicPrompt('/prompts/stageshow.md');
   return Promise.resolve(promptFor(id));
 }
 
@@ -50,7 +51,8 @@ export function promptIsLazy(id: string): boolean {
     id === 'gooey' ||
     id === 'drag-drop-physics' ||
     id === 'spacing-tuner' ||
-    id === 'image-generation-loader'
+    id === 'image-generation-loader' ||
+    id === 'stageshow'
   );
 }
 
@@ -73,21 +75,27 @@ export function loadCopyScript(id: string): Promise<string> {
   return loadPublicPrompt(url);
 }
 
-export function skillFor(id: string): { path: string; name: string } | null {
+export function skillFor(id: string): NonNullable<TransitionItem['skill']> | null {
   const skill = TRANSITIONS.find((item) => item.id === id)?.skill;
   return skill ?? null;
 }
 
-/** Skill markdown served from public/. Empty when this asset has no skill. */
-export function loadSkill(id: string): Promise<string> {
+function clipboardSkill(id: string): { path: string; name: string } | null {
   const skill = skillFor(id);
+  if (!skill || isDownloadSkill(skill)) return null;
+  return skill;
+}
+
+/** Skill markdown served from public/. Empty when this asset has no clipboard skill. */
+export function loadSkill(id: string): Promise<string> {
+  const skill = clipboardSkill(id);
   if (!skill) return Promise.resolve('');
   return loadPublicPrompt(`/${skill.path}`);
 }
 
 /** Fetch the skill again after a failed load. */
 export function reloadSkill(id: string): Promise<string> {
-  const skill = skillFor(id);
+  const skill = clipboardSkill(id);
   if (!skill) return Promise.resolve('');
   return reloadPublicPrompt(`/${skill.path}`);
 }
