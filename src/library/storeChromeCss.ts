@@ -9,6 +9,16 @@ a[data-focus-ring] {
   color: inherit;
   text-decoration: none;
 }
+[data-copy-label="stack"] {
+  display: grid !important;
+}
+[data-copy-label="stack"] > * {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+[data-copy-label="idle"] {
+  visibility: hidden;
+}
 [data-focus-ring]:focus {
   outline: none;
 }

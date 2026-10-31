@@ -9,7 +9,7 @@ export type PreviewControl = 'replay' | 'reset';
 
 export function previewControl(id: string): PreviewControl | null {
   const meta = ASSET_META[id];
-  if (!meta || meta.motion === 'ambient-loop') return null;
+  if (!meta || meta.motion === 'ambient-loop' || meta.motion === 'agent-skill') return null;
   if (meta.motion === 'gesture' || STATEFUL_IDS.some((item) => item === id)) return 'reset';
   return 'replay';
 }

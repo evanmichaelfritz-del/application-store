@@ -7,6 +7,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { Link, type Href } from 'expo-router';
 import { isDownloadSkill, TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { CopyLabel } from '@/src/components/CopyLabel';
+import { CreditLink } from '@/src/components/CreditLink';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { LeftNav } from '@/src/components/LeftNav';
 import { TopNav } from '@/src/components/TopNav';
@@ -301,11 +303,12 @@ function Found({ item }: { item: TransitionItem }) {
         {item.title}
       </Text>
       <Text style={[styles.subtitle, credit ? styles.subtitleTight : null]}>{item.subtitle}</Text>
-      {credit ? <SourceChip credit={credit} /> : null}
+      {credit ? <CreditLine credit={credit} /> : null}
       <AssetPreview item={item} />
       <View style={styles.actionRow}>
         <BarButton
           label={copied === 'code' ? 'Copied' : 'Copy code'}
+          reserve="Copy code"
           icon={copied === 'code' ? 'checkmark' : 'copy-outline'}
           tone="primary"
           done={copied === 'code'}
@@ -332,6 +335,7 @@ function Found({ item }: { item: TransitionItem }) {
                     ? 'Retry'
                     : 'Copy skill'
             }
+            reserve="Copy skill"
             icon={copied === 'skill' ? 'checkmark' : 'document-text-outline'}
             tone="secondary"
             done={copied === 'skill'}
@@ -344,6 +348,7 @@ function Found({ item }: { item: TransitionItem }) {
         {installLine ? (
           <BarButton
             label={copied === 'install-command' ? 'Copied' : 'Copy install command'}
+            reserve="Copy install command"
             icon={copied === 'install-command' ? 'checkmark' : 'copy-outline'}
             tone="secondary"
             done={copied === 'install-command'}
@@ -356,6 +361,7 @@ function Found({ item }: { item: TransitionItem }) {
         ) : null}
         <BarButton
           label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+          reserve="Agent Prompt"
           icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
           tone="secondary"
           done={copied === 'prompt'}
@@ -463,26 +469,22 @@ function BackLink({ type, label }: { type: ComponentType; label: string }) {
   );
 }
 
-function SourceChip({ credit }: { credit: AssetCredit }) {
-  const [hover, setHover] = useState(false);
+function CreditLine({ credit }: { credit: AssetCredit }) {
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={credit.label}
-      testID="source-chip"
-      onPress={() => openExternal(credit.url)}
-      onHoverIn={() => setHover(true)}
-      onHoverOut={() => setHover(false)}
-      {...pressableWeb({ dataSet: { focusRing: 'true' } })}
-      style={StyleSheet.flatten([styles.chip, hover && styles.chipHover, styles.pointer])}
-    >
-      <Text style={styles.chipText}>{credit.label}</Text>
-    </Pressable>
+    <View style={styles.creditRow}>
+      <CreditLink href={credit.url} label={credit.label} variant="chip" />
+      {credit.license ? (
+        <Text style={styles.licenseMark} testID="source-license">
+          {credit.license}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
 function BarButton({
   label,
+  reserve,
   icon,
   tone = 'secondary',
   done = false,
@@ -495,6 +497,7 @@ function BarButton({
   style,
 }: {
   label: string;
+  reserve?: string;
   icon?: IconName;
   tone?: 'primary' | 'secondary';
   done?: boolean;
@@ -548,7 +551,7 @@ function BarButton({
       ])}
     >
       {icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null}
-      <Text style={[styles.buttonText, primary && styles.buttonTextOn]}>{label}</Text>
+      <CopyLabel label={label} reserve={reserve} style={[styles.buttonText, primary && styles.buttonTextOn]} />
     </Pressable>
   );
   if (!href) return control;
@@ -983,14 +986,9 @@ function Details({ item, credit }: { item: TransitionItem; credit: AssetCredit |
       <DetailRow label="Author" last={false}>
         {credit ? (
           <Text style={styles.valueText}>
-            {credit.label}{' '}
-            <Text
-              style={styles.inlineLink}
-              accessibilityRole="link"
-              onPress={() => openExternal(credit.url)}
-            >
-              ↗
-            </Text>
+            {credit.label}
+            {credit.license ? ` ${credit.license}` : ''}{' '}
+            <CreditLink href={credit.url} label="↗" variant="inline" />
           </Text>
         ) : (
           <Text style={styles.faint}>—</Text>
@@ -1100,18 +1098,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   subtitleTight: { marginBottom: 10 },
-  chip: {
-    alignSelf: 'flex-start',
-    height: 22,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: '#f1f1f1',
+  creditRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
     marginBottom: 20,
   },
-  chipHover: { backgroundColor: '#e7e7e7' },
-  chipText: { fontFamily: fonts.medium, fontSize: 11, color: colors.textMuted },
+  licenseMark: { fontFamily: fonts.medium, fontSize: 11, lineHeight: 22, color: colors.textMuted },
   frame: {
     width: '100%',
     backgroundColor: colors.stage,

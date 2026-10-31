@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
+import { CopyLabel } from '@/src/components/CopyLabel';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { installFor } from '@/src/library/assetMeta';
@@ -25,6 +26,7 @@ const COPY_LABEL: Record<CopyKind, string> = {
 
 function ActionButton({
   label,
+  reserve,
   done,
   disabled,
   busy,
@@ -34,6 +36,7 @@ function ActionButton({
   testID,
 }: {
   label: string;
+  reserve?: string;
   done?: boolean;
   disabled?: boolean;
   busy?: boolean;
@@ -68,9 +71,7 @@ function ActionButton({
         ];
       }}
     >
-      <Text style={[styles.actionText, done && styles.actionDoneText]} {...textWeb({ dataSet: { focusRing: 'true' } })}>
-        {label}
-      </Text>
+      <CopyLabel label={label} reserve={reserve} style={[styles.actionText, done && styles.actionDoneText]} />
     </Pressable>
   );
 }
@@ -156,6 +157,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     <ActionButton
       style={style}
       label={copied === kind ? 'Copied' : COPY_LABEL[kind]}
+      reserve={COPY_LABEL[kind]}
       done={copied === kind}
       onPress={() => copyPart(kind)}
       onWarm={kind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
@@ -254,6 +256,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       <ActionButton
         style={style}
         label={skillLabel}
+        reserve="Copy skill"
         done={skillCopied}
         disabled={skillPhase === 'loading'}
         busy={skillPhase === 'loading'}
@@ -267,6 +270,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       <ActionButton
         style={style}
         label={installCopied ? 'Copied' : 'Copy install command'}
+        reserve="Copy install command"
         done={installCopied}
         onPress={copyInstall}
         testID={`copy-install-${item.id}`}
@@ -372,6 +376,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             <ActionButton
               style={touch ? styles.actionTouch : undefined}
               label={promptCopied ? 'Copied' : 'Copy prompt'}
+              reserve="Copy prompt"
               done={promptCopied}
               onPress={copyPrompt}
               testID={lazyPromptId ? `copy-prompt-${item.id}` : undefined}

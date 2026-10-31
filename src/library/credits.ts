@@ -37,7 +37,7 @@ const CREDITS = [
   { id: 'yogesh-orb-creator', label: 'Yogesh', url: 'https://x.com/yogesharc/status/2106085555201024409' },
   { id: 'abrar-overview', label: 'Abrar Karim', url: 'https://x.com/AbrarInPixels/status/2086055804957065518' },
   { id: 'spacing-tuner', label: 'Michael Filipiuk', url: 'https://x.com/MichaelFilipiuk/status/2111383736243859714' },
-  { id: 'stageshow', label: 'Benji Taylor', url: 'https://github.com/benjitaylor/skills' },
+  { id: 'stageshow', label: 'Benji Taylor', url: 'https://github.com/benjitaylor/skills', license: 'MIT' },
 ] as const;
 
 const UNVERIFIED = [
@@ -51,11 +51,12 @@ const UNVERIFIED = [
   'preview-tools',
 ] as const;
 
-export type AssetCredit = { label: string; url: string };
+export type AssetCredit = { label: string; url: string; license: string | null };
 
 export function creditFor(id: string): AssetCredit | null {
   const row = CREDITS.find((item) => item.id === id);
-  return row ? { label: row.label, url: row.url } : null;
+  if (!row) return null;
+  return { label: row.label, url: row.url, license: 'license' in row ? row.license : null };
 }
 
 function assertCredits() {

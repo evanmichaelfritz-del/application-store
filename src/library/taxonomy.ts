@@ -33,6 +33,7 @@ export const MOTIONS = [
   { slug: 'scroll', label: 'Scroll', line: 'scroll' },
   { slug: 'gesture', label: 'Gesture', line: 'gesture' },
   { slug: 'ambient-loop', label: 'Ambient loop', line: 'ambient loop' },
+  { slug: 'agent-skill', label: 'Agent skill', line: 'agent skill' },
 ] as const;
 
 export const STACKS = [
@@ -42,6 +43,7 @@ export const STACKS = [
   { slug: 'web-svg-filter', label: 'Web SVG filter' },
   { slug: 'web-css', label: 'Web CSS' },
   { slug: 'web-webgl', label: 'Web WebGL' },
+  { slug: 'mit', label: 'MIT' },
 ] as const;
 
 export const SOURCES = [
@@ -118,7 +120,7 @@ const ROWS: Record<string, Row> = {
   'orb-state-picker': ['inputs-pickers', 'static', 'rn-skia', 'libraries-dev', 'shipped'],
   'yogesh-orb-creator': ['inputs-pickers', 'static', 'rn-skia', 'yogesh', 'shipped'],
   'spacing-tuner': ['data-display', 'ambient-loop', 'web-css', 'michael-filipiuk', 'shipped'],
-  stageshow: ['ai-skills', 'ambient-loop', 'web-css', 'benji-taylor', 'shipped'],
+  stageshow: ['ai-skills', 'agent-skill', 'mit', 'benji-taylor', 'shipped'],
 };
 
 export const ASSET_META: Record<string, AssetMeta> = Object.fromEntries(

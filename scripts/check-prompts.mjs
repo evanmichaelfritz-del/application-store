@@ -684,3 +684,64 @@ if (orbHits.length) {
   for (const line of orbHits) console.error(`  ${line}`);
   process.exit(1);
 }
+
+/**
+ * Stageshow's sheet is this card's Copy. The code fences match those bytes,
+ * and the prose stays on the canonical headings.
+ */
+const STAGESHOW_HEADINGS = [
+  'Piece',
+  'Stage content',
+  'Geometry and values',
+  'States',
+  'Timing',
+  'Reduced motion',
+  'Gotchas',
+  'Setup',
+  'Known gaps',
+  'Checklist',
+  'Code',
+];
+
+function fenced(text, lang) {
+  const match = text.match(new RegExp('```' + lang + '\\n([\\s\\S]*?)\\n```'));
+  return match ? match[1] : null;
+}
+
+const stageshowHits = [];
+const stageshowSheet = readFileSync(join(root, 'public/prompts/stageshow.md'), 'utf8');
+const stageshowHeadings = [...stageshowSheet.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
+if (stageshowHeadings.join('\n') !== STAGESHOW_HEADINGS.join('\n')) {
+  stageshowHits.push(`stageshow headings are ${stageshowHeadings.join(' | ') || '(none)'}`);
+}
+const stageshowSubs = [...stageshowSheet.matchAll(/^### (.+)$/gm)].map((match) => match[1].trim());
+if (stageshowSubs.join('\n') !== 'HTML\nCSS\nScript') {
+  stageshowHits.push(`stageshow Code subsections are ${stageshowSubs.join(' | ') || '(none)'}`);
+}
+const stageshowGaps = stageshowSheet.match(/^## Known gaps\n\n([\s\S]*?)\n\n## /m);
+if (!stageshowGaps || stageshowGaps[1] !== 'Phone widths are a known gap.') {
+  stageshowHits.push('stageshow Known gaps must be exactly: Phone widths are a known gap.');
+}
+if (stageshowSheet.includes('the bar, not a reference') || /reference/i.test(stageshowSheet)) {
+  stageshowHits.push('stageshow prompt compares the card to a reference');
+}
+for (const [lang, kind] of [
+  ['html', 'html'],
+  ['css', 'css'],
+  ['js', 'script'],
+]) {
+  const body = fenced(stageshowSheet, lang);
+  let expected = '';
+  try {
+    expected = loaded.copyTextFor('stageshow', kind);
+  } catch (error) {
+    stageshowHits.push(`stageshow Copy ${kind} failed: ${error instanceof Error ? error.message : 'unknown'}`);
+    continue;
+  }
+  if (body !== expected) stageshowHits.push(`stageshow ${lang} fence does not match Copy`);
+}
+console.log(`stageshow hits: ${stageshowHits.length}`);
+if (stageshowHits.length) {
+  for (const line of stageshowHits) console.error(`  ${line}`);
+  process.exit(1);
+}
