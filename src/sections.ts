@@ -36,9 +36,8 @@ export const SECTION_COPY: Record<NavSection, { title: string; subtitle: string;
   },
   'ai-skills': {
     title: 'AI skills',
-    subtitle:
-      'Reserved for downloadable skills. None are listed yet.',
-    empty: 'No AI skills seeded in this section.',
+    subtitle: 'Downloadable skills for an agent.',
+    empty: 'No AI skills in this section.',
   },
   tools: {
     title: 'Tools',

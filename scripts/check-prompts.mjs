@@ -135,6 +135,7 @@ const publicPrompt = {
   'drag-drop-physics': readFileSync(join(root, 'public/prompts/drag-drop-physics.md'), 'utf8'),
   'spacing-tuner': readFileSync(join(root, 'public/prompts/spacing-tuner.md'), 'utf8'),
   'image-generation-loader': readFileSync(join(root, 'public/prompts/image-generation-loader.md'), 'utf8'),
+  stageshow: readFileSync(join(root, 'public/prompts/stageshow.md'), 'utf8'),
 };
 
 function missingSections(text) {
@@ -446,7 +447,19 @@ if (fenceHits.length) {
  * A catalog skill.path is a file under public/. Copy Skill serves those bytes.
  * spacing-audit's hash is pinned to the staged skill.
  */
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+
+/** Download skills. Copy skill is an anchor, not a clipboard write of SKILL.md. */
+const DOWNLOAD_SKILLS = {
+  stageshow: {
+    href: '/downloads/stageshow-skill.zip',
+    filename: 'stageshow-skill.zip',
+    bytes: 913856,
+    sha256: '0c5d3c9339097c1196230e51fe0f2aefe06133e08abd2bb6a83697423206ccb8',
+    entry: 'stageshow/SKILL.md',
+  },
+};
 
 function frontmatterName(bytes) {
   const text = bytes.toString('utf8');
@@ -459,9 +472,45 @@ function frontmatterName(bytes) {
 const skillHits = [];
 if (catalogSkills.length === 0) skillHits.push('catalog declares no skill');
 for (const skill of catalogSkills) {
+  if (skill.download) {
+    const pin = DOWNLOAD_SKILLS[skill.id];
+    if (!pin) {
+      skillHits.push(`${skill.id}: download skill has no pin`);
+      continue;
+    }
+    if (skill.download.href !== pin.href || skill.download.filename !== pin.filename) {
+      skillHits.push(`${skill.id}: download href or filename drifted`);
+    }
+    if (/github\.com/i.test(skill.download.href)) {
+      skillHits.push(`${skill.id}: download must not link to GitHub`);
+    }
+    const absolute = join(root, 'public', pin.href.slice(1));
+    let bytes;
+    try {
+      bytes = readFileSync(absolute);
+    } catch {
+      skillHits.push(`${skill.id}: ${pin.href} is missing`);
+      continue;
+    }
+    if (bytes.length !== pin.bytes) skillHits.push(`${skill.id}: zip is ${bytes.length} bytes, expected ${pin.bytes}`);
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    if (hash !== pin.sha256) skillHits.push(`${skill.id}: zip sha256 drifted`);
+    let declared = null;
+    let unzipped = false;
+    try {
+      declared = frontmatterName(Buffer.from(execFileSync('unzip', ['-p', absolute, pin.entry])));
+      unzipped = true;
+    } catch {
+      skillHits.push(`${skill.id}: ${pin.entry} is missing from the zip`);
+    }
+    if (unzipped && declared !== skill.name) {
+      skillHits.push(`${skill.id}: SKILL.md name ${declared ?? '(missing)'} != registry name ${skill.name}`);
+    }
+    continue;
+  }
   const skillPath = skill.path;
   const skillName = skill.name;
-  if (skillPath.includes('..') || skillPath.startsWith('/')) {
+  if (!skillPath || skillPath.includes('..') || skillPath.startsWith('/')) {
     skillHits.push(`${skillName}: path must stay inside public/`);
     continue;
   }

@@ -6,7 +6,8 @@ import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono/500Medium';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { Link, type Href } from 'expo-router';
-import { TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { isDownloadSkill, TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { LeftNav } from '@/src/components/LeftNav';
 import { TopNav } from '@/src/components/TopNav';
 import { TransitionCard } from '@/src/components/TransitionCard';
@@ -204,8 +205,10 @@ function Found({ item }: { item: TransitionItem }) {
     write(codeSlot(item.id, activeKind));
   };
   const skill = skillFor(item.id);
+  const skillDownload = skill && isDownloadSkill(skill) ? skill : null;
+  const installLine = installFor(item.id)?.line ?? null;
   useEffect(() => {
-    if (!skill) return;
+    if (!skill || isDownloadSkill(skill)) return;
     let ignore = false;
     const token = skillLoad.current + 1;
     skillLoad.current = token;
@@ -310,7 +313,15 @@ function Found({ item }: { item: TransitionItem }) {
           onWarm={activeKind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
           testID="copy-code"
         />
-        {skill ? (
+        {skillDownload ? (
+          <SkillDownloadLink
+            href={skillDownload.href}
+            filename={skillDownload.filename}
+            label="Copy skill"
+            testID="copy-skill"
+            variant="page"
+          />
+        ) : skill ? (
           <BarButton
             label={
               copied === 'skill'
@@ -328,6 +339,19 @@ function Found({ item }: { item: TransitionItem }) {
             busy={skillPhase === 'loading'}
             onPress={copySkill}
             testID="copy-skill"
+          />
+        ) : null}
+        {installLine ? (
+          <BarButton
+            label={copied === 'install-command' ? 'Copied' : 'Copy install command'}
+            icon={copied === 'install-command' ? 'checkmark' : 'copy-outline'}
+            tone="secondary"
+            done={copied === 'install-command'}
+            onPress={() => {
+              mark('install-command');
+              writeClipboardNow(installLine);
+            }}
+            testID="copy-install-command"
           />
         ) : null}
         <BarButton

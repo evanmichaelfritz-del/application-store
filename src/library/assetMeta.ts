@@ -54,7 +54,13 @@ const PROP_ENTRIES: readonly PropEntry[] = [
     ],
   },
 ];
-const INSTALL_ENTRIES: readonly InstallEntry[] = [];
+const INSTALL_ENTRIES: readonly InstallEntry[] = [
+  {
+    id: 'stageshow',
+    line: 'npx skills add benjitaylor/skills --skill stageshow',
+    deps: [],
+  },
+];
 const PARITY_ENTRIES: readonly ParityEntry[] = [
   {
     id: 'spacing-tuner',

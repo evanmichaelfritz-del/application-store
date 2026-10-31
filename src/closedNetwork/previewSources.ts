@@ -1577,6 +1577,29 @@ canvas { display: block; width: 168px; height: 168px; }`,
     extraCss: YOGESH_CREATOR_CSS,
     script: YOGESH_CREATOR_SCRIPT,
   },
+  stageshow: {
+    snippet: false,
+    omitBase: true,
+    html: `<video class="stageshow" src="/media/stageshow-demo.mp4" poster="/media/stageshow-poster.jpg" muted loop autoplay playsinline></video>
+<img class="stageshow-still" src="/media/stageshow-poster.jpg" alt="">`,
+    extraCss: `.stageshow, .stageshow-still {
+  width: 100%;
+  max-height: 420px;
+  aspect-ratio: 1546 / 1080;
+  object-fit: contain;
+  background: #f9f9f9;
+  border-radius: 14px;
+}
+.stageshow { display: block; }
+.stageshow-still { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .stageshow { display: none; }
+  .stageshow-still { display: block; }
+}
+html[data-reduce-motion="1"] .stageshow { display: none; }
+html[data-reduce-motion="1"] .stageshow-still { display: block; }`,
+    script: '',
+  },
 };
 
 function escapeHtml(value: string): string {

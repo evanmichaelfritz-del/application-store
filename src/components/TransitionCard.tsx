@@ -4,13 +4,15 @@ import { Link, useRouter } from 'expo-router';
 import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
+import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { installFor } from '@/src/library/assetMeta';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { assetHref, facetLine } from '@/src/library/taxonomy';
 import { pressableWeb, textWeb } from '@/src/library/webProps';
-import type { TransitionItem } from '../catalog';
+import { isDownloadSkill, type TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
 
 type CopyKind = 'html' | 'css' | 'script';
@@ -83,17 +85,20 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [skillCopied, setSkillCopied] = useState(false);
+  const [installCopied, setInstallCopied] = useState(false);
   const [skillText, setSkillText] = useState<string | null>(null);
   const [skillPhase, setSkillPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const skillGen = useRef(0);
   const skillLoad = useRef(0);
   const skill = skillFor(item.id);
+  const skillDownload = skill && isDownloadSkill(skill) ? skill : null;
+  const installLine = installFor(item.id)?.line ?? null;
   const [lazyPrompt, setLazyPrompt] = useState<string | null>(null);
   const hideBtn = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lazyPromptId = promptIsLazy(item.id) ? item.id : '';
 
   useEffect(() => {
-    if (!skill) return;
+    if (!skill || isDownloadSkill(skill)) return;
     let ignore = false;
     const token = skillLoad.current + 1;
     skillLoad.current = token;
@@ -227,8 +232,25 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       : skillPhase === 'error'
         ? 'Retry'
         : 'Copy skill';
+  const copyInstall = () => {
+    if (!installLine) return;
+    setInstallCopied(true);
+    show();
+    if (hideBtn.current) clearTimeout(hideBtn.current);
+    hideBtn.current = setTimeout(() => setInstallCopied(false), 1400);
+    writeClipboardNow(installLine);
+  };
+
   const skillButton = (style?: StyleProp<ViewStyle>) =>
-    skill ? (
+    skillDownload ? (
+      <SkillDownloadLink
+        href={skillDownload.href}
+        filename={skillDownload.filename}
+        label="Copy skill"
+        testID={`copy-skill-${item.id}`}
+        variant="card"
+      />
+    ) : skill ? (
       <ActionButton
         style={style}
         label={skillLabel}
@@ -237,6 +259,17 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
         busy={skillPhase === 'loading'}
         onPress={copySkill}
         testID={`copy-skill-${item.id}`}
+      />
+    ) : null;
+
+  const installButton = (style?: StyleProp<ViewStyle>) =>
+    installLine ? (
+      <ActionButton
+        style={style}
+        label={installCopied ? 'Copied' : 'Copy install command'}
+        done={installCopied}
+        onPress={copyInstall}
+        testID={`copy-install-${item.id}`}
       />
     ) : null;
 
@@ -301,6 +334,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             {copyButton('script', styles.actionGrow)}
           </View>
           {skillButton(styles.actionFull)}
+          {installButton(styles.actionFull)}
           <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
         </View>
       ) : (
@@ -310,6 +344,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {copyButton('css', touch ? styles.actionTouch : undefined)}
           {copyButton('script', touch ? styles.actionTouch : undefined)}
           {skillButton(touch ? styles.actionTouch : undefined)}
+          {installButton(touch ? styles.actionTouch : undefined)}
           <ActionButton
             style={touch ? styles.actionTouch : undefined}
             label="AGENT_PROMPT"
