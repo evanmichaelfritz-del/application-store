@@ -29,6 +29,7 @@ import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
 import { SpacingTunerDemo } from './demos/spacing-tuner/demo';
 import { StageshowDemo } from './demos/stageshow/demo';
+import { SidebarTransitionsDemo } from './demos/adam-sidebar-transitions';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -588,6 +589,17 @@ export const TRANSITIONS: TransitionItem[] = [
       name: 'stageshow',
     },
     Demo: StageshowDemo,
+  },
+  {
+    id: 'adam-sidebar-transitions',
+    title: 'Sidebar transitions',
+    subtitle: 'Drag the edge. Ease out, cascade, or scrub.',
+    categories: ['essential'],
+    tags: ['sidebar', 'drag', 'resize', 'ease', 'cascade', 'scrub', 'adam', 'adamboyle', 'transitions', 'essential'],
+    sections: ['transitions'],
+    fullRow: true,
+    pro: false,
+    Demo: SidebarTransitionsDemo,
   },
 ];
 

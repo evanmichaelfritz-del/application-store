@@ -21,6 +21,7 @@ const AUTHORS = [
   { label: 'Yogesh', source: 'yogesh' },
   { label: 'Abrar Karim', source: 'abrar' },
   { label: 'Michael Filipiuk', source: 'michael-filipiuk' },
+  { label: 'Adam Boyle', source: 'adam-boyle' },
 ] as const;
 
 export type AssetOption = {
