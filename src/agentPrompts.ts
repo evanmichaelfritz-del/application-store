@@ -1928,6 +1928,129 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
       'The 140×40 strength-1 button is labelled package default. The v1 gold row is not rendered.',
     ],
   },
+  'adam-sidebar-transitions': {
+    motion:
+      'The sidebar starts at 260px. The right edge follows the pointer and clamps the width between 64px and 260px. Ease out auto-snaps to 64px only on a closing drag that starts at or above 160px. A drag that starts below 160px follows the pointer, and its label opacity is clamp((width - 89px) / 70px, 0, 1). Cascade and scrub follow the pointer for the whole drag. On release they glide to 64px only when the width is under 160px. A release at or above 160px keeps that width. Ease and Cascade width use 400ms and cubic-bezier(0.4, 0, 0.2, 1). The Scrub toggle uses 335ms and cubic-bezier(0.25, 1, 0.5, 1). Ease out labels share one opacity for 160ms. Closing starts that fade immediately. Opening waits 240ms. The Cascade toggle staggers rows top-down, 31ms apart, each fading for 120ms and drifting -6px. On close the width waits 125ms. On open the labels wait 110ms. Scrub drag opacity stays mapped from 64px to 160px and the edge clips the text. Reduced motion uses 0ms.',
+    content:
+      'Acme Inc sits beside a square logo. The nav reads Dashboard, Analytics, Documents, Reports, Projects, Security, Users, Account, and Settings. The content holds two skeleton cards. The dock reads one of three lines. Ease out: Snaps to icons once you drag under 160px. Labels fade in 0.16s while the width glides over 0.4s. Cascade: Snaps to icons once you drag under 160px. Follows your drag in one motion. Past 160px the labels drift left and fade from the top down, and it settles to icons when you let go. The collapse button plays it over 0.4s. Scrub: Follows your drag. Labels fade as you narrow the sidebar, and it settles to icons when you let go. Reset returns the width to 260px and the mode to Ease out.',
+    geometry: `- Stage: width 960px, height 520px, background #f9f9f9, colour #17181c, overflow hidden. The frame is 960px by 520px and scales down when the container is narrower than 960px.
+- Window: left 40px, top 20px, width 880px, height 440px, background #ffffff, border 1px solid #e6e6e6, border-radius 16px. Shadow 0 12px 32px rgba(0, 0, 0, 0.04).
+- Sidebar: background #f9f9f9. The resting divider is inset -1px 0 0 #ececec. Open width 260px (\`--side-open\`). Closed width 64px (\`--side-closed\`). The icon column is 64px, so icons stay on that x. The logo is 20px, radius 5px, background #d4d4d8. Labels are 14px, line-height 18px, weight 500, colour #17181c. Brand weight is 600. Rows are 31px. The brand row is 44px with margin-top 8px.
+- Edge: width 12px, cursor col-resize. While hot, the sidebar draws inset -2px 0 0 #4671e4.
+- Toggle: 28px, radius 8px, border 1px solid #e6e6e6, top 14px, left 14px, icon 14px.
+- Dock: width 540px, left 480px, bottom 14px, radius 20px, background #ffffff. Shadow 0 8px 24px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04). Description is 13px, line-height 18px. The segment track is #f3f3f3, radius 10px, padding 3px. The pressed segment is #ffffff. Reset is height 32px, radius 10px, border 1px solid #e6e6e6.
+- Thresholds: \`--side-snap\` 160px, \`--ink-zero\` 89px, \`--ink-span\` 70px, \`--shift\` -6px.
+- Cascade toggle: \`--row-stagger\` 31ms, \`--row-fade\` 120ms, \`--cascade-lead\` 125ms, \`--cascade-lag\` 110ms.
+- Scrub toggle: \`--scrub-dur\` 335ms, \`--scrub-ease\` cubic-bezier(0.25, 1, 0.5, 1).`,
+    timing: `Ease and Cascade width run for 400ms (\`--side-dur\`) with cubic-bezier(0.4, 0, 0.2, 1) (\`--ease\`). That is the Ease toggle, the Ease snap, and the Cascade toggle. Ease out label opacity runs for 160ms (\`--label-dur\`). Opening delays that fade by 240ms (\`--label-delay\`). Closing starts the fade with the width. While an Ease drag is held, label opacity is clamp((width - 89px) / 70px, 0, 1). Cascade drag labels stay tied to width. The Cascade toggle fades each row for 120ms, 31ms after the row above, top-down both ways, and drifts by -6px. On close the width waits 125ms. On open the labels wait 110ms. Scrub drag labels stay tied to width from 64px to 160px. The Scrub toggle width runs for 335ms with cubic-bezier(0.25, 1, 0.5, 1), and its labels fade together for 160ms from the start. Reduced motion sets the durations to 0ms.`,
+    reducedMotion:
+      'Reduced motion snaps the width and the labels. \`--side-dur\`, \`--label-dur\`, and \`--label-delay\` are 0ms. A \`data-reduce="1"\` attribute on the stage does the same.',
+    states: [
+      {
+        name: 'expanded',
+        trigger: 'the document loads, or Reset',
+        from: '',
+        to: 'width 260px, labels opaque, mode Ease out',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'ease-drag',
+        trigger: 'pointer drag in Ease out',
+        from: 'the width where the pointer went down',
+        to: 'width clamped between 64px and 260px. A close that starts at or above 160px snaps under 160px. Label opacity is clamp((width - 89px) / 70px, 0, 1)',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'ease-close',
+        trigger: 'Ease out closing drag goes under 160px, or the toggle closes',
+        from: 'the current width, labels at the current opacity',
+        to: 'width 64px, label opacity 0',
+        duration: '400ms for width, 160ms for labels',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        delay: '0ms',
+      },
+      {
+        name: 'ease-open',
+        trigger: 'the toggle opens in Ease out',
+        from: 'width 64px, label opacity 0',
+        to: 'width 260px, label opacity 1',
+        duration: '400ms for width, 160ms for labels',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        delay: '240ms',
+      },
+      {
+        name: 'cascade-drag',
+        trigger: 'pointer drag in Cascade',
+        from: 'the current width',
+        to: 'the released width. Under 160px it then glides to 64px. At or above 160px it stays. Labels stay tied to width and drift by -6px',
+        duration: '400ms only for the close under 160px',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        delay: '',
+      },
+      {
+        name: 'cascade-toggle',
+        trigger: 'the toggle in Cascade',
+        from: 'the current width and row opacities',
+        to: 'width 64px or 260px. Rows fade top-down for 120ms, 31ms apart, and drift by -6px',
+        duration: '400ms for width',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        delay: '125ms before the width on close, 110ms before the labels on open',
+      },
+      {
+        name: 'scrub-drag',
+        trigger: 'pointer drag in Scrub',
+        from: 'the current width',
+        to: 'the released width. Under 160px it then glides to 64px. At or above 160px it stays. Label opacity is mapped from 64px to 160px and the edge clips the text',
+        duration: '400ms only for the close under 160px',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        delay: '',
+      },
+      {
+        name: 'scrub-toggle',
+        trigger: 'the toggle in Scrub',
+        from: 'the current width and label opacity',
+        to: 'width 64px or 260px, labels faded together',
+        duration: '335ms for width, 160ms for labels',
+        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+        delay: '0ms',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion, or data-reduce="1"',
+        from: 'the current width',
+        to: 'width 64px or 260px, with labels at the resting opacity',
+        duration: '0ms',
+        easing: '',
+        delay: '0ms',
+      },
+    ],
+    gotchas: [
+      'Ease out snaps closed only when the drag started at or above 160px. Dragging open from 64px follows the pointer, and the labels track clamp((width - 89px) / 70px, 0, 1).',
+      'Releasing at or above 160px keeps the width in every mode. Only a release under 160px in Cascade or Scrub glides to 64px.',
+      'Ease out labels do not move. Cascade drag and the Cascade toggle translate them by -6px. The Cascade toggle is timed, top-down in both directions, and is not tied to width.',
+      'The Scrub toggle fades labels for 160ms from the start and is not tied to width. A Scrub drag still maps opacity from 64px to 160px and clips on the edge.',
+      'The icon column is the closed width, 64px, in both poses. Narrowing the sidebar clips the labels. It does not slide the icons.',
+      'The toggle stays at the top left of the content. The logo stays in the icon column and centres in the 64px rail when closed.',
+      'Opening Ease out waits 240ms before the 160ms fade. Closing starts that fade with the 400ms width glide.',
+      'Pointer capture is on the edge. A closing Ease drag that crosses under 160px releases that capture and plays the close.',
+    ],
+    setup:
+      'Mount the HTML, the CSS, and the script in one document. The script reads the custom properties on #adam-sidebar and listens for prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap. Below 960px the stage scales to the container.',
+    checklist: [
+      'The nav reads Dashboard, Analytics, Documents, Reports, Projects, Security, Users, Account, and Settings. The brand reads Acme Inc.',
+      'Open width is 260px. Closed width is 64px. The snap threshold is 160px. An Ease drag maps labels with 89px and 70px.',
+      'Ease and Cascade width ease for 400ms with cubic-bezier(0.4, 0, 0.2, 1). Ease out labels fade for 160ms. Opening them waits 240ms.',
+      'The Cascade toggle staggers 31ms per row, fades each row for 120ms, drifts -6px, waits 125ms before the width on close, and waits 110ms before the labels on open.',
+      'The Scrub toggle eases width for 335ms with cubic-bezier(0.25, 1, 0.5, 1) and fades labels for 160ms from the start. A Scrub drag still maps opacity from 64px to 160px.',
+      'The dock copy matches the three modes. Reset returns 260px and Ease out. Reduced motion uses 0ms.',
+      'The stage is 960px by 520px, background #f9f9f9. The window is 880px by 440px.',
+    ],
+  },
 };
 
 
@@ -2045,6 +2168,7 @@ export const CANONICAL_IDS = new Set<string>([
   'icon-swap',
   'tilt-3d',
   'gooey-plus-menu',
+  'adam-sidebar-transitions',
 ]);
 
 function buildPrompt(id: string): string {

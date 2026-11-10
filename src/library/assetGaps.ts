@@ -136,4 +136,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'tooltip-open-close': [
     'Phone widths are a known gap. On the asset page the original\'s stage shrinks to the row; the Copy keeps its fixed stage.',
   ],
+  'adam-sidebar-transitions': [
+    'Phone widths are a known gap. Below 960px the 960×520 stage scales down to the container. Parity is desktop web at 1280.',
+  ],
 };

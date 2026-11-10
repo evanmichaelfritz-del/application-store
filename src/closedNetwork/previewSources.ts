@@ -14,6 +14,7 @@ import { YOGESH_ORB_CSS, YOGESH_ORB_HTML, YOGESH_ORB_SCRIPT } from '@/src/demos/
 import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 import { ORB_PREVIEW_CSS, orbCard, orbPickerSource } from '@/src/closedNetwork/orbCopy';
 import { imageGenerationLoaderScript } from '@/src/closedNetwork/organicLoaderSource';
+import { CSS as SIDEBAR_CSS, HTML as SIDEBAR_HTML, SCRIPT as SIDEBAR_SCRIPT } from '@/src/demos/adam-sidebar-transitions/source';
 
 export type PreviewKind = 'transitions' | 'effects';
 
@@ -1599,6 +1600,13 @@ canvas { display: block; width: 168px; height: 168px; }`,
 html[data-reduce-motion="1"] .stageshow { display: none; }
 html[data-reduce-motion="1"] .stageshow-still { display: block; }`,
     script: '',
+  },
+  'adam-sidebar-transitions': {
+    snippet: false,
+    omitBase: true,
+    html: SIDEBAR_HTML,
+    extraCss: SIDEBAR_CSS,
+    script: SIDEBAR_SCRIPT,
   },
 };
 

@@ -55,6 +55,7 @@ export const SOURCES = [
   { slug: 'agentation', label: 'Agentation' },
   { slug: 'michael-filipiuk', label: 'Michael Filipiuk' },
   { slug: 'benji-taylor', label: 'Benji Taylor' },
+  { slug: 'adam-boyle', label: 'Adam Boyle' },
 ] as const;
 
 export const STATUSES = [
@@ -121,6 +122,7 @@ const ROWS: Record<string, Row> = {
   'yogesh-orb-creator': ['inputs-pickers', 'static', 'rn-skia', 'yogesh', 'shipped'],
   'spacing-tuner': ['data-display', 'ambient-loop', 'web-css', 'michael-filipiuk', 'shipped'],
   stageshow: ['ai-skills', 'agent-skill', 'mit', 'benji-taylor', 'shipped'],
+  'adam-sidebar-transitions': ['navigation', 'gesture', 'web-css', 'adam-boyle', 'shipped'],
 };
 
 export const ASSET_META: Record<string, AssetMeta> = Object.fromEntries(
@@ -135,7 +137,7 @@ const EXPECTED_COUNTS: Record<ComponentType, number> = {
   buttons: 3,
   'menus-overlays': 4,
   cards: 3,
-  navigation: 2,
+  navigation: 3,
   'text-effects': 4,
   'backgrounds-shaders': 3,
   loaders: 11,
@@ -148,7 +150,7 @@ function assertTaxonomy() {
   const metaIds = Object.keys(ASSET_META);
   const missing = catalogIds.filter((id) => !ASSET_META[id]);
   const extra = metaIds.filter((id) => !catalogIds.includes(id));
-  if (missing.length || extra.length || metaIds.length !== 41) {
+  if (missing.length || extra.length || metaIds.length !== 42) {
     throw new Error(
       `Library taxonomy out of sync with the catalog (missing: ${missing.join(', ') || 'none'}; extra: ${extra.join(', ') || 'none'}; count ${metaIds.length})`,
     );

@@ -495,4 +495,6 @@ export function Card() {
   .t-gooey-tile { transition: none !important; }
 }`,
 
+  'adam-sidebar-transitions': `/* Width eases with --side-dur and --ease. Labels use --label-dur. The stage script reads those custom properties. */`,
+
 };
