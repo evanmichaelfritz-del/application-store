@@ -88,12 +88,19 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   --side-open: 260px;
   --side-closed: 64px;
   --side-snap: 160px;
-  --side-shown: 200px;
   --side-dur: 400ms;
   --label-dur: 160ms;
   --label-delay: 240ms;
+  --scrub-dur: 335ms;
+  --row-stagger: 31ms;
+  --row-fade: 120ms;
+  --cascade-lead: 125ms;
+  --cascade-lag: 110ms;
+  --ink-zero: 89px;
+  --ink-span: 70px;
   --shift: -6px;
-  --ease: cubic-bezier(0, 0, 0.58, 1);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --scrub-ease: cubic-bezier(0.25, 1, 0.5, 1);
   position: relative;
   width: 100%;
   height: 520px;
@@ -260,7 +267,16 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
 }
 #adam-sidebar .tip[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  #adam-sidebar { --side-dur: 0ms; --label-dur: 0ms; --label-delay: 0ms; }
+  #adam-sidebar {
+    --side-dur: 0ms;
+    --label-dur: 0ms;
+    --label-delay: 0ms;
+    --scrub-dur: 0ms;
+    --row-stagger: 0ms;
+    --row-fade: 0ms;
+    --cascade-lead: 0ms;
+    --cascade-lag: 0ms;
+  }
 }`;
 
 export function boot(root: HTMLElement) {
@@ -314,25 +330,35 @@ export function boot(root: HTMLElement) {
     return Math.max(min, Math.min(max, value));
   }
 
-  function easeOutCurve(t: number) {
+  function unitBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
     if (t <= 0) return 0;
     if (t >= 1) return 1;
-    // cubic-bezier(0, 0, 0.58, 1). x(u) = -0.74u^3 + 1.74u^2, y(u) = 3u^2 - 2u^3.
-    var x = t;
+    var cx = 3 * x1;
+    var bx = 3 * (x2 - x1) - cx;
+    var ax = 1 - cx - bx;
+    var u = t;
     var i = 0;
-    var ax = -0.74;
-    var bx = 1.74;
-    var cx = 0;
     while (i < 8) {
-      var dx = ((ax * x + bx) * x + cx) * x - t;
-      var d = (3 * ax * x + 2 * bx) * x + cx;
+      var dx = ((ax * u + bx) * u + cx) * u - t;
+      var d = (3 * ax * u + 2 * bx) * u + cx;
       if (Math.abs(d) < 1e-6) break;
-      x = x - dx / d;
-      if (x < 0) x = 0;
-      if (x > 1) x = 1;
+      u = u - dx / d;
+      if (u < 0) u = 0;
+      if (u > 1) u = 1;
       i += 1;
     }
-    return x * x * (3 - 2 * x);
+    var cy = 3 * y1;
+    var by = 3 * (y2 - y1) - cy;
+    var ay = 1 - cy - by;
+    return ((ay * u + by) * u + cy) * u;
+  }
+
+  function easeOutCurve(t: number) {
+    return unitBezier(t, 0.4, 0, 0.2, 1);
+  }
+
+  function scrubCurve(t: number) {
+    return unitBezier(t, 0.25, 1, 0.5, 1);
   }
 
   function openW() {
@@ -344,11 +370,17 @@ export function boot(root: HTMLElement) {
   function snapW() {
     return cssNum('--side-snap', 160);
   }
-  function shownW() {
-    return cssNum('--side-shown', 200);
-  }
   function shiftPx() {
     return cssNum('--shift', -6);
+  }
+
+  function easeDragOpacity(w: number) {
+    return clamp((w - cssNum('--ink-zero', 89)) / cssNum('--ink-span', 70), 0, 1);
+  }
+
+  function readOpacity(el: HTMLElement) {
+    var parsed = parseFloat(el.style.opacity);
+    return isFinite(parsed) ? parsed : 1;
   }
 
   function cancel() {
@@ -420,9 +452,7 @@ export function boot(root: HTMLElement) {
       i += 1;
     }
     desc.textContent = COPY[next] || COPY.ease;
-    if (next === 'ease') {
-      easeOpacity = width >= shownW() ? 1 : 0;
-    }
+    if (next === 'ease') easeOpacity = easeDragOpacity(width);
     paint();
   }
 
@@ -488,26 +518,83 @@ export function boot(root: HTMLElement) {
     raf = requestAnimationFrame(tick);
   }
 
-  function go(to: number) {
-    if (mode === 'ease') playEase(to, to > snapW());
-    else playLinked(to);
+  function playCascadeToggle(to: number) {
+    cancel();
+    var fromW = width;
+    var opening = to > snapW();
+    var fromOps = labs.map(readOpacity);
+    var t0 = performance.now();
+    var wDur = ms('--side-dur', 400);
+    var lead = opening ? 0 : ms('--cascade-lead', 125);
+    var labelBase = opening ? ms('--cascade-lag', 110) : 0;
+    var stagger = ms('--row-stagger', 31);
+    var fade = ms('--row-fade', 120);
+    var shift = shiftPx();
+    if (wDur === 0) {
+      applyWidth(to);
+      paintCascade(to);
+      return;
+    }
+    function tick(now: number) {
+      var elapsed = now - t0;
+      var wElapsed = elapsed - lead;
+      var wt = wElapsed <= 0 ? 0 : Math.min(1, wElapsed / wDur);
+      applyWidth(fromW + (to - fromW) * easeOutCurve(wt));
+      var pending = wt < 1;
+      var i = 0;
+      while (i < labs.length) {
+        var start = labelBase + i * stagger;
+        var p = fade === 0 || elapsed >= start + fade ? 1 : elapsed <= start ? 0 : (elapsed - start) / fade;
+        var eased = easeOutCurve(p);
+        var target = opening ? 1 : 0;
+        var opacity = fromOps[i] + (target - fromOps[i]) * eased;
+        labs[i].style.opacity = String(opacity);
+        labs[i].style.transform = 'translateX(' + (1 - opacity) * shift + 'px)';
+        if (p < 1) pending = true;
+        i += 1;
+      }
+      if (pending) raf = requestAnimationFrame(tick);
+      else {
+        raf = 0;
+        applyWidth(to);
+        paintCascade(to);
+      }
+    }
+    raf = requestAnimationFrame(tick);
   }
 
-  function fadeEaseIn() {
-    if (raf || easeOpacity >= 1) return;
-    var fromO = easeOpacity;
+  function playScrubToggle(to: number) {
+    cancel();
+    var fromW = width;
+    var fromO = readOpacity(labs[0]);
+    var opening = to > snapW();
+    var toO = opening ? 1 : 0;
     var t0 = performance.now();
+    var wDur = ms('--scrub-dur', 335);
     var lDur = ms('--label-dur', 160);
+    if (wDur === 0 && lDur === 0) {
+      applyWidth(to);
+      paintScrub(to);
+      return;
+    }
     function tick(now: number) {
-      if (mode !== 'ease') {
-        raf = 0;
-        return;
+      var elapsed = now - t0;
+      var wt = wDur === 0 ? 1 : Math.min(1, elapsed / wDur);
+      applyWidth(fromW + (to - fromW) * scrubCurve(wt));
+      var lt = lDur === 0 ? 1 : Math.min(1, elapsed / lDur);
+      var opacity = fromO + (toO - fromO) * scrubCurve(lt);
+      var i = 0;
+      while (i < labs.length) {
+        labs[i].style.opacity = String(opacity);
+        labs[i].style.transform = 'none';
+        i += 1;
       }
-      var lt = lDur === 0 ? 1 : Math.min(1, (now - t0) / lDur);
-      easeOpacity = fromO + (1 - fromO) * easeOutCurve(lt);
-      paintEase(easeOpacity);
-      if (lt < 1) raf = requestAnimationFrame(tick);
-      else raf = 0;
+      if (wt < 1 || lt < 1) raf = requestAnimationFrame(tick);
+      else {
+        raf = 0;
+        applyWidth(to);
+        paintScrub(to);
+      }
     }
     raf = requestAnimationFrame(tick);
   }
@@ -551,7 +638,7 @@ export function boot(root: HTMLElement) {
     }
     hideTip();
     if (mode === 'ease') return;
-    go(width < snapW() ? closedW() : openW());
+    if (width < snapW()) playLinked(closedW());
   }
 
   function onDown(event: PointerEvent) {
@@ -574,7 +661,7 @@ export function boot(root: HTMLElement) {
       return;
     }
     var next = clamp(startW + (event.clientX - startX) / scale, closedW(), openW());
-    if (mode === 'ease' && next < snapW()) {
+    if (mode === 'ease' && startW >= snapW() && next < snapW()) {
       dragging = false;
       try {
         edge.releasePointerCapture(pointer);
@@ -587,7 +674,8 @@ export function boot(root: HTMLElement) {
     }
     applyWidth(next);
     if (mode === 'ease') {
-      if (next >= shownW() && easeOpacity < 1 && raf === 0) fadeEaseIn();
+      easeOpacity = easeDragOpacity(next);
+      paintEase(easeOpacity);
     } else paint();
     moveTip(event);
   }
@@ -605,7 +693,10 @@ export function boot(root: HTMLElement) {
   });
 
   toggle.addEventListener('click', function () {
-    go(width > snapW() ? closedW() : openW());
+    var to = width > snapW() ? closedW() : openW();
+    if (mode === 'ease') playEase(to, to > snapW());
+    else if (mode === 'cascade') playCascadeToggle(to);
+    else playScrubToggle(to);
   });
 
   var m = 0;
@@ -641,7 +732,7 @@ export function boot(root: HTMLElement) {
     cancel();
     var target = width > snapW() ? openW() : closedW();
     if (mode === 'ease') {
-      easeOpacity = target > snapW() ? 1 : 0;
+      easeOpacity = easeDragOpacity(target);
       applyWidth(target);
       paintEase(easeOpacity);
     } else {
