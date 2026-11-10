@@ -53,18 +53,20 @@ export const HTML = `<div id="adam-sidebar" data-testid="adam-sidebar">
       <aside class="side" data-testid="sidebar">
         ${row('<span class="logo"></span>', 'Acme Inc', true)}
         ${NAV.map((item) => row(item.icon, item.label)).join('\n        ')}
-        <div class="edge" data-testid="sidebar-edge" role="separator" aria-orientation="vertical" aria-label="Drag to resize sidebar" aria-valuemin="64" aria-valuemax="260" aria-valuenow="260"></div>
+        <div class="edge" data-testid="sidebar-edge" role="separator" aria-orientation="vertical" aria-label="Drag to resize sidebar" aria-valuemin="64" aria-valuemax="248" aria-valuenow="248"></div>
       </aside>
       <div class="main">
-        <button type="button" class="toggle" data-testid="sidebar-toggle" aria-label="Collapse sidebar">${ICONS.panel}</button>
-        <div class="skel">
-          <div class="bar w1"></div>
-          <div class="bar w2"></div>
-          <div class="rule"></div>
-          <div class="card"><div class="sq"></div><div class="lines"><div class="bar w3"></div><div class="bar w4"></div></div><div class="pill"></div></div>
-          <div class="bar w5"></div>
-          <div class="card"><div class="sq"></div><div class="lines"><div class="bar w3"></div><div class="bar w4"></div></div><div class="pill"></div></div>
-          <div class="bar w5"></div>
+        <div class="panel">
+          <button type="button" class="toggle" data-testid="sidebar-toggle" aria-label="Collapse sidebar">${ICONS.panel}</button>
+          <div class="skel">
+            <div class="bar w1"></div>
+            <div class="bar w2"></div>
+            <div class="rule"></div>
+            <div class="card"><div class="sq"></div><div class="lines"><div class="bar w3"></div><div class="bar w4"></div></div><div class="pill"></div></div>
+            <div class="bar w5"></div>
+            <div class="card"><div class="sq"></div><div class="lines"><div class="bar w3"></div><div class="bar w4"></div></div><div class="pill"></div></div>
+            <div class="bar w5"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -85,9 +87,12 @@ export const HTML = `<div id="adam-sidebar" data-testid="adam-sidebar">
 
 export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
 #adam-sidebar {
-  --side-open: 260px;
+  --side-open: 248px;
   --side-closed: 64px;
   --side-snap: 160px;
+  --idle-start: 1500ms;
+  --idle-hold: 1000ms;
+  --idle-resume: 3000ms;
   --side-dur: 400ms;
   --label-dur: 160ms;
   --label-delay: 240ms;
@@ -126,7 +131,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   width: 880px;
   height: 440px;
   display: flex;
-  background: #ffffff;
+  background: #f9f9f9;
   border: 1px solid #e6e6e6;
   border-radius: 16px;
   overflow: hidden;
@@ -137,23 +142,33 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   width: var(--side-open);
   flex: none;
   height: 100%;
-  background: #f9f9f9;
+  background: transparent;
   overflow: hidden;
-  box-shadow: inset -1px 0 0 #ececec;
 }
 #adam-sidebar .side.is-hot { box-shadow: inset -2px 0 0 #4671e4; }
-#adam-sidebar .row { display: flex; align-items: center; height: 31px; }
-#adam-sidebar .brand { height: 44px; margin-top: 8px; }
+#adam-sidebar .row { position: relative; height: 39px; }
+#adam-sidebar .brand { height: 44px; margin-top: 16px; }
 #adam-sidebar .ico {
-  width: var(--side-closed);
-  flex: none;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #3f3f46;
 }
+#adam-sidebar .brand .ico { left: 22px; width: 20px; }
 #adam-sidebar .ico svg { width: 16px; height: 16px; display: block; }
 #adam-sidebar .logo { width: 20px; height: 20px; border-radius: 5px; background: #d4d4d8; }
 #adam-sidebar .lab {
+  position: absolute;
+  left: 48.5px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
   font-size: 14px;
   line-height: 18px;
   font-weight: 500;
@@ -161,7 +176,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   white-space: nowrap;
   will-change: opacity, transform;
 }
-#adam-sidebar .brand .lab { font-weight: 600; }
+#adam-sidebar .brand .lab { left: 50.5px; font-weight: 600; }
 #adam-sidebar .edge {
   position: absolute;
   top: 0;
@@ -172,7 +187,18 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   touch-action: none;
   z-index: 4;
 }
-#adam-sidebar .main { position: relative; flex: 1; min-width: 0; background: #ffffff; }
+#adam-sidebar .main { position: relative; flex: 1; min-width: 0; background: transparent; }
+#adam-sidebar .panel {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
 #adam-sidebar .toggle {
   position: absolute;
   top: 14px;
@@ -251,6 +277,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   height: 32px;
 }
 #adam-sidebar .reset svg { width: 14px; height: 14px; }
+#adam-sidebar .reset:disabled { color: #a8a7aa; cursor: default; }
 #adam-sidebar .tip {
   position: absolute;
   z-index: 6;
@@ -279,21 +306,22 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   }
 }`;
 
-export function boot(root: HTMLElement) {
+const BOOT_SOURCE = `
+function boot(root) {
   if (root.getAttribute('data-booted') === '1') return;
   root.setAttribute('data-booted', '1');
 
-  var frame = root.querySelector('.frame') as HTMLElement;
-  var side = root.querySelector('.side') as HTMLElement;
-  var edge = root.querySelector('.edge') as HTMLElement;
-  var toggle = root.querySelector('.toggle') as HTMLButtonElement;
-  var desc = root.querySelector('.desc') as HTMLElement;
-  var tip = root.querySelector('.tip') as HTMLElement;
-  var resetBtn = root.querySelector('.reset') as HTMLButtonElement;
+  var frame = root.querySelector('.frame');
+  var side = root.querySelector('.side');
+  var edge = root.querySelector('.edge');
+  var toggle = root.querySelector('.toggle');
+  var desc = root.querySelector('.desc');
+  var tip = root.querySelector('.tip');
+  var resetBtn = root.querySelector('.reset');
   var modeBtns = root.querySelectorAll('[data-mode]');
-  var labs = Array.prototype.slice.call(root.querySelectorAll('.lab')) as HTMLElement[];
+  var labs = Array.prototype.slice.call(root.querySelectorAll('.lab'));
 
-  var COPY: Record<string, string> = {
+  var COPY = {
     ease: 'Snaps to icons once you drag under 160px. Labels fade in 0.16s while the width glides over 0.4s.',
     cascade:
       'Snaps to icons once you drag under 160px. Follows your drag in one motion. Past 160px the labels drift left and fade from the top down, and it settles to icons when you let go. The collapse button plays it over 0.4s.',
@@ -301,16 +329,25 @@ export function boot(root: HTMLElement) {
   };
 
   var mode = 'ease';
-  var width = 260;
+  var width = 248;
   var easeOpacity = 1;
   var scale = 1;
   var dragging = false;
   var pointer = -1;
   var startX = 0;
-  var startW = 260;
+  var startW = 248;
   var raf = 0;
+  var travelTo = -1;
+  var interacting = false;
+  var idleDriving = false;
+  var idleGen = 0;
+  var idleTimer = 0;
+  var idleNext = null;
+  var idleWait = 0;
+  var paused = false;
+  var disposed = false;
 
-  function cssNum(name: string, fallback: number) {
+  function cssNum(name, fallback) {
     var raw = getComputedStyle(root).getPropertyValue(name);
     var value = parseFloat(raw);
     return isFinite(value) ? value : fallback;
@@ -318,19 +355,21 @@ export function boot(root: HTMLElement) {
 
   function reduced() {
     if (root.getAttribute('data-reduce') === '1') return true;
+    var rootNode = document.documentElement;
+    if (rootNode && rootNode.getAttribute('data-reduce-motion') === '1') return true;
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  function ms(name: string, fallback: number) {
+  function ms(name, fallback) {
     if (reduced()) return 0;
     return cssNum(name, fallback);
   }
 
-  function clamp(value: number, min: number, max: number) {
+  function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
 
-  function unitBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
+  function unitBezier(t, x1, y1, x2, y2) {
     if (t <= 0) return 0;
     if (t >= 1) return 1;
     var cx = 3 * x1;
@@ -353,16 +392,16 @@ export function boot(root: HTMLElement) {
     return ((ay * u + by) * u + cy) * u;
   }
 
-  function easeOutCurve(t: number) {
+  function easeOutCurve(t) {
     return unitBezier(t, 0.4, 0, 0.2, 1);
   }
 
-  function scrubCurve(t: number) {
+  function scrubCurve(t) {
     return unitBezier(t, 0.25, 1, 0.5, 1);
   }
 
   function openW() {
-    return cssNum('--side-open', 260);
+    return cssNum('--side-open', 248);
   }
   function closedW() {
     return cssNum('--side-closed', 64);
@@ -374,29 +413,57 @@ export function boot(root: HTMLElement) {
     return cssNum('--shift', -6);
   }
 
-  function easeDragOpacity(w: number) {
+  function easeDragOpacity(w) {
     return clamp((w - cssNum('--ink-zero', 89)) / cssNum('--ink-span', 70), 0, 1);
   }
 
-  function readOpacity(el: HTMLElement) {
+  function readOpacity(el) {
     var parsed = parseFloat(el.style.opacity);
     return isFinite(parsed) ? parsed : 1;
+  }
+
+  function syncReset() {
+    var open = openW();
+    var atOpen = Math.abs(width - open) < 0.75;
+    var headingOpen = travelTo >= 0 && Math.abs(travelTo - open) < 0.75 && mode === 'ease';
+    var disabled = mode === 'ease' && (headingOpen || (travelTo < 0 && atOpen));
+    resetBtn.disabled = disabled;
+    resetBtn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
   }
 
   function cancel() {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
+    if (travelTo !== -1) {
+      travelTo = -1;
+      syncReset();
+    }
   }
 
-  function applyWidth(next: number) {
+  function beginTravel(to) {
+    travelTo = to;
+    syncReset();
+  }
+
+  function endTravel() {
+    if (travelTo === -1) {
+      syncReset();
+      return;
+    }
+    travelTo = -1;
+    syncReset();
+  }
+
+  function applyWidth(next) {
     width = next;
     side.style.width = next + 'px';
     edge.setAttribute('aria-valuenow', String(Math.round(next)));
     edge.setAttribute('aria-valuetext', Math.round(next) + ' pixels');
     toggle.setAttribute('aria-label', next > snapW() ? 'Collapse sidebar' : 'Expand sidebar');
+    syncReset();
   }
 
-  function paintEase(opacity: number) {
+  function paintEase(opacity) {
     var i = 0;
     while (i < labs.length) {
       labs[i].style.opacity = String(opacity);
@@ -405,14 +472,14 @@ export function boot(root: HTMLElement) {
     }
   }
 
-  function cascadeOpacity(w: number, index: number) {
+  function cascadeOpacity(w, index) {
     var span = snapW() - closedW();
     var p = clamp((snapW() - w) / span, 0, 1);
     var start = labs.length <= 1 ? 0 : (index / (labs.length - 1)) * 0.4;
     return clamp(1 - (p - start) / 0.45, 0, 1);
   }
 
-  function paintCascade(w: number) {
+  function paintCascade(w) {
     var shift = shiftPx();
     var i = 0;
     while (i < labs.length) {
@@ -423,11 +490,11 @@ export function boot(root: HTMLElement) {
     }
   }
 
-  function scrubOpacity(w: number) {
+  function scrubOpacity(w) {
     return clamp((w - closedW()) / (snapW() - closedW()), 0, 1);
   }
 
-  function paintScrub(w: number) {
+  function paintScrub(w) {
     var opacity = scrubOpacity(w);
     var i = 0;
     while (i < labs.length) {
@@ -443,21 +510,23 @@ export function boot(root: HTMLElement) {
     else paintEase(easeOpacity);
   }
 
-  function setMode(next: string) {
+  function setMode(next) {
     mode = next;
     var i = 0;
     while (i < modeBtns.length) {
-      var btn = modeBtns[i] as HTMLElement;
+      var btn = modeBtns[i];
       btn.setAttribute('aria-pressed', btn.getAttribute('data-mode') === next ? 'true' : 'false');
       i += 1;
     }
     desc.textContent = COPY[next] || COPY.ease;
     if (next === 'ease') easeOpacity = easeDragOpacity(width);
     paint();
+    syncReset();
   }
 
-  function playEase(to: number, opening: boolean) {
+  function playEase(to, opening) {
     cancel();
+    beginTravel(to);
     var fromW = width;
     var fromO = easeOpacity;
     var toO = opening ? 1 : 0;
@@ -469,9 +538,10 @@ export function boot(root: HTMLElement) {
       easeOpacity = toO;
       applyWidth(to);
       paintEase(toO);
+      endTravel();
       return;
     }
-    function tick(now: number) {
+    function tick(now) {
       var wt = wDur === 0 ? 1 : Math.min(1, (now - t0) / wDur);
       applyWidth(fromW + (to - fromW) * easeOutCurve(wt));
       var elapsed = now - t0 - delay;
@@ -489,22 +559,25 @@ export function boot(root: HTMLElement) {
         applyWidth(to);
         easeOpacity = toO;
         paintEase(toO);
+        endTravel();
       }
     }
     raf = requestAnimationFrame(tick);
   }
 
-  function playLinked(to: number) {
+  function playLinked(to) {
     cancel();
+    beginTravel(to);
     var fromW = width;
     var t0 = performance.now();
     var wDur = ms('--side-dur', 400);
     if (wDur === 0) {
       applyWidth(to);
       paint();
+      endTravel();
       return;
     }
-    function tick(now: number) {
+    function tick(now) {
       var wt = wDur === 0 ? 1 : Math.min(1, (now - t0) / wDur);
       applyWidth(fromW + (to - fromW) * easeOutCurve(wt));
       paint();
@@ -513,13 +586,15 @@ export function boot(root: HTMLElement) {
         raf = 0;
         applyWidth(to);
         paint();
+        endTravel();
       }
     }
     raf = requestAnimationFrame(tick);
   }
 
-  function playCascadeToggle(to: number) {
+  function playCascadeToggle(to) {
     cancel();
+    beginTravel(to);
     var fromW = width;
     var opening = to > snapW();
     var fromOps = labs.map(readOpacity);
@@ -533,9 +608,10 @@ export function boot(root: HTMLElement) {
     if (wDur === 0) {
       applyWidth(to);
       paintCascade(to);
+      endTravel();
       return;
     }
-    function tick(now: number) {
+    function tick(now) {
       var elapsed = now - t0;
       var wElapsed = elapsed - lead;
       var wt = wElapsed <= 0 ? 0 : Math.min(1, wElapsed / wDur);
@@ -558,13 +634,15 @@ export function boot(root: HTMLElement) {
         raf = 0;
         applyWidth(to);
         paintCascade(to);
+        endTravel();
       }
     }
     raf = requestAnimationFrame(tick);
   }
 
-  function playScrubToggle(to: number) {
+  function playScrubToggle(to) {
     cancel();
+    beginTravel(to);
     var fromW = width;
     var fromO = readOpacity(labs[0]);
     var opening = to > snapW();
@@ -575,9 +653,10 @@ export function boot(root: HTMLElement) {
     if (wDur === 0 && lDur === 0) {
       applyWidth(to);
       paintScrub(to);
+      endTravel();
       return;
     }
-    function tick(now: number) {
+    function tick(now) {
       var elapsed = now - t0;
       var wt = wDur === 0 ? 1 : Math.min(1, elapsed / wDur);
       applyWidth(fromW + (to - fromW) * scrubCurve(wt));
@@ -594,6 +673,7 @@ export function boot(root: HTMLElement) {
         raf = 0;
         applyWidth(to);
         paintScrub(to);
+        endTravel();
       }
     }
     raf = requestAnimationFrame(tick);
@@ -609,7 +689,7 @@ export function boot(root: HTMLElement) {
     frame.style.left = Math.max(0, (w - 960 * scale) / 2) + 'px';
   }
 
-  function moveTip(event: PointerEvent) {
+  function moveTip(event) {
     var rect = frame.getBoundingClientRect();
     var x = (event.clientX - rect.left) / scale + 16;
     var y = (event.clientY - rect.top) / scale - 28;
@@ -628,7 +708,7 @@ export function boot(root: HTMLElement) {
     frame.style.cursor = '';
   }
 
-  function endDrag(event: PointerEvent) {
+  function endDrag(event) {
     if (!dragging || event.pointerId !== pointer) return;
     dragging = false;
     try {
@@ -641,7 +721,7 @@ export function boot(root: HTMLElement) {
     if (width < snapW()) playLinked(closedW());
   }
 
-  function onDown(event: PointerEvent) {
+  function onDown(event) {
     if (event.button !== 0) return;
     event.preventDefault();
     cancel();
@@ -655,7 +735,7 @@ export function boot(root: HTMLElement) {
     moveTip(event);
   }
 
-  function onMove(event: PointerEvent) {
+  function onMove(event) {
     if (!dragging || event.pointerId !== pointer) {
       if (!dragging && event.type === 'pointermove' && side.classList.contains('is-hot')) moveTip(event);
       return;
@@ -686,13 +766,14 @@ export function boot(root: HTMLElement) {
   edge.addEventListener('pointercancel', endDrag);
   edge.addEventListener('pointerenter', function (event) {
     side.classList.add('is-hot');
-    moveTip(event as PointerEvent);
+    moveTip(event);
   });
   edge.addEventListener('pointerleave', function () {
     if (!dragging) hideTip();
   });
 
   toggle.addEventListener('click', function () {
+    noteActivity();
     var to = width > snapW() ? closedW() : openW();
     if (mode === 'ease') playEase(to, to > snapW());
     else if (mode === 'cascade') playCascadeToggle(to);
@@ -702,16 +783,16 @@ export function boot(root: HTMLElement) {
   var m = 0;
   while (m < modeBtns.length) {
     modeBtns[m].addEventListener('click', function (event) {
-      var target = event.currentTarget as HTMLElement;
+      noteActivity();
+      var target = event.currentTarget;
       var next = target.getAttribute('data-mode') || 'ease';
-      cancel();
       setMode(next);
     });
     m += 1;
   }
 
   resetBtn.addEventListener('click', function () {
-    cancel();
+    noteActivity();
     if (dragging) {
       dragging = false;
       try {
@@ -720,44 +801,253 @@ export function boot(root: HTMLElement) {
         /* already released */
       }
     }
-    easeOpacity = 1;
-    applyWidth(openW());
-    setMode('ease');
     hideTip();
+    setMode('ease');
+    if (Math.abs(width - openW()) < 0.75 && easeOpacity > 0.999) {
+      easeOpacity = 1;
+      paintEase(1);
+      syncReset();
+      return;
+    }
+    playEase(openW(), true);
   });
+
+  function idleDelay(name, fallback) {
+    var value = cssNum(name, fallback);
+    return value > 0 ? value : fallback;
+  }
+
+  function clearIdleTimer() {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+      idleTimer = 0;
+    }
+  }
+
+  function stopIdle() {
+    idleGen += 1;
+    idleDriving = false;
+    idleNext = null;
+    clearIdleTimer();
+  }
+
+  function schedule(ms, fn) {
+    clearIdleTimer();
+    idleNext = fn;
+    idleWait = ms;
+    if (disposed || paused || reduced() || interacting) return;
+    var gen = idleGen;
+    idleTimer = setTimeout(function () {
+      idleTimer = 0;
+      var next = idleNext;
+      idleNext = null;
+      if (disposed || gen !== idleGen) return;
+      if (paused || reduced() || interacting) {
+        idleNext = next;
+        return;
+      }
+      if (next) next();
+    }, ms);
+  }
+
+  function beginCycle() {
+    if (disposed || reduced() || paused || interacting) return;
+    runStep(0);
+  }
+
+  function whenSettled(gen, fn) {
+    function check() {
+      if (disposed || gen !== idleGen) return;
+      if (paused || reduced() || interacting) {
+        idleNext = function () {
+          whenSettled(gen, fn);
+        };
+        idleWait = 40;
+        return;
+      }
+      if (raf) {
+        schedule(40, check);
+        return;
+      }
+      fn();
+    }
+    schedule(40, check);
+  }
+
+  function runStep(index) {
+    if (disposed || reduced() || paused || interacting) {
+      idleNext = function () {
+        runStep(index);
+      };
+      idleWait = 0;
+      return;
+    }
+    if (index >= 6) {
+      runStep(0);
+      return;
+    }
+    var open = index % 2 === 1;
+    var which = index < 2 ? 'ease' : index < 4 ? 'cascade' : 'scrub';
+    idleDriving = true;
+    setMode(which);
+    var to = open ? openW() : closedW();
+    var gen = idleGen;
+    if (which === 'ease') playEase(to, open);
+    else if (which === 'cascade') playCascadeToggle(to);
+    else playScrubToggle(to);
+    whenSettled(gen, function () {
+      schedule(idleDelay('--idle-hold', 1000), function () {
+        runStep(index + 1);
+      });
+    });
+  }
+
+  function noteActivity() {
+    idleGen += 1;
+    idleDriving = false;
+    clearIdleTimer();
+    cancel();
+    if (disposed || reduced()) {
+      idleNext = null;
+      return;
+    }
+    idleNext = beginCycle;
+    idleWait = idleDelay('--idle-resume', 3000);
+    if (interacting || paused) return;
+    schedule(idleWait, beginCycle);
+  }
+
+  function onPointerDown(event) {
+    if (event.button !== 0) return;
+    interacting = true;
+    noteActivity();
+  }
+
+  function endInteract() {
+    if (!interacting) return;
+    interacting = false;
+    if (disposed || reduced() || paused || !idleNext) return;
+    schedule(idleWait, idleNext);
+  }
+
+  function syncPause() {
+    var next = document.hidden || root.getAttribute('data-visible') === '0';
+    if (next === paused) return;
+    paused = next;
+    if (paused) {
+      clearIdleTimer();
+      return;
+    }
+    if (!idleNext || reduced() || interacting || disposed) return;
+    schedule(idleWait, idleNext);
+  }
+
+  function armStart() {
+    if (reduced() || disposed) return;
+    var delay = idleDelay('--idle-start', 1500);
+    if (paused || interacting) {
+      idleNext = beginCycle;
+      idleWait = delay;
+      return;
+    }
+    schedule(delay, beginCycle);
+  }
 
   var media = window.matchMedia('(prefers-reduced-motion: reduce)');
   var onReduce = function () {
-    if (!reduced()) return;
-    cancel();
-    var target = width > snapW() ? openW() : closedW();
-    if (mode === 'ease') {
-      easeOpacity = easeDragOpacity(target);
-      applyWidth(target);
-      paintEase(easeOpacity);
-    } else {
-      applyWidth(target);
-      paint();
+    if (!reduced()) {
+      if (!idleDriving && !idleTimer && !interacting && !paused) armStart();
+      return;
     }
+    var driving = idleDriving;
+    stopIdle();
+    cancel();
+    if (!driving) {
+      var target = width > snapW() ? openW() : closedW();
+      if (mode === 'ease') {
+        easeOpacity = easeDragOpacity(target);
+        applyWidth(target);
+        paintEase(easeOpacity);
+      } else {
+        applyWidth(target);
+        paint();
+      }
+      return;
+    }
+    easeOpacity = 1;
+    applyWidth(openW());
+    setMode('ease');
+    paintEase(1);
   };
   if (media.addEventListener) media.addEventListener('change', onReduce);
-  var observer = new MutationObserver(onReduce);
-  observer.observe(root, { attributes: true, attributeFilter: ['data-reduce'] });
+  var attrObserver = new MutationObserver(function (records) {
+    var reduceHit = false;
+    var visHit = false;
+    var i = 0;
+    while (i < records.length) {
+      var name = records[i].attributeName;
+      if (name === 'data-reduce') reduceHit = true;
+      if (name === 'data-visible') visHit = true;
+      i += 1;
+    }
+    if (reduceHit) onReduce();
+    if (visHit) syncPause();
+  });
+  attrObserver.observe(root, { attributes: true, attributeFilter: ['data-reduce', 'data-visible'] });
+  var docObserver = new MutationObserver(onReduce);
+  docObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reduce-motion'] });
+
+  function onVis() {
+    syncPause();
+  }
+  document.addEventListener('visibilitychange', onVis);
+  root.addEventListener('pointerdown', onPointerDown, true);
+  root.addEventListener('pointerup', endInteract, true);
+  root.addEventListener('pointercancel', endInteract, true);
 
   fit();
   requestAnimationFrame(fit);
+  var ro = null;
   if (typeof ResizeObserver === 'function') {
-    var ro = new ResizeObserver(fit);
+    ro = new ResizeObserver(fit);
     ro.observe(root);
+  }
+
+  var removeObserver = null;
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    stopIdle();
+    cancel();
+    if (media.removeEventListener) media.removeEventListener('change', onReduce);
+    document.removeEventListener('visibilitychange', onVis);
+    attrObserver.disconnect();
+    docObserver.disconnect();
+    if (removeObserver) removeObserver.disconnect();
+    if (ro) ro.disconnect();
+    root.removeEventListener('pointerdown', onPointerDown, true);
+    root.removeEventListener('pointerup', endInteract, true);
+    root.removeEventListener('pointercancel', endInteract, true);
+  }
+  if (root.parentNode) {
+    removeObserver = new MutationObserver(function () {
+      if (!root.isConnected) dispose();
+    });
+    removeObserver.observe(root.parentNode, { childList: true });
   }
 
   applyWidth(openW());
   setMode('ease');
   easeOpacity = 1;
   paintEase(1);
+  paused = document.hidden || root.getAttribute('data-visible') === '0';
+  if (!reduced()) armStart();
 }
+`;
+
+export const boot = new Function(`${BOOT_SOURCE}\nreturn boot;`)() as (root: HTMLElement) => void;
 
 export const SCRIPT =
-  '(function () {\nvar boot = ' +
-  boot.toString() +
-  ';\nvar root = document.getElementById("adam-sidebar");\nif (root) boot(root);\n})();\n';
+  '(function () {\n' +
+  BOOT_SOURCE +
+  '\nvar root = document.getElementById("adam-sidebar");\nif (root) boot(root);\n})();\n';

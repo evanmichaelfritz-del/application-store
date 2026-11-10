@@ -1,6 +1,6 @@
 import { promptFor } from '@/src/agentPrompts';
 import { isDownloadSkill, TRANSITIONS, type TransitionItem } from '@/src/catalog';
-import { copyTextFor, embedGooeyFont, prefetchGooeyFont } from '@/src/closedNetwork/previewSources';
+import { composePreviewDocument, copyTextFor, embedGooeyFont, prefetchGooeyFont, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import {
   loadPublicPrompt,
   loadYogeshOrbCreatorPrompt,
@@ -13,6 +13,17 @@ export type CodeKind = 'html' | 'css' | 'script';
 /** One slot of the card's Copy HTML / Copy CSS / Copy script payload. */
 export function codeSlot(id: string, kind: CodeKind): string {
   return copyTextFor(id, kind);
+}
+
+/**
+ * This card's Copy code button writes one runnable document.
+ * Every other card keeps its per-tab payload.
+ */
+export function fullCopyDocument(id: string): string | null {
+  if (id !== 'adam-sidebar-transitions') return null;
+  const item = TRANSITIONS.find((entry) => entry.id === id);
+  const parts = previewDocumentParts(id);
+  return composePreviewDocument(item?.title ?? 'Sidebar transitions', parts.html, parts.css, parts.script);
 }
 
 /** Copy CSS, with the Gooey face filled in when this copy is built. */
