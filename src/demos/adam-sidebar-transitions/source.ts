@@ -519,16 +519,115 @@ function boot(root) {
       i += 1;
     }
     desc.textContent = COPY[next] || COPY.ease;
-    if (next === 'ease') easeOpacity = easeDragOpacity(width);
-    paint();
     syncReset();
+  }
+
+  function labelShift(el) {
+    var raw = el.style.transform || '';
+    var found = /translateX\(([-\d.]+)px\)/.exec(raw);
+    return found ? parseFloat(found[1]) : 0;
+  }
+
+  function writeLabel(el, opacity, shift) {
+    el.style.opacity = String(opacity);
+    el.style.transform = Math.abs(shift) < 0.001 ? 'none' : 'translateX(' + shift + 'px)';
+  }
+
+  function modeLabelTargets() {
+    var ops = [];
+    var i = 0;
+    if (mode === 'scrub') {
+      var scrub = scrubOpacity(width);
+      while (i < labs.length) {
+        ops.push(scrub);
+        i += 1;
+      }
+    } else if (mode === 'cascade') {
+      while (i < labs.length) {
+        ops.push(cascadeOpacity(width, i));
+        i += 1;
+      }
+    } else {
+      var ease = easeDragOpacity(width);
+      while (i < labs.length) {
+        ops.push(ease);
+        i += 1;
+      }
+    }
+    return ops;
+  }
+
+  function fadeModeLabels() {
+    cancel();
+    var toOps = modeLabelTargets();
+    var fromOps = [];
+    var fromShift = [];
+    var toShift = [];
+    var shift = shiftPx();
+    var fromSum = 0;
+    var toSum = 0;
+    var i = 0;
+    while (i < labs.length) {
+      fromOps.push(readOpacity(labs[i]));
+      fromShift.push(labelShift(labs[i]));
+      toShift.push(mode === 'cascade' ? (1 - toOps[i]) * shift : 0);
+      fromSum += fromOps[i];
+      toSum += toOps[i];
+      i += 1;
+    }
+    var opening = toSum > fromSum + 0.001;
+    var t0 = performance.now();
+    var lDur = ms('--label-dur', 160);
+    var delay = opening ? ms('--label-delay', 240) : 0;
+    if (lDur === 0) {
+      i = 0;
+      while (i < labs.length) {
+        writeLabel(labs[i], toOps[i], toShift[i]);
+        i += 1;
+      }
+      if (mode === 'ease') easeOpacity = toOps.length ? toOps[0] : 1;
+      return;
+    }
+    function tick(now) {
+      var elapsed = now - t0 - delay;
+      var lt = elapsed <= 0 ? 0 : Math.min(1, elapsed / lDur);
+      var eased = easeOutCurve(lt);
+      var j = 0;
+      while (j < labs.length) {
+        writeLabel(
+          labs[j],
+          fromOps[j] + (toOps[j] - fromOps[j]) * eased,
+          fromShift[j] + (toShift[j] - fromShift[j]) * eased,
+        );
+        j += 1;
+      }
+      if (mode === 'ease') easeOpacity = fromOps[0] + (toOps[0] - fromOps[0]) * eased;
+      if (lt < 1) raf = requestAnimationFrame(tick);
+      else {
+        raf = 0;
+        j = 0;
+        while (j < labs.length) {
+          writeLabel(labs[j], toOps[j], toShift[j]);
+          j += 1;
+        }
+        if (mode === 'ease') easeOpacity = toOps.length ? toOps[0] : 1;
+      }
+    }
+    raf = requestAnimationFrame(tick);
   }
 
   function playEase(to, opening) {
     cancel();
     beginTravel(to);
     var fromW = width;
-    var fromO = easeOpacity;
+    var fromOps = [];
+    var fromShift = [];
+    var i = 0;
+    while (i < labs.length) {
+      fromOps.push(readOpacity(labs[i]));
+      fromShift.push(labelShift(labs[i]));
+      i += 1;
+    }
     var toO = opening ? 1 : 0;
     var t0 = performance.now();
     var wDur = ms('--side-dur', 400);
@@ -545,13 +644,14 @@ function boot(root) {
       var wt = wDur === 0 ? 1 : Math.min(1, (now - t0) / wDur);
       applyWidth(fromW + (to - fromW) * easeOutCurve(wt));
       var elapsed = now - t0 - delay;
-      var shown = fromO;
-      if (elapsed >= 0) {
-        var lt = lDur === 0 ? 1 : Math.min(1, elapsed / lDur);
-        shown = fromO + (toO - fromO) * easeOutCurve(lt);
+      var lt = elapsed <= 0 ? 0 : lDur === 0 ? 1 : Math.min(1, elapsed / lDur);
+      var eased = easeOutCurve(lt);
+      var j = 0;
+      while (j < labs.length) {
+        writeLabel(labs[j], fromOps[j] + (toO - fromOps[j]) * eased, fromShift[j] * (1 - eased));
+        j += 1;
       }
-      easeOpacity = shown;
-      paintEase(shown);
+      easeOpacity = fromOps.length ? fromOps[0] + (toO - fromOps[0]) * eased : toO;
       var fading = lDur > 0 && elapsed < lDur;
       if (wt < 1 || fading) raf = requestAnimationFrame(tick);
       else {
@@ -787,6 +887,7 @@ function boot(root) {
       var target = event.currentTarget;
       var next = target.getAttribute('data-mode') || 'ease';
       setMode(next);
+      fadeModeLabels();
     });
     m += 1;
   }
