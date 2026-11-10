@@ -165,6 +165,8 @@ export function TopNav() {
                   ];
                 }}
                 accessibilityRole="switch"
+                role="switch"
+                aria-checked={forceReduceMotion}
                 accessibilityState={{ checked: forceReduceMotion }}
                 accessibilityLabel="Reduce Motion"
               >
@@ -234,6 +236,8 @@ export function TopNav() {
             ];
           }}
           accessibilityRole="switch"
+          role="switch"
+          aria-checked={forceReduceMotion}
           accessibilityState={{ checked: forceReduceMotion }}
           accessibilityLabel="Reduce Motion"
         >

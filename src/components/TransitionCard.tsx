@@ -6,7 +6,7 @@ import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeCl
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { CopyLabel } from '@/src/components/CopyLabel';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
-import { loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { installFor } from '@/src/library/assetMeta';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
@@ -142,6 +142,13 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     const write = (text: string) => {
       setTimeout(() => writeClipboard(text), 0);
     };
+    if (item.id === 'adam-sidebar-transitions') {
+      const document = fullCopyDocument(item.id);
+      if (document) {
+        write(document);
+        return;
+      }
+    }
     if (kind === 'script' && scriptIsLazy(item.id)) {
       void loadCopyScript(item.id).then(write);
       return;

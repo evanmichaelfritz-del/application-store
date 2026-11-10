@@ -151,10 +151,18 @@ export default function PlaygroundScreen() {
               )}
               {mode === 'code' ? (
                 <>
-                  <Action label="Copy HTML" onPress={() => copyPart(parts.html)} testID="copy-html" />
+                  <Action
+                    label="Copy HTML"
+                    onPress={() => copyPart(current?.id === 'adam-sidebar-transitions' ? code : parts.html)}
+                    testID="copy-html"
+                  />
                   <Action
                     label="Copy CSS"
                     onPress={() => {
+                      if (current?.id === 'adam-sidebar-transitions') {
+                        copyPart(code);
+                        return;
+                      }
                       void embedGooeyFont(parts.css).then(copyPart);
                     }}
                     testID="copy-css"
@@ -163,6 +171,11 @@ export default function PlaygroundScreen() {
                     <Action
                       label={scriptRetry ? 'Retry' : 'Copy script'}
                       onPress={() => {
+                        if (current?.id === 'adam-sidebar-transitions') {
+                          setScriptRetry(false);
+                          copyPart(code);
+                          return;
+                        }
                         if (current && scriptIsLazy(current.id)) {
                           void loadCopyScript(current.id)
                             .then((text) => {

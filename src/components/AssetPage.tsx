@@ -16,7 +16,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -196,6 +196,11 @@ function Found({ item }: { item: TransitionItem }) {
     const write = (text: string) => {
       setTimeout(() => writeClipboard(text), 0);
     };
+    const document = fullCopyDocument(item.id);
+    if (document) {
+      write(document);
+      return;
+    }
     if (activeKind === 'script' && scriptIsLazy(item.id)) {
       void loadCopyScript(item.id).then(write);
       return;
@@ -424,6 +429,11 @@ function Found({ item }: { item: TransitionItem }) {
             const write = (text: string) => {
               setTimeout(() => writeClipboard(text), 0);
             };
+            const document = fullCopyDocument(item.id);
+            if (document) {
+              write(document);
+              return;
+            }
             if (activeKind === 'script' && scriptIsLazy(item.id)) {
               void loadCopyScript(item.id).then(write);
               return;
@@ -611,7 +621,7 @@ function AssetPreview({ item }: { item: TransitionItem }) {
           {waiting ? <Unavailable /> : null}
         </>
       )}
-      {control && !failed && !waiting ? (
+      {control && item.id !== 'adam-sidebar-transitions' && !failed && !waiting ? (
         <View style={styles.replay}>
           <BarButton
             label={control === 'reset' ? 'Reset' : 'Replay'}

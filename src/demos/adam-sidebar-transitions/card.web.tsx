@@ -9,7 +9,7 @@ function hostElement(node: View | null): HTMLElement | null {
 }
 
 /** Shadow host so the stage CSS and the drag tooltip stay inside the card. */
-export function SidebarTransitionsCard() {
+export function SidebarTransitionsCard({ onScreen = true }: { onScreen?: boolean }) {
   const hostRef = useRef<View>(null);
   const rootRef = useRef<HTMLElement | null>(null);
   const { reduceMotion } = useReduceMotion();
@@ -23,6 +23,7 @@ export function SidebarTransitionsCard() {
     if (!(root instanceof HTMLElement)) return;
     rootRef.current = root;
     root.setAttribute('data-reduce', reduceMotion ? '1' : '0');
+    root.setAttribute('data-visible', onScreen ? '1' : '0');
     boot(root);
     return () => {
       rootRef.current = null;
@@ -35,6 +36,10 @@ export function SidebarTransitionsCard() {
   useEffect(() => {
     rootRef.current?.setAttribute('data-reduce', reduceMotion ? '1' : '0');
   }, [reduceMotion]);
+
+  useEffect(() => {
+    rootRef.current?.setAttribute('data-visible', onScreen ? '1' : '0');
+  }, [onScreen]);
 
   return <View ref={hostRef} collapsable={false} style={{ width: '100%' }} />;
 }
