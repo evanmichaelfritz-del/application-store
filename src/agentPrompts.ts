@@ -1,6 +1,6 @@
 import abrarOverviewPrompt from './demos/abrar-overview/AGENT_PROMPT.md';
 import { TRANSITIONS } from './catalog';
-import { HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
+import { composePreviewDocument, HTML_CSS_ONLY_NOTE, previewDocumentParts } from '@/src/closedNetwork/previewSources';
 import { ORB_LOCKS } from '@/src/closedNetwork/orbLocks';
 
 export type PromptState = {
@@ -2253,7 +2253,9 @@ function buildCanonicalPrompt(id: string): string {
     setupSection(lock.setup),
     `## Known gaps\n\n${filled(lock.knownGaps)}`,
     listSection('Checklist', lock.checklist, '- [ ] '),
-    `## Code
+    id === 'adam-sidebar-transitions'
+      ? `## Code\n\n\`\`\`html\n${composePreviewDocument(item.title, parts.html, parts.css, parts.script)}\`\`\``
+      : `## Code
 
 ### HTML
 
