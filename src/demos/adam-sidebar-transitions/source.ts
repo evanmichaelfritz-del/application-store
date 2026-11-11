@@ -477,6 +477,9 @@ function boot(root) {
   function cancel() {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
+    grabFrom = null;
+    if (grabRaf) cancelAnimationFrame(grabRaf);
+    grabRaf = 0;
     if (travelTo !== -1) {
       travelTo = -1;
       syncReset();
@@ -612,6 +615,82 @@ function boot(root) {
       labs[i].style.transform = 'none';
       i += 1;
     }
+  }
+
+  var grabFrom = null;
+  var grabRaf = 0;
+
+  function dragMap(w) {
+    var ops = [];
+    var shifts = [];
+    var shift = shiftPx();
+    var i = 0;
+    if (mode === 'cascade') {
+      while (i < labs.length) {
+        var fade = cascadeOpacity(w, i);
+        ops.push(fade);
+        shifts.push((1 - fade) * shift);
+        i += 1;
+      }
+    } else if (mode === 'scrub') {
+      var scrub = scrubOpacity(w);
+      while (i < labs.length) {
+        ops.push(scrub);
+        shifts.push(0);
+        i += 1;
+      }
+    } else {
+      var ease = easeDragOpacity(w);
+      while (i < labs.length) {
+        ops.push(ease);
+        shifts.push(0);
+        i += 1;
+      }
+    }
+    return { ops: ops, shifts: shifts };
+  }
+
+  function paintGrab() {
+    var map = dragMap(width);
+    var from = grabFrom;
+    var blend = 1;
+    if (from) {
+      var dur = ms('--label-dur', 160);
+      var lt = dur === 0 ? 1 : Math.min(1, (performance.now() - from.t0) / dur);
+      blend = scrubCurve(lt);
+      if (lt >= 1) grabFrom = null;
+    }
+    var i = 0;
+    while (i < labs.length) {
+      var op = from ? from.ops[i] + (map.ops[i] - from.ops[i]) * blend : map.ops[i];
+      var sh = from ? from.shifts[i] + (map.shifts[i] - from.shifts[i]) * blend : map.shifts[i];
+      writeLabel(labs[i], op, sh);
+      i += 1;
+    }
+    if (mode === 'ease') easeOpacity = from ? from.ops[0] + (map.ops[0] - from.ops[0]) * blend : map.ops[0];
+  }
+
+  function armGrabBlend() {
+    var ops = [];
+    var shifts = [];
+    var i = 0;
+    while (i < labs.length) {
+      ops.push(readOpacity(labs[i]));
+      shifts.push(labelShift(labs[i]));
+      i += 1;
+    }
+    grabFrom = { t0: performance.now(), ops: ops, shifts: shifts };
+    if (grabRaf) cancelAnimationFrame(grabRaf);
+    function tick() {
+      if (!grabFrom) {
+        grabRaf = 0;
+        return;
+      }
+      paintGrab();
+      if (grabFrom) grabRaf = requestAnimationFrame(tick);
+      else grabRaf = 0;
+    }
+    grabRaf = requestAnimationFrame(tick);
   }
 
   function paint() {
@@ -959,9 +1038,15 @@ function boot(root) {
     pointer = event.pointerId;
     startX = event.clientX;
     startW = width;
-    edge.setPointerCapture(event.pointerId);
+    armGrabBlend();
+    try {
+      edge.setPointerCapture(event.pointerId);
+    } catch (err) {
+      /* synthetic pointers have no capture */
+    }
     side.classList.add('is-hot');
     frame.style.cursor = 'col-resize';
+    armGrabBlend();
     moveTip(event);
   }
 
@@ -983,10 +1068,7 @@ function boot(root) {
       return;
     }
     applyWidth(next);
-    if (mode === 'ease') {
-      easeOpacity = easeDragOpacity(next);
-      paintEase(easeOpacity);
-    } else paint();
+    paintGrab();
     moveTip(event);
   }
 

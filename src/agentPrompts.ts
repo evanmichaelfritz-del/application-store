@@ -2042,6 +2042,7 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
       'Ease out snaps closed only when the drag started at or above 160px. Dragging open from 64px follows the pointer, and the labels track clamp((width - 89px) / 70px, 0, 1).',
       'Releasing at or above 160px keeps the width in every mode. Only a release under 160px in Cascade or Scrub glides to 64px.',
       'Ease out labels do not move. Cascade drag and the Cascade toggle translate them by -6px. The Cascade toggle is timed, top-down in both directions, and is not tied to width.',
+      'Grabbing the edge eases each label from its current opacity to the drag mapping over 160ms with cubic-bezier(0.25, 1, 0.5, 1), then follows that mapping. Cascade does this per row.',
       'The Scrub toggle fades labels for 160ms from the start and is not tied to width. A Scrub drag still maps opacity from 64px to 160px and clips on the edge.',
       'Icons start at 24px and the logo starts at 22px in both poses. Narrowing the sidebar clips the labels. It does not slide the icons.',
       'The toggle stays at the top left of the white panel. The logo stays on its x when the rail closes.',
