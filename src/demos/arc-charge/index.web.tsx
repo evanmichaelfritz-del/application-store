@@ -6,13 +6,6 @@ function hostElement(node: View | null): HTMLElement | null {
   return null;
 }
 
-function inViewport(entry: IntersectionObserverEntry): boolean {
-  const rect = entry.boundingClientRect;
-  const width = window.innerWidth || 0;
-  const height = window.innerHeight || 0;
-  return rect.bottom > 0 && rect.right > 0 && rect.top < height && rect.left < width;
-}
-
 /** Loads the arc only after the card intersects, then keeps one canvas mounted. */
 export function ArcChargeDemo() {
   const hostRef = useRef<View>(null);
@@ -31,10 +24,13 @@ export function ArcChargeDemo() {
     }
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) setShow(true);
-        setOnScreen(entries.some((entry) => inViewport(entry)));
+        // isIntersecting includes overflow scroll parents, so the asset page
+        // ScrollView pauses the loop once the preview leaves that frame.
+        const visible = entries.some((entry) => entry.isIntersecting);
+        if (visible) setShow(true);
+        setOnScreen(visible);
       },
-      { root: null, rootMargin: '200px', threshold: 0 },
+      { root: null, rootMargin: '0px', threshold: 0 },
     );
     observer.observe(el);
     return () => observer.disconnect();

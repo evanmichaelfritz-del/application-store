@@ -20,9 +20,9 @@ export const HTML = `<div id="arc-charge" data-testid="arc-charge">
       <div class="readout" data-testid="arc-readout"><span class="digits">27</span><span class="pct">%</span></div>
     </div>
     <div class="dock">
-      <p class="credit">Original by <a href="https://x.com/seanaiux/status/2120279835020804164">Sean Galt (@seanaiux)</a> · <a href="https://uberdesigner.ai/t/arc-charge">uberdesigner.ai/t/arc-charge</a></p>
+      <p class="credit">Original by <a href="https://x.com/seanaiux/status/2120279835020804164" target="_blank" rel="noopener noreferrer">Sean Galt (@seanaiux)</a> · <a href="https://uberdesigner.ai/t/arc-charge" target="_blank" rel="noopener noreferrer">uberdesigner.ai/t/arc-charge</a></p>
       <div class="controls">
-      <button type="button" class="play" data-testid="arc-play" aria-pressed="true" aria-label="Pause"><svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z"/></svg><svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M8 5.5v13l10-6.5z"/></svg><span>Pause</span></button>
+      <button type="button" class="play" data-testid="arc-play" aria-pressed="true" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-pause" d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z"/><path class="icon-play" d="M8 5.5v13l10-6.5z"/></svg><span>Pause</span></button>
       <input class="scrub" data-testid="arc-scrub" type="range" min="0" max="8000" step="1" value="0" aria-label="Charge time" aria-valuemin="0" aria-valuemax="8000" aria-valuenow="0" />
       <div class="seg" role="group" aria-label="Speed">
         <button type="button" data-speed="0.5" data-testid="arc-speed-0.5" aria-pressed="false">0.5x</button>
@@ -35,15 +35,113 @@ export const HTML = `<div id="arc-charge" data-testid="arc-charge">
   </div>
 </div>`;
 
-export const CSS = `@font-face {
+const GEIST_OFL = `Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://openfontlicense.org
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION AND CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+`;
+
+export const CSS = `/* ${GEIST_OFL} */
+@font-face {
   font-family: "Geist Arc";
   src: url("${GEIST_ARC_WOFF2}") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: block;
-  /* Geist Regular, Copyright 2024 The Geist Project Authors. SIL Open Font License 1.1, https://openfontlicense.org */
 }
-html, body { margin: 0; background: #070503; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #070503;
+}
 #arc-charge {
   --loop: 8000ms;
   --full: 3100ms;
@@ -59,10 +157,10 @@ html, body { margin: 0; background: #070503; }
   --pct: #8d8d92;
   --dim: #8a8a8a;
   --bg: #070503;
-  --amber: #ffb040;
-  --blue: #78aaff;
-  --violet: #c9a0ff;
-  --mint: #b8ffe8;
+  --amber: #8e6c42;
+  --blue: #4c6091;
+  --violet: #7a5aa8;
+  --mint: #7ec9b4;
   --rest: #ff3c1e;
   --tick-dim: #3a342f;
   --dock: #ffffff;
@@ -71,13 +169,16 @@ html, body { margin: 0; background: #070503; }
   --line: #e6e6e6;
   position: relative;
   width: 100%;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
   background: var(--bg);
   color: var(--dock-ink);
   font-family: Inter, system-ui, sans-serif;
 }
 #arc-charge .screen {
   position: relative;
-  width: 100%;
+  width: min(100%, calc(100vh * 16 / 9));
   aspect-ratio: 16 / 9;
   background: var(--bg);
   overflow: hidden;
@@ -107,17 +208,21 @@ html, body { margin: 0; background: #070503; }
   align-items: flex-start;
   font-family: "Geist Arc", sans-serif;
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
   font-size: calc(var(--shorter, 320px) * 0.217);
   letter-spacing: -0.04em;
   line-height: 0.72;
   color: var(--ink);
   white-space: nowrap;
 }
+#arc-charge .digits { font-variant-numeric: tabular-nums; }
 #arc-charge .pct {
-  font-size: 0.46em;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin: 0;
+  font-size: 0.24em;
   line-height: 1;
-  margin-left: 0.08em;
-  margin-top: 0.14em;
   color: var(--pct);
 }
 #arc-charge .readout.is-dim { color: var(--dim); }
@@ -189,15 +294,21 @@ html, body { margin: 0; background: #070503; }
 #arc-charge .replay {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   border: 1px solid var(--line);
   background: var(--dock);
   border-radius: 10px;
   height: 32px;
+  box-sizing: border-box;
 }
+#arc-charge .play { width: 105px; flex: none; }
 #arc-charge .play svg,
 #arc-charge .replay svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 #arc-charge .play svg { fill: currentColor; stroke: none; }
+#arc-charge .play .icon-play { display: none; }
+#arc-charge .play[aria-pressed="false"] .icon-pause { display: none; }
+#arc-charge .play[aria-pressed="false"] .icon-play { display: block; }
 #arc-charge .play[aria-pressed="true"] { background: var(--track); }
 #arc-charge .play:disabled { color: #a8a7aa; cursor: default; }
 #arc-charge .scrub {
@@ -250,6 +361,8 @@ uniform float uHead;
 uniform float uFlash;
 uniform float uLeft;
 uniform float uDust;
+uniform float uGain;
+uniform float uLift;
 uniform float uHalf;
 uniform float uArcY;
 uniform float uTickY;
@@ -288,35 +401,37 @@ void main() {
   float s = min(uRes.x, uRes.y);
   vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / s;
   p.y = -p.y;
+  p.y += uLift;
   vec2 w = p / max(uZoom, 0.001) + uFocus;
   float along = clamp((w.x + uHalf) / (2.0 * uHalf), 0.0, 1.0);
+  float feather = smoothstep(0.0, 0.16, along) * smoothstep(1.0, 0.84, along);
   float d = arcDist(w, uTime, uAmp);
   float cover = smoothstep(uHead + 0.015, uHead - 0.04, along);
-  float onArc = step(abs(w.x), uHalf + 0.002);
 
-  vec3 bg = vec3(0.016, 0.011, 0.008);
-  float wash = exp(-length((w - vec2(0.0, uArcY)) * vec2(0.85, 2.6)));
-  bg += uColor * wash * 0.07;
-  float vig = smoothstep(1.2, 0.2, length(p * vec2(0.7, 1.05)));
-  bg *= mix(0.45, 1.0, vig);
+  vec3 bg = vec3(0.012, 0.008, 0.006);
+  float wash = exp(-length((w - vec2(0.0, uArcY)) * vec2(0.9, 3.2)));
+  bg += uColor * wash * 0.05;
+  float vig = smoothstep(1.25, 0.15, length((p - vec2(0.0, uLift)) * vec2(0.7, 1.05)));
+  bg *= mix(0.55, 1.0, vig);
 
-  float thread = exp(-pow(abs(w.y - uArcY) * 160.0, 2.0)) * onArc * (1.0 - cover);
-  vec3 col = bg + vec3(0.55, 0.12, 0.05) * thread * 0.35;
+  float thread = exp(-pow(abs(w.y - uArcY) * 220.0, 2.0)) * feather * (1.0 - cover);
+  vec3 col = bg + uColor * thread * 0.45;
 
-  float tight = mix(70.0, 240.0, uStraight);
-  float core = exp(-pow(d * tight, 2.0)) * cover * onArc;
-  float glow = exp(-d * mix(42.0, 110.0, uStraight)) * cover * onArc;
-  float halo = exp(-d * mix(14.0, 28.0, uStraight)) * cover * onArc;
-  col += uColor * halo * 0.28;
-  col += uColor * glow * 0.55;
-  col += mix(uColor, vec3(1.0), 0.75) * core * 0.9;
+  float tight = mix(165.0, 280.0, uStraight);
+  float core = exp(-pow(d * tight, 2.0)) * cover * feather;
+  float glow = exp(-d * mix(95.0, 160.0, uStraight)) * cover * feather;
+  float halo = exp(-d * mix(32.0, 48.0, uStraight)) * cover * feather;
+  vec3 ink = uColor * uGain;
+  col += ink * halo * 0.55;
+  col += ink * glow * 0.85;
+  col += mix(ink, vec3(1.0), 0.12) * core;
 
   float fil = uFilament * (1.0 - uStraight);
   if (fil > 0.01) {
     float yA = wave(w.x, uTime + 1.7, uAmp * 1.55) - envAt(along) * 0.02 * fil;
     float yB = wave(w.x, uTime + 3.1, uAmp * 1.25) + envAt(along) * 0.018 * fil;
-    float peel = exp(-abs(w.y - yA) * 90.0) + exp(-abs(w.y - yB) * 110.0);
-    col += uColor * peel * fil * cover * onArc * 0.55;
+    float peel = exp(-abs(w.y - yA) * 120.0) + exp(-abs(w.y - yB) * 140.0);
+    col += ink * peel * fil * cover * feather * 0.4;
   }
 
   if (uSpark > 0.01) {
@@ -340,9 +455,9 @@ void main() {
   col += vec3(1.0, 0.55, 0.25) * exp(-ld * 22.0) * uLeft;
 
   float flareY = (uArcY - uFocus.y) * uZoom;
-  float flare = exp(-abs(p.y - flareY) * mix(120.0, 70.0, uStraight));
-  flare *= exp(-pow(abs(p.x) * 0.85, 2.0));
-  col += mix(uColor, vec3(1.0), 0.65) * flare * (0.08 + uStraight * 0.55 + uFlash * 0.4);
+  float flare = exp(-abs(p.y - flareY) * mix(160.0, 90.0, uStraight));
+  flare *= exp(-pow(abs(p.x) * 0.85, 2.0)) * feather;
+  col += mix(uColor, vec3(1.0), 0.25) * flare * uGain * (0.06 + uStraight * 0.4 + uFlash * 0.25);
 
   col += vec3(1.0) * uFlash * exp(-rd * 10.0);
   col += uColor * uFlash * 0.25;
@@ -370,8 +485,6 @@ void main() {
     col += tc * mark * mix(0.55, 1.0, lit);
   }
 
-  float heat = max(col.r, max(col.g, col.b));
-  col = mix(col, vec3(heat), smoothstep(1.2, 2.2, heat));
   fragColor = vec4(col, 1.0);
 }
 `;
@@ -380,6 +493,25 @@ const BOOT_SOURCE = `
 function boot(root) {
   if (root.getAttribute('data-booted') === '1') return;
   root.setAttribute('data-booted', '1');
+  (function hoistFace() {
+    if (document.getElementById('arc-charge-face')) return;
+    var node = root.getRootNode ? root.getRootNode() : document;
+    var styles = node.querySelectorAll ? node.querySelectorAll('style') : [];
+    var rule = '';
+    for (var i = 0; i < styles.length; i++) {
+      var text = styles[i].textContent || '';
+      var at = text.indexOf('@font-face');
+      if (at < 0) continue;
+      var end = text.indexOf('}', at);
+      if (end > at) rule = text.slice(at, end + 1);
+    }
+    if (!rule || !document.head) return;
+    var el = document.createElement('style');
+    el.id = 'arc-charge-face';
+    el.textContent = rule;
+    document.head.appendChild(el);
+    if (document.fonts && document.fonts.load) document.fonts.load('400 48px "Geist Arc"');
+  })();
 
   var screen = root.querySelector('.screen');
   var canvas = root.querySelector('canvas');
@@ -509,12 +641,13 @@ function boot(root) {
       left = Math.exp(-lu * lu);
     }
     var dust = chasing ? engaged : 0;
+    var gain = draining ? 0.05 + 0.08 * u : 1;
     var dim = level < 16 && !(rise && t < FULL);
     if (t >= 7700) dim = level < 16;
     return {
       level: level, color: color, amp: amp, straight: hold || draining ? straight : 0,
       filament: filament, spark: spark, zoom: zoom, focusX: focusX, focusY: focusY,
-      head: head, flash: flash, left: left, dust: dust, dim: dim
+      head: head, flash: flash, left: left, dust: dust, gain: gain, dim: dim
     };
   }
 
@@ -563,7 +696,7 @@ function boot(root) {
         buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
+        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uGain','uLift','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
           loc[name] = gl.getUniformLocation(program, name);
         });
       }
@@ -590,8 +723,6 @@ function boot(root) {
     playBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play');
     playBtn.querySelector('span').textContent = on ? 'Pause' : 'Play';
-    playBtn.querySelector('.icon-pause').hidden = !on;
-    playBtn.querySelector('.icon-play').hidden = on;
     playBtn.disabled = reduced();
     var shown = reduced() ? STILL : time;
     scrub.value = String(Math.round(shown));
@@ -611,8 +742,13 @@ function boot(root) {
     var rect = screen.getBoundingClientRect();
     var shorter = Math.min(rect.width, rect.height) || 1;
     root.style.setProperty('--shorter', shorter + 'px');
+    var dock = root.querySelector('.dock');
+    var dockH = dock ? dock.offsetHeight : 0;
+    var tickScreen = rect.height * 0.5 + TICK_Y * shorter + 10;
+    var dockTop = rect.height - 14 - dockH;
+    var liftPx = Math.max(0, tickScreen - (dockTop - 18));
     var camX = -view.focusX * shorter * view.zoom;
-    var camY = -view.focusY * shorter * view.zoom;
+    var camY = -view.focusY * shorter * view.zoom - liftPx;
     world.style.transform = 'translate(-50%, -50%) translate(' + camX + 'px, ' + camY + 'px) scale(' + view.zoom + ')';
     if (!gl) return;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -642,6 +778,8 @@ function boot(root) {
     gl.uniform1f(loc.uFlash, view.flash);
     gl.uniform1f(loc.uLeft, view.left);
     gl.uniform1f(loc.uDust, view.dust);
+    gl.uniform1f(loc.uGain, view.gain);
+    gl.uniform1f(loc.uLift, liftPx / shorter);
     gl.uniform1f(loc.uHalf, ARC_HALF);
     gl.uniform1f(loc.uArcY, ARC_Y);
     gl.uniform1f(loc.uTickY, TICK_Y);

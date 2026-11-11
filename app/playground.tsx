@@ -20,7 +20,7 @@ import {
   withPreviewOrigin,
   type PreviewKind,
 } from '@/src/closedNetwork/previewSources';
-import { loadAssetPrompt, loadCopyScript, promptIsLazy, scriptIsLazy } from '@/src/library/assetCopy';
+import { fullCopyDocument, loadAssetPrompt, loadCopyScript, promptIsLazy, scriptIsLazy } from '@/src/library/assetCopy';
 import { writeClipboard } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { colors, fonts, radii, shadows } from '@/src/theme';
@@ -97,6 +97,8 @@ export default function PlaygroundScreen() {
     show();
   };
 
+  const wholeDocument = current != null && fullCopyDocument(current.id) != null;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.bar}>
@@ -153,13 +155,13 @@ export default function PlaygroundScreen() {
                 <>
                   <Action
                     label="Copy HTML"
-                    onPress={() => copyPart(current?.id === 'adam-sidebar-transitions' ? code : parts.html)}
+                    onPress={() => copyPart(wholeDocument ? code : parts.html)}
                     testID="copy-html"
                   />
                   <Action
                     label="Copy CSS"
                     onPress={() => {
-                      if (current?.id === 'adam-sidebar-transitions') {
+                      if (wholeDocument) {
                         copyPart(code);
                         return;
                       }
@@ -171,7 +173,7 @@ export default function PlaygroundScreen() {
                     <Action
                       label={scriptRetry ? 'Retry' : 'Copy script'}
                       onPress={() => {
-                        if (current?.id === 'adam-sidebar-transitions') {
+                        if (wholeDocument) {
                           setScriptRetry(false);
                           copyPart(code);
                           return;
