@@ -56,7 +56,7 @@ export const HTML = `<div id="adam-sidebar" data-testid="adam-sidebar">
       </aside>
       <div class="main">
         <div class="panel">
-          <button type="button" class="toggle" data-testid="sidebar-toggle" aria-expanded="true" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><line class="mark" x1="9.17" y1="4.5" x2="9.17" y2="19.5"/></svg></button>
+          <button type="button" class="toggle" data-testid="sidebar-toggle" aria-expanded="true" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><line class="mark" x1="9.28" y1="4.5" x2="9.28" y2="19.5"/></svg></button>
           <div class="skel">
             <div class="bar w1"></div>
             <div class="bar w2"></div>
@@ -100,6 +100,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   --label-dur: 160ms;
   --label-delay: 240ms;
   --scrub-dur: 335ms;
+  --mark-dur: 300ms;
   --row-stagger: 31ms;
   --row-fade: 120ms;
   --cascade-lead: 125ms;
@@ -338,6 +339,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
     --row-fade: 0ms;
     --cascade-lead: 0ms;
     --cascade-lag: 0ms;
+    --mark-dur: 0ms;
   }
   #adam-sidebar .cursor,
   #adam-sidebar[data-reduce="1"] .cursor { display: none; }
@@ -507,13 +509,68 @@ function boot(root) {
     syncReset();
   }
 
-  function syncMark() {
+  var markOpen = true;
+  var markX = 9.28;
+  var markRaf = 0;
+  var markLocked = false;
+
+  function markTarget(open) {
+    return 3.5 + 17 * (open ? 0.34 : 0.66);
+  }
+
+  function writeMark(x) {
+    markX = x;
     if (!mark) return;
-    var span = openW() - closedW();
-    var along = span ? clamp((openW() - width) / span, 0, 1) : 0;
-    var x = (3.5 + 17 * (1 / 3 + along / 3)).toFixed(2);
-    mark.setAttribute('x1', x);
-    mark.setAttribute('x2', x);
+    var xs = x.toFixed(2);
+    mark.setAttribute('x1', xs);
+    mark.setAttribute('x2', xs);
+  }
+
+  function placeMark(open) {
+    if (markRaf) cancelAnimationFrame(markRaf);
+    markRaf = 0;
+    markOpen = open;
+    writeMark(markTarget(open));
+  }
+
+  function slideMark(open) {
+    var next = markTarget(open);
+    if (markRaf) cancelAnimationFrame(markRaf);
+    markRaf = 0;
+    markOpen = open;
+    var dur = ms('--mark-dur', 300);
+    if (dur === 0 || Math.abs(markX - next) < 0.01) {
+      writeMark(next);
+      return;
+    }
+    var from = markX;
+    var t0 = performance.now();
+    function tick(now) {
+      var t = Math.min(1, (now - t0) / dur);
+      writeMark(from + (next - from) * unitBezier(t, 0.25, 0.1, 0.25, 1));
+      if (t < 1) markRaf = requestAnimationFrame(tick);
+      else {
+        markRaf = 0;
+        writeMark(next);
+      }
+    }
+    markRaf = requestAnimationFrame(tick);
+  }
+
+  function aimMark(to) {
+    markLocked = true;
+    var open = to > snapW();
+    if (open !== markOpen) slideMark(open);
+  }
+
+  function unlockMark() {
+    markLocked = false;
+  }
+
+  function syncMark() {
+    if (markLocked) return;
+    var open = width > snapW();
+    if (open !== markOpen) slideMark(open);
   }
 
   function paintEase(opacity) {
@@ -672,6 +729,7 @@ function boot(root) {
   function playEase(to, opening) {
     cancel();
     beginTravel(to);
+    aimMark(to);
     var fromW = width;
     var fromOps = [];
     var fromShift = [];
@@ -691,6 +749,7 @@ function boot(root) {
       applyWidth(to);
       paintEase(toO);
       endTravel();
+      unlockMark();
       return;
     }
     function tick(now) {
@@ -713,6 +772,7 @@ function boot(root) {
         easeOpacity = toO;
         paintEase(toO);
         endTravel();
+        unlockMark();
       }
     }
     raf = requestAnimationFrame(tick);
@@ -721,6 +781,7 @@ function boot(root) {
   function playLinked(to) {
     cancel();
     beginTravel(to);
+    aimMark(to);
     var fromW = width;
     var t0 = performance.now();
     var wDur = ms('--side-dur', 400);
@@ -728,6 +789,7 @@ function boot(root) {
       applyWidth(to);
       paint();
       endTravel();
+      unlockMark();
       return;
     }
     function tick(now) {
@@ -740,6 +802,7 @@ function boot(root) {
         applyWidth(to);
         paint();
         endTravel();
+        unlockMark();
       }
     }
     raf = requestAnimationFrame(tick);
@@ -748,6 +811,7 @@ function boot(root) {
   function playCascadeToggle(to) {
     cancel();
     beginTravel(to);
+    aimMark(to);
     var fromW = width;
     var opening = to > snapW();
     var fromOps = labs.map(readOpacity);
@@ -762,6 +826,7 @@ function boot(root) {
       applyWidth(to);
       paintCascade(to);
       endTravel();
+      unlockMark();
       return;
     }
     function tick(now) {
@@ -788,6 +853,7 @@ function boot(root) {
         applyWidth(to);
         paintCascade(to);
         endTravel();
+        unlockMark();
       }
     }
     raf = requestAnimationFrame(tick);
@@ -796,8 +862,16 @@ function boot(root) {
   function playScrubToggle(to) {
     cancel();
     beginTravel(to);
+    aimMark(to);
     var fromW = width;
-    var fromO = readOpacity(labs[0]);
+    var fromOps = [];
+    var fromShift = [];
+    var i = 0;
+    while (i < labs.length) {
+      fromOps.push(readOpacity(labs[i]));
+      fromShift.push(labelShift(labs[i]));
+      i += 1;
+    }
     var opening = to > snapW();
     var toO = opening ? 1 : 0;
     var t0 = performance.now();
@@ -807,6 +881,7 @@ function boot(root) {
       applyWidth(to);
       paintScrub(to);
       endTravel();
+      unlockMark();
       return;
     }
     function tick(now) {
@@ -814,12 +889,11 @@ function boot(root) {
       var wt = wDur === 0 ? 1 : Math.min(1, elapsed / wDur);
       applyWidth(fromW + (to - fromW) * scrubCurve(wt));
       var lt = lDur === 0 ? 1 : Math.min(1, elapsed / lDur);
-      var opacity = fromO + (toO - fromO) * scrubCurve(lt);
-      var i = 0;
-      while (i < labs.length) {
-        labs[i].style.opacity = String(opacity);
-        labs[i].style.transform = 'none';
-        i += 1;
+      var eased = scrubCurve(lt);
+      var j = 0;
+      while (j < labs.length) {
+        writeLabel(labs[j], fromOps[j] + (toO - fromOps[j]) * eased, fromShift[j] * (1 - eased));
+        j += 1;
       }
       if (wt < 1 || lt < 1) raf = requestAnimationFrame(tick);
       else {
@@ -827,6 +901,7 @@ function boot(root) {
         applyWidth(to);
         paintScrub(to);
         endTravel();
+        unlockMark();
       }
     }
     raf = requestAnimationFrame(tick);
@@ -878,6 +953,7 @@ function boot(root) {
     if (event.button !== 0) return;
     event.preventDefault();
     abortPlay();
+    markLocked = false;
     cancel();
     dragging = true;
     pointer = event.pointerId;
@@ -969,15 +1045,37 @@ function boot(root) {
     }
   }
 
-  function snapOpen() {
-    cancel();
-    releaseDrag();
-    hideTip();
-    applyWidth(openW());
-    if (mode === 'ease') {
-      easeOpacity = 1;
-      paintEase(1);
-    } else paint();
+  function labelsSettledOpen() {
+    if (Math.abs(width - openW()) >= 0.75) return false;
+    var i = 0;
+    while (i < labs.length) {
+      if (readOpacity(labs[i]) < 0.999) return false;
+      if (Math.abs(labelShift(labs[i])) > 0.05) return false;
+      i += 1;
+    }
+    return true;
+  }
+
+  function waitSettled(gen) {
+    return new Promise(function (resolve) {
+      function check() {
+        if (gen !== playGen || disposed) {
+          resolve(false);
+          return;
+        }
+        if (raf) requestAnimationFrame(check);
+        else resolve(true);
+      }
+      check();
+    });
+  }
+
+  function openForPlay(gen) {
+    if (labelsSettledOpen()) return Promise.resolve(gen === playGen);
+    if (mode === 'ease') playEase(openW(), true);
+    else if (mode === 'cascade') playCascadeToggle(openW());
+    else playScrubToggle(openW());
+    return waitSettled(gen);
   }
 
   function finishRest(dest) {
@@ -1114,6 +1212,7 @@ function boot(root) {
   }
 
   function dragEdge(gen, toWidth) {
+    markLocked = false;
     var fromX = cursorX;
     var y = cursorY;
     var toX = win.offsetLeft + toWidth;
@@ -1221,20 +1320,25 @@ function boot(root) {
     hideCursor();
     releaseDrag();
     hideTip();
-    snapOpen();
     if (reduced() || disposed) {
+      if (mode === 'ease') playEase(openW(), true);
+      else if (mode === 'cascade') playCascadeToggle(openW());
+      else playScrubToggle(openW());
       setPlaying(false);
       return;
     }
     setPlaying(true);
-    runDemo(gen).then(
-      function () {
-        if (gen === playGen) setPlaying(false);
-      },
-      function () {
-        if (gen === playGen) setPlaying(false);
-      },
-    );
+    openForPlay(gen).then(function (ok) {
+      if (!ok || gen !== playGen) return;
+      runDemo(gen).then(
+        function () {
+          if (gen === playGen) setPlaying(false);
+        },
+        function () {
+          if (gen === playGen) setPlaying(false);
+        },
+      );
+    });
   }
 
   playBtn.addEventListener('click', function () {
@@ -1258,6 +1362,7 @@ function boot(root) {
       applyWidth(target);
       paint();
     }
+    placeMark(target > snapW());
   };
   if (media.addEventListener) media.addEventListener('change', onReduce);
   var attrObserver = new MutationObserver(function () {
@@ -1281,6 +1386,8 @@ function boot(root) {
     disposed = true;
     playGen += 1;
     cancel();
+    if (markRaf) cancelAnimationFrame(markRaf);
+    markRaf = 0;
     if (media.removeEventListener) media.removeEventListener('change', onReduce);
     attrObserver.disconnect();
     docObserver.disconnect();
