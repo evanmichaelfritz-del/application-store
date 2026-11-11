@@ -593,7 +593,7 @@ export const TRANSITIONS: TransitionItem[] = [
   {
     id: 'adam-sidebar-transitions',
     title: 'Sidebar transitions',
-    subtitle: 'Drag the edge. Ease out, cascade, or scrub.',
+    subtitle: 'Drag the edge, or press Play. Ease out, cascade, or scrub.',
     categories: ['essential'],
     tags: ['sidebar', 'drag', 'resize', 'ease', 'cascade', 'scrub', 'adam', 'adamboyle', 'transitions', 'essential'],
     sections: ['transitions'],

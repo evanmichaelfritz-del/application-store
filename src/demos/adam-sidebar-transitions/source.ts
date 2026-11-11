@@ -27,7 +27,6 @@ const ICONS = {
   sliders: svg(
     '<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/><circle cx="8" cy="7" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="10" cy="17" r="1.7"/>',
   ),
-  panel: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/>'),
   reset: svg('<path d="M4 12a8 8 0 1 0 2.2-5.5"/><path d="M4 4.5V10h5.5"/>'),
 };
 
@@ -53,11 +52,11 @@ export const HTML = `<div id="adam-sidebar" data-testid="adam-sidebar">
       <aside class="side" data-testid="sidebar">
         ${row('<span class="logo"></span>', 'Acme Inc', true)}
         ${NAV.map((item) => row(item.icon, item.label)).join('\n        ')}
-        <div class="edge" data-testid="sidebar-edge" role="separator" aria-orientation="vertical" aria-label="Drag to resize sidebar" aria-valuemin="64" aria-valuemax="248" aria-valuenow="248"></div>
+        <div class="edge" data-testid="sidebar-edge" data-cursor="resize-ew" role="separator" aria-orientation="vertical" aria-label="Drag to resize sidebar" aria-valuemin="64" aria-valuemax="248" aria-valuenow="248"></div>
       </aside>
       <div class="main">
         <div class="panel">
-          <button type="button" class="toggle" data-testid="sidebar-toggle" aria-label="Collapse sidebar">${ICONS.panel}</button>
+          <button type="button" class="toggle" data-testid="sidebar-toggle" aria-expanded="true" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><line class="mark" x1="9.17" y1="4.5" x2="9.17" y2="19.5"/></svg></button>
           <div class="skel">
             <div class="bar w1"></div>
             <div class="bar w2"></div>
@@ -78,10 +77,17 @@ export const HTML = `<div id="adam-sidebar" data-testid="adam-sidebar">
           <button type="button" data-mode="cascade" data-testid="mode-cascade" aria-pressed="false">Cascade</button>
           <button type="button" data-mode="scrub" data-testid="mode-scrub" aria-pressed="false">Scrub</button>
         </div>
+        <button type="button" class="play" data-testid="sidebar-play" aria-pressed="false" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" fill="currentColor"/></svg><span>Play</span></button>
         <button type="button" class="reset" data-testid="sidebar-reset" aria-label="Reset">${ICONS.reset}<span>Reset</span></button>
       </div>
     </div>
     <div class="tip" data-testid="sidebar-tip" role="tooltip" hidden>Drag to resize sidebar</div>
+    <div class="cursor" data-kind="pointer" data-testid="sidebar-cursor" hidden>
+      <div class="cursor-press">
+        <div class="glyph" data-glyph="pointer" data-on="true"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(10 7)"><path d="m6.148 18.473 1.863-1.003 1.615-.839-2.568-4.816h4.332l-11.379-11.408v16.015l3.316-3.221z" fill="#fff"/><path d="m6.431 17 1.765-.941-2.775-5.202h3.604l-8.025-8.043v11.188l2.53-2.442z" fill="#000"/></g></svg></div>
+        <div class="glyph" data-glyph="resize-ew" data-on="false"><svg width="21" height="21" viewBox="-14 -14 28 28" aria-hidden="true"><g transform="rotate(90)" stroke-linejoin="round"><path d="M0-8.4 2.55-3.65H-2.55ZM0 8.4 2.55 3.65H-2.55Z" fill="#fff" stroke="#fff" stroke-width="3.2"/><path d="M0-8.4 2.55-3.65H-2.55ZM0 8.4 2.55 3.65H-2.55Z" fill="#000" stroke="#000" stroke-width="1.2"/></g></svg></div>
+      </div>
+    </div>
   </div>
 </div>`;
 
@@ -90,9 +96,6 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   --side-open: 248px;
   --side-closed: 64px;
   --side-snap: 160px;
-  --idle-start: 1500ms;
-  --idle-hold: 1000ms;
-  --idle-resume: 3000ms;
   --side-dur: 400ms;
   --label-dur: 160ms;
   --label-delay: 240ms;
@@ -252,6 +255,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
 #adam-sidebar .controls { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
 #adam-sidebar .seg { display: flex; background: #f3f3f3; border-radius: 10px; padding: 3px; }
 #adam-sidebar .seg button,
+#adam-sidebar .play,
 #adam-sidebar .reset {
   appearance: none;
   border: 0;
@@ -267,6 +271,7 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
+#adam-sidebar .play,
 #adam-sidebar .reset {
   display: inline-flex;
   align-items: center;
@@ -276,8 +281,38 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
   border-radius: 10px;
   height: 32px;
 }
+#adam-sidebar .play svg,
 #adam-sidebar .reset svg { width: 14px; height: 14px; }
+#adam-sidebar .play[aria-pressed="true"] { background: #f3f3f3; }
 #adam-sidebar .reset:disabled { color: #a8a7aa; cursor: default; }
+#adam-sidebar .cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  pointer-events: none;
+  will-change: transform;
+}
+#adam-sidebar .cursor[hidden] { display: none; }
+#adam-sidebar .cursor-press {
+  display: grid;
+  transform-origin: 0 0;
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#adam-sidebar .cursor[data-pressed="true"] .cursor-press {
+  transform: scale(0.9);
+  transition: transform 0.08s ease-out;
+}
+#adam-sidebar .glyph {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+#adam-sidebar .glyph[data-glyph="pointer"] { margin-left: -7.5px; margin-top: -5.25px; transform-origin: 7.5px 5.25px; }
+#adam-sidebar .glyph[data-glyph="resize-ew"] { margin-left: -10.5px; margin-top: -10.5px; transform-origin: 10.5px 10.5px; }
+#adam-sidebar .glyph[data-on="true"] { opacity: 1; transform: scale(1); }
+#adam-sidebar .glyph svg { display: block; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
 #adam-sidebar .tip {
   position: absolute;
   z-index: 6;
@@ -304,7 +339,12 @@ export const CSS = `html, body { margin: 0; height: 100%; background: #f9f9f9; }
     --cascade-lead: 0ms;
     --cascade-lag: 0ms;
   }
-}`;
+  #adam-sidebar .cursor,
+  #adam-sidebar[data-reduce="1"] .cursor { display: none; }
+  #adam-sidebar .cursor-press,
+  #adam-sidebar .glyph { transition: none; }
+}
+#adam-sidebar[data-reduce="1"] .cursor { display: none; }`;
 
 const BOOT_SOURCE = `
 function boot(root) {
@@ -318,6 +358,10 @@ function boot(root) {
   var desc = root.querySelector('.desc');
   var tip = root.querySelector('.tip');
   var resetBtn = root.querySelector('.reset');
+  var playBtn = root.querySelector('.play');
+  var mark = root.querySelector('.mark');
+  var cursor = root.querySelector('.cursor');
+  var win = root.querySelector('.window');
   var modeBtns = root.querySelectorAll('[data-mode]');
   var labs = Array.prototype.slice.call(root.querySelectorAll('.lab'));
 
@@ -338,13 +382,10 @@ function boot(root) {
   var startW = 248;
   var raf = 0;
   var travelTo = -1;
-  var interacting = false;
-  var idleDriving = false;
-  var idleGen = 0;
-  var idleTimer = 0;
-  var idleNext = null;
-  var idleWait = 0;
-  var paused = false;
+  var playGen = 0;
+  var playing = false;
+  var cursorX = 0;
+  var cursorY = 0;
   var disposed = false;
 
   function cssNum(name, fallback) {
@@ -459,8 +500,20 @@ function boot(root) {
     side.style.width = next + 'px';
     edge.setAttribute('aria-valuenow', String(Math.round(next)));
     edge.setAttribute('aria-valuetext', Math.round(next) + ' pixels');
-    toggle.setAttribute('aria-label', next > snapW() ? 'Collapse sidebar' : 'Expand sidebar');
+    var openNow = next > snapW();
+    toggle.setAttribute('aria-label', openNow ? 'Collapse sidebar' : 'Expand sidebar');
+    toggle.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+    syncMark();
     syncReset();
+  }
+
+  function syncMark() {
+    if (!mark) return;
+    var span = openW() - closedW();
+    var along = span ? clamp((openW() - width) / span, 0, 1) : 0;
+    var x = (3.5 + 17 * (1 / 3 + along / 3)).toFixed(2);
+    mark.setAttribute('x1', x);
+    mark.setAttribute('x2', x);
   }
 
   function paintEase(opacity) {
@@ -824,6 +877,7 @@ function boot(root) {
   function onDown(event) {
     if (event.button !== 0) return;
     event.preventDefault();
+    abortPlay();
     cancel();
     dragging = true;
     pointer = event.pointerId;
@@ -872,36 +926,89 @@ function boot(root) {
     if (!dragging) hideTip();
   });
 
-  toggle.addEventListener('click', function () {
-    noteActivity();
-    var to = width > snapW() ? closedW() : openW();
+  function atRest() {
+    return Math.abs(width - openW()) < 0.75 || Math.abs(width - closedW()) < 0.75;
+  }
+
+  function playTo(to) {
     if (mode === 'ease') playEase(to, to > snapW());
     else if (mode === 'cascade') playCascadeToggle(to);
     else playScrubToggle(to);
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    if (playBtn) playBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function hideCursor() {
+    if (!cursor) return;
+    cursor.hidden = true;
+    cursor.removeAttribute('data-pressed');
+    setKind('pointer');
+  }
+
+  function abortPlay() {
+    playGen += 1;
+    setPlaying(false);
+    hideCursor();
+    if (!dragging) {
+      tip.hidden = true;
+      side.classList.remove('is-hot');
+      frame.style.cursor = '';
+    }
+  }
+
+  function releaseDrag() {
+    if (!dragging) return;
+    dragging = false;
+    try {
+      edge.releasePointerCapture(pointer);
+    } catch (err) {
+      /* already released */
+    }
+  }
+
+  function snapOpen() {
+    cancel();
+    releaseDrag();
+    hideTip();
+    applyWidth(openW());
+    if (mode === 'ease') {
+      easeOpacity = 1;
+      paintEase(1);
+    } else paint();
+  }
+
+  function finishRest(dest) {
+    var to = dest >= 0 ? dest : width >= snapW() ? openW() : closedW();
+    playTo(to);
+  }
+
+  toggle.addEventListener('click', function () {
+    abortPlay();
+    var to = width > snapW() ? closedW() : openW();
+    playTo(to);
   });
 
   var m = 0;
   while (m < modeBtns.length) {
     modeBtns[m].addEventListener('click', function (event) {
-      noteActivity();
+      var wasPlaying = playing;
+      var dest = travelTo;
+      abortPlay();
       var target = event.currentTarget;
       var next = target.getAttribute('data-mode') || 'ease';
       setMode(next);
-      fadeModeLabels();
+      if (wasPlaying && (dest >= 0 || !atRest())) finishRest(dest);
+      else fadeModeLabels();
     });
     m += 1;
   }
 
   resetBtn.addEventListener('click', function () {
-    noteActivity();
-    if (dragging) {
-      dragging = false;
-      try {
-        edge.releasePointerCapture(pointer);
-      } catch (err) {
-        /* already released */
-      }
-    }
+    abortPlay();
+    releaseDrag();
     hideTip();
     setMode('ease');
     if (Math.abs(width - openW()) < 0.75 && easeOpacity > 0.999) {
@@ -913,198 +1020,252 @@ function boot(root) {
     playEase(openW(), true);
   });
 
-  function idleDelay(name, fallback) {
-    var value = cssNum(name, fallback);
-    return value > 0 ? value : fallback;
+  function alive(gen) {
+    return gen === playGen && !disposed && !reduced();
   }
 
-  function clearIdleTimer() {
-    if (idleTimer) {
-      clearTimeout(idleTimer);
-      idleTimer = 0;
-    }
-  }
-
-  function stopIdle() {
-    idleGen += 1;
-    idleDriving = false;
-    idleNext = null;
-    clearIdleTimer();
-  }
-
-  function schedule(ms, fn) {
-    clearIdleTimer();
-    idleNext = fn;
-    idleWait = ms;
-    if (disposed || paused || reduced() || interacting) return;
-    var gen = idleGen;
-    idleTimer = setTimeout(function () {
-      idleTimer = 0;
-      var next = idleNext;
-      idleNext = null;
-      if (disposed || gen !== idleGen) return;
-      if (paused || reduced() || interacting) {
-        idleNext = next;
+  function wait(gen, amount) {
+    return new Promise(function (resolve) {
+      if (!alive(gen)) {
+        resolve(false);
         return;
       }
-      if (next) next();
-    }, ms);
-  }
-
-  function beginCycle() {
-    if (disposed || reduced() || paused || interacting) return;
-    runStep(0);
-  }
-
-  function whenSettled(gen, fn) {
-    function check() {
-      if (disposed || gen !== idleGen) return;
-      if (paused || reduced() || interacting) {
-        idleNext = function () {
-          whenSettled(gen, fn);
-        };
-        idleWait = 40;
-        return;
-      }
-      if (raf) {
-        schedule(40, check);
-        return;
-      }
-      fn();
-    }
-    schedule(40, check);
-  }
-
-  function runStep(index) {
-    if (disposed || reduced() || paused || interacting) {
-      idleNext = function () {
-        runStep(index);
-      };
-      idleWait = 0;
-      return;
-    }
-    if (index >= 6) {
-      runStep(0);
-      return;
-    }
-    var open = index % 2 === 1;
-    var which = index < 2 ? 'ease' : index < 4 ? 'cascade' : 'scrub';
-    idleDriving = true;
-    setMode(which);
-    var to = open ? openW() : closedW();
-    var gen = idleGen;
-    if (which === 'ease') playEase(to, open);
-    else if (which === 'cascade') playCascadeToggle(to);
-    else playScrubToggle(to);
-    whenSettled(gen, function () {
-      schedule(idleDelay('--idle-hold', 1000), function () {
-        runStep(index + 1);
-      });
+      setTimeout(function () {
+        resolve(alive(gen));
+      }, amount);
     });
   }
 
-  function noteActivity() {
-    idleGen += 1;
-    idleDriving = false;
-    clearIdleTimer();
-    cancel();
-    if (disposed || reduced()) {
-      idleNext = null;
+  function setKind(kind) {
+    if (!cursor) return;
+    cursor.setAttribute('data-kind', kind);
+    var glyphs = cursor.querySelectorAll('.glyph');
+    var i = 0;
+    while (i < glyphs.length) {
+      glyphs[i].setAttribute('data-on', glyphs[i].getAttribute('data-glyph') === kind ? 'true' : 'false');
+      i += 1;
+    }
+  }
+
+  function placeCursor(x, y, kind) {
+    cursorX = x;
+    cursorY = y;
+    if (!cursor) return;
+    cursor.hidden = false;
+    cursor.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    if (kind) setKind(kind);
+  }
+
+  function tipAt(x, y) {
+    tip.hidden = false;
+    var tw = tip.offsetWidth || 160;
+    var th = tip.offsetHeight || 28;
+    var left = Math.max(8, Math.min(960 - tw - 8, x + 16));
+    var top = Math.max(8, Math.min(520 - th - 8, y - 28));
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  function easeIO(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function moveCursor(gen, toX, toY) {
+    var fromX = cursorX;
+    var fromY = cursorY;
+    var dist = Math.hypot(toX - fromX, toY - fromY);
+    if (dist < 0.5) return Promise.resolve(alive(gen));
+    var msTravel = Math.max(300, Math.min(650, 260 + dist * 0.9));
+    var bow = Math.min(dist * 0.08, 24);
+    var nx = -(toY - fromY) / dist;
+    var ny = (toX - fromX) / dist;
+    var t0 = performance.now();
+    var edgeAt = win.offsetLeft + width;
+    return new Promise(function (resolve) {
+      function frame(now) {
+        if (!alive(gen)) {
+          resolve(false);
+          return;
+        }
+        var t = Math.min(1, (now - t0) / msTravel);
+        var e = easeIO(t);
+        var lift = Math.sin(Math.PI * e) * bow;
+        var x = fromX + (toX - fromX) * e + nx * lift;
+        var y = fromY + (toY - fromY) * e + ny * lift;
+        placeCursor(x, y, x <= edgeAt + 1 ? 'resize-ew' : 'pointer');
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve(true);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function pickup(gen) {
+    if (!cursor) return Promise.resolve(false);
+    cursor.setAttribute('data-pressed', 'true');
+    return wait(gen, 60).then(function (ok) {
+      if (!ok || !cursor) return false;
+      return wait(gen, 70);
+    }).then(function (ok) {
+      if (!alive(gen) || !cursor) return false;
+      cursor.removeAttribute('data-pressed');
+      return ok;
+    });
+  }
+
+  function dragEdge(gen, toWidth) {
+    var fromX = cursorX;
+    var y = cursorY;
+    var toX = win.offsetLeft + toWidth;
+    var dist = Math.abs(toX - fromX) || 1;
+    var msTravel = Math.max(450, Math.min(900, 360 + dist * 1.1));
+    var t0 = performance.now();
+    var began = width;
+    var handed = false;
+    side.classList.add('is-hot');
+    return new Promise(function (resolve) {
+      function frame() {
+        if (!alive(gen)) {
+          resolve(false);
+          return;
+        }
+        if (handed) {
+          placeCursor(win.offsetLeft + width, y, 'resize-ew');
+          tipAt(cursorX, cursorY);
+          if (raf) requestAnimationFrame(frame);
+          else resolve(true);
+          return;
+        }
+        var t = Math.min(1, (performance.now() - t0) / msTravel);
+        var x = fromX + (toX - fromX) * easeIO(t);
+        placeCursor(x, y, 'resize-ew');
+        tipAt(x, y);
+        var next = clamp(x - win.offsetLeft, closedW(), openW());
+        if (mode === 'ease' && began >= snapW() && next < snapW()) {
+          handed = true;
+          playEase(closedW(), false);
+        } else {
+          applyWidth(next);
+          if (mode === 'ease') {
+            easeOpacity = easeDragOpacity(next);
+            paintEase(easeOpacity);
+          } else paint();
+        }
+        if (t < 1 || handed) {
+          if (!handed) requestAnimationFrame(frame);
+          else requestAnimationFrame(frame);
+          return;
+        }
+        if (mode !== 'ease' && width < snapW()) {
+          handed = true;
+          playLinked(closedW());
+          requestAnimationFrame(frame);
+          return;
+        }
+        resolve(true);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function runDemo(gen) {
+    var restX = win.offsetLeft + 520;
+    var restY = win.offsetTop + 250;
+    placeCursor(restX, restY, 'pointer');
+    var grabY = win.offsetTop + 230;
+    return moveCursor(gen, win.offsetLeft + width, grabY)
+      .then(function (ok) {
+        if (!ok) return false;
+        return pickup(gen);
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        return dragEdge(gen, snapW() - 24);
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        hideTip();
+        side.classList.remove('is-hot');
+        return wait(gen, 640);
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        placeCursor(win.offsetLeft + width, grabY, 'resize-ew');
+        return pickup(gen);
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        return dragEdge(gen, openW());
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        hideTip();
+        side.classList.remove('is-hot');
+        return moveCursor(gen, restX, restY);
+      })
+      .then(function (ok) {
+        if (!ok) return false;
+        return wait(gen, 280);
+      })
+      .then(function () {
+        if (!alive(gen)) return false;
+        hideCursor();
+        setPlaying(false);
+        return true;
+      });
+  }
+
+  function startPlay() {
+    playGen += 1;
+    var gen = playGen;
+    hideCursor();
+    releaseDrag();
+    hideTip();
+    snapOpen();
+    if (reduced() || disposed) {
+      setPlaying(false);
       return;
     }
-    idleNext = beginCycle;
-    idleWait = idleDelay('--idle-resume', 3000);
-    if (interacting || paused) return;
-    schedule(idleWait, beginCycle);
+    setPlaying(true);
+    runDemo(gen).then(
+      function () {
+        if (gen === playGen) setPlaying(false);
+      },
+      function () {
+        if (gen === playGen) setPlaying(false);
+      },
+    );
   }
 
-  function onPointerDown(event) {
-    if (event.button !== 0) return;
-    interacting = true;
-    noteActivity();
-  }
-
-  function endInteract() {
-    if (!interacting) return;
-    interacting = false;
-    if (disposed || reduced() || paused || !idleNext) return;
-    schedule(idleWait, idleNext);
-  }
-
-  function syncPause() {
-    var next = document.hidden || root.getAttribute('data-visible') === '0';
-    if (next === paused) return;
-    paused = next;
-    if (paused) {
-      clearIdleTimer();
-      return;
-    }
-    if (!idleNext || reduced() || interacting || disposed) return;
-    schedule(idleWait, idleNext);
-  }
-
-  function armStart() {
-    if (reduced() || disposed) return;
-    var delay = idleDelay('--idle-start', 1500);
-    if (paused || interacting) {
-      idleNext = beginCycle;
-      idleWait = delay;
-      return;
-    }
-    schedule(delay, beginCycle);
-  }
+  playBtn.addEventListener('click', function () {
+    startPlay();
+  });
 
   var media = window.matchMedia('(prefers-reduced-motion: reduce)');
   var onReduce = function () {
-    if (!reduced()) {
-      if (!idleDriving && !idleTimer && !interacting && !paused) armStart();
-      return;
-    }
-    var driving = idleDriving;
-    stopIdle();
+    if (!reduced()) return;
+    var wasPlaying = playing;
+    abortPlay();
     cancel();
-    if (!driving) {
-      var target = width > snapW() ? openW() : closedW();
-      if (mode === 'ease') {
-        easeOpacity = easeDragOpacity(target);
-        applyWidth(target);
-        paintEase(easeOpacity);
-      } else {
-        applyWidth(target);
-        paint();
-      }
-      return;
+    releaseDrag();
+    hideTip();
+    var target = wasPlaying || width > snapW() ? openW() : closedW();
+    if (mode === 'ease') {
+      easeOpacity = target > snapW() ? 1 : 0;
+      applyWidth(target);
+      paintEase(easeOpacity);
+    } else {
+      applyWidth(target);
+      paint();
     }
-    easeOpacity = 1;
-    applyWidth(openW());
-    setMode('ease');
-    paintEase(1);
   };
   if (media.addEventListener) media.addEventListener('change', onReduce);
-  var attrObserver = new MutationObserver(function (records) {
-    var reduceHit = false;
-    var visHit = false;
-    var i = 0;
-    while (i < records.length) {
-      var name = records[i].attributeName;
-      if (name === 'data-reduce') reduceHit = true;
-      if (name === 'data-visible') visHit = true;
-      i += 1;
-    }
-    if (reduceHit) onReduce();
-    if (visHit) syncPause();
+  var attrObserver = new MutationObserver(function () {
+    onReduce();
   });
-  attrObserver.observe(root, { attributes: true, attributeFilter: ['data-reduce', 'data-visible'] });
+  attrObserver.observe(root, { attributes: true, attributeFilter: ['data-reduce'] });
   var docObserver = new MutationObserver(onReduce);
   docObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reduce-motion'] });
-
-  function onVis() {
-    syncPause();
-  }
-  document.addEventListener('visibilitychange', onVis);
-  root.addEventListener('pointerdown', onPointerDown, true);
-  root.addEventListener('pointerup', endInteract, true);
-  root.addEventListener('pointercancel', endInteract, true);
 
   fit();
   requestAnimationFrame(fit);
@@ -1118,17 +1279,13 @@ function boot(root) {
   function dispose() {
     if (disposed) return;
     disposed = true;
-    stopIdle();
+    playGen += 1;
     cancel();
     if (media.removeEventListener) media.removeEventListener('change', onReduce);
-    document.removeEventListener('visibilitychange', onVis);
     attrObserver.disconnect();
     docObserver.disconnect();
     if (removeObserver) removeObserver.disconnect();
     if (ro) ro.disconnect();
-    root.removeEventListener('pointerdown', onPointerDown, true);
-    root.removeEventListener('pointerup', endInteract, true);
-    root.removeEventListener('pointercancel', endInteract, true);
   }
   if (root.parentNode) {
     removeObserver = new MutationObserver(function () {
@@ -1141,8 +1298,6 @@ function boot(root) {
   setMode('ease');
   easeOpacity = 1;
   paintEase(1);
-  paused = document.hidden || root.getAttribute('data-visible') === '0';
-  if (!reduced()) armStart();
 }
 `;
 
