@@ -15,6 +15,7 @@ import { TILT_COPY_SNIPPET } from '@/src/demos/tiltMotion';
 import { ORB_PREVIEW_CSS, orbCard, orbPickerSource } from '@/src/closedNetwork/orbCopy';
 import { imageGenerationLoaderScript } from '@/src/closedNetwork/organicLoaderSource';
 import { CSS as SIDEBAR_CSS, HTML as SIDEBAR_HTML, SCRIPT as SIDEBAR_SCRIPT } from '@/src/demos/adam-sidebar-transitions/source';
+import { CSS as ARC_CSS, HTML as ARC_HTML, SCRIPT as ARC_SCRIPT } from '@/src/demos/arc-charge/source';
 
 export type PreviewKind = 'transitions' | 'effects';
 
@@ -1607,6 +1608,13 @@ html[data-reduce-motion="1"] .stageshow-still { display: block; }`,
     html: SIDEBAR_HTML,
     extraCss: SIDEBAR_CSS,
     script: SIDEBAR_SCRIPT,
+  },
+  'arc-charge': {
+    snippet: false,
+    omitBase: true,
+    html: ARC_HTML,
+    extraCss: ARC_CSS,
+    script: ARC_SCRIPT,
   },
 };
 

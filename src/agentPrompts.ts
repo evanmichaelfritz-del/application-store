@@ -2065,6 +2065,102 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
       'The stage is 960px by 520px, background #f9f9f9. The window is 880px by 440px.',
     ],
   },
+  'arc-charge': {
+    motion:
+      'The screen fills the stage. One WebGL2 shader draws the arc, the contacts, the 24 ticks, the dust, and the flare. The readout is HTML. Every frame is a pure function of time t. The picture repeats every 8000ms (`--loop`). At 0ms the readout is 27 and the arc is a thin amber filament. It reaches 100 at 3100ms (`--full`), straightens, and is mint by 3800ms (`--mint-at`). The drain starts at 4200ms (`--drain`) and the floor of 4 is held from 4900ms (`--floor`) until the climb resumes. A spark flares on the left contact at 5450ms (`--spark`). The camera pushes in and follows the head until it hits the right contact at 7450ms (`--hit`), with a flash of 180ms (`--flash`). The camera is back out by 7750ms (`--pull`). Playback speed is 0.5, 1, or 2. Pause holds the current t. Replay returns to 0ms and plays.',
+    content:
+      'Original by Sean Galt (@seanaiux), https://x.com/seanaiux/status/2120279835020804164 and https://uberdesigner.ai/t/arc-charge. The readout is a large Geist number and a smaller percent sign. At rest it is a dim 4 over a faint red thread between two contacts, above a 24-tick scale. The climb runs amber, then blue with side filaments, then a violet-white arc with sparks, then a calm mint beam. The dock reads Pause or Play, a time scrub, 0.5x, 1x, and 2x, and Replay.',
+    geometry: `- Screen: width 100%, aspect-ratio 16 / 9, background #070503 (\`--bg\`). The scene is centred on the shorter side. The readout sits 11.4% above the centre of that square. Its colour is #f3f2f0 (\`--ink\`). The percent sign is #8d8d92 (\`--pct\`). A dim readout is #8a8a8a (\`--dim\`).
+- Arc colours: #ffb040 (\`--amber\`), #78aaff (\`--blue\`), #c9a0ff (\`--violet\`), #b8ffe8 (\`--mint\`), #ff3c1e (\`--rest\`). Dim ticks are #3a342f (\`--tick-dim\`).
+- Dock: left 50%, bottom 14px, radius 20px, background #ffffff (\`--dock\`), colour #17181c (\`--dock-ink\`). Shadow 0 8px 24px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04). Gap 8px. The segment track is #f3f3f3 (\`--track\`), radius 10px, padding 3px. Play and Replay are height 32px, radius 10px, border 1px solid #e6e6e6 (\`--line\`). Segment buttons are height 28px and 13px. The scrub is width 180px. Icons are 14px. Play is #f3f3f3 while running. A disabled Play is #a8a7aa.
+- Credit: 12px, line-height 16px, colour #8d8d92. The two links are plain anchors.`,
+    timing:
+      'The loop is 8000ms (`--loop`). 100 is reached at 3100ms (`--full`). The beam is mint at 3800ms (`--mint-at`) and that frame is the still at 4000ms (`--still`). The drain starts at 4200ms (`--drain`). The floor of 4 is 4900ms (`--floor`). The left spark is 5450ms (`--spark`). The right contact flashes at 7450ms (`--hit`) for 180ms (`--flash`). The camera is wide again at 7750ms (`--pull`). Speed multiplies how t advances. It does not change the frame for a given t.',
+    reducedMotion:
+      'Reduced motion, a data-reduce="1" attribute on #arc-charge, or data-reduce-motion="1" on the document holds one still of the full mint beam at 4000ms (`--still`). Play does not advance t. The scrub stays on that still.',
+    states: [
+      {
+        name: 'climb',
+        trigger: 't from 0ms through the full mark, and again after the pull',
+        from: '27 at 0ms',
+        to: '100 at 3100ms',
+        duration: '3100ms',
+        easing: 'the measured level keys',
+        delay: '',
+      },
+      {
+        name: 'beam',
+        trigger: 'the full mark',
+        from: 'a violet arc at 100',
+        to: 'a straight mint beam and mint ticks',
+        duration: 'until the drain',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'drain',
+        trigger: 'the drain mark',
+        from: '100',
+        to: '4',
+        duration: 'until the floor',
+        easing: 'the measured level keys',
+        delay: '',
+      },
+      {
+        name: 'rest',
+        trigger: 'the floor',
+        from: 'a dim 4 and a red thread',
+        to: 'the same, until the spark',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'chase',
+        trigger: 'the spark',
+        from: 'the left contact',
+        to: 'the right contact flash',
+        duration: 'until the hit',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'paused',
+        trigger: 'Pause',
+        from: 'the current t',
+        to: 'the same frame',
+        duration: 'until Play',
+        easing: '',
+        delay: '',
+      },
+      {
+        name: 'reduced',
+        trigger: 'prefers-reduced-motion, data-reduce="1", or data-reduce-motion="1"',
+        from: 'any t',
+        to: 'the mint beam still',
+        duration: '',
+        easing: '',
+        delay: '',
+      },
+    ],
+    gotchas: [
+      'The copied document is one HTML file. Its Code block is that file. The credit anchors are the only external URLs, and nothing fetches them.',
+      'The readout face is Geist Regular, subset to the digits and the percent sign, under the SIL Open Font License 1.1. Copyright 2024 The Geist Project Authors.',
+      'WebGL2 is created only after the stage is in view, and the loop stops while data-visible is 0. There is one canvas. If WebGL2 is missing, the mint beam still is shown instead.',
+      'Level, colour, arc amplitude, camera, and flash are named constants read from the custom properties and from LEVEL_KEYS, ARC_HALF, ARC_Y, TICK_Y, and TICK_HALF. A frame does not depend on the previous frame.',
+      'Phone widths are a known gap. The gate is a 1280 desktop.',
+    ],
+    setup:
+      'Mount the HTML, the CSS, and the script in one document. The script reads the custom properties on #arc-charge and listens for prefers-reduced-motion. This prompt was written from the charging video and the public description of the piece. It does not come from an uberdesigner prompt, a project archive, or a Figma file. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap. Parity is desktop web at 1280.',
+    checklist: [
+      'The loop is 8000ms. At 0ms the readout is 27. At 3100ms it is 100. At 4000ms the beam is mint. At 4900ms the readout is 4.',
+      'The left spark is at 5450ms and the right-contact flash is at 7450ms.',
+      'Reduced motion holds the mint beam. Play, Pause, the scrub, 0.5x, 1x, 2x, and Replay are in the dock.',
+      'The credit reads Original by Sean Galt (@seanaiux) and links to the post and to uberdesigner.ai/t/arc-charge.',
+      'The readout uses the inlined Geist subset. The document does not request a font, a script, or an image.',
+    ],
+  },
 };
 
 
@@ -2183,6 +2279,7 @@ export const CANONICAL_IDS = new Set<string>([
   'tilt-3d',
   'gooey-plus-menu',
   'adam-sidebar-transitions',
+  'arc-charge',
 ]);
 
 function buildPrompt(id: string): string {
@@ -2262,7 +2359,7 @@ function buildCanonicalPrompt(id: string): string {
     setupSection(lock.setup),
     `## Known gaps\n\n${filled(lock.knownGaps)}`,
     listSection('Checklist', lock.checklist, '- [ ] '),
-    id === 'adam-sidebar-transitions'
+    id === 'adam-sidebar-transitions' || id === 'arc-charge'
       ? `## Code\n\n\`\`\`html\n${composePreviewDocument(item.title, parts.html, parts.css, parts.script)}\`\`\``
       : `## Code
 

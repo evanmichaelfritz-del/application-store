@@ -39,6 +39,7 @@ const CREDITS = [
   { id: 'spacing-tuner', label: 'Michael Filipiuk', url: 'https://x.com/MichaelFilipiuk/status/2111383736243859714' },
   { id: 'stageshow', label: 'Benji Taylor', url: 'https://github.com/benjitaylor/skills', license: 'MIT' },
   { id: 'adam-sidebar-transitions', label: 'Adam Boyle', url: 'https://x.com/_adamboyle/status/2119679881784991750' },
+  { id: 'arc-charge', label: 'Sean Galt', url: 'https://x.com/seanaiux/status/2120279835020804164' },
 ] as const;
 
 const UNVERIFIED = [
@@ -62,7 +63,7 @@ export function creditFor(id: string): AssetCredit | null {
 
 function assertCredits() {
   const ids = Object.keys(ASSET_META);
-  if (ids.length !== 42) throw new Error(`credit map expected 42 assets, found ${ids.length}`);
+  if (ids.length !== 43) throw new Error(`credit map expected 43 assets, found ${ids.length}`);
   for (const id of ids) {
     const credit = creditFor(id);
     const unverified = UNVERIFIED.some((item) => item === id);
@@ -84,6 +85,7 @@ function assertCredits() {
     'Michael Filipiuk': 1,
     'Benji Taylor': 1,
     'Adam Boyle': 1,
+    'Sean Galt': 1,
   } as const;
   for (const [label, expected] of Object.entries(counts)) {
     const n = CREDITS.filter((row) => row.label === label).length;
