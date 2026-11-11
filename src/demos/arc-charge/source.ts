@@ -225,7 +225,7 @@ html, body {
 #arc-charge .pct {
   position: absolute;
   left: 100%;
-  top: 0.23em;
+  top: 0.61em;
   margin: 0;
   font-size: 0.30em;
   line-height: 1;
@@ -369,6 +369,7 @@ uniform float uLeft;
 uniform float uDust;
 uniform float uGain;
 uniform float uBloom;
+uniform float uWash;
 uniform float uLift;
 uniform float uHalf;
 uniform float uArcY;
@@ -434,8 +435,12 @@ void main() {
   float frame = (0.55 + 0.45 * below) * exp(-abs(yRel) * 0.38);
   frame *= exp(-pow(abs(w.x) * 0.28, 2.0));
   float vig = smoothstep(1.25, 0.15, length((p - vec2(0.0, uLift)) * vec2(0.7, 1.05)));
+  float preSnap = smoothstep(0.93, 1.0, uLevel) * (1.0 - uStraight);
+  float edge = exp(-pow(length((w - vec2(0.0, uArcY)) * vec2(1.35, 2.6)), 2.0));
+  frame *= mix(1.0, edge, preSnap);
   float washAmt = (0.26 + 0.1 * uLevel) * mix(0.4, 1.0, uGain);
   washAmt *= mix(1.0, 0.18, uStraight);
+  washAmt *= uWash * (1.0 - smoothstep(0.05, 0.1, uBloom));
   bg += uColor * frame * washAmt;
   bg *= mix(0.78, 1.0, vig);
 
@@ -491,8 +496,8 @@ void main() {
 
   col += vec3(1.0) * uFlash * exp(-rd * 10.0);
   col += uColor * uFlash * 0.25;
-  float spot = exp(-abs(yRel) * 4.8) * exp(-pow(abs(w.x) * 0.85, 2.0));
-  col += vec3(uBloom * 3.4 * spot);
+  float spot = exp(-pow(length((w - vec2(0.0, uArcY)) * vec2(1.15, 2.2)), 2.0));
+  col += vec3(0.62, 0.36, 1.0) * uBloom * 4.8 * spot;
 
   if (uDust > 0.01) {
     for (int i = 0; i < 16; i++) {
@@ -706,11 +711,14 @@ function boot(root) {
     var dust = chasing ? zoomU : 0;
     var gain = draining ? 0.034 + 0.05 * u : 1;
     var bloom = t >= FULL && t < DRAIN ? 0.11 * Math.exp(-(t - FULL) / BLOOM) : 0;
+    var wash = 1;
+    if (t >= RED_AT && t < HIT) wash = 0;
+    else if (t >= RED_FROM && t < RED_AT) wash = 1 - smooth(RED_FROM, RED_AT, t);
     var dim = level < 16 && !(rise && t < FULL);
     return {
       level: level, color: color, amp: amp, straight: straight,
       filament: filament, spark: spark, zoom: zoom, focusX: focusX, focusY: focusY,
-      head: head, flash: flash, left: left, dust: dust, gain: gain, bloom: bloom, dim: dim
+      head: head, flash: flash, left: left, dust: dust, gain: gain, bloom: bloom, wash: wash, dim: dim
     };
   }
 
@@ -759,7 +767,7 @@ function boot(root) {
         buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uGain','uBloom','uLift','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
+        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uGain','uBloom','uWash','uLift','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
           loc[name] = gl.getUniformLocation(program, name);
         });
       }
@@ -843,6 +851,7 @@ function boot(root) {
     gl.uniform1f(loc.uDust, view.dust);
     gl.uniform1f(loc.uGain, view.gain);
     gl.uniform1f(loc.uBloom, view.bloom);
+    gl.uniform1f(loc.uWash, view.wash);
     gl.uniform1f(loc.uLift, liftPx / shorter);
     gl.uniform1f(loc.uHalf, ARC_HALF);
     gl.uniform1f(loc.uArcY, ARC_Y);
