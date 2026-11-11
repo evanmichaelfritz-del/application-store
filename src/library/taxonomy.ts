@@ -24,6 +24,7 @@ export const COMPONENT_TYPES = [
   { slug: 'backgrounds-shaders', label: 'Backgrounds & Shaders' },
   { slug: 'loaders', label: 'Loaders' },
   { slug: 'data-display', label: 'Data display' },
+  { slug: 'tools', label: 'Tools' },
   { slug: 'ai-skills', label: 'AI skills' },
 ] as const;
 
@@ -117,9 +118,9 @@ const ROWS: Record<string, Row> = {
   gooey: ['backgrounds-shaders', 'gesture', 'web-svg-filter', 'libraries-dev', 'shipped'],
   'liquid-metal': ['backgrounds-shaders', 'ambient-loop', 'web-webgl', 'libraries-dev', 'shipped'],
   'abrar-overview': ['data-display', 'static', 'rn-svg', 'abrar', 'shipped'],
-  'preview-tools': ['inputs-pickers', 'gesture', 'rn-reanimated', null, 'shipped'],
-  'orb-state-picker': ['inputs-pickers', 'static', 'rn-skia', 'libraries-dev', 'shipped'],
-  'yogesh-orb-creator': ['inputs-pickers', 'static', 'rn-skia', 'yogesh', 'shipped'],
+  'preview-tools': ['tools', 'gesture', 'rn-reanimated', null, 'shipped'],
+  'orb-state-picker': ['tools', 'static', 'rn-skia', 'libraries-dev', 'shipped'],
+  'yogesh-orb-creator': ['tools', 'static', 'rn-skia', 'yogesh', 'shipped'],
   'spacing-tuner': ['data-display', 'ambient-loop', 'web-css', 'michael-filipiuk', 'shipped'],
   stageshow: ['ai-skills', 'agent-skill', 'mit', 'benji-taylor', 'shipped'],
   'adam-sidebar-transitions': ['navigation', 'gesture', 'web-css', 'adam-boyle', 'shipped'],
@@ -133,7 +134,7 @@ export const ASSET_META: Record<string, AssetMeta> = Object.fromEntries(
 );
 
 const EXPECTED_COUNTS: Record<ComponentType, number> = {
-  'inputs-pickers': 6,
+  'inputs-pickers': 3,
   buttons: 3,
   'menus-overlays': 4,
   cards: 3,
@@ -142,6 +143,7 @@ const EXPECTED_COUNTS: Record<ComponentType, number> = {
   'backgrounds-shaders': 3,
   loaders: 11,
   'data-display': 4,
+  tools: 3,
   'ai-skills': 1,
 };
 
