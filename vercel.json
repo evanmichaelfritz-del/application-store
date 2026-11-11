@@ -21,7 +21,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/c/:type(inputs-pickers|buttons|menus-overlays|cards|navigation|text-effects|backgrounds-shaders|loaders|data-display|ai-skills|apps)",
+      "source": "/c/:type(inputs-pickers|buttons|menus-overlays|cards|navigation|text-effects|backgrounds-shaders|loaders|data-display|tools|ai-skills|apps)",
       "destination": "/index.html"
     }
   ],
