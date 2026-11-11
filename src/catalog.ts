@@ -607,7 +607,7 @@ export const TRANSITIONS: TransitionItem[] = [
     title: 'Arc Charge',
     subtitle: 'A charging arc that fills, flares, and drains.',
     categories: ['effects', 'ai'],
-    tags: ['arc', 'charge', 'loader', 'webgl', 'shader', 'sean', 'seangalt', 'seanaiux', 'loaders'],
+    tags: ['arc', 'charge', 'loader', 'webgl', 'shader', 'sean', 'sean galt', 'seangalt', 'seanaiux', 'loaders'],
     sections: ['transitions'],
     fullRow: true,
     pro: false,

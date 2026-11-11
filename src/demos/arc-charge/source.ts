@@ -20,7 +20,7 @@ export const HTML = `<div id="arc-charge" data-testid="arc-charge">
       <div class="readout" data-testid="arc-readout"><span class="digits">27</span><span class="pct">%</span></div>
     </div>
     <div class="dock">
-      <p class="credit">Original by <a href="https://x.com/seanaiux/status/2120279835020804164" target="_blank" rel="noopener noreferrer">Sean Galt (@seanaiux)</a> · <a href="https://uberdesigner.ai/t/arc-charge" target="_blank" rel="noopener noreferrer">uberdesigner.ai/t/arc-charge</a></p>
+      <p class="credit">Design by <a href="https://x.com/seanaiux/status/2120279835020804164" target="_blank" rel="noopener noreferrer">Sean Galt (@seanaiux)</a> · <a href="https://uberdesigner.ai/t/arc-charge" target="_blank" rel="noopener noreferrer">uberdesigner.ai/t/arc-charge</a></p>
       <div class="controls">
       <button type="button" class="play" data-testid="arc-play" aria-pressed="true" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-pause" d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z"/><path class="icon-play" d="M8 5.5v13l10-6.5z"/></svg><span>Pause</span></button>
       <input class="scrub" data-testid="arc-scrub" type="range" min="0" max="8000" step="1" value="0" aria-label="Charge time" aria-valuemin="0" aria-valuemax="8000" aria-valuenow="0" />
@@ -144,13 +144,19 @@ html, body {
 }
 #arc-charge {
   --loop: 8000ms;
-  --full: 3100ms;
-  --mint-at: 3800ms;
+  --full: 3170ms;
+  --mint-at: 3380ms;
   --drain: 4200ms;
+  --red-from: 4420ms;
+  --red-at: 4560ms;
   --floor: 4900ms;
-  --spark: 5450ms;
-  --hit: 7450ms;
-  --pull: 7750ms;
+  --spark: 5465ms;
+  --hit: 7340ms;
+  --zoom-in: 5511ms;
+  --zoom-hold: 5851ms;
+  --zoom-out: 7351ms;
+  --zoom-wide: 8154ms;
+  --bloom: 280ms;
   --still: 4000ms;
   --flash: 180ms;
   --ink: #f3f2f0;
@@ -219,9 +225,9 @@ html, body {
 #arc-charge .pct {
   position: absolute;
   left: 100%;
-  top: 0;
+  top: 0.23em;
   margin: 0;
-  font-size: 0.24em;
+  font-size: 0.30em;
   line-height: 1;
   color: var(--pct);
 }
@@ -362,6 +368,7 @@ uniform float uFlash;
 uniform float uLeft;
 uniform float uDust;
 uniform float uGain;
+uniform float uBloom;
 uniform float uLift;
 uniform float uHalf;
 uniform float uArcY;
@@ -377,21 +384,35 @@ float envAt(float u) {
   return pow(sin(clamp(u, 0.0, 1.0) * 3.14159265), 0.62);
 }
 
-float wave(float x, float t, float amp) {
-  float u = clamp((x + uHalf) / (2.0 * uHalf), 0.0, 1.0);
-  float e = envAt(u);
-  float w = sin(u * uFreq.x + t * uSpin.x) * 0.56;
-  w += sin(u * uFreq.y - t * uSpin.y) * 0.28;
-  w += sin(u * uFreq.z + t * uSpin.z) * 0.12;
-  w += sin(u * uFreq.w - t * uSpin.w) * 0.06;
-  return uArcY + w * e * amp * (1.0 - uStraight);
+float noise1(float x) {
+  float i = floor(x);
+  float f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(hash(i), hash(i + 1.0), f);
 }
 
-float arcDist(vec2 w, float t, float amp) {
-  float d = 4.0;
-  for (int i = -3; i <= 3; i++) {
-    float x = clamp(w.x + float(i) * 0.01, -uHalf, uHalf);
-    float y = wave(x, t, amp);
+float filament(float x, float t, float seed, float amp) {
+  float u = clamp((x + uHalf) / (2.0 * uHalf), 0.0, 1.0);
+  float e = envAt(u);
+  float y = 0.0;
+  float freq = 4.5 + seed * 5.0;
+  float a = 1.0;
+  for (int k = 0; k < 4; k++) {
+    y += (noise1(u * freq + t * (1.1 + seed) + seed * 19.0) - 0.5) * a;
+    freq *= 2.25;
+    a *= 0.48;
+  }
+  float branch = (noise1(u * 2.4 + seed * 11.0) - 0.5) * (0.45 + seed);
+  float jag = (noise1(u * 46.0 + t * 7.0 + seed * 13.0) - 0.5) * 0.016;
+  float mid = (noise1(u * 9.0 + seed * 5.0 + t * 1.4) - 0.5) * 0.028;
+  return uArcY + ((y * 0.65 + branch) * amp + (jag + mid) * mix(0.45, 1.0, seed)) * e * (1.0 - uStraight);
+}
+
+float filDist(vec2 w, float t, float seed, float amp) {
+  float d = 2.0;
+  for (int i = -2; i <= 2; i++) {
+    float x = clamp(w.x + float(i) * 0.014, -uHalf, uHalf);
+    float y = filament(x, t, seed, amp);
     d = min(d, length(vec2(w.x - x, w.y - y)));
   }
   return d;
@@ -405,45 +426,54 @@ void main() {
   vec2 w = p / max(uZoom, 0.001) + uFocus;
   float along = clamp((w.x + uHalf) / (2.0 * uHalf), 0.0, 1.0);
   float feather = smoothstep(0.0, 0.16, along) * smoothstep(1.0, 0.84, along);
-  float d = arcDist(w, uTime, uAmp);
   float cover = smoothstep(uHead + 0.015, uHead - 0.04, along);
 
   vec3 bg = vec3(0.012, 0.008, 0.006);
-  float wash = exp(-length((w - vec2(0.0, uArcY)) * vec2(0.9, 3.2)));
-  bg += uColor * wash * 0.05;
+  float yRel = w.y - uArcY;
+  float below = smoothstep(-0.02, 0.75, yRel);
+  float frame = (0.55 + 0.45 * below) * exp(-abs(yRel) * 0.38);
+  frame *= exp(-pow(abs(w.x) * 0.28, 2.0));
   float vig = smoothstep(1.25, 0.15, length((p - vec2(0.0, uLift)) * vec2(0.7, 1.05)));
-  bg *= mix(0.55, 1.0, vig);
+  float washAmt = (0.26 + 0.1 * uLevel) * mix(0.4, 1.0, uGain);
+  washAmt *= mix(1.0, 0.18, uStraight);
+  bg += uColor * frame * washAmt;
+  bg *= mix(0.78, 1.0, vig);
 
-  float thread = exp(-pow(abs(w.y - uArcY) * 220.0, 2.0)) * feather * (1.0 - cover);
-  vec3 col = bg + uColor * thread * 0.45;
+  float thread = exp(-pow(abs(yRel) * 280.0, 2.0)) * feather * (1.0 - cover);
+  vec3 col = bg + uColor * thread * 0.32;
 
-  float tight = mix(165.0, 280.0, uStraight);
-  float core = exp(-pow(d * tight, 2.0)) * cover * feather;
-  float glow = exp(-d * mix(95.0, 160.0, uStraight)) * cover * feather;
-  float halo = exp(-d * mix(32.0, 48.0, uStraight)) * cover * feather;
-  vec3 ink = uColor * uGain;
-  col += ink * halo * 0.55;
-  col += ink * glow * 0.85;
-  col += mix(ink, vec3(1.0), 0.12) * core;
-
-  float fil = uFilament * (1.0 - uStraight);
-  if (fil > 0.01) {
-    float yA = wave(w.x, uTime + 1.7, uAmp * 1.55) - envAt(along) * 0.02 * fil;
-    float yB = wave(w.x, uTime + 3.1, uAmp * 1.25) + envAt(along) * 0.018 * fil;
-    float peel = exp(-abs(w.y - yA) * 120.0) + exp(-abs(w.y - yB) * 140.0);
-    col += ink * peel * fil * cover * feather * 0.4;
+  float energy = smoothstep(0.45, 1.0, uLevel);
+  float spread = mix(0.7, 2.15, energy);
+  float tight = mix(360.0, 120.0, energy);
+  tight = mix(tight, 460.0, uStraight);
+  float glowK = mix(110.0, 22.0, energy);
+  glowK = mix(glowK, 180.0, uStraight);
+  vec3 ink = uColor;
+  float body = 0.0;
+  float hot = 0.0;
+  for (int i = 0; i < 7; i++) {
+    float seed = 0.06 + float(i) * 0.145;
+    float scale = mix(0.45, 1.45, seed) * spread;
+    float dd = filDist(w, uTime, seed, uAmp * scale);
+    float flick = 0.45 + 0.55 * noise1(along * 22.0 + seed * 9.0 + uTime * 4.0);
+    body += exp(-dd * glowK) * flick;
+    hot += exp(-pow(dd * tight, 2.0)) * flick;
   }
+  body *= cover * feather * (0.62 + 0.38 * uFilament);
+  hot *= cover * feather;
+  col += ink * min(body, 1.6) * 0.2 * uGain;
+  col += ink * min(hot, 1.15) * 0.72 * uGain;
 
   if (uSpark > 0.01) {
     for (int i = 0; i < 10; i++) {
       float id = float(i);
       float life = fract(uTime * 0.85 + hash(id + 1.3));
       float x = mix(-uHalf, uHalf, hash(id + 4.0));
-      float y0 = wave(x, uTime, uAmp);
+      float y0 = filament(x, uTime, hash(id + 2.0), uAmp);
       float dir = hash(id + 8.0) - 0.5;
       vec2 sp = vec2(x + dir * life * 0.04, y0 + dir * life * 0.08);
       float sd = length((w - sp) * vec2(1.0, 1.6));
-      col += vec3(1.0) * exp(-sd * 140.0) * (1.0 - life) * uSpark * cover;
+      col += ink * exp(-sd * 180.0) * (1.0 - life) * uSpark * cover * 0.7;
     }
   }
 
@@ -461,6 +491,8 @@ void main() {
 
   col += vec3(1.0) * uFlash * exp(-rd * 10.0);
   col += uColor * uFlash * 0.25;
+  float spot = exp(-abs(yRel) * 4.8) * exp(-pow(abs(w.x) * 0.85, 2.0));
+  col += vec3(uBloom * 3.4 * spot);
 
   if (uDust > 0.01) {
     for (int i = 0; i < 16; i++) {
@@ -540,13 +572,19 @@ function boot(root) {
   }
 
   var LOOP = readMs('--loop', 8000);
-  var FULL = readMs('--full', 3100);
-  var MINT_AT = readMs('--mint-at', 3800);
+  var FULL = readMs('--full', 3170);
+  var MINT_AT = readMs('--mint-at', 3380);
   var DRAIN = readMs('--drain', 4200);
+  var RED_FROM = readMs('--red-from', 4420);
+  var RED_AT = readMs('--red-at', 4560);
   var FLOOR = readMs('--floor', 4900);
-  var SPARK = readMs('--spark', 5450);
-  var HIT = readMs('--hit', 7450);
-  var PULL = readMs('--pull', 7750);
+  var SPARK = readMs('--spark', 5465);
+  var HIT = readMs('--hit', 7340);
+  var ZOOM_IN = readMs('--zoom-in', 5511);
+  var ZOOM_HOLD = readMs('--zoom-hold', 5851);
+  var ZOOM_OUT = readMs('--zoom-out', 7351);
+  var ZOOM_WIDE = readMs('--zoom-wide', 8154);
+  var BLOOM = readMs('--bloom', 280);
   var STILL = readMs('--still', 4000);
   var FLASH = readMs('--flash', 180);
   var COL_AMBER = hex('--amber', '#ffb040');
@@ -560,7 +598,7 @@ function boot(root) {
   var ARC_Y = 0.102;
   var TICK_Y = 0.222;
   var TICK_HALF = 0.373;
-  var ZOOM_MAX = 2.45;
+  var ZOOM_MAX = 3.5;
   var FREQ = [17, 43, 89, 130];
   var SPIN = [8, 14, 21, 33];
   var LEVEL_KEYS = [
@@ -569,7 +607,8 @@ function boot(root) {
     [1500, 72], [1600, 75], [1700, 77], [1800, 79], [1900, 82], [2000, 84], [2100, 86],
     [2200, 88], [2300, 90], [2400, 91], [2500, 93], [2600, 94], [2700, 96], [2800, 97],
     [2900, 98], [3100, 100], [4200, 100], [4300, 98], [4400, 88], [4500, 66], [4600, 33],
-    [4700, 13], [4800, 5], [4900, 4], [7700, 4], [7800, 14], [7900, 23], [8000, 27]
+    [4700, 13], [4800, 5], [4900, 4], [7340, 4], [7500, 10], [7600, 13], [7700, 16],
+    [7800, 20], [7900, 23], [8000, 27]
   ];
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -580,6 +619,23 @@ function boot(root) {
   }
   function mix3(a, b, u) {
     return [mix(a[0], b[0], u), mix(a[1], b[1], u), mix(a[2], b[2], u)];
+  }
+  function unitBezier(x1, y1, x2, y2, x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    var lo = 0;
+    var hi = 1;
+    var mid = 0.5;
+    for (var i = 0; i < 18; i++) {
+      mid = (lo + hi) * 0.5;
+      var c = 1 - mid;
+      var bx = (3 * c * c * mid * x1) + (3 * c * mid * mid * x2) + (mid * mid * mid);
+      if (bx < x) lo = mid;
+      else hi = mid;
+    }
+    mid = (lo + hi) * 0.5;
+    var c2 = 1 - mid;
+    return (3 * c2 * c2 * mid * y1) + (3 * c2 * mid * mid * y2) + (mid * mid * mid);
   }
   function levelAt(ms) {
     var t = ((ms % LOOP) + LOOP) % LOOP;
@@ -598,24 +654,22 @@ function boot(root) {
     var t = ((ms % LOOP) + LOOP) % LOOP;
     var level = levelAt(t);
     var u = level / 100;
-    var rise = t < FULL || t >= 7700;
+    var rise = t < FULL || t >= HIT;
     var hold = t >= FULL && t < DRAIN;
     var draining = t >= DRAIN && t < FLOOR;
-    var chasing = t >= SPARK && t < PULL;
-    var straight = 0;
-    if (hold) straight = smooth(FULL, MINT_AT, t);
-    else if (draining) straight = 1 - smooth(FLOOR - 600, FLOOR, t) * 0.2;
+    var chasing = t >= SPARK && t < HIT;
+    var straight = t >= FULL && t < FLOOR ? 1 : 0;
     var color = COL_REST;
-    if (rise) {
-      if (u < 0.42) color = mix3(COL_AMBER, COL_BLUE, clamp((u - 0.22) / 0.2, 0, 1));
-      else if (u < 0.72) color = mix3(COL_BLUE, COL_VIOLET, clamp((u - 0.42) / 0.3, 0, 1));
-      else color = mix3(COL_VIOLET, [0.92, 0.86, 1], clamp((u - 0.72) / 0.26, 0, 1));
-    } else if (hold) {
-      color = mix3(COL_VIOLET, COL_MINT, straight);
+    if (hold) {
+      color = mix3([1, 1, 1], COL_MINT, smooth(FULL, MINT_AT, t));
     } else if (draining) {
-      color = mix3(COL_MINT, COL_REST, clamp((20 - level) / 16, 0, 1));
+      color = mix3(COL_MINT, COL_REST, smooth(RED_FROM, RED_AT, t));
     } else if (chasing) {
       color = mix3(COL_REST, COL_AMBER, smooth(SPARK, SPARK + 280, t));
+    } else if (rise) {
+      if (u < 0.5) color = mix3(COL_AMBER, COL_BLUE, clamp((u - 0.4) / 0.1, 0, 1));
+      else if (u < 0.84) color = mix3(COL_BLUE, COL_VIOLET, clamp((u - 0.7) / 0.14, 0, 1));
+      else color = COL_VIOLET;
     }
     var amp = 0.0035 + Math.pow(Math.max(u, 0), 1.35) * 0.03;
     if (hold) amp *= 1 - straight;
@@ -624,30 +678,39 @@ function boot(root) {
     if (chasing) amp = 0.008 + smooth(SPARK, HIT, t) * 0.014;
     var filament = rise ? smooth(0.4, 0.58, u) * (1 - smooth(0.9, 0.99, u)) : 0;
     var spark = rise ? smooth(0.72, 0.96, u) : (chasing ? 0.35 : 0);
-    var chaseIn = smooth(SPARK, SPARK + 700, t);
-    var chaseOut = smooth(HIT, PULL, t);
-    var travel = smooth(SPARK + 180, HIT, t);
-    var headX = mix(-ARC_HALF, ARC_HALF, travel);
-    var engaged = chaseIn * (1 - chaseOut);
-    var zoom = 1 + (ZOOM_MAX - 1) * engaged;
-    var focusX = headX * engaged;
-    var focusY = ARC_Y * engaged;
-    var head = rise || hold || draining || t >= HIT ? 1.2 : (chasing ? travel : -0.04);
-    var flashU = (t - HIT) / FLASH;
-    var flash = t >= HIT - 40 && t <= HIT + FLASH ? Math.exp(-flashU * flashU * 3.2) : 0;
-    var left = 0;
-    if (t >= SPARK - 80 && t <= SPARK + 420) {
-      var lu = (t - SPARK) / 220;
-      left = Math.exp(-lu * lu);
+    var travel = smooth(SPARK, HIT, t);
+    var zoomT = t < 400 ? t + LOOP : t;
+    var zoomU = 0;
+    if (t >= ZOOM_IN && t < ZOOM_HOLD) {
+      zoomU = unitBezier(0.589, 0.162, 0.362, 1, (t - ZOOM_IN) / (ZOOM_HOLD - ZOOM_IN));
+    } else if (zoomT >= ZOOM_HOLD && zoomT < ZOOM_OUT) {
+      zoomU = 1;
+    } else if (zoomT >= ZOOM_OUT && zoomT <= ZOOM_WIDE) {
+      zoomU = 1 - unitBezier(0.611, 0, 0.417, 0.971, (zoomT - ZOOM_OUT) / (ZOOM_WIDE - ZOOM_OUT));
     }
-    var dust = chasing ? engaged : 0;
-    var gain = draining ? 0.05 + 0.08 * u : 1;
+    var zoom = 1 + (ZOOM_MAX - 1) * zoomU;
+    var headX = mix(-ARC_HALF, ARC_HALF, travel);
+    var focusX = headX * zoomU;
+    var focusY = ARC_Y * zoomU;
+    var head = t >= FLOOR && t < HIT ? (chasing ? travel : -0.04) : 1.2;
+    var flash = 0;
+    if (t >= HIT && t <= HIT + FLASH) {
+      var flashU = (t - HIT) / FLASH;
+      flash = Math.exp(-flashU * flashU * 3.2);
+    }
+    var left = 0;
+    var peak = SPARK + 95;
+    if (t >= SPARK && t <= peak + 240) {
+      left = smooth(SPARK, peak, t) * (1 - smooth(peak, peak + 240, t));
+    }
+    var dust = chasing ? zoomU : 0;
+    var gain = draining ? 0.034 + 0.05 * u : 1;
+    var bloom = t >= FULL && t < DRAIN ? 0.11 * Math.exp(-(t - FULL) / BLOOM) : 0;
     var dim = level < 16 && !(rise && t < FULL);
-    if (t >= 7700) dim = level < 16;
     return {
-      level: level, color: color, amp: amp, straight: hold || draining ? straight : 0,
+      level: level, color: color, amp: amp, straight: straight,
       filament: filament, spark: spark, zoom: zoom, focusX: focusX, focusY: focusY,
-      head: head, flash: flash, left: left, dust: dust, gain: gain, dim: dim
+      head: head, flash: flash, left: left, dust: dust, gain: gain, bloom: bloom, dim: dim
     };
   }
 
@@ -696,7 +759,7 @@ function boot(root) {
         buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uGain','uLift','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
+        ['uRes','uTime','uLevel','uColor','uTick','uAmp','uStraight','uFilament','uSpark','uZoom','uFocus','uHead','uFlash','uLeft','uDust','uGain','uBloom','uLift','uHalf','uArcY','uTickY','uTickHalf','uFreq','uSpin'].forEach(function (name) {
           loc[name] = gl.getUniformLocation(program, name);
         });
       }
@@ -779,6 +842,7 @@ function boot(root) {
     gl.uniform1f(loc.uLeft, view.left);
     gl.uniform1f(loc.uDust, view.dust);
     gl.uniform1f(loc.uGain, view.gain);
+    gl.uniform1f(loc.uBloom, view.bloom);
     gl.uniform1f(loc.uLift, liftPx / shorter);
     gl.uniform1f(loc.uHalf, ARC_HALF);
     gl.uniform1f(loc.uArcY, ARC_Y);

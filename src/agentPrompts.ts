@@ -2067,15 +2067,15 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
   },
   'arc-charge': {
     motion:
-      'The screen fills the stage. One WebGL2 shader draws the arc, the contacts, the 24 ticks, the dust, and the flare. The readout is HTML. Every frame is a pure function of time t. The picture repeats every 8000ms (`--loop`). At 0ms the readout is 27 and the arc is a thin amber filament. It reaches 100 at 3100ms (`--full`), straightens, and is mint by 3800ms (`--mint-at`). The drain starts at 4200ms (`--drain`) and the floor of 4 is held from 4900ms (`--floor`) until the climb resumes. A spark flares on the left contact at 5450ms (`--spark`). The camera pushes in and follows the head until it hits the right contact at 7450ms (`--hit`), with a flash of 180ms (`--flash`). The camera is back out by 7750ms (`--pull`). Playback speed is 0.5, 1, or 2. Pause holds the current t. Replay returns to 0ms and plays.',
+      'The screen fills the stage. One WebGL2 shader draws the arc, the contacts, the 24 ticks, the dust, and the flare. The readout is HTML. Every frame is a pure function of time t. The picture repeats every 8000ms (`--loop`). At 0ms the readout is 27 and the arc is a thin amber filament. It reaches 100, then at 3170ms (`--full`) the arc straightens in one frame with a white bloom and is mint by 3380ms (`--mint-at`). The drain starts at 4200ms (`--drain`) and is red by 4560ms (`--red-at`). The floor of 4 is held from 4900ms (`--floor`) until 7340ms (`--hit`). The left spark starts at 5465ms (`--spark`). The camera zooms to 3.5 from 5511ms (`--zoom-in`) to 5851ms (`--zoom-hold`) and follows the head until the right contact flashes at 7340ms for 180ms (`--flash`). Zoom out runs from 7351ms (`--zoom-out`) through 8154ms (`--zoom-wide`), across the loop seam. Playback speed is 0.5, 1, or 2. Pause holds the current t. Replay returns to 0ms and plays.',
     content:
-      'Original by Sean Galt (@seanaiux), https://x.com/seanaiux/status/2120279835020804164 and https://uberdesigner.ai/t/arc-charge. The readout is a large Geist number and a smaller percent sign. At rest it is a dim 4 over a faint red thread between two contacts, above a 24-tick scale. The climb runs amber, then blue with side filaments, then a violet-white arc with sparks, then a calm mint beam. The dock reads Pause or Play, a time scrub, 0.5x, 1x, and 2x, and Replay.',
+      'Design by Sean Galt (@seanaiux), https://x.com/seanaiux/status/2120279835020804164 and https://uberdesigner.ai/t/arc-charge. The readout is a large Geist number and a smaller percent sign. At rest it is a dim 4 over a faint red thread between two contacts, above a 24-tick scale. The climb runs amber, then blue with side filaments, then a violet-white arc with sparks, then a calm mint beam. The dock reads Pause or Play, a time scrub, 0.5x, 1x, and 2x, and Replay.',
     geometry: `- Screen: width 100%, aspect-ratio 16 / 9, background #070503 (\`--bg\`). The scene is centred on the shorter side. The readout sits 11.4% above the centre of that square. Its colour is #f3f2f0 (\`--ink\`). The percent sign is #8d8d92 (\`--pct\`). A dim readout is #8a8a8a (\`--dim\`).
 - Arc colours: #8e6c42 (\`--amber\`), #4c6091 (\`--blue\`), #7a5aa8 (\`--violet\`), #7ec9b4 (\`--mint\`), #ff3c1e (\`--rest\`). Dim ticks are #3a342f (\`--tick-dim\`).
 - Dock: left 50%, bottom 14px, radius 20px, background #ffffff (\`--dock\`), colour #17181c (\`--dock-ink\`). Shadow 0 8px 24px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04). Gap 8px. The segment track is #f3f3f3 (\`--track\`), radius 10px, padding 3px. Play and Replay are height 32px, radius 10px, border 1px solid #e6e6e6 (\`--line\`). Segment buttons are height 28px and 13px. The scrub is width 180px. Icons are 14px. Play is #f3f3f3 while running. A disabled Play is #a8a7aa.
 - Credit: 12px, line-height 16px, colour #8d8d92. The two links are plain anchors.`,
     timing:
-      'The loop is 8000ms (`--loop`). 100 is reached at 3100ms (`--full`). The beam is mint at 3800ms (`--mint-at`) and that frame is the still at 4000ms (`--still`). The drain starts at 4200ms (`--drain`). The floor of 4 is 4900ms (`--floor`). The left spark is 5450ms (`--spark`). The right contact flashes at 7450ms (`--hit`) for 180ms (`--flash`). The camera is wide again at 7750ms (`--pull`). Speed multiplies how t advances. It does not change the frame for a given t.',
+      'The loop is 8000ms (`--loop`). The arc straightens at 3170ms (`--full`). The white bloom decays over 280ms (`--bloom`) and the beam is mint at 3380ms (`--mint-at`). The still is 4000ms (`--still`). The drain starts at 4200ms (`--drain`). Mint goes to red from 4420ms (`--red-from`) to 4560ms (`--red-at`). The floor of 4 is 4900ms (`--floor`). The left spark is 5465ms (`--spark`). The camera zooms in from 5511ms (`--zoom-in`) to 5851ms (`--zoom-hold`), holds, and zooms out from 7351ms (`--zoom-out`) to 8154ms (`--zoom-wide`). The right contact flashes at 7340ms (`--hit`) for 180ms (`--flash`). Speed multiplies how t advances. It does not change the frame for a given t.',
     reducedMotion:
       'Reduced motion, a data-reduce="1" attribute on #arc-charge, or data-reduce-motion="1" on the document holds one still of the full mint beam at 4000ms (`--still`). Play does not advance t. The scrub stays on that still.',
     states: [
@@ -2083,8 +2083,8 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
         name: 'climb',
         trigger: 't from 0ms through the full mark, and again after the pull',
         from: '27 at 0ms',
-        to: '100 at 3100ms',
-        duration: '3100ms',
+        to: '100, then a straight beam at 3170ms',
+        duration: '3170ms',
         easing: 'the measured level keys',
         delay: '',
       },
@@ -2146,18 +2146,17 @@ The loop stops once the pointer is gone and abs(rotateX) is under 0.04, abs(rota
     gotchas: [
       'The copied document is one HTML file. Its Code block is that file. The credit anchors are the only external URLs, and nothing fetches them.',
       'The readout face is Geist Regular, subset to the digits and the percent sign, under the SIL Open Font License 1.1. Copyright 2024 The Geist Project Authors.',
-      'WebGL2 is created only after the stage is in view, and the loop stops while data-visible is 0. There is one canvas. If WebGL2 is missing, the mint beam still is shown instead.',
+      'The script creates the WebGL2 context when it boots. The loop stops while data-visible is 0. There is one canvas. If WebGL2 is missing, the mint beam still is shown instead.',
       'Level, colour, arc amplitude, camera, and flash are named constants read from the custom properties and from LEVEL_KEYS, ARC_HALF, ARC_Y, TICK_Y, and TICK_HALF. A frame does not depend on the previous frame.',
-      'Phone widths are a known gap. The gate is a 1280 desktop.',
     ],
     setup:
-      'Mount the HTML, the CSS, and the script in one document. The script reads the custom properties on #arc-charge and listens for prefers-reduced-motion. This prompt was written from the charging video and the public description of the piece. It does not come from an uberdesigner prompt, a project archive, or a Figma file. There is no install step and no run command.',
-    knownGaps: 'Phone widths are a known gap. Parity is desktop web at 1280.',
+      'Mount the HTML, the CSS, and the script in one document. The script reads the custom properties on #arc-charge and listens for prefers-reduced-motion. There is no install step and no run command.',
+    knownGaps: 'Phone widths are a known gap.',
     checklist: [
-      'The loop is 8000ms. At 0ms the readout is 27. At 3100ms it is 100. At 4000ms the beam is mint. At 4900ms the readout is 4.',
-      'The left spark is at 5450ms and the right-contact flash is at 7450ms.',
+      'The loop is 8000ms. At 0ms the readout is 27. At 3170ms the beam is straight and the readout is 100. At 4000ms the beam is mint. At 4900ms the readout is 4.',
+      'The left spark is at 5465ms and the right-contact flash is at 7340ms.',
       'Reduced motion holds the mint beam. Play, Pause, the scrub, 0.5x, 1x, 2x, and Replay are in the dock.',
-      'The credit reads Original by Sean Galt (@seanaiux) and links to the post and to uberdesigner.ai/t/arc-charge.',
+      'The credit reads Design by Sean Galt (@seanaiux) and links to the post and to uberdesigner.ai/t/arc-charge.',
       'The readout uses the inlined Geist subset. The document does not request a font, a script, or an image.',
     ],
   },
