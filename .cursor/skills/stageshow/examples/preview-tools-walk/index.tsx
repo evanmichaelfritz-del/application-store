@@ -15,8 +15,11 @@ type S = {
   draftId: string | null
 }
 
-const initial: S = { open: false, pen: 'pen', guides: true, annotate: false, draftId: null }
-const poster: S = { open: true, pen: 'marker', guides: true, annotate: true, draftId: 'quality' }
+const payoff: S = { open: true, pen: 'marker', guides: true, annotate: true, draftId: 'quality' }
+const initial: S = payoff
+const poster: S = payoff
+/** Live tray: width 520ms, transform 540ms, cubic-bezier(0.22, 0.9, 0.16, 1). */
+const MORPH_MS = 540
 
 function notePosition(frame: Rect, fieldWidth: number) {
   const width = 220
@@ -28,28 +31,33 @@ function notePosition(frame: Rect, fieldWidth: number) {
 }
 
 async function script(a: Act<S>) {
-  await a.wait(500)
-  a.mark('open')
-  await a.click('toggle')
-  await a.set({ open: true })
-  await a.wait(620)
-  a.mark('pen')
-  await a.click('pen-marker')
-  await a.set({ pen: 'marker' })
+  a.mark('start')
   await a.wait(360)
-  a.mark('note')
-  await a.click('annotate')
-  await a.set({ annotate: true })
-  await a.wait(280)
-  await a.click('control-quality')
-  await a.set({ draftId: 'quality' })
-  a.mark('payoff')
-  await a.wait(1500)
   a.mark('close')
   await a.click('toggle')
   await a.set({ open: false, annotate: false, draftId: null })
-  await a.wait(640)
-  await a.move({ x: 1180, y: 80 }, { duration: 500 })
+  await a.wait(MORPH_MS)
+  await a.wait(200)
+  a.mark('open')
+  await a.click('toggle')
+  await a.set({ open: true })
+  await a.wait(MORPH_MS)
+  await a.wait(180)
+  a.mark('pen')
+  await a.click('pen-pen')
+  await a.set({ pen: 'pen' })
+  await a.wait(200)
+  await a.click('pen-marker')
+  await a.set({ pen: 'marker' })
+  await a.wait(180)
+  a.mark('note')
+  await a.click('annotate')
+  await a.set({ annotate: true })
+  await a.wait(160)
+  await a.click('control-quality')
+  await a.set({ draftId: 'quality' })
+  a.mark('payoff')
+  await a.wait(360)
   a.mark('end')
 }
 
@@ -62,7 +70,7 @@ export default function PreviewToolsWalk() {
       poster={poster}
       script={script}
       play="once"
-      cursor={{ at: { x: 1180, y: 80 }, still: true }}
+      cursor={{ at: 'control-quality', idle: false }}
       className="ptw"
     >
       {(s, rect) => {

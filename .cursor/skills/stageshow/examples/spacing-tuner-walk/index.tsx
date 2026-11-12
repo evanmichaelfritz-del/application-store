@@ -1,21 +1,22 @@
 import { Stage, type Act } from '../../kit'
 import { computeScene, type Rect } from '../../../../../src/demos/spacing-tuner/layout'
-import { frameAt } from '../../../../../src/demos/spacing-tuner/timeline'
+import { frameAt, LOOP_S, PHASE0_S, PHASE_STEP_S } from '../../../../../src/demos/spacing-tuner/timeline'
 import { COLORS, ICON_FILL_ALPHA, INNER, OVERLAY_ALPHA, SIZES, STAGE, VARIABLES, type VarKey } from '../../../../../src/demos/spacing-tuner/tokens'
 import './tuner.css'
 
 // Recording source for the store card. The layout, colors, and clock are the
-// spacing tuner's own modules. The cursor only points at the chip the loop is
-// already changing. Chips are not buttons here, matching the store mount.
+// spacing tuner's own modules, at 1x wall time. The store mount does not pass
+// `interactive`, so the chips are not buttons. The cursor stays off them.
 
 type S = { time: number }
 
 const VIEW = { width: 1280, height: 800 }
 const SCALE = Math.min(VIEW.width / STAGE.width, VIEW.height / STAGE.height)
-const ORDER = ['sidebar', 'padding', 'rowGap', 'colGap', 'cardPadding'] as const
+/** Settled card-padding highlight: chip reads 24, overlay fully up. One loop later is the same picture. */
+const PAYOFF = PHASE0_S + 4 * PHASE_STEP_S + 0.75
 
-const initial: S = { time: 0 }
-const poster: S = { time: 1.55 }
+const initial: S = { time: PAYOFF }
+const poster: S = { time: PAYOFF }
 
 function alpha(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16)
@@ -23,27 +24,15 @@ function alpha(hex: string, a: number): string {
 }
 
 async function script(a: Act<S>) {
-  await a.wait(400)
-  for (let i = 0; i < ORDER.length; i++) {
-    const from = 0.5 + i * 1.3
-    const to = from + 1.3
-    a.mark(ORDER[i]!)
-    await a.move(`chip-${ORDER[i]}`, {
-      duration: 1200,
-      onMove: (_at, _from, t) => a.put({ time: from + (to - from) * t }),
-    })
+  const started = performance.now()
+  const elapsed = () => (performance.now() - started) / 1000
+  const tick = () => a.put({ time: (PAYOFF + elapsed()) % LOOP_S })
+  a.mark('start')
+  while (elapsed() < LOOP_S) {
+    tick()
+    await a.wait(16)
   }
-  a.mark('tuned')
-  for (let i = 1; i <= 20; i++) {
-    a.put({ time: 7 + (0.6 * i) / 20 })
-    await a.wait(25)
-  }
-  await a.wait(700)
-  a.mark('revert')
-  await a.move({ x: 40, y: 40 }, {
-    duration: 800,
-    onMove: (_at, _from, t) => a.put({ time: 9.1 + 0.9 * t }),
-  })
+  a.put({ time: PAYOFF })
   a.mark('end')
 }
 
@@ -130,7 +119,6 @@ export default function SpacingTunerWalk() {
       poster={poster}
       script={script}
       play="once"
-      cursor={{ at: { x: 40, y: 40 } }}
       className="stw"
     >
       {(s) => {

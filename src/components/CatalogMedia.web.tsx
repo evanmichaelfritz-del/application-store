@@ -44,9 +44,8 @@ function clipShell(aspect: string): CSSProperties {
     marginRight: 'auto',
     borderRadius: 14,
     overflow: 'hidden',
-    boxSizing: 'border-box',
     background: '#f9f9f9',
-    border: '1px solid rgba(0, 0, 0, 0.04)',
+    boxShadow: 'inset 0 0 0 1px rgba(0, 0, 0, 0.04)',
   };
 }
 
