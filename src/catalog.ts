@@ -30,6 +30,7 @@ import { PreviewToolsDemo } from './demos/preview-tools';
 import { SpacingTunerDemo } from './demos/spacing-tuner/demo';
 import { StageshowDemo } from './demos/stageshow/demo';
 import { SidebarTransitionsDemo } from './demos/adam-sidebar-transitions';
+import { ArcChargeDemo } from './demos/arc-charge';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -600,6 +601,17 @@ export const TRANSITIONS: TransitionItem[] = [
     fullRow: true,
     pro: false,
     Demo: SidebarTransitionsDemo,
+  },
+  {
+    id: 'arc-charge',
+    title: 'Arc Charge',
+    subtitle: 'A charging arc that fills, flares, and drains.',
+    categories: ['effects', 'ai'],
+    tags: ['arc', 'charge', 'loader', 'webgl', 'shader', 'sean', 'sean galt', 'seangalt', 'seanaiux', 'loaders'],
+    sections: ['transitions'],
+    fullRow: true,
+    pro: false,
+    Demo: ArcChargeDemo,
   },
 ];
 

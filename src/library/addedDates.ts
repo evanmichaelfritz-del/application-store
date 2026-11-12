@@ -45,6 +45,7 @@ export const ADDED_ON: Record<string, string> = {
   'spacing-tuner': 'Oct 17, 2026',
   stageshow: 'Oct 31, 2026',
   'adam-sidebar-transitions': 'Nov 9, 2026',
+  'arc-charge': 'Nov 11, 2026',
 };
 
 export function addedOn(id: string): string | null {

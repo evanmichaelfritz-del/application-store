@@ -19,11 +19,13 @@ export function codeSlot(id: string, kind: CodeKind): string {
  * This card's Copy code button writes one runnable document.
  * Every other card keeps its per-tab payload.
  */
+const DOCUMENT_COPY = new Set(['adam-sidebar-transitions', 'arc-charge']);
+
 export function fullCopyDocument(id: string): string | null {
-  if (id !== 'adam-sidebar-transitions') return null;
+  if (!DOCUMENT_COPY.has(id)) return null;
   const item = TRANSITIONS.find((entry) => entry.id === id);
   const parts = previewDocumentParts(id);
-  return composePreviewDocument(item?.title ?? 'Sidebar transitions', parts.html, parts.css, parts.script);
+  return composePreviewDocument(item?.title ?? id, parts.html, parts.css, parts.script);
 }
 
 /** Copy CSS, with the Gooey face filled in when this copy is built. */

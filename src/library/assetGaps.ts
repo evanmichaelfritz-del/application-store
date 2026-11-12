@@ -139,4 +139,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'adam-sidebar-transitions': [
     'Phone widths are a known gap. Below 960px the 960×520 stage scales down to the container. Parity is desktop web at 1280.',
   ],
+  'arc-charge': [
+    'Phone widths are a known gap.',
+  ],
 };

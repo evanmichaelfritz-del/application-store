@@ -252,7 +252,7 @@ function canonicalHeadingErrors(id, text) {
     errors.push(`${id}: headings are ${headings.join(' | ') || '(none)'}`);
   }
   const subs = [...text.matchAll(/^### (.+)$/gm)].map((match) => match[1].trim());
-  if (id === 'adam-sidebar-transitions') {
+  if (id === 'adam-sidebar-transitions' || id === 'arc-charge') {
     if (subs.length) errors.push(`${id}: Code subsections are ${subs.join(' | ')}`);
     return errors;
   }
