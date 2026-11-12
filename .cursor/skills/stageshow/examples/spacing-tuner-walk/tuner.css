@@ -1,0 +1,161 @@
+.stw-page {
+  position: absolute;
+  inset: 0;
+  background: #f3f3f3;
+}
+
+.stw-scale {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1440px;
+  height: 1080px;
+  margin-left: -720px;
+  margin-top: -540px;
+  transform-origin: center center;
+}
+
+.stw-window {
+  position: absolute;
+  left: 62px;
+  top: 74px;
+  width: 1316px;
+  height: 828px;
+  box-sizing: border-box;
+  border: 2px solid #dcdcdc;
+  border-radius: 30px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.07);
+}
+
+.stw-chips {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 943px;
+  height: 58px;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.stw-chip {
+  position: relative;
+  height: 58px;
+  border-radius: 29px;
+  background: #fff;
+  padding: 0 23px 0 18px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.stw-ring {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 32px;
+  border: 3px solid transparent;
+  pointer-events: none;
+}
+
+.stw-digits {
+  display: flex;
+  margin-left: 18px;
+}
+
+.stw-digit {
+  width: 17px;
+  text-align: center;
+  font-size: 28px;
+  line-height: 34px;
+  color: #181818;
+  font-variant-numeric: tabular-nums;
+  font-family: Inter, -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.stw-icon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.stw-side-frame {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 36px;
+  height: 28px;
+  border-radius: 6px;
+  border: 2px solid #ddd;
+  box-sizing: border-box;
+}
+
+.stw-side-bar {
+  position: absolute;
+  left: 9px;
+  top: 16.75px;
+  width: 18px;
+  height: 2.5px;
+  border-radius: 1.25px;
+}
+
+.stw-chev {
+  position: absolute;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  box-sizing: border-box;
+  transform: rotate(45deg);
+}
+
+.stw-chev-l {
+  left: 7.5px;
+  border-left: 2.5px solid;
+  border-bottom: 2.5px solid;
+}
+
+.stw-chev-r {
+  left: 22.5px;
+  border-right: 2.5px solid;
+  border-top: 2.5px solid;
+}
+
+.stw-gap-row {
+  position: absolute;
+  left: 3px;
+  width: 30px;
+  border-radius: 2px;
+}
+
+.stw-gap-col {
+  position: absolute;
+  top: 4px;
+  height: 28px;
+  border-radius: 2px;
+}
+
+.stw-box {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 2.5px solid;
+  box-sizing: border-box;
+}
+
+.stw-box-in {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  box-sizing: border-box;
+}

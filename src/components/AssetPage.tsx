@@ -6,7 +6,8 @@ import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono/500Medium';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { Link, type Href } from 'expo-router';
-import { isDownloadSkill, TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { isDownloadSkill, mediaFillsStage, TRANSITIONS, type TransitionItem } from '@/src/catalog';
+import { CatalogMedia } from '@/src/components/CatalogMedia';
 import { CopyLabel } from '@/src/components/CopyLabel';
 import { CreditLink } from '@/src/components/CreditLink';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
@@ -401,7 +402,7 @@ function Found({ item }: { item: TransitionItem }) {
         }}
       </Pressable>
       {promptOpen ? <PromptBody id={item.id} /> : null}
-      <Section title="Code">
+      <CodeAndWalkthrough item={item}>
         <InstallBlock
           install={installFor(item.id)}
           copied={copied === 'install'}
@@ -445,7 +446,7 @@ function Found({ item }: { item: TransitionItem }) {
             write(codeSlot(item.id, activeKind));
           }}
         />
-      </Section>
+      </CodeAndWalkthrough>
       <Section title="Props">
         <PropsBlock rows={propsFor(item.id)} />
       </Section>
@@ -672,6 +673,31 @@ class PreviewBoundary extends Component<
     if (this.state.failed) return null;
     return this.props.children;
   }
+}
+
+function CodeAndWalkthrough({ item, children }: { item: TransitionItem; children: ReactNode }) {
+  const { width } = useWindowDimensions();
+  const media = item.media && !mediaFillsStage(item) ? item.media : null;
+  const code = <Section title="Code">{children}</Section>;
+  if (!media) return code;
+  if (width < 880) {
+    return (
+      <View>
+        <View style={styles.walkthroughStack}>
+          <CatalogMedia media={media} />
+        </View>
+        {code}
+      </View>
+    );
+  }
+  return (
+    <View style={styles.walkthroughRow}>
+      <View style={styles.walkthroughSide}>
+        <CatalogMedia media={media} />
+      </View>
+      <View style={styles.walkthroughCode}>{code}</View>
+    </View>
+  );
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -1175,6 +1201,10 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 12,
   },
+  walkthroughRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
+  walkthroughSide: { width: '46%', marginTop: 32, flexShrink: 0 },
+  walkthroughCode: { flex: 1, minWidth: 0 },
+  walkthroughStack: { marginTop: 32 },
   installWrap: { marginBottom: 12 },
   installLine: {
     height: 44,
