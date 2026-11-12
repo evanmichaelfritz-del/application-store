@@ -116,6 +116,8 @@ export type CatalogMedia = {
   mp4: string;
   poster: string;
   alt: string;
+  /** CSS aspect-ratio, width / height. The slot uses this instead of a fixed box. */
+  aspect: string;
 };
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
@@ -534,7 +536,8 @@ export const TRANSITIONS: TransitionItem[] = [
       mp4: '/media/preview-tools-demo.mp4',
       poster: '/media/preview-tools-poster.jpg',
       alt: 'Cursor opens the pen tray, picks a pen, shows alignment guides, and opens a note on a control.',
-    },
+      aspect: '16 / 10',
+    } satisfies CatalogMedia,
     Demo: PreviewToolsDemo,
   },
   {
@@ -595,7 +598,8 @@ export const TRANSITIONS: TransitionItem[] = [
       mp4: '/media/spacing-tuner-demo.mp4',
       poster: '/media/spacing-tuner-poster.jpg',
       alt: 'Cursor visits each spacing control as the sidebar, padding, and gaps on the dashboard change.',
-    },
+      aspect: '16 / 10',
+    } satisfies CatalogMedia,
     Demo: SpacingTunerDemo,
   },
   {

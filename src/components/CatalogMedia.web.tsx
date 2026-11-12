@@ -2,14 +2,10 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { CatalogMedia as Media } from '@/src/catalog';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
 
-/** Poster files are fixed recordings. The ratio reserves the box before the image arrives. */
-const ASPECT: Record<string, string> = {
-  '/media/stageshow-poster.jpg': '1546 / 1080',
-  '/media/spacing-tuner-poster.jpg': '1280 / 800',
-  '/media/preview-tools-poster.jpg': '1280 / 800',
-};
+const MAX_HEIGHT = 420;
 
-const shell: CSSProperties = {
+/** Stageshow's stage slot: full width of the card, height following the clip, capped at 420. */
+const stageShell: CSSProperties = {
   width: '100%',
   borderRadius: 14,
   overflow: 'hidden',
@@ -17,37 +13,80 @@ const shell: CSSProperties = {
   border: '1px solid rgba(0, 0, 0, 0.04)',
 };
 
+function stageFrame(aspect: string): CSSProperties {
+  return {
+    display: 'block',
+    width: '100%',
+    maxHeight: MAX_HEIGHT,
+    aspectRatio: aspect,
+    objectFit: 'contain',
+    background: '#f9f9f9',
+  };
+}
+
+/** Width of a clip whose height is the 420 cap. 16:10 is 672. */
+function clipMaxWidth(aspect: string): number {
+  const [w, h] = aspect.split('/').map((part) => Number(part.trim()));
+  if (!Number.isFinite(w) || !Number.isFinite(h) || h === 0) return 672;
+  return Math.round((MAX_HEIGHT * w) / h);
+}
+
+/** Walkthrough slot: the clip's own ratio, centred, never taller than 420. */
+function clipShell(aspect: string): CSSProperties {
+  const maxWidth = clipMaxWidth(aspect);
+  return {
+    position: 'relative',
+    width: `min(100%, ${maxWidth}px)`,
+    maxWidth,
+    aspectRatio: aspect,
+    maxHeight: MAX_HEIGHT,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    borderRadius: 14,
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+    background: '#f9f9f9',
+    border: '1px solid rgba(0, 0, 0, 0.04)',
+  };
+}
+
+const clipFrame: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  display: 'block',
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+};
+
 /**
  * Muted looping recording for a catalog entry.
- * The video element is not mounted until the frame nears the viewport, so a
- * below-the-fold card does not request the mp4 or compete for LCP.
+ * No video bytes until the frame intersects the viewport. The observer stays
+ * connected: the clip pauses offscreen and plays again when it returns.
  * Reduced motion, from the OS or the store switch, keeps the poster still.
  */
 export function CatalogMedia({
   media,
   testID,
   stageID,
+  fill = false,
 }: {
   media: Media;
   testID?: string;
   stageID?: string;
+  /** Full-width stage slot. Walkthroughs leave this off and size to the clip. */
+  fill?: boolean;
 }) {
   const { reduceMotion } = useReduceMotion();
   const [system, setSystem] = useState(false);
-  const [near, setNear] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const [visible, setVisible] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const still = reduceMotion || system;
-  const play = near && !still;
-  const aspect = ASPECT[media.poster] ?? '16 / 10';
-  const frame: CSSProperties = {
-    display: 'block',
-    width: '100%',
-    maxHeight: 420,
-    aspectRatio: aspect,
-    objectFit: 'contain',
-    background: '#f9f9f9',
-  };
+  const showVideo = seen && !still;
+  const shouldPlay = showVideo && visible;
+  const frame = fill ? stageFrame(media.aspect) : clipFrame;
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
@@ -61,34 +100,37 @@ export function CatalogMedia({
   useEffect(() => {
     const node = rootRef.current;
     if (!node || typeof IntersectionObserver !== 'function') {
-      setNear(true);
+      setSeen(true);
+      setVisible(true);
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setNear(true);
-          observer.disconnect();
-        }
+        const hit = entries.some((entry) => entry.isIntersecting);
+        setVisible(hit);
+        if (hit) setSeen(true);
       },
-      { rootMargin: '160px 0px', threshold: 0.01 },
+      { rootMargin: '0px', threshold: 0.01 },
     );
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!play) return;
     const video = videoRef.current;
     if (!video) return;
+    if (!shouldPlay) {
+      video.pause();
+      return;
+    }
     video.muted = true;
     const pending = video.play();
     if (pending) void pending.catch(() => undefined);
-  }, [play]);
+  }, [shouldPlay]);
 
   return (
-    <div ref={rootRef} data-testid={stageID ?? 'catalog-media'} style={shell}>
-      {play ? (
+    <div ref={rootRef} data-testid={stageID ?? 'catalog-media'} style={fill ? stageShell : clipShell(media.aspect)}>
+      {showVideo ? (
         <video
           ref={videoRef}
           data-testid={testID ?? 'catalog-media-video'}
@@ -96,7 +138,6 @@ export function CatalogMedia({
           poster={media.poster}
           muted
           loop
-          autoPlay
           playsInline
           preload="none"
           aria-label={media.alt}

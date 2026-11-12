@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   stageWrap: { position: 'relative' },
-  walkthrough: { marginTop: 12 },
+  walkthrough: { marginTop: 12, alignItems: 'center' },
   stageWrapCompact: { height: 150, overflow: 'hidden', borderRadius: radii.stage },
   titlesCompact: { paddingBottom: 2 },
   live: {

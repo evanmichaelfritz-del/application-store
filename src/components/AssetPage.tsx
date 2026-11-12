@@ -1202,9 +1202,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   walkthroughRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
-  walkthroughSide: { width: '46%', marginTop: 32, flexShrink: 0 },
+  walkthroughSide: { width: '46%', marginTop: 32, flexShrink: 0, alignItems: 'center' },
   walkthroughCode: { flex: 1, minWidth: 0 },
-  walkthroughStack: { marginTop: 32 },
+  walkthroughStack: { marginTop: 32, alignItems: 'center' },
   installWrap: { marginBottom: 12 },
   installLine: {
     height: 44,
