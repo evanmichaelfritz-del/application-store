@@ -39,6 +39,7 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "esbuild": "^0.28.2",
+    "puppeteer-core": "^25.17.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -49,6 +50,7 @@
     "export:web": "node scripts/check-vercel-routes.mjs && node scripts/check-prompts.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html",
     "check:routes": "node scripts/check-vercel-routes.mjs",
     "check:prompts": "node scripts/check-prompts.mjs",
+    "check:showcase": "node scripts/check-showcase.mjs",
     "test": "npm run check:routes && npm run check:prompts",
     "postinstall": "npx setup-skia-web public"
   },

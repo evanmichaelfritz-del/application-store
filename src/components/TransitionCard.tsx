@@ -7,6 +7,8 @@ import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { CopyLabel } from '@/src/components/CopyLabel';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
+import { showcaseLater } from '@/src/showcase/later';
 import { installFor } from '@/src/library/assetMeta';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { CatalogMedia } from '@/src/components/CatalogMedia';
@@ -84,6 +86,9 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const phone = width < 640;
   const touch = width < 880;
   const [copied, setCopied] = useState<CopyKind | null>(null);
+  const [showcaseCopied, setShowcaseCopied] = useState(false);
+  const [showcaseBusy, setShowcaseBusy] = useState(false);
+  const later = showcaseLater(item.id);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [skillCopied, setSkillCopied] = useState(false);
@@ -158,6 +163,34 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     }
     write(copyTextFor(item.id, kind));
   };
+
+  const copyShowcase = () => {
+    if (later || showcaseBusy) return;
+    setShowcaseBusy(true);
+    void pressCopyShowcase(item.id).then(
+      (result) => {
+        setShowcaseBusy(false);
+        setShowcaseCopied(true);
+        show(result === 'saved' ? 'Saved as file' : 'Copied');
+        if (hideBtn.current) clearTimeout(hideBtn.current);
+        hideBtn.current = setTimeout(() => setShowcaseCopied(false), 1400);
+      },
+      () => setShowcaseBusy(false),
+    );
+  };
+
+  const showcaseButton = (style?: StyleProp<ViewStyle>) => (
+    <ActionButton
+      style={[styles.showcase, style]}
+      label={later ? 'Later' : showcaseCopied ? 'Copied' : 'Copy showcase'}
+      reserve="Copy showcase"
+      done={!later && showcaseCopied}
+      disabled={later || showcaseBusy}
+      busy={showcaseBusy}
+      onPress={copyShowcase}
+      testID={`copy-showcase-${item.id}`}
+    />
+  );
 
   const copyButton = (kind: CopyKind, style?: StyleProp<ViewStyle>) => (
     <ActionButton
@@ -345,6 +378,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             {copyButton('css', styles.actionGrow)}
             {copyButton('script', styles.actionGrow)}
           </View>
+          {showcaseButton()}
           {skillButton(styles.actionFull)}
           {installButton(styles.actionFull)}
           <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
@@ -355,6 +389,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {copyButton('html', touch ? styles.actionTouch : undefined)}
           {copyButton('css', touch ? styles.actionTouch : undefined)}
           {copyButton('script', touch ? styles.actionTouch : undefined)}
+          {showcaseButton(touch ? styles.actionTouch : undefined)}
           {skillButton(touch ? styles.actionTouch : undefined)}
           {installButton(touch ? styles.actionTouch : undefined)}
           <ActionButton
@@ -518,6 +553,7 @@ const styles = StyleSheet.create({
   actionDone: { backgroundColor: colors.text, borderColor: colors.text },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionDoneText: { color: colors.proFg },
+  showcase: { width: 120, flexGrow: 0, flexShrink: 0 },
   showcaseStage: {
     borderRadius: radii.stage,
     overflow: 'hidden',

@@ -45,6 +45,8 @@ import {
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
+import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
+import { showcaseLater } from '@/src/showcase/later';
 import { colors, fonts, radii } from '@/src/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -103,9 +105,9 @@ function useCopied() {
     },
     [],
   );
-  const mark = (key: string) => {
+  const mark = (key: string, message = 'Copied') => {
     setCopied(key);
-    show();
+    show(message);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(null), 1600);
   };
@@ -184,6 +186,7 @@ function Found({ item }: { item: TransitionItem }) {
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
+  const [showcaseBusy, setShowcaseBusy] = useState(false);
   const kind = CODE_TABS.find((entry) => entry.id === tab)?.kind ?? 'html';
   const tabs = useMemo(
     () => CODE_TABS.filter((entry) => entry.kind !== 'css' || codeSlot(item.id, 'css').trim().length > 0),
@@ -192,6 +195,18 @@ function Found({ item }: { item: TransitionItem }) {
   const activeTab = tabs.some((entry) => entry.id === tab) ? tab : tabs[0].id;
   const activeKind = tabs.find((entry) => entry.id === activeTab)?.kind ?? kind;
 
+  const later = showcaseLater(item.id);
+  const copyShowcase = () => {
+    if (later || showcaseBusy) return;
+    setShowcaseBusy(true);
+    void pressCopyShowcase(item.id).then(
+      (result) => {
+        setShowcaseBusy(false);
+        mark('showcase', result === 'saved' ? 'Saved as file' : 'Copied');
+      },
+      () => setShowcaseBusy(false),
+    );
+  };
   const copyCode = () => {
     mark('code');
     const write = (text: string) => {
@@ -322,6 +337,27 @@ function Found({ item }: { item: TransitionItem }) {
           onWarm={activeKind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
           testID="copy-code"
         />
+        <BarButton
+          label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+          reserve="Agent Prompt"
+          icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
+          tone="secondary"
+          done={copied === 'prompt'}
+          onPress={copyPrompt}
+          testID="agent-prompt"
+        />
+        <BarButton
+          label={later ? 'Later' : copied === 'showcase' ? 'Copied' : 'Copy showcase'}
+          reserve="Copy showcase"
+          icon={copied === 'showcase' ? 'checkmark' : 'copy-outline'}
+          tone="secondary"
+          done={!later && copied === 'showcase'}
+          disabled={later || showcaseBusy}
+          busy={showcaseBusy}
+          onPress={copyShowcase}
+          testID="copy-showcase"
+          style={styles.showcaseButton}
+        />
         {skillDownload ? (
           <SkillDownloadLink
             href={skillDownload.href}
@@ -365,15 +401,6 @@ function Found({ item }: { item: TransitionItem }) {
             testID="copy-install-command"
           />
         ) : null}
-        <BarButton
-          label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
-          reserve="Agent Prompt"
-          icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
-          tone="secondary"
-          done={copied === 'prompt'}
-          onPress={copyPrompt}
-          testID="agent-prompt"
-        />
         {credit ? (
           <BarButton
             label="Open source"
@@ -1191,6 +1218,7 @@ const styles = StyleSheet.create({
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
   buttonDisabled: { opacity: 0.45, cursor: 'auto' },
+  showcaseButton: { width: 156, flexGrow: 0, flexShrink: 0 },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {

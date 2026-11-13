@@ -4,10 +4,26 @@ import { AnimateButton } from '@/src/components/AnimateButton';
 import { Stage } from '@/src/components/Stage';
 import { canvasKitPending } from '@/src/skia/ensureCanvasKit';
 
-const IMAGES = ['/img-fx/1.png', '/img-fx/2.png', '/img-fx/3.png'];
-const MOSAIC_STILL = '/img-fx/organic-still@2x.png';
 /** pixels-organic light preset `cardBg`. */
 const CARD_BG = '#f5f5f5';
+
+type InlinePhotos = { still: string; photos: readonly string[] };
+
+/** PNG bytes live in a separate chunk. The card does not fetch /img-fx/*.png. */
+function loadInline(): Promise<InlinePhotos> {
+  return import('@/src/closedNetwork/imgFxInline').then((mod) => mod.IMG_FX);
+}
+
+function bitmapFromData(uri: string): Promise<ImageBitmap> {
+  const comma = uri.indexOf(',');
+  const meta = uri.slice(0, comma);
+  const body = uri.slice(comma + 1);
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const type = /^data:([^;,]+)/.exec(meta)?.[1] ?? 'image/png';
+  return createImageBitmap(new Blob([bytes], { type }));
+}
 
 const cardStyle: CSSProperties = {
   width: 168,
@@ -17,18 +33,23 @@ const cardStyle: CSSProperties = {
 };
 
 let mosaicStill: HTMLImageElement | null = null;
+let stillLoading: Promise<HTMLImageElement | null> | null = null;
 
-/** Start the 2× still fetch as soon as the card mounts, off the bundle. */
-function preloadMosaicStill(): HTMLImageElement | null {
-  if (typeof Image === 'undefined') return null;
-  if (!mosaicStill) {
-    const img = new Image();
-    img.decoding = 'sync';
-    img.src = MOSAIC_STILL;
-    void img.decode?.().catch(() => {});
-    mosaicStill = img;
+/** Paint the 2× still from the inlined PNG. No image request. */
+function preloadMosaicStill(): Promise<HTMLImageElement | null> {
+  if (typeof Image === 'undefined') return Promise.resolve(null);
+  if (mosaicStill) return Promise.resolve(mosaicStill);
+  if (!stillLoading) {
+    stillLoading = loadInline().then((inline) => {
+      const img = new Image();
+      img.decoding = 'sync';
+      img.src = inline.still;
+      mosaicStill = img;
+      const ready = img.decode?.().then(() => img).catch(() => img);
+      return ready ?? Promise.resolve(img);
+    });
   }
-  return mosaicStill;
+  return stillLoading;
 }
 
 function drawMosaicStill(canvas: HTMLCanvasElement) {
@@ -84,15 +105,19 @@ function WorkerLoader({
   useLayoutEffect(() => {
     const canvas = stillRef.current;
     if (!canvas) return;
-    const img = preloadMosaicStill();
-    if (drawMosaicStill(canvas)) return;
+    let dead = false;
     paintPlaceholder(canvas);
-    if (!img) return;
-    const onLoad = () => {
-      drawMosaicStill(canvas);
+    void preloadMosaicStill().then((img) => {
+      if (dead || !img) return;
+      if (drawMosaicStill(canvas)) return;
+      const onLoad = () => {
+        drawMosaicStill(canvas);
+      };
+      img.addEventListener('load', onLoad);
+    });
+    return () => {
+      dead = true;
     };
-    img.addEventListener('load', onLoad);
-    return () => img.removeEventListener('load', onLoad);
   }, []);
 
   useEffect(() => {
@@ -165,12 +190,8 @@ function WorkerLoader({
     };
 
     const loadPhotos = async () => {
-      const bitmaps = await Promise.all(
-        IMAGES.map(async (src) => {
-          const res = await fetch(src);
-          return createImageBitmap(await res.blob());
-        }),
-      );
+      const inline = await loadInline();
+      const bitmaps = await Promise.all(inline.photos.map((src) => bitmapFromData(src)));
       if (dead) {
         bitmaps.forEach((bitmap) => bitmap.close());
         return;
