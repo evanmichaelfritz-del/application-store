@@ -5,6 +5,7 @@ import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { CopyLabel } from '@/src/components/CopyLabel';
+import { FileDownIcon } from '@/src/components/FileDownIcon';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
@@ -86,8 +87,9 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const phone = width < 640;
   const touch = width < 880;
   const [copied, setCopied] = useState<CopyKind | null>(null);
-  const [showcaseCopied, setShowcaseCopied] = useState(false);
+  const [showcaseMark, setShowcaseMark] = useState<'copied' | 'saved' | null>(null);
   const [showcaseBusy, setShowcaseBusy] = useState(false);
+  const [showcaseTip, setShowcaseTip] = useState(false);
   const later = showcaseLater(item.id);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -170,26 +172,56 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     void pressCopyShowcase(item.id).then(
       (result) => {
         setShowcaseBusy(false);
-        setShowcaseCopied(true);
+        setShowcaseMark(result === 'saved' ? 'saved' : 'copied');
         show(result === 'saved' ? 'Saved as file' : 'Copied');
         if (hideBtn.current) clearTimeout(hideBtn.current);
-        hideBtn.current = setTimeout(() => setShowcaseCopied(false), 1400);
+        hideBtn.current = setTimeout(() => setShowcaseMark(null), 1400);
       },
       () => setShowcaseBusy(false),
     );
   };
 
-  const showcaseButton = (style?: StyleProp<ViewStyle>) => (
-    <ActionButton
-      style={[styles.showcase, style]}
-      label={later ? 'Later' : showcaseCopied ? 'Copied' : 'Copy showcase'}
-      reserve="Copy showcase"
-      done={!later && showcaseCopied}
-      disabled={later || showcaseBusy}
-      busy={showcaseBusy}
-      onPress={copyShowcase}
-      testID={`copy-showcase-${item.id}`}
-    />
+  const showcaseTipLabel = later ? 'Later' : showcaseMark === 'saved' ? 'Saved' : showcaseMark === 'copied' ? 'Copied' : 'Copy showcase';
+  const showcaseButton = (
+    <View style={styles.showcaseSlot}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={showcaseTipLabel}
+        accessibilityState={{ disabled: later }}
+        aria-busy={showcaseBusy}
+        testID={`copy-showcase-${item.id}`}
+        onPress={copyShowcase}
+        onHoverIn={() => setShowcaseTip(true)}
+        onHoverOut={() => setShowcaseTip(false)}
+        onFocus={() => setShowcaseTip(true)}
+        onBlur={() => setShowcaseTip(false)}
+        {...pressableWeb({ dataSet: { focusRing: 'true', showcaseTip: showcaseTipLabel } })}
+        style={(state) => {
+          const hover = 'hovered' in state && state.hovered === true;
+          const done = showcaseMark != null;
+          return [
+            styles.showcaseIcon,
+            later ? styles.actionDisabled : styles.pointer,
+            done && styles.actionDone,
+            hover && !done && !later && styles.actionHover,
+            hover && done && styles.actionDoneHover,
+            state.pressed && !done && !later && styles.actionPressed,
+            state.pressed && done && styles.actionDonePressed,
+          ];
+        }}
+      >
+        {showcaseMark ? (
+          <Text style={styles.showcaseCheck}>✓</Text>
+        ) : (
+          <FileDownIcon size={16} color={later ? colors.textSubtle : colors.text} />
+        )}
+      </Pressable>
+      {showcaseTip ? (
+        <View pointerEvents="none" style={styles.showcaseTooltip}>
+          <Text style={styles.showcaseTooltipText}>{showcaseTipLabel}</Text>
+        </View>
+      ) : null}
+    </View>
   );
 
   const copyButton = (kind: CopyKind, style?: StyleProp<ViewStyle>) => (
@@ -378,10 +410,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             {copyButton('css', styles.actionGrow)}
             {copyButton('script', styles.actionGrow)}
           </View>
-          {showcaseButton()}
           {skillButton(styles.actionFull)}
           {installButton(styles.actionFull)}
           <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
+          {showcaseButton}
         </View>
       ) : (
         <View style={styles.actions}>
@@ -389,7 +421,6 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {copyButton('html', touch ? styles.actionTouch : undefined)}
           {copyButton('css', touch ? styles.actionTouch : undefined)}
           {copyButton('script', touch ? styles.actionTouch : undefined)}
-          {showcaseButton(touch ? styles.actionTouch : undefined)}
           {skillButton(touch ? styles.actionTouch : undefined)}
           {installButton(touch ? styles.actionTouch : undefined)}
           <ActionButton
@@ -397,6 +428,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             label="AGENT_PROMPT"
             onPress={() => setPromptOpen(true)}
           />
+          {showcaseButton}
         </View>
       )}
 
@@ -553,7 +585,38 @@ const styles = StyleSheet.create({
   actionDone: { backgroundColor: colors.text, borderColor: colors.text },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionDoneText: { color: colors.proFg },
-  showcase: { width: 120, flexGrow: 0, flexShrink: 0 },
+  showcaseSlot: {
+    width: 32,
+    height: 32,
+    marginVertical: -1,
+    flexGrow: 0,
+    flexShrink: 0,
+    position: 'relative',
+    zIndex: 8,
+  },
+  showcaseIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.copyBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  showcaseCheck: { fontFamily: fonts.medium, fontSize: 14, color: colors.proFg, lineHeight: 16 },
+  showcaseTooltip: {
+    position: 'absolute',
+    bottom: 36,
+    left: '50%',
+    transform: [{ translateX: -40 }],
+    backgroundColor: colors.text,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    zIndex: 9,
+  },
+  showcaseTooltipText: { fontFamily: fonts.medium, fontSize: 12, color: colors.proFg },
   showcaseStage: {
     borderRadius: radii.stage,
     overflow: 'hidden',

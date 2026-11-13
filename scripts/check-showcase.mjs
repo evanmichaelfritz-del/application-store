@@ -152,6 +152,10 @@ function assertOffline(html, id) {
   const hits = [...requestHits(shellBody), ...requestHits(stage).map((label) => `stage ${label}`)];
   const http = [...strayHttp(shellBody).map((url) => `shell ${url}`), ...strayHttp(stage).map((url) => `stage ${url}`)];
   if (!html.includes('data:font/woff2;base64,')) hits.push('missing Inter');
+  if (html.includes('data:font/woff2')) {
+    if (!html.includes('The Inter Project Authors')) hits.push('missing Inter licence notice');
+    if (!html.includes('PERMISSION AND CONDITIONS')) hits.push('missing Inter licence conditions');
+  }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
   return { hits, http, code, prompt };
 }
@@ -270,14 +274,28 @@ async function copiedFrom(frame, selector) {
   return frame.evaluate((sel) => {
     const button = document.querySelector(sel);
     let copied = '';
+    let written = '';
     const onCopy = () => {
       const field = document.querySelector('textarea');
-      copied = field ? field.value : '';
+      if (field && field.value) copied = field.value;
     };
     document.addEventListener('copy', onCopy);
+    const clipboard = navigator.clipboard;
+    const realWrite = clipboard && clipboard.writeText ? clipboard.writeText.bind(clipboard) : null;
+    if (clipboard && realWrite) {
+      clipboard.writeText = (text) => {
+        written = String(text);
+        return realWrite(text);
+      };
+    }
     button.click();
-    document.removeEventListener('copy', onCopy);
-    return { copied, label: button.textContent };
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        document.removeEventListener('copy', onCopy);
+        if (clipboard && realWrite) clipboard.writeText = realWrite;
+        resolve({ copied: written || copied, label: button.textContent });
+      }, 200);
+    });
   }, selector);
 }
 

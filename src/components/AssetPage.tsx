@@ -45,6 +45,7 @@ import {
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
+import { FileDownIcon } from '@/src/components/FileDownIcon';
 import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
 import { showcaseLater } from '@/src/showcase/later';
 import { colors, fonts, radii } from '@/src/theme';
@@ -187,6 +188,7 @@ function Found({ item }: { item: TransitionItem }) {
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
   const [showcaseBusy, setShowcaseBusy] = useState(false);
+  const [showcaseSaved, setShowcaseSaved] = useState(false);
   const kind = CODE_TABS.find((entry) => entry.id === tab)?.kind ?? 'html';
   const tabs = useMemo(
     () => CODE_TABS.filter((entry) => entry.kind !== 'css' || codeSlot(item.id, 'css').trim().length > 0),
@@ -202,6 +204,7 @@ function Found({ item }: { item: TransitionItem }) {
     void pressCopyShowcase(item.id).then(
       (result) => {
         setShowcaseBusy(false);
+        setShowcaseSaved(result === 'saved');
         mark('showcase', result === 'saved' ? 'Saved as file' : 'Copied');
       },
       () => setShowcaseBusy(false),
@@ -337,27 +340,6 @@ function Found({ item }: { item: TransitionItem }) {
           onWarm={activeKind === 'css' ? () => prefetchCopyCss(item.id) : undefined}
           testID="copy-code"
         />
-        <BarButton
-          label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
-          reserve="Agent Prompt"
-          icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
-          tone="secondary"
-          done={copied === 'prompt'}
-          onPress={copyPrompt}
-          testID="agent-prompt"
-        />
-        <BarButton
-          label={later ? 'Later' : copied === 'showcase' ? 'Copied' : 'Copy showcase'}
-          reserve="Copy showcase"
-          icon={copied === 'showcase' ? 'checkmark' : 'copy-outline'}
-          tone="secondary"
-          done={!later && copied === 'showcase'}
-          disabled={later || showcaseBusy}
-          busy={showcaseBusy}
-          onPress={copyShowcase}
-          testID="copy-showcase"
-          style={styles.showcaseButton}
-        />
         {skillDownload ? (
           <SkillDownloadLink
             href={skillDownload.href}
@@ -386,7 +368,34 @@ function Found({ item }: { item: TransitionItem }) {
             onPress={copySkill}
             testID="copy-skill"
           />
-        ) : null}
+        ) : (
+          <BarButton
+            label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+            reserve="Agent Prompt"
+            icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
+            tone="secondary"
+            done={copied === 'prompt'}
+            onPress={copyPrompt}
+            testID="agent-prompt"
+          />
+        )}
+        <BarButton
+          label={later ? 'Later' : copied === 'showcase' ? (showcaseSaved ? 'Saved' : 'Copied') : 'Copy showcase'}
+          reserve="Copy showcase"
+          icon={copied === 'showcase' ? 'checkmark' : undefined}
+          glyph={
+            copied === 'showcase' ? undefined : (
+              <FileDownIcon size={14} color={later ? colors.textSubtle : colors.text} />
+            )
+          }
+          tone="secondary"
+          done={!later && copied === 'showcase'}
+          disabled={later}
+          busy={showcaseBusy}
+          onPress={copyShowcase}
+          testID="copy-showcase"
+          style={styles.showcaseButton}
+        />
         {installLine ? (
           <BarButton
             label={copied === 'install-command' ? 'Copied' : 'Copy install command'}
@@ -399,6 +408,17 @@ function Found({ item }: { item: TransitionItem }) {
               writeClipboardNow(installLine);
             }}
             testID="copy-install-command"
+          />
+        ) : null}
+        {skill || skillDownload ? (
+          <BarButton
+            label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+            reserve="Agent Prompt"
+            icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
+            tone="secondary"
+            done={copied === 'prompt'}
+            onPress={copyPrompt}
+            testID="agent-prompt"
           />
         ) : null}
         {credit ? (
@@ -524,6 +544,7 @@ function BarButton({
   label,
   reserve,
   icon,
+  glyph,
   tone = 'secondary',
   done = false,
   disabled = false,
@@ -537,6 +558,7 @@ function BarButton({
   label: string;
   reserve?: string;
   icon?: IconName;
+  glyph?: ReactNode;
   tone?: 'primary' | 'secondary';
   done?: boolean;
   disabled?: boolean;
@@ -588,7 +610,7 @@ function BarButton({
         style,
       ])}
     >
-      {icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null}
+      {glyph ?? (icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null)}
       <CopyLabel label={label} reserve={reserve} style={[styles.buttonText, primary && styles.buttonTextOn]} />
     </Pressable>
   );
@@ -1218,7 +1240,7 @@ const styles = StyleSheet.create({
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
   buttonDisabled: { opacity: 0.45, cursor: 'auto' },
-  showcaseButton: { width: 156, flexGrow: 0, flexShrink: 0 },
+  showcaseButton: { paddingVertical: 0, paddingHorizontal: 12, minWidth: 148, flexGrow: 0, flexShrink: 0 },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {

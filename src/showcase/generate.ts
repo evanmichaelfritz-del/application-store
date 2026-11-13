@@ -97,23 +97,38 @@ function clipMaxWidth(aspect: string): number {
   return Math.round((420 * w) / h);
 }
 
-async function interFaces(read: ByteReader): Promise<string> {
-  const faces = await Promise.all(
-    INTER_WEIGHTS.map(async (weight) => {
-      const bytes = await read(`/fonts/inter-latin-${weight}.woff2`);
-      const uri = dataUri('font/woff2', bytes);
-      return `@font-face {
-  font-family: Inter;
+function face(family: string, weight: string, uri: string): string {
+  return `@font-face {
+  font-family: ${family};
   font-style: normal;
   font-weight: ${weight};
   font-display: block;
   src: url("${uri}") format("woff2");
   unicode-range: ${LATIN_RANGE};
 }`;
-    }),
-  );
-  return `/* Inter latin, weights 400, 500, and 600. SIL Open Font License 1.1. */
-${faces.join('\n')}`;
+}
+
+async function interFaces(read: ByteReader): Promise<string> {
+  const [license, w400, w500, w600] = await Promise.all([
+    read('/fonts/OFL.txt').then(decodeUtf8),
+    read('/fonts/inter-latin-400.woff2').then((bytes) => dataUri('font/woff2', bytes)),
+    read('/fonts/inter-latin-500.woff2').then((bytes) => dataUri('font/woff2', bytes)),
+    read('/fonts/inter-latin-600.woff2').then((bytes) => dataUri('font/woff2', bytes)),
+  ]);
+  const comment = `/*\n${license.trim().replace(/\*\//g, '* /')}\n*/`;
+  const faces = [
+    face('Inter', '400', w400),
+    face('Inter', '500', w500),
+    face('Inter', '600', w600),
+    face('Inter_400Regular', '100 900', w400),
+    face('Inter_500Medium', '100 900', w500),
+  ];
+  return `${comment}
+${faces.join('\n')}
+html, body, button, input, textarea {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}`;
 }
 
 function cached(read: ByteReader): ByteReader {
@@ -201,7 +216,14 @@ export async function generateShowcase(id: string, read: ByteReader): Promise<st
     inlinePaths(dropLinks(parts.html), load),
     inlinePaths(parts.css, load),
   ]);
-  const css = `${faces}\n${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}`;
+  const loaderPlace =
+    id === 'image-generation-loader'
+      ? `body { min-height: 100%; }
+.col { position: relative; width: 168px; height: 200px; gap: 0; }
+#card, .t-img-fx-card { margin: 16px auto 0; }
+#reveal, .trigger { position: absolute; right: 10px; bottom: 10px; }`
+      : '';
+  const css = `${faces}\n${loaderPlace}\n${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}`;
   const stage = composePreviewDocument(item.title, htmlInlined, css, script);
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
@@ -253,7 +275,7 @@ h1 {
   border-radius: 14px;
   overflow: hidden;
 }
-.stage { width: 100%; min-height: 220px; border: 0; display: block; background: #f9f9f9; }
+.stage { width: 100%; border: 0; display: block; background: #f9f9f9; }
 .reset {
   position: absolute;
   top: 12px;
@@ -318,7 +340,7 @@ h1 {
     <p class="facet">${esc(facet)}</p>
     ${creditLine}
     <div class="stage-wrap">
-      <iframe class="stage" id="stage" title="${esc(item.title)}" sandbox="allow-scripts allow-same-origin"></iframe>
+      <iframe class="stage" id="stage" title="${esc(item.title)}" data-stage="${esc(id)}"></iframe>
       ${replay}
     </div>
     ${clip}
@@ -333,12 +355,27 @@ var STAGE = ${jsString(stage)};
 var CODE = ${jsString(code)};
 var PROMPT = ${jsString(prompt)};
 var frame = document.getElementById('stage');
+var stageId = frame.getAttribute('data-stage');
+function seed() {
+  var w = frame.getBoundingClientRect().width || frame.clientWidth || 992;
+  if (stageId === 'arc-charge') {
+    frame.style.height = Math.round(w * 9 / 16) + 'px';
+    return;
+  }
+  if (stageId === 'image-generation-loader') {
+    frame.style.height = '420px';
+    return;
+  }
+  frame.style.height = '420px';
+}
 function fit() {
   var doc = frame.contentDocument;
   if (!doc || !doc.body) return;
+  if (stageId === 'arc-charge' || stageId === 'image-generation-loader') return;
   var h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
-  frame.style.height = Math.max(220, h) + 'px';
+  if (h > 420) frame.style.height = h + 'px';
 }
+seed();
 frame.addEventListener('load', function () {
   fit();
   var doc = frame.contentDocument;
@@ -350,15 +387,8 @@ frame.addEventListener('load', function () {
 frame.srcdoc = STAGE;
 var reset = document.getElementById('stage-reset');
 if (reset) reset.addEventListener('click', function () { frame.srcdoc = STAGE; });
-function writeExact(text) {
-  var pending = null;
-  var policy = navigator.permissionsPolicy || document.permissionsPolicy || document.featurePolicy;
-  var allowed = !policy || !policy.allowsFeature || policy.allowsFeature('clipboard-write');
-  try {
-    if (allowed && navigator.clipboard && navigator.clipboard.writeText) pending = navigator.clipboard.writeText(text);
-  } catch (error) {
-    pending = null;
-  }
+function fallbackCopy(text) {
+  var previous = document.activeElement;
   var field = document.createElement('textarea');
   field.value = text;
   field.setAttribute('readonly', '');
@@ -369,10 +399,32 @@ function writeExact(text) {
   document.body.appendChild(field);
   field.focus();
   field.select();
-  try { document.execCommand('copy'); } catch (error) { /* writeText may still land */ }
-  document.body.removeChild(field);
-  if (!pending) return Promise.resolve(false);
-  return pending.then(function () { return true; }, function () { return false; });
+  try {
+    document.execCommand('copy');
+  } catch (error) {
+    /* writeText already failed */
+  } finally {
+    field.remove();
+    if (previous && previous.focus) previous.focus();
+  }
+}
+function writeExact(text) {
+  var pending = null;
+  var policy = navigator.permissionsPolicy || document.permissionsPolicy || document.featurePolicy;
+  var allowed = !policy || !policy.allowsFeature || policy.allowsFeature('clipboard-write');
+  try {
+    if (allowed && navigator.clipboard && navigator.clipboard.writeText) pending = navigator.clipboard.writeText(text);
+  } catch (error) {
+    pending = null;
+  }
+  if (!pending) {
+    fallbackCopy(text);
+    return Promise.resolve(false);
+  }
+  return pending.then(function () { return true; }, function () {
+    fallbackCopy(text);
+    return false;
+  });
 }
 function arm(button, resting) {
   button.addEventListener('click', function () {

@@ -51,7 +51,7 @@
     "check:routes": "node scripts/check-vercel-routes.mjs",
     "check:prompts": "node scripts/check-prompts.mjs",
     "check:showcase": "node scripts/check-showcase.mjs",
-    "test": "npm run check:routes && npm run check:prompts",
+    "test": "npm run check:routes && npm run check:prompts && npm run check:showcase",
     "postinstall": "npx setup-skia-web public"
   },
   "engines": {
