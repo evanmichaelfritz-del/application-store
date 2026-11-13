@@ -29,6 +29,7 @@ import { AbrarOverviewDemo } from './demos/abrar-overview/AbrarOverviewDemo';
 import { PreviewToolsDemo } from './demos/preview-tools';
 import { SpacingTunerDemo } from './demos/spacing-tuner/demo';
 import { StageshowDemo } from './demos/stageshow/demo';
+import { stageshowMedia } from './demos/stageshow/media';
 import { SidebarTransitionsDemo } from './demos/adam-sidebar-transitions';
 import { ArcChargeDemo } from './demos/arc-charge';
 import type { NavSection } from './sections';
@@ -103,7 +104,20 @@ export type TransitionItem = {
    * `href` downloads that same-origin file. Cards without a skill are unchanged.
    */
   skill?: { path: string; name: string } | { href: string; filename: string; name: string };
+  /**
+   * Optional recorded walkthrough. Rendered muted, looping, and playsInline.
+   * Cards without media keep their demo only. The recording is not part of Copy.
+   */
+  media?: CatalogMedia;
   Demo: ComponentType;
+};
+
+export type CatalogMedia = {
+  mp4: string;
+  poster: string;
+  alt: string;
+  /** CSS aspect-ratio, width / height. The slot uses this instead of a fixed box. */
+  aspect: string;
 };
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
@@ -518,6 +532,12 @@ export const TRANSITIONS: TransitionItem[] = [
     sections: ['tools'],
     fullRow: true,
     pro: false,
+    media: {
+      mp4: '/media/preview-tools-demo.mp4',
+      poster: '/media/preview-tools-poster.jpg',
+      alt: 'Cursor opens the pen tray, picks a pen, shows alignment guides, and opens a note on a control.',
+      aspect: '16 / 10',
+    } satisfies CatalogMedia,
     Demo: PreviewToolsDemo,
   },
   {
@@ -574,6 +594,12 @@ export const TRANSITIONS: TransitionItem[] = [
     fullRow: true,
     pro: false,
     skill: { path: 'skills/spacing-audit/SKILL.md', name: 'spacing-audit' },
+    media: {
+      mp4: '/media/spacing-tuner-demo.mp4',
+      poster: '/media/spacing-tuner-poster.jpg',
+      alt: 'Cursor visits each spacing control as the sidebar, padding, and gaps on the dashboard change.',
+      aspect: '16 / 10',
+    } satisfies CatalogMedia,
     Demo: SpacingTunerDemo,
   },
   {
@@ -589,6 +615,7 @@ export const TRANSITIONS: TransitionItem[] = [
       filename: 'stageshow-skill.zip',
       name: 'stageshow',
     },
+    media: stageshowMedia,
     Demo: StageshowDemo,
   },
   {
@@ -614,6 +641,11 @@ export const TRANSITIONS: TransitionItem[] = [
     Demo: ArcChargeDemo,
   },
 ];
+
+/** The stage itself is the recording, so the card does not show it a second time. */
+export function mediaFillsStage(item: TransitionItem): boolean {
+  return item.id === 'stageshow' && item.media != null;
+}
 
 export function isDownloadSkill(
   skill: NonNullable<TransitionItem['skill']>,

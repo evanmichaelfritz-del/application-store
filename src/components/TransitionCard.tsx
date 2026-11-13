@@ -9,11 +9,12 @@ import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { installFor } from '@/src/library/assetMeta';
 import { StoreSheet } from '@/src/components/StoreSheet';
+import { CatalogMedia } from '@/src/components/CatalogMedia';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { assetHref, facetLine } from '@/src/library/taxonomy';
 import { pressableWeb, textWeb } from '@/src/library/webProps';
-import { isDownloadSkill, type TransitionItem } from '../catalog';
+import { isDownloadSkill, mediaFillsStage, type TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
 
 type CopyKind = 'html' | 'css' | 'script';
@@ -297,6 +298,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     }, 0);
   };
 
+  const walkthrough = item.media && !mediaFillsStage(item) && !compact ? <CatalogMedia media={item.media} /> : null;
   const stage = (
     <View>
       <View style={[styles.stageWrap, compact && styles.stageWrapCompact]}>
@@ -310,6 +312,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           </View>
         ) : null}
       </View>
+      {walkthrough ? <View style={styles.walkthrough}>{walkthrough}</View> : null}
       <Link href={assetHref(item.id)} asChild>
         <Pressable
           accessibilityRole="link"
@@ -440,6 +443,7 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   stageWrap: { position: 'relative' },
+  walkthrough: { marginTop: 12, alignItems: 'center' },
   stageWrapCompact: { height: 150, overflow: 'hidden', borderRadius: radii.stage },
   titlesCompact: { paddingBottom: 2 },
   live: {
