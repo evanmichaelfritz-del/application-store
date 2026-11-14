@@ -197,12 +197,14 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={showcaseName}
+        aria-disabled={later ? true : undefined}
         ref={(node) => {
-          const host = node as unknown as HTMLElement | null;
-          if (host && typeof host.setAttribute === 'function') {
-            if (later) host.setAttribute('aria-disabled', 'true');
-            else host.removeAttribute('aria-disabled');
-          }
+          // Pressable turns aria-disabled into the native disabled attribute, which
+          // drops hover and focus. Keep the ARIA state without that attribute.
+          if (!(node instanceof HTMLElement)) return;
+          if (later) node.setAttribute('aria-disabled', 'true');
+          else node.removeAttribute('aria-disabled');
+          node.removeAttribute('disabled');
         }}
         tabIndex={0}
         aria-describedby={tip.id}
@@ -245,8 +247,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
         accessibilityRole="none"
         pointerEvents="none"
         {...viewWeb({ dataSet: { showcaseTip: tip.state, showcasePlace: tip.place } })}
-        // role is the web tooltip role. RN's accessibilityRole has no tooltip value.
-        {...({ role: 'tooltip' } as object)}
+        role="tooltip"
       >
         <Text style={styles.showcaseTooltipText}>{showcaseTipText}</Text>
       </View>

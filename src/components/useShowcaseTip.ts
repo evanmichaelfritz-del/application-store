@@ -1,15 +1,20 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
-export type TipPlace = 'below' | 'above' | 'right' | 'left';
+export type TipPlace = 'below' | 'above';
 
-/** Hover waits 500ms. Keyboard focus shows at once. Leave, blur, and Esc hide it. */
+/** A tip that has just been shown keeps the next card instant for a short move. */
+let tipWarmUntil = 0;
+
+/** Hover waits 500ms, unless a neighbouring tip was showing within 300ms. */
 export function useShowcaseTip() {
   const rawId = useId().replace(/:/g, '');
   const id = `showcase-tip-${rawId}`;
   const [open, setOpen] = useState(false);
   const [place, setPlace] = useState<TipPlace>('below');
+  const [shift, setShift] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fromPointer = useRef(false);
+  const shown = useRef(false);
 
   const clear = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -18,6 +23,8 @@ export function useShowcaseTip() {
 
   const hide = () => {
     clear();
+    if (shown.current) tipWarmUntil = Date.now() + 300;
+    shown.current = false;
     const node = typeof document !== 'undefined' ? document.getElementById(id) : null;
     if (node) node.setAttribute('data-showcase-tip', 'off');
     setOpen(false);
@@ -25,11 +32,18 @@ export function useShowcaseTip() {
 
   const reveal = () => {
     const node = typeof document !== 'undefined' ? document.getElementById(id) : null;
-    const next = node ? choosePlace(node) : 'below';
-    if (node) node.setAttribute('data-showcase-place', next);
-    setPlace(next);
+    const next = node ? placeTip(node) : { place: 'below' as const, shift: 0 };
+    shown.current = true;
+    tipWarmUntil = Date.now() + 300;
+    setPlace(next.place);
+    setShift(next.shift);
     setOpen(true);
   };
+
+  useEffect(() => {
+    const node = document.getElementById(id);
+    if (node) node.style.setProperty('--tip-shift', `${shift}px`);
+  }, [id, open, place, shift]);
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +60,10 @@ export function useShowcaseTip() {
     place,
     hoverIn: () => {
       clear();
+      if (Date.now() < tipWarmUntil) {
+        reveal();
+        return;
+      }
       timer.current = setTimeout(reveal, 500);
     },
     hoverOut: hide,
@@ -64,43 +82,31 @@ export function useShowcaseTip() {
   };
 }
 
-function overlaps(a: DOMRect, b: DOMRect): boolean {
-  return a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
-}
-
-/** Below stays 6px under the button. The other places keep a flip off the title and the neighbouring controls. */
-function choosePlace(node: HTMLElement): TipPlace {
+/** Below by default. Above, still centred, only when below would leave the viewport. Then clamp 8px inside. */
+function placeTip(node: HTMLElement): { place: TipPlace; shift: number } {
   const previous = node.getAttribute('data-showcase-place');
-  const order: TipPlace[] = ['below', 'right', 'left', 'above'];
-  let picked: TipPlace = 'right';
-  for (const place of order) {
-    node.setAttribute('data-showcase-place', place);
-    const rect = node.getBoundingClientRect();
-    const inView =
-      rect.width > 0 &&
-      rect.top >= 8 &&
-      rect.left >= 8 &&
-      rect.bottom <= window.innerHeight - 8 &&
-      rect.right <= window.innerWidth - 8;
-    if (inView && !coversNeighbours(node, rect)) {
-      picked = place;
-      break;
-    }
+  const previousShift = node.style.getPropertyValue('--tip-shift');
+  node.style.setProperty('--tip-shift', '0px');
+  node.setAttribute('data-showcase-place', 'below');
+  let place: TipPlace = 'below';
+  let rect = node.getBoundingClientRect();
+  if (rect.width > 0 && (rect.bottom > window.innerHeight - 8 || rect.top < 8)) {
+    place = 'above';
+    node.setAttribute('data-showcase-place', 'above');
+    rect = node.getBoundingClientRect();
   }
+  const shift = clampShift(rect);
   if (previous) node.setAttribute('data-showcase-place', previous);
   else node.removeAttribute('data-showcase-place');
-  return picked;
+  if (previousShift) node.style.setProperty('--tip-shift', previousShift);
+  else node.style.removeProperty('--tip-shift');
+  return { place, shift };
 }
 
-function coversNeighbours(tip: HTMLElement, rect: DOMRect): boolean {
-  const slot = tip.parentElement;
-  const nodes = document.querySelectorAll('[role="button"], a[data-testid^="card-link"], h1');
-  for (const node of nodes) {
-    if (!(node instanceof HTMLElement)) continue;
-    if (slot && slot.contains(node)) continue;
-    const box = node.getBoundingClientRect();
-    if (box.width < 2 || box.height < 2) continue;
-    if (overlaps(rect, box)) return true;
-  }
-  return false;
+function clampShift(rect: DOMRect): number {
+  let shift = 0;
+  if (rect.left < 8) shift += 8 - rect.left;
+  const right = rect.right + shift;
+  if (right > window.innerWidth - 8) shift -= right - (window.innerWidth - 8);
+  return shift;
 }

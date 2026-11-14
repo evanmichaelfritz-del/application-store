@@ -46,31 +46,17 @@ a[data-focus-ring] {
 }
 [data-showcase-place="below"] {
   top: calc(100% + 6px);
+  bottom: auto;
   left: 50%;
   right: auto;
-  bottom: auto;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tip-shift, 0px)));
 }
 [data-showcase-place="above"] {
   top: auto;
   bottom: calc(100% + 6px);
   left: 50%;
   right: auto;
-  transform: translateX(-50%);
-}
-[data-showcase-place="right"] {
-  top: 50%;
-  left: calc(100% + 6px);
-  right: auto;
-  bottom: auto;
-  transform: translateY(-50%);
-}
-[data-showcase-place="left"] {
-  top: 50%;
-  left: auto;
-  right: calc(100% + 6px);
-  bottom: auto;
-  transform: translateY(-50%);
+  transform: translateX(calc(-50% + var(--tip-shift, 0px)));
 }
 [data-showcase-tip="on"] { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {

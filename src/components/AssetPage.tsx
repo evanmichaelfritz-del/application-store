@@ -414,7 +414,7 @@ function Found({ item }: { item: TransitionItem }) {
               id={laterTip.id}
               pointerEvents="none"
               {...viewWeb({ dataSet: { showcaseTip: laterTip.state, showcasePlace: laterTip.place } })}
-              {...({ role: 'tooltip' } as object)}
+              role="tooltip"
             >
               <Text style={styles.laterTipText}>Showcase coming later</Text>
             </View>
@@ -619,14 +619,15 @@ function BarButton({
       accessibilityState={{ disabled }}
       aria-describedby={describedBy}
       aria-busy={busy}
+      aria-disabled={softDisabled ? true : undefined}
       disabled={disabled}
       ref={(node) => {
-        const host = node as unknown as HTMLElement | null;
-        if (host && typeof host.setAttribute === 'function') {
-          if (softDisabled) host.setAttribute('aria-disabled', 'true');
-          else host.removeAttribute('aria-disabled');
-        }
+        if (!(node instanceof HTMLElement)) return;
+        if (softDisabled) node.setAttribute('aria-disabled', 'true');
+        else if (!disabled) node.removeAttribute('aria-disabled');
+        if (softDisabled) node.removeAttribute('disabled');
       }}
+      tabIndex={softDisabled ? 0 : undefined}
       testID={testID}
       onPress={onPress}
       onHoverIn={() => {

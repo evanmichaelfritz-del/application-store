@@ -79,11 +79,8 @@ export function writeClipboardFromGesture(pending: Promise<string>): Promise<voi
     const item = new ClipboardItem({
       'text/plain': pending.then((text) => new Blob([text], { type: 'text/plain' })),
     });
-    return clipboard.write([item]).catch(() =>
-      pending.then((text) => {
-        if (!execCommandCopy(text)) throw new Error('copy failed');
-      }),
-    );
+    // A rejected write is already outside the gesture, so execCommand cannot run here.
+    return clipboard.write([item]);
   } catch {
     return null;
   }

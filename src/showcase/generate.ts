@@ -252,34 +252,75 @@ body { min-height: 100%; margin: 0; display: flex; align-items: center; justify-
 body > * { flex: none; max-width: 100%; }`;
   const loaderFrame =
     id === 'image-generation-loader'
-      ? `.col { position: relative; width: 168px; height: 168px; flex: none; }
+      ? `.col {
+  position: relative; width: 170px; height: 200px; box-sizing: border-box; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: #f9f9f9; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px;
+}
 #card.t-img-fx-card, .t-img-fx-card {
   width: 168px; height: 168px; border-radius: 20px; overflow: hidden;
   background: #f5f5f5; flex: none;
 }
 #reveal, button.trigger {
-  position: absolute; right: 8px; bottom: 8px; z-index: 3; margin: 0;
+  position: absolute; right: 10px; bottom: 10px; z-index: 3; margin: 0;
   background: rgba(243, 243, 243, 0.94);
   border-color: rgba(0, 0, 0, 0.08);
   color: #17181c;
 }`
       : '';
-  const css = `${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}\n${stageFit}\n${loaderFrame}`;
+  const orbTile =
+    id.startsWith('orb-') && id !== 'orb-state-picker'
+      ? `html { background: #f9f9f9; display: flex; align-items: center; justify-content: center; }
+body {
+  width: 234px; height: 200px; min-height: 200px; box-sizing: border-box; flex: none;
+  background: #0c0c0c; border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 14px; overflow: hidden;
+}`
+      : '';
+  const css = `${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}\n${stageFit}\n${loaderFrame}\n${orbTile}`;
   const dragCapture =
     id === 'drag-drop-physics'
-      ? `document.addEventListener('pointerdown', function (event) {
+      ? `var dragPointer = null;
+var parentDriving = false;
+function releaseDrag(event) {
+  var chips = document.querySelectorAll('.ddp-chip');
+  var id = event && event.pointerId != null ? event.pointerId : dragPointer;
+  var i = 0;
+  for (; i < chips.length; i++) {
+    var chip = chips[i];
+    if (id != null && chip.hasPointerCapture && chip.hasPointerCapture(id)) {
+      try { chip.releasePointerCapture(id); } catch (error) { /* released */ }
+    }
+  }
+  dragPointer = null;
+}
+function endDrag(event) {
+  if (dragPointer == null) return;
+  releaseDrag(event);
+  parent.postMessage({ showcaseDrag: 'end' }, '*');
+}
+function backstop(event) {
+  if (dragPointer == null) return;
+  var token = dragPointer;
+  window.setTimeout(function () {
+    if (dragPointer === token && !parentDriving) endDrag(event);
+  }, 32);
+}
+document.addEventListener('pointerdown', function (event) {
   var node = event.target;
   var chip = node && node.closest ? node.closest('.ddp-chip') : null;
   if (!chip || !chip.setPointerCapture) return;
+  dragPointer = event.pointerId;
+  parentDriving = false;
   try { chip.setPointerCapture(event.pointerId); } catch (error) { /* already captured */ }
+  parent.postMessage({ showcaseDrag: 'start', pointerId: event.pointerId }, '*');
 }, true);
-function releaseDrag(event) {
-  var chip = document.querySelector('.ddp-chip');
-  if (!chip || !chip.hasPointerCapture || !chip.hasPointerCapture(event.pointerId)) return;
-  try { chip.releasePointerCapture(event.pointerId); } catch (error) { /* released */ }
-}
-document.addEventListener('pointerup', releaseDrag, false);
-document.addEventListener('pointercancel', releaseDrag, false);`
+document.addEventListener('pointerup', endDrag, false);
+document.addEventListener('pointercancel', endDrag, false);
+document.addEventListener('pointerleave', function (event) {
+  if (event.target !== document.documentElement) return;
+  backstop(event);
+}, true);
+document.addEventListener('lostpointercapture', backstop, true);`
       : '';
   const stageScript = `${script}
 function aliasInter(style) {
@@ -308,33 +349,28 @@ function installFonts(cssText) {
   aliasInter(style);
 }
 window.addEventListener('message', function (event) {
+  if (event.source !== window.parent) return;
   var data = event.data;
-  if (!data || typeof data.showcaseFonts !== 'string') return;
-  installFonts(data.showcaseFonts);
+  if (!data) return;
+  if (typeof data.showcaseFonts === 'string') installFonts(data.showcaseFonts);
+  if (data.showcasePointer !== 'move' && data.showcasePointer !== 'up') return;
+  if (typeof endDrag !== 'function') return;
+  parentDriving = true;
+  var chip = document.querySelector('.ddp-chip');
+  if (!chip) return;
+  chip.dispatchEvent(new PointerEvent(data.showcasePointer === 'up' ? 'pointerup' : 'pointermove', {
+    bubbles: true,
+    cancelable: true,
+    pointerId: data.pointerId,
+    clientX: data.x,
+    clientY: data.y,
+    button: 0,
+    buttons: data.showcasePointer === 'up' ? 0 : 1
+  }));
+  if (data.showcasePointer === 'up') endDrag({ pointerId: data.pointerId });
 });
 parent.postMessage({ showcaseFontsPlease: 1 }, '*');
-${dragCapture}
-(function () {
-  var last = 0;
-  var send = function () {
-    var h = Math.ceil(Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0));
-    if (h <= 0 || h === 150 || h === last) return;
-    last = h;
-    parent.postMessage({ showcaseStage: h }, '*');
-  };
-  var watch = function () {
-    send();
-    if (typeof ResizeObserver !== 'function') return;
-    var observer = new ResizeObserver(send);
-    observer.observe(document.documentElement);
-    if (document.body) observer.observe(document.body);
-  };
-  if (document.readyState === 'complete') watch();
-  else window.addEventListener('load', watch);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(send);
-  var video = document.querySelector('video');
-  if (video) video.addEventListener('loadedmetadata', send);
-})();`;
+${dragCapture}`;
   const stage = composePreviewDocument(item.title, htmlInlined, css, stageScript);
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
@@ -498,19 +534,28 @@ aliasInter(fontNode);
 function sendFonts() {
   if (frame.contentWindow) frame.contentWindow.postMessage({ showcaseFonts: fontCss }, '*');
 }
-var raises = 0;
+var dragId = null;
+function forwardPointer(kind, event) {
+  if (dragId == null || !frame.contentWindow) return;
+  if (event.pointerId !== dragId) return;
+  var rect = frame.getBoundingClientRect();
+  frame.contentWindow.postMessage({
+    showcasePointer: kind,
+    pointerId: event.pointerId,
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  }, '*');
+  if (kind === 'up') dragId = null;
+}
+window.addEventListener('pointermove', function (event) { forwardPointer('move', event); });
+window.addEventListener('pointerup', function (event) { forwardPointer('up', event); });
+window.addEventListener('pointercancel', function (event) { forwardPointer('up', event); });
 window.addEventListener('message', function (event) {
   var data = event.data;
   if (!data || event.source !== frame.contentWindow) return;
   if (data.showcaseFontsPlease) sendFonts();
-  if (typeof data.showcaseStage !== 'number' || !isFinite(data.showcaseStage)) return;
-  if (frame.hasAttribute('data-stage-floor') || frame.hasAttribute('data-stage-aspect')) return;
-  var next = Math.round(data.showcaseStage);
-  if (next <= 0 || next === 150 || raises >= 4) return;
-  var current = Math.round(frame.getBoundingClientRect().height);
-  if (next <= current + 1) return;
-  raises += 1;
-  frame.style.minHeight = next + 'px';
+  if (data.showcaseDrag === 'start') dragId = data.pointerId;
+  if (data.showcaseDrag === 'end') dragId = null;
 });
 frame.addEventListener('load', sendFonts);
 frame.srcdoc = STAGE;
