@@ -413,7 +413,7 @@ function Found({ item }: { item: TransitionItem }) {
               nativeID={laterTip.id}
               id={laterTip.id}
               pointerEvents="none"
-              {...viewWeb({ dataSet: { showcaseTip: laterTip.state } })}
+              {...viewWeb({ dataSet: { showcaseTip: laterTip.state, showcasePlace: laterTip.place } })}
               {...({ role: 'tooltip' } as object)}
             >
               <Text style={styles.laterTipText}>Showcase coming later</Text>

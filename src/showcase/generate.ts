@@ -25,6 +25,21 @@ const LAZY_PROMPT: Record<string, string> = {
 
 const SANS = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const INTER_WEIGHTS = [400, 500, 600] as const;
+
+/** Live stage height at 1280. Full-row tools measure 520; everything else is the 420 frame. */
+export const STAGE_FLOOR: Record<string, number> = {
+  'adam-sidebar-transitions': 520,
+  'preview-tools': 520,
+};
+/** Width / height. Arc is 16:9. The spacing tuner is 1440×1080. */
+export const STAGE_ASPECT: Record<string, string> = {
+  'arc-charge': '16 / 9',
+  'spacing-tuner': '4 / 3',
+};
+
+export function stageFloor(id: string): number {
+  return STAGE_FLOOR[id] ?? 420;
+}
 const LATIN_RANGE =
   'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD';
 
@@ -119,22 +134,19 @@ async function interFaces(read: ByteReader): Promise<string> {
     read('/fonts/inter-latin-600.woff2').then((bytes) => dataUri('font/woff2', bytes)),
   ]);
   const comment = `/*\n${license.trim().replace(/\*\//g, '* /')}\n*/`;
-  // Each weight's bytes appear once. The named aliases point at that same value.
-  const root = `:root {
-  --inter-400: url("${w400}");
-  --inter-500: url("${w500}");
-  --inter-600: url("${w600}");
-}`;
+  // One literal src per weight. var() is invalid inside @font-face, so the aliases
+  // are added at runtime from these rules and the bytes stay in the file once.
   const faces = [
-    face('Inter', '400', 'var(--inter-400)'),
-    face('Inter', '500', 'var(--inter-500)'),
-    face('Inter', '600', 'var(--inter-600)'),
-    face('Inter_400Regular', '100 900', 'var(--inter-400)'),
-    face('Inter_500Medium', '100 900', 'var(--inter-500)'),
+    face('Inter', '400', `url("${w400}")`),
+    face('Inter', '500', `url("${w500}")`),
+    face('Inter', '600', `url("${w600}")`),
   ];
-  return `${comment}
-${root}
-${faces.join('\n')}`;
+  return `${comment}\n${faces.join('\n')}`;
+}
+
+function creditHandle(url: string): string | null {
+  const match = url.match(/^https:\/\/(?:x\.com|github\.com)\/([^/?#]+)/);
+  return match?.[1] ?? null;
 }
 
 /** The dock credit keeps the handle. The raw URL stays out of the stage. */
@@ -228,31 +240,112 @@ export async function generateShowcase(id: string, read: ByteReader): Promise<st
     inlinePaths(presentCredit(id, dropLinks(parts.html)), load),
     inlinePaths(parts.css, load),
   ]);
+  const aspect = STAGE_ASPECT[id] ?? '';
+  const floor = stageFloor(id);
   const stageFit =
     id === 'arc-charge'
-      ? `html, body { height: 100%; min-height: 100%; }
+      ? `html, body { height: 100%; min-height: 100%; margin: 0; }
+#arc-charge, #arc-charge .screen { width: 100%; height: 100%; }
 #arc-charge .readout { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }`
-      : `html, body { height: auto; min-height: 0; }`;
-  const loaderGrey =
+      : `html { height: 100%; }
+body { min-height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; }
+body > * { flex: none; max-width: 100%; }`;
+  const loaderFrame =
     id === 'image-generation-loader'
-      ? `#reveal, button.trigger { background: rgba(243, 243, 243, 0.94); border-color: rgba(0, 0, 0, 0.08); color: #17181c; }`
+      ? `.col { position: relative; width: 168px; height: 168px; flex: none; }
+#card.t-img-fx-card, .t-img-fx-card {
+  width: 168px; height: 168px; border-radius: 20px; overflow: hidden;
+  background: #f5f5f5; flex: none;
+}
+#reveal, button.trigger {
+  position: absolute; right: 8px; bottom: 8px; z-index: 3; margin: 0;
+  background: rgba(243, 243, 243, 0.94);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #17181c;
+}`
       : '';
-  const css = `${faces}\n${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}\n${stageFit}\n${loaderGrey}`;
+  const css = `${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}\n${stageFit}\n${loaderFrame}`;
+  const dragCapture =
+    id === 'drag-drop-physics'
+      ? `document.addEventListener('pointerdown', function (event) {
+  var node = event.target;
+  var chip = node && node.closest ? node.closest('.ddp-chip') : null;
+  if (!chip || !chip.setPointerCapture) return;
+  try { chip.setPointerCapture(event.pointerId); } catch (error) { /* already captured */ }
+}, true);
+function releaseDrag(event) {
+  var chip = document.querySelector('.ddp-chip');
+  if (!chip || !chip.hasPointerCapture || !chip.hasPointerCapture(event.pointerId)) return;
+  try { chip.releasePointerCapture(event.pointerId); } catch (error) { /* released */ }
+}
+document.addEventListener('pointerup', releaseDrag, false);
+document.addEventListener('pointercancel', releaseDrag, false);`
+      : '';
   const stageScript = `${script}
-window.addEventListener('load', function () {
+function aliasInter(style) {
+  if (!style || !style.sheet || style.dataset.aliased) return;
+  style.dataset.aliased = '1';
+  var extra = '';
+  var rules = style.sheet.cssRules;
+  var i = 0;
+  for (; i < rules.length; i++) {
+    var rule = rules[i];
+    if (!rule.style || String(rule.style.fontFamily).replace(/["']/g, '') !== 'Inter') continue;
+    var family = rule.style.fontWeight === '400' ? 'Inter_400Regular' : rule.style.fontWeight === '500' ? 'Inter_500Medium' : '';
+    if (!family) continue;
+    extra += '@font-face{font-family:' + family + ';font-style:normal;font-weight:100 900;font-display:block;src:' + rule.style.getPropertyValue('src') + ';unicode-range:' + rule.style.getPropertyValue('unicode-range') + '}';
+  }
+  if (extra) style.appendChild(document.createTextNode(extra));
+}
+function installFonts(cssText) {
+  var style = document.getElementById('showcase-fonts');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'showcase-fonts';
+    style.textContent = cssText;
+    document.head.appendChild(style);
+  }
+  aliasInter(style);
+}
+window.addEventListener('message', function (event) {
+  var data = event.data;
+  if (!data || typeof data.showcaseFonts !== 'string') return;
+  installFonts(data.showcaseFonts);
+});
+parent.postMessage({ showcaseFontsPlease: 1 }, '*');
+${dragCapture}
+(function () {
+  var last = 0;
   var send = function () {
     var h = Math.ceil(Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0));
+    if (h <= 0 || h === 150 || h === last) return;
+    last = h;
     parent.postMessage({ showcaseStage: h }, '*');
   };
-  send();
+  var watch = function () {
+    send();
+    if (typeof ResizeObserver !== 'function') return;
+    var observer = new ResizeObserver(send);
+    observer.observe(document.documentElement);
+    if (document.body) observer.observe(document.body);
+  };
+  if (document.readyState === 'complete') watch();
+  else window.addEventListener('load', watch);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(send);
   var video = document.querySelector('video');
   if (video) video.addEventListener('loadedmetadata', send);
-});`;
+})();`;
   const stage = composePreviewDocument(item.title, htmlInlined, css, stageScript);
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
-  const creditLine = credit ? `<p class="credit">${esc(credit.label)} ${esc(credit.url)}</p>` : '';
+  const handle = credit ? creditHandle(credit.url) : null;
+  const creditText = credit ? (handle ? `${credit.label} (@${handle})` : credit.label) : '';
+  const creditLine = credit
+    ? `<p class="credit"><a href="${esc(credit.url)}">${esc(creditText)}</a></p>`
+    : '';
+  const stageAttrs = aspect
+    ? `style="aspect-ratio:${aspect};height:auto" data-stage-aspect="${aspect}"`
+    : `style="height:${floor}px;min-height:${floor}px" data-stage-floor="${floor}"`;
   const control = previewControl(id);
   const replay =
     control && id !== 'adam-sidebar-transitions'
@@ -271,8 +364,10 @@ window.addEventListener('load', function () {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(item.title)}</title>
 <link rel="icon" href="data:,">
-<style>
+<style id="showcase-fonts">
 ${faces}
+</style>
+<style>
 html, body { margin: 0; background: #fdfdfd; }
 body { min-height: 100vh; }
 /* Laid out for a 1280px viewport. The column matches the store detail width. */
@@ -292,6 +387,8 @@ h1 {
 }
 .facet { margin: 6px 0 0; font: 400 13px/18px ${SANS}; color: #767676; }
 .credit { margin: 8px 0 0; font: 400 13px/18px ${SANS}; color: #6c6c6c; }
+.credit a { color: inherit; text-decoration: none; }
+.credit a:hover { text-decoration: underline; }
 .stage-wrap {
   position: relative;
   margin-top: 20px;
@@ -365,7 +462,7 @@ h1 {
     <p class="facet">${esc(facet)}</p>
     ${creditLine}
     <div class="stage-wrap">
-      <iframe class="stage" id="stage" title="${esc(item.title)}" data-stage="${esc(id)}" sandbox="allow-scripts"></iframe>
+      <iframe class="stage" id="stage" title="${esc(item.title)}" data-stage="${esc(id)}" ${stageAttrs} sandbox="allow-scripts"></iframe>
       ${replay}
     </div>
     ${clip}
@@ -380,22 +477,42 @@ var STAGE = ${jsString(stage)};
 var CODE = ${jsString(code)};
 var PROMPT = ${jsString(prompt)};
 var frame = document.getElementById('stage');
-var stageId = frame.getAttribute('data-stage');
-function sizeArc() {
-  var w = frame.getBoundingClientRect().width || frame.clientWidth || 992;
-  frame.style.height = Math.round(w * 9 / 16) + 'px';
+var fontNode = document.getElementById('showcase-fonts');
+var fontCss = fontNode ? fontNode.textContent : '';
+function aliasInter(style) {
+  if (!style || !style.sheet || style.dataset.aliased) return;
+  style.dataset.aliased = '1';
+  var extra = '';
+  var rules = style.sheet.cssRules;
+  var i = 0;
+  for (; i < rules.length; i++) {
+    var rule = rules[i];
+    if (!rule.style || String(rule.style.fontFamily).replace(/["']/g, '') !== 'Inter') continue;
+    var family = rule.style.fontWeight === '400' ? 'Inter_400Regular' : rule.style.fontWeight === '500' ? 'Inter_500Medium' : '';
+    if (!family) continue;
+    extra += '@font-face{font-family:' + family + ';font-style:normal;font-weight:100 900;font-display:block;src:' + rule.style.getPropertyValue('src') + ';unicode-range:' + rule.style.getPropertyValue('unicode-range') + '}';
+  }
+  if (extra) style.appendChild(document.createTextNode(extra));
 }
-if (stageId === 'arc-charge') sizeArc();
-window.addEventListener('resize', function () {
-  if (stageId === 'arc-charge') sizeArc();
-});
+aliasInter(fontNode);
+function sendFonts() {
+  if (frame.contentWindow) frame.contentWindow.postMessage({ showcaseFonts: fontCss }, '*');
+}
+var raises = 0;
 window.addEventListener('message', function (event) {
   var data = event.data;
-  if (!data || typeof data.showcaseStage !== 'number') return;
-  if (stageId === 'arc-charge') return;
-  if (event.source !== frame.contentWindow) return;
-  frame.style.height = Math.max(1, data.showcaseStage) + 'px';
+  if (!data || event.source !== frame.contentWindow) return;
+  if (data.showcaseFontsPlease) sendFonts();
+  if (typeof data.showcaseStage !== 'number' || !isFinite(data.showcaseStage)) return;
+  if (frame.hasAttribute('data-stage-floor') || frame.hasAttribute('data-stage-aspect')) return;
+  var next = Math.round(data.showcaseStage);
+  if (next <= 0 || next === 150 || raises >= 4) return;
+  var current = Math.round(frame.getBoundingClientRect().height);
+  if (next <= current + 1) return;
+  raises += 1;
+  frame.style.minHeight = next + 'px';
 });
+frame.addEventListener('load', sendFonts);
 frame.srcdoc = STAGE;
 var reset = document.getElementById('stage-reset');
 if (reset) reset.addEventListener('click', function () { frame.srcdoc = STAGE; });

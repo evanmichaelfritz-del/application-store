@@ -244,7 +244,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
         id={tip.id}
         accessibilityRole="none"
         pointerEvents="none"
-        {...viewWeb({ dataSet: { showcaseTip: tip.state } })}
+        {...viewWeb({ dataSet: { showcaseTip: tip.state, showcasePlace: tip.place } })}
         // role is the web tooltip role. RN's accessibilityRole has no tooltip value.
         {...({ role: 'tooltip' } as object)}
       >

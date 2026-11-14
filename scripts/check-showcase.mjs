@@ -157,7 +157,58 @@ function assertOffline(html, id) {
     if (!html.includes('PERMISSION AND CONDITIONS')) hits.push('missing Inter licence conditions');
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
+  hits.push(...assertFonts(html));
+  hits.push(...assertBakedStage(html, id));
   return { hits, http, code, prompt };
+}
+
+function assertFonts(html) {
+  const hits = [];
+  if (/src:\s*var\(/.test(html)) hits.push('font src uses var()');
+  if (html.includes('--inter-')) hits.push('font custom property');
+  for (const weight of ['400', '500', '600']) {
+    const re = new RegExp(
+      `font-family:\\s*Inter;\\s*font-style:\\s*normal;\\s*font-weight:\\s*${weight};[\\s\\S]*?src:\\s*url\\("data:font/woff2;base64,([^"]+)"\\)`,
+      'g',
+    );
+    const found = [...html.matchAll(re)];
+    if (found.length !== 1) {
+      hits.push(`Inter ${weight} literal src count ${found.length}`);
+      continue;
+    }
+    const copies = html.split(found[0][1]).length - 1;
+    if (copies !== 1) hits.push(`Inter ${weight} data copied ${copies} times`);
+  }
+  return hits;
+}
+
+function assertBakedStage(html, id) {
+  const aspect = html.match(/data-stage-aspect="([^"]+)"/);
+  if (id === 'arc-charge') {
+    return aspect?.[1] === '16 / 9' ? [] : ['arc stage is not 16 / 9'];
+  }
+  if (id === 'spacing-tuner') {
+    return aspect?.[1] === '4 / 3' ? [] : ['spacing tuner stage is not 4 / 3'];
+  }
+  const floor = Number(html.match(/data-stage-floor="(\d+)"/)?.[1] ?? 0);
+  const expected = id === 'adam-sidebar-transitions' || id === 'preview-tools' ? 520 : 420;
+  return floor === expected ? [] : [`baked stage ${floor} != ${expected}`];
+}
+
+const COLD_OPENS = {
+  'image-generation-loader': 10,
+  'adam-sidebar-transitions': 10,
+  'spacing-tuner': 10,
+  'arc-charge': 10,
+  'preview-tools': 10,
+  'orb-thinking': 10,
+};
+
+function expectedStage(id, width, height) {
+  if (id === 'arc-charge') return Math.abs(height - Math.round((width * 9) / 16)) <= 2;
+  if (id === 'spacing-tuner') return Math.abs(height - Math.round((width * 3) / 4)) <= 2;
+  const floor = id === 'adam-sidebar-transitions' || id === 'preview-tools' ? 520 : 420;
+  return Math.abs(height - floor) <= 2;
 }
 
 const ids = loaded.showcaseIds().filter((id) => !only || id === only);
@@ -348,12 +399,63 @@ async function frameFor(page, selector) {
   return frame;
 }
 
+async function readStageBox(page) {
+  await page.waitForSelector('#stage');
+  await page.waitForFunction(() => {
+    const el = document.querySelector('#stage');
+    return el && Math.round(el.getBoundingClientRect().height) > 151;
+  }, { timeout: 8000 });
+  return page.$eval('#stage', (el) => {
+    const box = el.getBoundingClientRect();
+    return { width: Math.round(box.width), height: Math.round(box.height) };
+  });
+}
+
+async function fontProbe(page) {
+  const outer = await page.evaluate(async () => {
+    const style = document.getElementById('showcase-fonts');
+    if (!style) return 'missing style';
+    const text = style.textContent || '';
+    if (/src:\s*var\(/.test(text)) return 'var src';
+    const urls = [...text.matchAll(/url\("data:font\/woff2;base64,[^"]+"\)/g)].map((match) => match[0]);
+    if (urls.length < 3) return `src count ${urls.length}`;
+    const face = new FontFace('ShowcaseInterProbe', urls[0]);
+    await face.load();
+    document.fonts.add(face);
+    const probe = document.createElement('span');
+    probe.textContent = 'Card resize';
+    probe.style.cssText = 'position:absolute;left:-9999px;top:0;font:600 32px ShowcaseInterProbe,sans-serif;white-space:nowrap';
+    document.body.appendChild(probe);
+    const embedded = probe.getBoundingClientRect().width;
+    probe.remove();
+    if (!(embedded > 160 && embedded < 185)) return `width ${Math.round(embedded)}`;
+    return 'ok';
+  });
+  if (outer !== 'ok') return outer;
+  const frame = await stageFrame(page);
+  const loaded = await frame
+    .evaluate(async () => {
+      if (!document.fonts) return false;
+      const inter = await document.fonts.load('16px Inter');
+      const alias = await document.fonts.load('16px Inter_400Regular');
+      return inter.length > 0 && alias.length > 0 && document.fonts.check('16px Inter_400Regular');
+    })
+    .catch(() => false);
+  return loaded ? 'ok' : 'iframe Inter did not load';
+}
+
 if (browser) for (const row of rows) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   try {
     const session = await openFile(page, row.file);
     await page.waitForSelector('#copy-code', { timeout: 15000 });
+    const stageBox = await readStageBox(page);
+    if (!expectedStage(row.id, stageBox.width, stageBox.height)) {
+      problems.push(`${row.id}: stage ${stageBox.width}x${stageBox.height}`);
+    }
+    const fonts = await fontProbe(page);
+    if (fonts !== 'ok') problems.push(`${row.id}: fonts ${fonts}`);
     const control = await exercise(page);
     if (row.id === 'adam-sidebar-transitions') {
       if (!control.startedDisabled || !control.enabled || !control.restored) {
@@ -387,6 +489,23 @@ if (browser) for (const row of rows) {
       if (watch.errors.length) problems.push(`${row.id}: ${where} console ${watch.errors.join(' | ')}`);
       watch.stop();
       await nested.close();
+    }
+    const extra = (COLD_OPENS[row.id] ?? 5) - 1;
+    for (let open = 0; open < extra; open += 1) {
+      const cold = await browser.newPage();
+      await cold.setViewport({ width: 1280, height: 900 });
+      try {
+        const watch = await openFile(cold, row.file);
+        const box = await readStageBox(cold);
+        if (!expectedStage(row.id, box.width, box.height)) {
+          problems.push(`${row.id}: cold ${open + 2} stage ${box.width}x${box.height}`);
+        }
+        if (watch.hits.length) problems.push(`${row.id}: cold network ${watch.hits.join(', ')}`);
+        watch.stop();
+      } catch (error) {
+        problems.push(`${row.id}: cold ${open + 2} ${error instanceof Error ? error.message : String(error)}`);
+      }
+      await cold.close().catch(() => undefined);
     }
   } catch (error) {
     problems.push(`${row.id}: ${error instanceof Error ? error.message : String(error)}`);
