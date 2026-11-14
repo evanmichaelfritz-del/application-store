@@ -26,6 +26,43 @@ a[data-focus-ring] {
   outline: none;
   box-shadow: 0 0 0 2px #fdfdfd, 0 0 0 4px #0d0d0d;
 }
+[data-showcase-tip] {
+  position: absolute;
+  white-space: nowrap;
+  width: max-content;
+  background: #111111;
+  color: #ffffff;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms linear;
+  transition-delay: 0ms;
+  z-index: 30;
+}
+[data-showcase-place="below"] {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 50%;
+  right: auto;
+  transform: translateX(calc(-50% + var(--tip-shift, 0px)));
+}
+[data-showcase-place="above"] {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  right: auto;
+  transform: translateX(calc(-50% + var(--tip-shift, 0px)));
+}
+[data-showcase-tip="on"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  [data-showcase-tip] { transition: none; }
+}
+html[data-reduce-motion="1"] [data-showcase-tip] { transition: none; }
 [data-clear-link] {
   text-underline-offset: 2px;
 }

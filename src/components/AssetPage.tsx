@@ -45,6 +45,10 @@ import {
 import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
+import { FileDownIcon } from '@/src/components/FileDownIcon';
+import { useShowcaseTip } from '@/src/components/useShowcaseTip';
+import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
+import { showcaseLater } from '@/src/showcase/later';
 import { colors, fonts, radii } from '@/src/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -103,9 +107,9 @@ function useCopied() {
     },
     [],
   );
-  const mark = (key: string) => {
+  const mark = (key: string, message = 'Copied') => {
     setCopied(key);
-    show();
+    show(message);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(null), 1600);
   };
@@ -184,6 +188,8 @@ function Found({ item }: { item: TransitionItem }) {
   const [promptOpen, setPromptOpen] = useState(false);
   const [tab, setTab] = useState<CodeTabId>('component');
   const [codeReady, setCodeReady] = useState(false);
+  const [showcaseBusy, setShowcaseBusy] = useState(false);
+  const [showcaseSaved, setShowcaseSaved] = useState(false);
   const kind = CODE_TABS.find((entry) => entry.id === tab)?.kind ?? 'html';
   const tabs = useMemo(
     () => CODE_TABS.filter((entry) => entry.kind !== 'css' || codeSlot(item.id, 'css').trim().length > 0),
@@ -192,6 +198,20 @@ function Found({ item }: { item: TransitionItem }) {
   const activeTab = tabs.some((entry) => entry.id === tab) ? tab : tabs[0].id;
   const activeKind = tabs.find((entry) => entry.id === activeTab)?.kind ?? kind;
 
+  const later = showcaseLater(item.id);
+  const laterTip = useShowcaseTip();
+  const copyShowcase = () => {
+    if (later || showcaseBusy) return;
+    setShowcaseBusy(true);
+    void pressCopyShowcase(item.id).then(
+      (result) => {
+        setShowcaseBusy(false);
+        setShowcaseSaved(result === 'saved');
+        mark('showcase', result === 'saved' ? 'Saved as file' : 'Copied');
+      },
+      () => setShowcaseBusy(false),
+    );
+  };
   const copyCode = () => {
     mark('code');
     const write = (text: string) => {
@@ -350,7 +370,56 @@ function Found({ item }: { item: TransitionItem }) {
             onPress={copySkill}
             testID="copy-skill"
           />
-        ) : null}
+        ) : (
+          <BarButton
+            label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+            reserve="Agent Prompt"
+            icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
+            tone="secondary"
+            done={copied === 'prompt'}
+            onPress={copyPrompt}
+            testID="agent-prompt"
+          />
+        )}
+        <View style={styles.showcaseAnchor}>
+          <BarButton
+            label={later ? 'Later' : copied === 'showcase' ? (showcaseSaved ? 'Saved' : 'Copied') : 'Copy showcase'}
+            reserve="Copy showcase"
+            accessLabel={
+              later ? `Copy showcase for ${item.title}, coming later` : `Copy showcase for ${item.title}`
+            }
+            icon={copied === 'showcase' ? 'checkmark' : undefined}
+            glyph={
+              copied === 'showcase' ? undefined : (
+                <FileDownIcon size={14} color={later ? colors.textSubtle : colors.text} />
+              )
+            }
+            tone="secondary"
+            done={!later && copied === 'showcase'}
+            softDisabled={later}
+            describedBy={later ? laterTip.id : undefined}
+            busy={showcaseBusy}
+            onPress={copyShowcase}
+            onTipHoverIn={later ? laterTip.hoverIn : undefined}
+            onTipHoverOut={later ? laterTip.hoverOut : undefined}
+            onTipFocus={later ? laterTip.focus : undefined}
+            onTipBlur={later ? laterTip.blur : undefined}
+            onTipPointerDown={later ? laterTip.pointerDown : undefined}
+            testID="copy-showcase"
+            style={styles.showcaseButton}
+          />
+          {later ? (
+            <View
+              nativeID={laterTip.id}
+              id={laterTip.id}
+              pointerEvents="none"
+              {...viewWeb({ dataSet: { showcaseTip: laterTip.state, showcasePlace: laterTip.place } })}
+              role="tooltip"
+            >
+              <Text style={styles.laterTipText}>Showcase coming later</Text>
+            </View>
+          ) : null}
+        </View>
         {installLine ? (
           <BarButton
             label={copied === 'install-command' ? 'Copied' : 'Copy install command'}
@@ -365,15 +434,17 @@ function Found({ item }: { item: TransitionItem }) {
             testID="copy-install-command"
           />
         ) : null}
-        <BarButton
-          label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
-          reserve="Agent Prompt"
-          icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
-          tone="secondary"
-          done={copied === 'prompt'}
-          onPress={copyPrompt}
-          testID="agent-prompt"
-        />
+        {skill || skillDownload ? (
+          <BarButton
+            label={copied === 'prompt' ? 'Copied' : 'Agent Prompt'}
+            reserve="Agent Prompt"
+            icon={copied === 'prompt' ? 'checkmark' : 'sparkles-outline'}
+            tone="secondary"
+            done={copied === 'prompt'}
+            onPress={copyPrompt}
+            testID="agent-prompt"
+          />
+        ) : null}
         {credit ? (
           <BarButton
             label="Open source"
@@ -497,12 +568,21 @@ function BarButton({
   label,
   reserve,
   icon,
+  glyph,
+  accessLabel,
+  softDisabled = false,
+  describedBy,
   tone = 'secondary',
   done = false,
   disabled = false,
   busy = false,
   onPress,
   onWarm,
+  onTipHoverIn,
+  onTipHoverOut,
+  onTipFocus,
+  onTipBlur,
+  onTipPointerDown,
   href,
   testID,
   style,
@@ -510,12 +590,21 @@ function BarButton({
   label: string;
   reserve?: string;
   icon?: IconName;
+  glyph?: ReactNode;
+  accessLabel?: string;
+  softDisabled?: boolean;
+  describedBy?: string;
   tone?: 'primary' | 'secondary';
   done?: boolean;
   disabled?: boolean;
   busy?: boolean;
   onPress?: () => void;
   onWarm?: () => void;
+  onTipHoverIn?: () => void;
+  onTipHoverOut?: () => void;
+  onTipFocus?: () => void;
+  onTipBlur?: () => void;
+  onTipPointerDown?: () => void;
   href?: Href;
   testID?: string;
   style?: StyleProp<ViewStyle>;
@@ -526,22 +615,40 @@ function BarButton({
   const control = (
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
-      accessibilityLabel={label}
+      accessibilityLabel={accessLabel ?? label}
       accessibilityState={{ disabled }}
+      aria-describedby={describedBy}
       aria-busy={busy}
+      aria-disabled={softDisabled ? true : undefined}
       disabled={disabled}
+      ref={(node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (softDisabled) node.setAttribute('aria-disabled', 'true');
+        else if (!disabled) node.removeAttribute('aria-disabled');
+        if (softDisabled) node.removeAttribute('disabled');
+      }}
+      tabIndex={softDisabled ? 0 : undefined}
       testID={testID}
       onPress={onPress}
       onHoverIn={() => {
-        if (!disabled) {
+        onTipHoverIn?.();
+        if (!disabled && !softDisabled) {
           setHover(true);
           onWarm?.();
         }
       }}
       onFocus={() => {
+        onTipFocus?.();
         onWarm?.();
       }}
+      onBlur={() => {
+        onTipBlur?.();
+      }}
+      onPointerDown={() => {
+        onTipPointerDown?.();
+      }}
       onHoverOut={() => {
+        onTipHoverOut?.();
         setHover(false);
         setPressed(false);
       }}
@@ -552,7 +659,8 @@ function BarButton({
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={StyleSheet.flatten([
         styles.button,
-        disabled ? styles.buttonDisabled : styles.pointer,
+        disabled || softDisabled ? styles.buttonDisabled : styles.pointer,
+        softDisabled && styles.softFocusable,
         primary ? styles.buttonPrimary : styles.buttonSecondary,
         hover && !pressed && !disabled && primary && styles.buttonPrimaryHover,
         hover && !pressed && !disabled && !primary && styles.buttonSecondaryHover,
@@ -561,7 +669,7 @@ function BarButton({
         style,
       ])}
     >
-      {icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null}
+      {glyph ?? (icon ? <Ionicons name={icon} size={14} color={primary ? colors.proFg : colors.text} /> : null)}
       <CopyLabel label={label} reserve={reserve} style={[styles.buttonText, primary && styles.buttonTextOn]} />
     </Pressable>
   );
@@ -1191,6 +1299,10 @@ const styles = StyleSheet.create({
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
   buttonDisabled: { opacity: 0.45, cursor: 'auto' },
+  softFocusable: { pointerEvents: 'auto' },
+  showcaseAnchor: { position: 'relative', alignSelf: 'flex-start', zIndex: 8 },
+  showcaseButton: { paddingVertical: 0, paddingHorizontal: 12, flexGrow: 0, flexShrink: 0 },
+  laterTipText: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, color: '#ffffff' },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {
