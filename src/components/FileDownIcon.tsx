@@ -17,3 +17,12 @@ export function FileDownIcon({ size = 16, color = '#0d0d0d' }: { size?: number; 
     </Svg>
   );
 }
+
+/** Lucide check. The success state of the gallery showcase button. */
+export function CheckIcon({ size = 16, color = '#ffffff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20 6 9 17l-5-5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}

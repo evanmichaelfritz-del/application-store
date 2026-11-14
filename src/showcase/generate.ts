@@ -6,6 +6,9 @@ import { creditFor } from '@/src/library/credits';
 import { previewControl } from '@/src/library/assetMeta';
 import { facetLine } from '@/src/library/taxonomy';
 import { showcaseLater } from '@/src/showcase/later';
+import { SHOWCASE_FILE_LIMIT, SHOWCASE_OVER_LIMIT } from '@/src/showcase/limits';
+
+export { SHOWCASE_FILE_LIMIT, SHOWCASE_OVER_LIMIT };
 
 /** Public file, rooted at `/`. The browser fetches it; the checker reads the disk. */
 export type ByteReader = (publicPath: string) => Promise<Uint8Array>;
@@ -97,13 +100,13 @@ function clipMaxWidth(aspect: string): number {
   return Math.round((420 * w) / h);
 }
 
-function face(family: string, weight: string, uri: string): string {
+function face(family: string, weight: string, src: string): string {
   return `@font-face {
   font-family: ${family};
   font-style: normal;
   font-weight: ${weight};
   font-display: block;
-  src: url("${uri}") format("woff2");
+  src: ${src};
   unicode-range: ${LATIN_RANGE};
 }`;
 }
@@ -116,19 +119,28 @@ async function interFaces(read: ByteReader): Promise<string> {
     read('/fonts/inter-latin-600.woff2').then((bytes) => dataUri('font/woff2', bytes)),
   ]);
   const comment = `/*\n${license.trim().replace(/\*\//g, '* /')}\n*/`;
+  // Each weight's bytes appear once. The named aliases point at that same value.
+  const root = `:root {
+  --inter-400: url("${w400}");
+  --inter-500: url("${w500}");
+  --inter-600: url("${w600}");
+}`;
   const faces = [
-    face('Inter', '400', w400),
-    face('Inter', '500', w500),
-    face('Inter', '600', w600),
-    face('Inter_400Regular', '100 900', w400),
-    face('Inter_500Medium', '100 900', w500),
+    face('Inter', '400', 'var(--inter-400)'),
+    face('Inter', '500', 'var(--inter-500)'),
+    face('Inter', '600', 'var(--inter-600)'),
+    face('Inter_400Regular', '100 900', 'var(--inter-400)'),
+    face('Inter_500Medium', '100 900', 'var(--inter-500)'),
   ];
   return `${comment}
-${faces.join('\n')}
-html, body, button, input, textarea {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}`;
+${root}
+${faces.join('\n')}`;
+}
+
+/** The dock credit keeps the handle. The raw URL stays out of the stage. */
+function presentCredit(id: string, html: string): string {
+  if (id !== 'arc-charge') return html;
+  return html.replace(/<p class="credit">[\s\S]*?<\/p>/, '<p class="credit">Design by Sean Galt (@seanaiux)</p>');
 }
 
 function cached(read: ByteReader): ByteReader {
@@ -213,18 +225,31 @@ export async function generateShowcase(id: string, read: ByteReader): Promise<st
     showcaseCode(id),
     showcasePrompt(id, load),
     inlineScript(parts.script, load),
-    inlinePaths(dropLinks(parts.html), load),
+    inlinePaths(presentCredit(id, dropLinks(parts.html)), load),
     inlinePaths(parts.css, load),
   ]);
-  const loaderPlace =
+  const stageFit =
+    id === 'arc-charge'
+      ? `html, body { height: 100%; min-height: 100%; }
+#arc-charge .readout { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }`
+      : `html, body { height: auto; min-height: 0; }`;
+  const loaderGrey =
     id === 'image-generation-loader'
-      ? `body { min-height: 100%; }
-.col { position: relative; width: 168px; height: 200px; gap: 0; }
-#card, .t-img-fx-card { margin: 16px auto 0; }
-#reveal, .trigger { position: absolute; right: 10px; bottom: 10px; }`
+      ? `#reveal, button.trigger { background: rgba(243, 243, 243, 0.94); border-color: rgba(0, 0, 0, 0.08); color: #17181c; }`
       : '';
-  const css = `${faces}\n${loaderPlace}\n${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}`;
-  const stage = composePreviewDocument(item.title, htmlInlined, css, script);
+  const css = `${faces}\n${cssInlined.replace(/@font-face\s*\{[^}]*data:font\/woff2;base64,\u2026[^}]*\}/g, '')}\n${stageFit}\n${loaderGrey}`;
+  const stageScript = `${script}
+window.addEventListener('load', function () {
+  var send = function () {
+    var h = Math.ceil(Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0));
+    parent.postMessage({ showcaseStage: h }, '*');
+  };
+  send();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(send);
+  var video = document.querySelector('video');
+  if (video) video.addEventListener('loadedmetadata', send);
+});`;
+  const stage = composePreviewDocument(item.title, htmlInlined, css, stageScript);
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
   const creditLine = credit ? `<p class="credit">${esc(credit.label)} ${esc(credit.url)}</p>` : '';
@@ -340,7 +365,7 @@ h1 {
     <p class="facet">${esc(facet)}</p>
     ${creditLine}
     <div class="stage-wrap">
-      <iframe class="stage" id="stage" title="${esc(item.title)}" data-stage="${esc(id)}"></iframe>
+      <iframe class="stage" id="stage" title="${esc(item.title)}" data-stage="${esc(id)}" sandbox="allow-scripts"></iframe>
       ${replay}
     </div>
     ${clip}
@@ -356,33 +381,20 @@ var CODE = ${jsString(code)};
 var PROMPT = ${jsString(prompt)};
 var frame = document.getElementById('stage');
 var stageId = frame.getAttribute('data-stage');
-function seed() {
+function sizeArc() {
   var w = frame.getBoundingClientRect().width || frame.clientWidth || 992;
-  if (stageId === 'arc-charge') {
-    frame.style.height = Math.round(w * 9 / 16) + 'px';
-    return;
-  }
-  if (stageId === 'image-generation-loader') {
-    frame.style.height = '420px';
-    return;
-  }
-  frame.style.height = '420px';
+  frame.style.height = Math.round(w * 9 / 16) + 'px';
 }
-function fit() {
-  var doc = frame.contentDocument;
-  if (!doc || !doc.body) return;
-  if (stageId === 'arc-charge' || stageId === 'image-generation-loader') return;
-  var h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
-  if (h > 420) frame.style.height = h + 'px';
-}
-seed();
-frame.addEventListener('load', function () {
-  fit();
-  var doc = frame.contentDocument;
-  if (!doc) return;
-  var video = doc.querySelector('video');
-  if (video) video.addEventListener('loadedmetadata', fit);
-  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(fit);
+if (stageId === 'arc-charge') sizeArc();
+window.addEventListener('resize', function () {
+  if (stageId === 'arc-charge') sizeArc();
+});
+window.addEventListener('message', function (event) {
+  var data = event.data;
+  if (!data || typeof data.showcaseStage !== 'number') return;
+  if (stageId === 'arc-charge') return;
+  if (event.source !== frame.contentWindow) return;
+  frame.style.height = Math.max(1, data.showcaseStage) + 'px';
 });
 frame.srcdoc = STAGE;
 var reset = document.getElementById('stage-reset');

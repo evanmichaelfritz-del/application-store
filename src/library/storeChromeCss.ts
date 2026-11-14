@@ -26,6 +26,38 @@ a[data-focus-ring] {
   outline: none;
   box-shadow: 0 0 0 2px #fdfdfd, 0 0 0 4px #0d0d0d;
 }
+[data-showcase-tip] {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  width: max-content;
+  background: #111111;
+  color: #ffffff;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms linear;
+  z-index: 30;
+}
+[data-showcase-tip="on"],
+[data-showcase-tip="above"] {
+  opacity: 1;
+}
+[data-showcase-tip="above"] {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-showcase-tip] { transition: none; }
+}
+html[data-reduce-motion="1"] [data-showcase-tip] { transition: none; }
 [data-clear-link] {
   text-underline-offset: 2px;
 }

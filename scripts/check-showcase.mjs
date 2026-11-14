@@ -178,16 +178,31 @@ for (const id of ids) {
   rows.push({ id, bytes: Buffer.byteLength(html), file, code, prompt });
 }
 
+if (!only) {
+  const declaredOver = [...loaded.SHOWCASE_OVER_LIMIT].sort();
+  const measuredOver = rows
+    .filter((row) => row.bytes > loaded.SHOWCASE_FILE_LIMIT)
+    .map((row) => row.id)
+    .sort();
+  if (declaredOver.join('\n') !== measuredOver.join('\n')) {
+    problems.push(`over-limit set [${declaredOver.join(', ')}] != measured [${measuredOver.join(', ')}]`);
+  }
+}
+
 const chrome =
   process.env.CHROME_PATH ||
   ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((path) => existsSync(path));
-if (!chrome) throw new Error('Chrome is not installed');
+if (!chrome) {
+  console.warn('check-showcase: Chrome is missing, skipping the browser phase');
+}
 
-const browser = await puppeteer.launch({
-  executablePath: chrome,
-  headless: true,
-  args: ['--no-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = chrome
+  ? await puppeteer.launch({
+      executablePath: chrome,
+      headless: true,
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required'],
+    })
+  : null;
 
 async function openFile(page, file) {
   const hits = [];
@@ -221,30 +236,43 @@ async function openFile(page, file) {
   };
 }
 
+async function stageFrame(page) {
+  await page.waitForSelector('#stage');
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const handle = await page.$('#stage');
+    const frame = handle ? await handle.contentFrame() : null;
+    if (frame) {
+      try {
+        await frame.waitForSelector('body', { timeout: 1000 });
+        return frame;
+      } catch {
+        /* the srcdoc frame is still attaching */
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error('stage frame missing');
+}
+
 async function exercise(page) {
-  await page.waitForFunction(() => {
-    const frame = document.getElementById('stage');
-    return frame && frame.contentDocument && frame.contentDocument.readyState === 'complete';
-  });
-  return page.evaluate(() => {
-    const frame = document.getElementById('stage');
-    const doc = frame.contentDocument;
-    const reset = doc.querySelector('[data-testid="sidebar-reset"]');
+  const stage = await stageFrame(page);
+  const inner = await stage.evaluate(() => {
+    const reset = document.querySelector('[data-testid="sidebar-reset"]');
     if (reset) {
       const startedDisabled = reset.disabled === true;
-      doc.querySelector('[data-testid="mode-cascade"]').click();
+      document.querySelector('[data-testid="mode-cascade"]').click();
       const enabled = reset.disabled === false;
-      doc.querySelector('[data-testid="mode-ease"]').click();
+      document.querySelector('[data-testid="mode-ease"]').click();
       const restored = reset.disabled === true;
-      const play = doc.querySelector('[data-testid="sidebar-play"]');
+      const play = document.querySelector('[data-testid="sidebar-play"]');
       play.click();
       return { kind: 'sidebar', startedDisabled, enabled, restored, play: play.getAttribute('aria-pressed') };
     }
-    const video = doc.querySelector('video');
+    const video = document.querySelector('video');
     if (video && video.getAttribute('src')?.startsWith('data:video/')) {
       return { kind: 'video', src: true, paused: video.paused };
     }
-    const range = doc.querySelector('input[type="range"]');
+    const range = document.querySelector('input[type="range"]');
     if (range && !range.disabled) {
       const before = range.value;
       range.value = String(Number(range.max) / 2);
@@ -252,7 +280,7 @@ async function exercise(page) {
       range.dispatchEvent(new Event('change', { bubbles: true }));
       return { kind: 'range', moved: range.value !== before };
     }
-    const control = [...doc.querySelectorAll('button, [role="button"], [tabindex="0"]')].find(
+    const control = [...document.querySelectorAll('button, [role="button"], [tabindex="0"]')].find(
       (node) => !node.disabled,
     );
     if (control) {
@@ -261,13 +289,16 @@ async function exercise(page) {
       control.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
       return { kind: 'control', name: control.id || control.textContent, changed: control.className !== before };
     }
-    const replay = document.getElementById('stage-reset');
-    if (replay) {
-      replay.click();
-      return { kind: 'replay', label: replay.textContent };
-    }
     return { kind: 'visual' };
   });
+  if (inner.kind !== 'visual') return inner;
+  const replay = await page.$('#stage-reset');
+  if (replay) {
+    await replay.click();
+    const label = await page.$eval('#stage-reset', (node) => node.textContent);
+    return { kind: 'replay', label };
+  }
+  return inner;
 }
 
 async function copiedFrom(frame, selector) {
@@ -317,7 +348,7 @@ async function frameFor(page, selector) {
   return frame;
 }
 
-for (const row of rows) {
+if (browser) for (const row of rows) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   try {
@@ -363,7 +394,7 @@ for (const row of rows) {
   }
 }
 
-await browser.close();
+if (browser) await browser.close();
 
 const width = Math.max(...rows.map((row) => row.id.length));
 console.log('showcase bytes');

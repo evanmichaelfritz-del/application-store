@@ -1,9 +1,14 @@
-import { copyTextExact } from '@/src/clipboard';
-
-/** Above this size the press saves a file instead of filling the clipboard. */
-export const SHOWCASE_FILE_LIMIT = 2 * 1024 * 1024;
+import { copyTextExact, writeClipboardFromGesture } from '@/src/clipboard';
+import { SHOWCASE_OVER_LIMIT } from '@/src/showcase/limits';
 
 export type ShowcaseResult = 'copied' | 'saved';
+
+function browserRead(path: string): Promise<Uint8Array> {
+  return fetch(path).then(async (res) => {
+    if (!res.ok) throw new Error(`Missing ${path}`);
+    return new Uint8Array(await res.arrayBuffer());
+  });
+}
 
 function downloadShowcase(id: string, html: string) {
   const blob = new Blob([html], { type: 'text/html' });
@@ -17,24 +22,39 @@ function downloadShowcase(id: string, html: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-/** Build the showcase on press. The generator stays out of the entry chunk. */
-export async function pressCopyShowcase(id: string): Promise<ShowcaseResult> {
-  const { generateShowcase } = await import('./generate');
-  const html = await generateShowcase(id, (path) =>
-    fetch(path).then(async (res) => {
-      if (!res.ok) throw new Error(`Missing ${path}`);
-      return new Uint8Array(await res.arrayBuffer());
-    }),
-  );
-  const bytes = new TextEncoder().encode(html).length;
-  if (bytes > SHOWCASE_FILE_LIMIT) {
-    downloadShowcase(id, html);
-    return 'saved';
+function showcaseHtml(id: string): Promise<string> {
+  return import('./generate').then(({ generateShowcase }) => generateShowcase(id, browserRead));
+}
+
+/**
+ * Build the showcase on press. The import starts during the gesture and, for
+ * files that fit, its promise is handed to the clipboard before any await.
+ */
+export function pressCopyShowcase(id: string): Promise<ShowcaseResult> {
+  const pending = showcaseHtml(id);
+  if (SHOWCASE_OVER_LIMIT.has(id)) {
+    return pending.then((html) => {
+      downloadShowcase(id, html);
+      return 'saved';
+    });
   }
-  const copied = await copyTextExact(html);
-  if (!copied) {
-    downloadShowcase(id, html);
-    return 'saved';
+  const gestured = writeClipboardFromGesture(pending);
+  if (gestured) {
+    return gestured.then(
+      () => 'copied',
+      () =>
+        pending.then((html) => {
+          downloadShowcase(id, html);
+          return 'saved';
+        }),
+    );
   }
-  return 'copied';
+  return pending.then(async (html) => {
+    const copied = await copyTextExact(html);
+    if (!copied) {
+      downloadShowcase(id, html);
+      return 'saved';
+    }
+    return 'copied';
+  });
 }

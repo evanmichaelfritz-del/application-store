@@ -46,6 +46,7 @@ import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { springs, sprung } from '@/src/motion';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { FileDownIcon } from '@/src/components/FileDownIcon';
+import { useShowcaseTip } from '@/src/components/useShowcaseTip';
 import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
 import { showcaseLater } from '@/src/showcase/later';
 import { colors, fonts, radii } from '@/src/theme';
@@ -198,6 +199,7 @@ function Found({ item }: { item: TransitionItem }) {
   const activeKind = tabs.find((entry) => entry.id === activeTab)?.kind ?? kind;
 
   const later = showcaseLater(item.id);
+  const laterTip = useShowcaseTip();
   const copyShowcase = () => {
     if (later || showcaseBusy) return;
     setShowcaseBusy(true);
@@ -379,23 +381,45 @@ function Found({ item }: { item: TransitionItem }) {
             testID="agent-prompt"
           />
         )}
-        <BarButton
-          label={later ? 'Later' : copied === 'showcase' ? (showcaseSaved ? 'Saved' : 'Copied') : 'Copy showcase'}
-          reserve="Copy showcase"
-          icon={copied === 'showcase' ? 'checkmark' : undefined}
-          glyph={
-            copied === 'showcase' ? undefined : (
-              <FileDownIcon size={14} color={later ? colors.textSubtle : colors.text} />
-            )
-          }
-          tone="secondary"
-          done={!later && copied === 'showcase'}
-          disabled={later}
-          busy={showcaseBusy}
-          onPress={copyShowcase}
-          testID="copy-showcase"
-          style={styles.showcaseButton}
-        />
+        <View style={styles.showcaseAnchor}>
+          <BarButton
+            label={later ? 'Later' : copied === 'showcase' ? (showcaseSaved ? 'Saved' : 'Copied') : 'Copy showcase'}
+            reserve="Copy showcase"
+            accessLabel={
+              later ? `Copy showcase for ${item.title}, coming later` : `Copy showcase for ${item.title}`
+            }
+            icon={copied === 'showcase' ? 'checkmark' : undefined}
+            glyph={
+              copied === 'showcase' ? undefined : (
+                <FileDownIcon size={14} color={later ? colors.textSubtle : colors.text} />
+              )
+            }
+            tone="secondary"
+            done={!later && copied === 'showcase'}
+            softDisabled={later}
+            describedBy={later ? laterTip.id : undefined}
+            busy={showcaseBusy}
+            onPress={copyShowcase}
+            onTipHoverIn={later ? laterTip.hoverIn : undefined}
+            onTipHoverOut={later ? laterTip.hoverOut : undefined}
+            onTipFocus={later ? laterTip.focus : undefined}
+            onTipBlur={later ? laterTip.blur : undefined}
+            onTipPointerDown={later ? laterTip.pointerDown : undefined}
+            testID="copy-showcase"
+            style={styles.showcaseButton}
+          />
+          {later ? (
+            <View
+              nativeID={laterTip.id}
+              id={laterTip.id}
+              pointerEvents="none"
+              {...viewWeb({ dataSet: { showcaseTip: laterTip.state } })}
+              {...({ role: 'tooltip' } as object)}
+            >
+              <Text style={styles.laterTipText}>Showcase coming later</Text>
+            </View>
+          ) : null}
+        </View>
         {installLine ? (
           <BarButton
             label={copied === 'install-command' ? 'Copied' : 'Copy install command'}
@@ -545,12 +569,20 @@ function BarButton({
   reserve,
   icon,
   glyph,
+  accessLabel,
+  softDisabled = false,
+  describedBy,
   tone = 'secondary',
   done = false,
   disabled = false,
   busy = false,
   onPress,
   onWarm,
+  onTipHoverIn,
+  onTipHoverOut,
+  onTipFocus,
+  onTipBlur,
+  onTipPointerDown,
   href,
   testID,
   style,
@@ -559,12 +591,20 @@ function BarButton({
   reserve?: string;
   icon?: IconName;
   glyph?: ReactNode;
+  accessLabel?: string;
+  softDisabled?: boolean;
+  describedBy?: string;
   tone?: 'primary' | 'secondary';
   done?: boolean;
   disabled?: boolean;
   busy?: boolean;
   onPress?: () => void;
   onWarm?: () => void;
+  onTipHoverIn?: () => void;
+  onTipHoverOut?: () => void;
+  onTipFocus?: () => void;
+  onTipBlur?: () => void;
+  onTipPointerDown?: () => void;
   href?: Href;
   testID?: string;
   style?: StyleProp<ViewStyle>;
@@ -575,22 +615,39 @@ function BarButton({
   const control = (
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
-      accessibilityLabel={label}
+      accessibilityLabel={accessLabel ?? label}
       accessibilityState={{ disabled }}
+      aria-describedby={describedBy}
       aria-busy={busy}
       disabled={disabled}
+      ref={(node) => {
+        const host = node as unknown as HTMLElement | null;
+        if (host && typeof host.setAttribute === 'function') {
+          if (softDisabled) host.setAttribute('aria-disabled', 'true');
+          else host.removeAttribute('aria-disabled');
+        }
+      }}
       testID={testID}
       onPress={onPress}
       onHoverIn={() => {
-        if (!disabled) {
+        onTipHoverIn?.();
+        if (!disabled && !softDisabled) {
           setHover(true);
           onWarm?.();
         }
       }}
       onFocus={() => {
+        onTipFocus?.();
         onWarm?.();
       }}
+      onBlur={() => {
+        onTipBlur?.();
+      }}
+      onPointerDown={() => {
+        onTipPointerDown?.();
+      }}
       onHoverOut={() => {
+        onTipHoverOut?.();
         setHover(false);
         setPressed(false);
       }}
@@ -601,7 +658,8 @@ function BarButton({
       {...pressableWeb({ dataSet: { focusRing: 'true' } })}
       style={StyleSheet.flatten([
         styles.button,
-        disabled ? styles.buttonDisabled : styles.pointer,
+        disabled || softDisabled ? styles.buttonDisabled : styles.pointer,
+        softDisabled && styles.softFocusable,
         primary ? styles.buttonPrimary : styles.buttonSecondary,
         hover && !pressed && !disabled && primary && styles.buttonPrimaryHover,
         hover && !pressed && !disabled && !primary && styles.buttonSecondaryHover,
@@ -1240,7 +1298,10 @@ const styles = StyleSheet.create({
   buttonTextOn: { color: colors.proFg },
   pointer: { cursor: 'pointer' },
   buttonDisabled: { opacity: 0.45, cursor: 'auto' },
-  showcaseButton: { paddingVertical: 0, paddingHorizontal: 12, minWidth: 148, flexGrow: 0, flexShrink: 0 },
+  softFocusable: { pointerEvents: 'auto' },
+  showcaseAnchor: { position: 'relative', alignSelf: 'flex-start', zIndex: 8 },
+  showcaseButton: { paddingVertical: 0, paddingHorizontal: 12, flexGrow: 0, flexShrink: 0 },
+  laterTipText: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, color: '#ffffff' },
   disclosure: { alignSelf: 'flex-start', marginTop: 8, height: 20, justifyContent: 'center' },
   disclosureText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSubtle },
   section: {
