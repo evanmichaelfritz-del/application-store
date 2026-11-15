@@ -5,15 +5,19 @@ import { promptFor } from '@/src/agentPrompts';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { copyTextFor } from '@/src/closedNetwork/previewSources';
 import { CopyLabel } from '@/src/components/CopyLabel';
+import { CheckIcon, FileDownIcon } from '@/src/components/FileDownIcon';
+import { useShowcaseTip } from '@/src/components/useShowcaseTip';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
 import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
+import { showcaseLater } from '@/src/showcase/later';
 import { installFor } from '@/src/library/assetMeta';
 import { StoreSheet } from '@/src/components/StoreSheet';
 import { CatalogMedia } from '@/src/components/CatalogMedia';
 import { DeferredSkiaDemo } from '@/src/skia/DeferredSkiaDemo';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { assetHref, facetLine } from '@/src/library/taxonomy';
-import { pressableWeb, textWeb } from '@/src/library/webProps';
+import { pressableWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { isDownloadSkill, mediaFillsStage, type TransitionItem } from '../catalog';
 import { colors, fonts, radii, shadows } from '../theme';
 
@@ -84,6 +88,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
   const phone = width < 640;
   const touch = width < 880;
   const [copied, setCopied] = useState<CopyKind | null>(null);
+  const [showcaseMark, setShowcaseMark] = useState<'copied' | 'saved' | null>(null);
+  const [showcaseBusy, setShowcaseBusy] = useState(false);
+  const tip = useShowcaseTip();
+  const later = showcaseLater(item.id);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [skillCopied, setSkillCopied] = useState(false);
@@ -158,6 +166,93 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     }
     write(copyTextFor(item.id, kind));
   };
+
+  const copyShowcase = () => {
+    if (later || showcaseBusy) return;
+    setShowcaseBusy(true);
+    void pressCopyShowcase(item.id).then(
+      (result) => {
+        setShowcaseBusy(false);
+        setShowcaseMark(result === 'saved' ? 'saved' : 'copied');
+        show(result === 'saved' ? 'Saved as file' : 'Copied');
+        if (hideBtn.current) clearTimeout(hideBtn.current);
+        hideBtn.current = setTimeout(() => setShowcaseMark(null), 1400);
+      },
+      () => setShowcaseBusy(false),
+    );
+  };
+
+  const showcaseTipText = later
+    ? 'Showcase coming later'
+    : showcaseMark === 'saved'
+      ? 'Saved as file'
+      : showcaseMark === 'copied'
+        ? 'Copied'
+        : 'Copy showcase';
+  const showcaseName = later
+    ? `Copy showcase for ${item.title}, coming later`
+    : `Copy showcase for ${item.title}`;
+  const showcaseButton = (
+    <View style={styles.showcaseSlot}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={showcaseName}
+        aria-disabled={later ? true : undefined}
+        ref={(node) => {
+          // Pressable turns aria-disabled into the native disabled attribute, which
+          // drops hover and focus. Keep the ARIA state without that attribute.
+          if (!(node instanceof HTMLElement)) return;
+          if (later) node.setAttribute('aria-disabled', 'true');
+          else node.removeAttribute('aria-disabled');
+          node.removeAttribute('disabled');
+        }}
+        tabIndex={0}
+        aria-describedby={tip.id}
+        aria-busy={showcaseBusy}
+        testID={`copy-showcase-${item.id}`}
+        onPress={() => {
+          if (later) return;
+          copyShowcase();
+        }}
+        onHoverIn={tip.hoverIn}
+        onHoverOut={tip.hoverOut}
+        onFocus={tip.focus}
+        onBlur={tip.blur}
+        onPointerDown={tip.pointerDown}
+        {...pressableWeb({ dataSet: { focusRing: 'true' } })}
+        style={(state) => {
+          const hover = 'hovered' in state && state.hovered === true;
+          const done = showcaseMark != null;
+          return [
+            styles.showcaseIcon,
+            later ? styles.actionDisabled : styles.pointer,
+            later && styles.showcaseFocusable,
+            done && styles.actionDone,
+            hover && !done && !later && styles.actionHover,
+            hover && done && styles.actionDoneHover,
+            state.pressed && !done && !later && styles.actionPressed,
+            state.pressed && done && styles.actionDonePressed,
+          ];
+        }}
+      >
+        {showcaseMark ? (
+          <CheckIcon size={16} color={colors.proFg} />
+        ) : (
+          <FileDownIcon size={16} color={later ? colors.textSubtle : colors.text} />
+        )}
+      </Pressable>
+      <View
+        nativeID={tip.id}
+        id={tip.id}
+        accessibilityRole="none"
+        pointerEvents="none"
+        {...viewWeb({ dataSet: { showcaseTip: tip.state, showcasePlace: tip.place } })}
+        role="tooltip"
+      >
+        <Text style={styles.showcaseTooltipText}>{showcaseTipText}</Text>
+      </View>
+    </View>
+  );
 
   const copyButton = (kind: CopyKind, style?: StyleProp<ViewStyle>) => (
     <ActionButton
@@ -348,6 +443,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
           {skillButton(styles.actionFull)}
           {installButton(styles.actionFull)}
           <ActionButton style={styles.actionFull} label="Agent prompt" onPress={() => setPromptOpen(true)} />
+          {showcaseButton}
         </View>
       ) : (
         <View style={styles.actions}>
@@ -362,6 +458,7 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
             label="AGENT_PROMPT"
             onPress={() => setPromptOpen(true)}
           />
+          {showcaseButton}
         </View>
       )}
 
@@ -518,6 +615,31 @@ const styles = StyleSheet.create({
   actionDone: { backgroundColor: colors.text, borderColor: colors.text },
   actionText: { fontFamily: fonts.medium, fontSize: 12, color: colors.text },
   actionDoneText: { color: colors.proFg },
+  showcaseSlot: {
+    width: 30,
+    height: 30,
+    flexGrow: 0,
+    flexShrink: 0,
+    position: 'relative',
+    zIndex: 8,
+  },
+  showcaseFocusable: { pointerEvents: 'auto' },
+  showcaseIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.copyBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  showcaseTooltipText: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#ffffff',
+  },
   showcaseStage: {
     borderRadius: radii.stage,
     overflow: 'hidden',
