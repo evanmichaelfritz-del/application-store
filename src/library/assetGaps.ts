@@ -142,4 +142,10 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'arc-charge': [
     'Phone widths are a known gap.',
   ],
+  'image-generation-loader': [
+    'Phone widths are a known gap. The card is measured at a 1280 desktop and stays 168×168. It does not reflow.',
+    'A second load picks a different photo and a different wait, so a side-by-side frame will not match. The settled photo still matches its own file within 1 luma.',
+    'During the wake, the live field is about 8–10 luma from the baked still at 48×48. That still is the placeholder, drawn until the first bitmap.',
+    'Copy\'s Reveal button sits under the card. The page button sits at the stage\'s bottom-right and has the hover and pressed fills above. The mosaic and the phase clock are the asset.',
+  ],
 };
