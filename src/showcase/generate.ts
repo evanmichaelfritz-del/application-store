@@ -565,16 +565,15 @@ window.addEventListener('message', function (event) {
   var data = event.data;
   if (!data || event.source !== frame.contentWindow) return;
   if (data.showcaseFontsPlease) sendFonts();
-  ${skia ? 'if (data.showcaseViewportPlease) sendViewport();' : ''}
-  if (data.showcaseDrag === 'start') dragId = data.pointerId;
+${skia ? "  if (data.showcaseViewportPlease) sendViewport();\n" : ''}  if (data.showcaseDrag === 'start') dragId = data.pointerId;
   if (data.showcaseDrag === 'end') dragId = null;
 });
-function sendViewport() {
+${skia ? `function sendViewport() {
   if (!frame.contentWindow) return;
   frame.contentWindow.postMessage({ showcaseViewport: { width: window.innerWidth, height: window.innerHeight } }, '*');
 }
-${skia ? 'window.addEventListener(\'resize\', sendViewport);' : ''}
-frame.addEventListener('load', sendFonts);
+window.addEventListener('resize', sendViewport);
+` : ''}frame.addEventListener('load', sendFonts);
 frame.srcdoc = STAGE;
 var reset = document.getElementById('stage-reset');
 if (reset) reset.addEventListener('click', function () { frame.srcdoc = STAGE; });

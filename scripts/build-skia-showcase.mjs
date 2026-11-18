@@ -26,6 +26,11 @@ const clipboardShim = join(root, 'src/showcase/shims/expo-clipboard.js');
 const assetShim = join(root, 'src/showcase/shims/AssetRegistry.js');
 const projectSrc = join(root, 'src') + '/';
 
+function writeIfChanged(path, text) {
+  if (existsSync(path) && readFileSync(path, 'utf8') === text) return;
+  writeFileSync(path, text);
+}
+
 function block(text) {
   const safe = text.replace(/\*\//g, '* /');
   const body = safe.endsWith('\n') ? safe : `${safe}\n`;
@@ -142,11 +147,16 @@ const webResolve = {
         source = source.split(needle).join('Promise.resolve({ Geist_400Regular: 1 })');
       }
       const transformed = transformSync(source, {
-        filename: args.path,
+        // Relative names keep the worklet location stable. envName production
+        // drops the inline source maps the worklet plugin adds outside a release.
+        filename: args.path.slice(root.length + 1).split('\\').join('/'),
+        cwd: root,
         configFile: join(root, 'babel.config.js'),
         babelrc: false,
         sourceMaps: false,
-        caller: { name: 'metro', bundler: 'metro', platform: 'web' },
+        compact: false,
+        envName: 'production',
+        caller: { name: 'metro', bundler: 'metro', platform: 'web', isDev: false },
       });
       if (!transformed?.code) throw new Error(`babel produced no code for ${args.path}`);
       return { contents: transformed.code, loader: 'js' };
@@ -199,8 +209,9 @@ for (const target of targets) {
   js = js.split('url("\'+').join("ur'+'l('+String.fromCharCode(34)+");
   if (/\bfetch\s*\(/.test(js)) throw new Error(`${target.outfile} still calls fetch`);
   if (js.includes('</script')) throw new Error(`${target.outfile} contains a script closer`);
+  js = js.replace(/\/\/# sourceMappingURL=\S+/g, '');
   js = built.header + js;
-  writeFileSync(join(root, target.outfile), js);
+  writeIfChanged(join(root, target.outfile), js);
   process.stdout.write(`${target.outfile} ${js.length} licences ${built.names.length}\n`);
 }
 
@@ -223,7 +234,7 @@ function patchCanvasKit() {
   const license = readFileSync(join(root, 'node_modules/canvaskit-wasm/LICENSE'), 'utf8');
   const header = block(license);
   const file = join(outDir, 'canvaskit.js');
-  writeFileSync(file, header + next);
+  writeIfChanged(file, header + next);
   process.stdout.write(`public/showcase/canvaskit.js ${header.length + next.length}\n`);
 }
 

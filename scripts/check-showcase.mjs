@@ -164,6 +164,13 @@ function assertOffline(html, id) {
     if (!html.includes('The Inter Project Authors')) hits.push('missing Inter licence notice');
     if (!html.includes('PERMISSION AND CONDITIONS')) hits.push('missing Inter licence conditions');
   }
+  if (id === 'yogesh-thinking-orbs' || id === 'yogesh-orb-creator') {
+    if (!html.includes('The Geist Project Authors')) hits.push('missing Geist licence notice');
+    const conditions = html.split('PERMISSION AND CONDITIONS').length - 1;
+    if (conditions < 2) hits.push(`Geist OFL conditions ${conditions}`);
+    if (!html.includes('Copyright (c) 2011 Google Inc.')) hits.push('missing CanvasKit licence');
+    if (!html.includes('Neither the name of Google Inc.')) hits.push('missing CanvasKit BSD terms');
+  }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
   hits.push(...assertFonts(html));
   hits.push(...assertBakedStage(html, id));

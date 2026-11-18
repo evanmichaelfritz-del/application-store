@@ -56,14 +56,93 @@ export async function skiaPreviewParts(
   const comment = `/*\n${license.trim().replace(/\*\//g, '* /')}\n*/`;
   const css = `${comment}
 ${face('Geist', geistUri)}
-${face('Geist_400Regular', geistUri)}
 ${face('"Geist Mono"', monoUri)}
-${face('GeistMono_500Medium', monoUri)}
 html, body { background: #000; }
 #parity-root { width: 100%; }`;
   const html = `<div id="parity-root"></div>
 <script type="text/plain" id="skia-card">${bundle}</script>`;
-  const script = `function wasmBytes(b64) {
+  const script = `function aliasFace(fromName, toName) {
+  var sheets = document.styleSheets;
+  var extra = '';
+  var i = 0;
+  for (; i < sheets.length; i++) {
+    var rules;
+    try { rules = sheets[i].cssRules; } catch (error) { continue; }
+    var j = 0;
+    for (; j < rules.length; j++) {
+      var rule = rules[j];
+      if (!rule.style) continue;
+      var family = String(rule.style.fontFamily).replace(/["']/g, '');
+      if (family !== fromName) continue;
+      extra += '@font-face{font-family:' + toName + ';font-style:normal;font-weight:' + rule.style.getPropertyValue('font-weight') + ';font-display:block;src:' + rule.style.getPropertyValue('src') + ';unicode-range:' + rule.style.getPropertyValue('unicode-range') + '}';
+    }
+  }
+  if (!extra) return;
+  var style = document.createElement('style');
+  style.textContent = extra;
+  document.head.appendChild(style);
+}
+aliasFace('Geist', 'Geist_400Regular');
+aliasFace('Geist Mono', 'GeistMono_500Medium');
+var dragPointer = null;
+var dragTarget = null;
+var parentDriving = false;
+var nativeSetCapture = Element.prototype.setPointerCapture;
+Element.prototype.setPointerCapture = function (pointerId) {
+  dragTarget = this;
+  dragPointer = pointerId;
+  parentDriving = false;
+  try { parent.postMessage({ showcaseDrag: 'start', pointerId: pointerId }, '*'); } catch (error) { /* top frame */ }
+  return nativeSetCapture.call(this, pointerId);
+};
+function releaseDrag(event) {
+  var id = event && event.pointerId != null ? event.pointerId : dragPointer;
+  var node = dragTarget;
+  dragPointer = null;
+  dragTarget = null;
+  if (node && id != null && node.hasPointerCapture && node.hasPointerCapture(id)) {
+    try { node.releasePointerCapture(id); } catch (error) { /* released */ }
+  }
+}
+function endDrag(event) {
+  if (dragPointer == null) return;
+  releaseDrag(event);
+  try { parent.postMessage({ showcaseDrag: 'end' }, '*'); } catch (error) { /* top frame */ }
+}
+function backstop(event) {
+  if (dragPointer == null) return;
+  var token = dragPointer;
+  window.setTimeout(function () {
+    if (dragPointer === token && !parentDriving) endDrag(event);
+  }, 32);
+}
+document.addEventListener('pointerup', endDrag, false);
+document.addEventListener('pointercancel', endDrag, false);
+document.addEventListener('pointerleave', function (event) {
+  if (event.target !== document.documentElement) return;
+  backstop(event);
+}, true);
+document.addEventListener('lostpointercapture', backstop, true);
+window.addEventListener('message', function (event) {
+  if (event.source !== window.parent) return;
+  var data = event.data;
+  if (!data || (data.showcasePointer !== 'move' && data.showcasePointer !== 'up')) return;
+  if (!dragTarget) return;
+  parentDriving = true;
+  dragTarget.dispatchEvent(new PointerEvent(data.showcasePointer === 'up' ? 'pointerup' : 'pointermove', {
+    bubbles: true,
+    cancelable: true,
+    pointerId: data.pointerId,
+    pointerType: 'mouse',
+    isPrimary: true,
+    clientX: data.x,
+    clientY: data.y,
+    button: 0,
+    buttons: data.showcasePointer === 'up' ? 0 : 1
+  }));
+  if (data.showcasePointer === 'up') endDrag({ pointerId: data.pointerId });
+});
+function wasmBytes(b64) {
   var binary = atob(b64);
   var bytes = new Uint8Array(binary.length);
   var i = 0;
