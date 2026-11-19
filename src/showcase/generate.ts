@@ -7,6 +7,7 @@ import { previewControl } from '@/src/library/assetMeta';
 import { facetLine } from '@/src/library/taxonomy';
 import { showcaseLater } from '@/src/showcase/later';
 import { SHOWCASE_FILE_LIMIT, SHOWCASE_OVER_LIMIT } from '@/src/showcase/limits';
+import { SKIA_SHOWCASE, skiaPreviewParts } from '@/src/showcase/skiaStage';
 
 export { SHOWCASE_FILE_LIMIT, SHOWCASE_OVER_LIMIT };
 
@@ -21,6 +22,8 @@ const LAZY_PROMPT: Record<string, string> = {
   'spacing-tuner': '/prompts/spacing-tuner.md',
   'image-generation-loader': '/prompts/image-generation-loader.md',
   stageshow: '/prompts/stageshow.md',
+  'yogesh-thinking-orbs': '/prompts/yogesh-thinking-orbs.md',
+  'yogesh-orb-creator': '/prompts/yogesh-orb-creator.md',
 };
 
 const SANS = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -30,6 +33,8 @@ const INTER_WEIGHTS = [400, 500, 600] as const;
 export const STAGE_FLOOR: Record<string, number> = {
   'adam-sidebar-transitions': 520,
   'preview-tools': 520,
+  'yogesh-thinking-orbs': 492,
+  'yogesh-orb-creator': 560,
 };
 /** Width / height. Arc is 16:9. The spacing tuner is 1440×1080. */
 export const STAGE_ASPECT: Record<string, string> = {
@@ -224,26 +229,32 @@ function walkthrough(media: CatalogMedia, video: string, poster: string): string
 
 /**
  * One self-contained HTML file of this card's showcase.
- * Built on press. Yogesh's two orb cards are refused here.
+ * Built on press. The two Yogesh Skia cards inline CanvasKit here, not in the gallery.
  */
 export async function generateShowcase(id: string, read: ByteReader): Promise<string> {
   if (showcaseLater(id)) throw new Error(`${id} showcase is a later pull request`);
   const item = TRANSITIONS.find((entry) => entry.id === id);
   if (!item) throw new Error(`Unknown asset ${id}`);
   const load = cached(read);
-  const parts = previewDocumentParts(id);
+  const skia = SKIA_SHOWCASE.has(id);
+  const parts = skia ? await skiaPreviewParts(id, load) : previewDocumentParts(id);
+  // The Skia stage is already offline. Rewriting anchors or public paths inside
+  // the bundle would change the card's source.
   const [faces, code, prompt, script, htmlInlined, cssInlined] = await Promise.all([
     interFaces(load),
     showcaseCode(id),
     showcasePrompt(id, load),
-    inlineScript(parts.script, load),
-    inlinePaths(presentCredit(id, dropLinks(parts.html)), load),
-    inlinePaths(parts.css, load),
+    skia ? parts.script : inlineScript(parts.script, load),
+    skia ? parts.html : inlinePaths(presentCredit(id, dropLinks(parts.html)), load),
+    skia ? parts.css : inlinePaths(parts.css, load),
   ]);
   const aspect = STAGE_ASPECT[id] ?? '';
   const floor = stageFloor(id);
-  const stageFit =
-    id === 'arc-charge'
+  const stageFit = skia
+    ? `html, body { height: 100%; margin: 0; background: #000; }
+body { display: block; }
+#parity-root { width: 100%; max-width: none; }`
+    : id === 'arc-charge'
       ? `html, body { height: 100%; min-height: 100%; margin: 0; }
 #arc-charge, #arc-charge .screen { width: 100%; height: 100%; }
 #arc-charge .readout { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }`
@@ -554,10 +565,15 @@ window.addEventListener('message', function (event) {
   var data = event.data;
   if (!data || event.source !== frame.contentWindow) return;
   if (data.showcaseFontsPlease) sendFonts();
-  if (data.showcaseDrag === 'start') dragId = data.pointerId;
+${skia ? "  if (data.showcaseViewportPlease) sendViewport();\n" : ''}  if (data.showcaseDrag === 'start') dragId = data.pointerId;
   if (data.showcaseDrag === 'end') dragId = null;
 });
-frame.addEventListener('load', sendFonts);
+${skia ? `function sendViewport() {
+  if (!frame.contentWindow) return;
+  frame.contentWindow.postMessage({ showcaseViewport: { width: window.innerWidth, height: window.innerHeight } }, '*');
+}
+window.addEventListener('resize', sendViewport);
+` : ''}frame.addEventListener('load', sendFonts);
 frame.srcdoc = STAGE;
 var reset = document.getElementById('stage-reset');
 if (reset) reset.addEventListener('click', function () { frame.srcdoc = STAGE; });

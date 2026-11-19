@@ -1,10 +1,10 @@
 /**
  * Build every eligible showcase file and prove it is offline.
- * Yogesh's two orb cards are deferred, so they are not generated.
  *
  *   node scripts/check-showcase.mjs
  *   node scripts/check-showcase.mjs adam-sidebar-transitions
  */
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -13,6 +13,11 @@ import esbuild from 'esbuild';
 import puppeteer from 'puppeteer-core';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const built = spawnSync(process.execPath, [join(root, 'scripts/build-skia-showcase.mjs')], {
+  cwd: root,
+  stdio: 'inherit',
+});
+if (built.status !== 0) process.exit(built.status ?? 1);
 const only = process.argv[2] ?? '';
 const outdir = join(tmpdir(), 'store-showcases');
 rmSync(outdir, { recursive: true, force: true });
@@ -122,8 +127,11 @@ const REQUEST_PATTERNS = [
 
 function requestHits(source) {
   const hits = [];
+  // A font or wasm payload can spell url("…") by chance. That is not a request.
+  const cssSource = source.replace(/data:[a-z0-9/+.-]+;base64,[A-Za-z0-9+/=]+/gi, 'data:');
   for (const check of REQUEST_PATTERNS) {
-    if (check.pattern.test(source)) hits.push(check.label);
+    const text = check.label === 'css url' ? cssSource : source;
+    if (check.pattern.test(text)) hits.push(check.label);
     check.pattern.lastIndex = 0;
   }
   return hits;
@@ -155,6 +163,13 @@ function assertOffline(html, id) {
   if (html.includes('data:font/woff2')) {
     if (!html.includes('The Inter Project Authors')) hits.push('missing Inter licence notice');
     if (!html.includes('PERMISSION AND CONDITIONS')) hits.push('missing Inter licence conditions');
+  }
+  if (id === 'yogesh-thinking-orbs' || id === 'yogesh-orb-creator') {
+    if (!html.includes('The Geist Project Authors')) hits.push('missing Geist licence notice');
+    const conditions = html.split('PERMISSION AND CONDITIONS').length - 1;
+    if (conditions < 2) hits.push(`Geist OFL conditions ${conditions}`);
+    if (!html.includes('Copyright (c) 2011 Google Inc.')) hits.push('missing CanvasKit licence');
+    if (!html.includes('Neither the name of Google Inc.')) hits.push('missing CanvasKit BSD terms');
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
   hits.push(...assertFonts(html));
@@ -191,7 +206,7 @@ function assertBakedStage(html, id) {
     return aspect?.[1] === '4 / 3' ? [] : ['spacing tuner stage is not 4 / 3'];
   }
   const floor = Number(html.match(/data-stage-floor="(\d+)"/)?.[1] ?? 0);
-  const expected = id === 'adam-sidebar-transitions' || id === 'preview-tools' ? 520 : 420;
+  const expected = loaded.stageFloor(id);
   return floor === expected ? [] : [`baked stage ${floor} != ${expected}`];
 }
 
@@ -207,8 +222,7 @@ const COLD_OPENS = {
 function expectedStage(id, width, height) {
   if (id === 'arc-charge') return Math.abs(height - Math.round((width * 9) / 16)) <= 2;
   if (id === 'spacing-tuner') return Math.abs(height - Math.round((width * 3) / 4)) <= 2;
-  const floor = id === 'adam-sidebar-transitions' || id === 'preview-tools' ? 520 : 420;
-  return Math.abs(height - floor) <= 2;
+  return Math.abs(height - loaded.stageFloor(id)) <= 2;
 }
 
 const ids = loaded.showcaseIds().filter((id) => !only || id === only);
@@ -275,7 +289,7 @@ async function openFile(page, file) {
   page.on('console', onConsole);
   page.on('pageerror', onPage);
   await page.setRequestInterception(true);
-  await page.goto(pathToFileURL(file).href, { waitUntil: 'load', timeout: 30000 });
+  await page.goto(pathToFileURL(file).href, { waitUntil: 'load', timeout: 60000 });
   return {
     hits,
     errors,
@@ -449,7 +463,11 @@ if (browser) for (const row of rows) {
   await page.setViewport({ width: 1280, height: 900 });
   try {
     const session = await openFile(page, row.file);
-    await page.waitForSelector('#copy-code', { timeout: 15000 });
+    await page.waitForSelector('#copy-code', { timeout: 20000 });
+    if (row.id === 'yogesh-thinking-orbs' || row.id === 'yogesh-orb-creator') {
+      const stage = await stageFrame(page);
+      await stage.waitForSelector('canvas', { timeout: 30000 });
+    }
     const stageBox = await readStageBox(page);
     if (!expectedStage(row.id, stageBox.width, stageBox.height)) {
       problems.push(`${row.id}: stage ${stageBox.width}x${stageBox.height}`);

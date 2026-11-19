@@ -43,3 +43,6 @@ agent-tools/
 
 # CanvasKit wasm (copied from canvaskit-wasm for Expo web; too large for git)
 public/canvaskit.wasm
+
+# Skia showcase bundles. scripts/build-skia-showcase.mjs writes these on install.
+public/showcase/

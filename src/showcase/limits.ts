@@ -6,4 +6,8 @@ export const SHOWCASE_FILE_LIMIT = 2 * 1024 * 1024;
  * the clipboard, so Safari still has the user gesture for every other card.
  * check-showcase asserts this set matches the measured file sizes.
  */
-export const SHOWCASE_OVER_LIMIT = new Set(['stageshow']);
+export const SHOWCASE_OVER_LIMIT = new Set([
+  'stageshow',
+  'yogesh-thinking-orbs',
+  'yogesh-orb-creator',
+]);

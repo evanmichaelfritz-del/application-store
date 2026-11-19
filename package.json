@@ -6,8 +6,11 @@
     "@expo-google-fonts/geist": "^0.4.2",
     "@expo-google-fonts/geist-mono": "^0.4.3",
     "@expo-google-fonts/inter": "^0.4.2",
+    "@babel/core": "7.29.7",
     "@expo/vector-icons": "^15.1.1",
     "@shopify/react-native-skia": "2.6.2",
+    "canvaskit-wasm": "0.41.0",
+    "esbuild": "^0.28.2",
     "border-beam": "1.4.1",
     "expo": "~57.0.23",
     "expo-clipboard": "~57.0.2",
@@ -38,7 +41,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "esbuild": "^0.28.2",
     "puppeteer-core": "^25.17.0",
     "typescript": "~6.0.3"
   },
@@ -52,7 +54,7 @@
     "check:prompts": "node scripts/check-prompts.mjs",
     "check:showcase": "node scripts/check-showcase.mjs",
     "test": "npm run check:routes && npm run check:prompts && npm run check:showcase",
-    "postinstall": "npx setup-skia-web public"
+    "postinstall": "npx setup-skia-web public && node scripts/build-skia-showcase.mjs"
   },
   "engines": {
     "node": ">=20"
