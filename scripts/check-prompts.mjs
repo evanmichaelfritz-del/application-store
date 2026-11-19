@@ -136,6 +136,7 @@ const publicPrompt = {
   'spacing-tuner': readFileSync(join(root, 'public/prompts/spacing-tuner.md'), 'utf8'),
   'image-generation-loader': readFileSync(join(root, 'public/prompts/image-generation-loader.md'), 'utf8'),
   stageshow: readFileSync(join(root, 'public/prompts/stageshow.md'), 'utf8'),
+  glisse: readFileSync(join(root, 'public/prompts/glisse.md'), 'utf8'),
 };
 
 function missingSections(text) {

@@ -16,6 +16,10 @@ config.transformer.babelTransformerPath = require.resolve('./scripts/metro-raw-t
 // img-fx is the only `three` importer. On web, route that import through a
 // renderer wrapper that compiles the loader shader off the main thread.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.includes('.css?inline')) {
+    const cssFile = path.resolve(path.dirname(context.originModulePath), moduleName.replace(/\?inline$/, ''));
+    return { type: 'sourceFile', filePath: `${cssFile}.inline.ts` };
+  }
   if (
     platform === 'web' &&
     moduleName === 'three' &&

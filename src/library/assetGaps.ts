@@ -142,6 +142,16 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'arc-charge': [
     'Phone widths are a known gap.',
   ],
+  glisse: [
+    'Phone widths are a known gap. At a 1280 desktop the stage measures 974×640 and does not reflow.',
+    'The wallpaper is an inlined 1300×1300 drawing. The docs drag tahoe-light.webp and tahoe-dark.webp, which are not in the MIT repo. The scroller still starts at scrollLeft (1300 − width) / 2 and scrollTop 0.3 × 1300. At 974px wide that is 163 and 390.',
+    'The docs refraction stage is 320px tall and also shows a Share button, a Continue button, a search field, and a theme switch. This stage does not.',
+    'The docs Slider section toggles one slider. This stage shows Continuous (step 1, value 40), Stepped (step 10, value 40), and Disabled (value 40) together.',
+    'The docs frost knob is labelled Frost. This knob is labelled Blur. The range matches: 0 to 12, step 0.5, default 0, written as --lg-blur. Bend is 0 to 1 step 0.01 default 0.45. Dispersion is 0 to 2 step 0.05 default 0.4. Rim is 0 to 1 step 0.01 default 0.13.',
+    'The docs magnifier lens can be dragged, with a squash spring that is not in the library. This lens is 210×150, radius 75, and stays put while the wallpaper moves.',
+    'The type is system-ui. The docs load Akkurat Pro, which is not in the MIT repo.',
+    'In Chrome the lens backdrop-filter is blur(Npx) url("#glisse-backdrop-…") saturate(1.5). At blur 12 that was blur(12px) url("#glisse-backdrop-6") saturate(1.5). Safari uses his canvas fallback, which is AppleWebKit and not Chrome. That path was not measured here. A Firefox user-agent string in Chrome left the filter at blur(0px) saturate(1.5) and did not draw the canvas.',
+  ],
   'image-generation-loader': [
     'Phone widths are a known gap. The card is measured at a 1280 desktop and stays 168×168. It does not reflow.',
     'A second load picks a different photo and a different wait, so a side-by-side frame will not match. The settled photo still matches its own file within 1 luma.',
