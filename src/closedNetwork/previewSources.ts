@@ -1616,6 +1616,17 @@ html[data-reduce-motion="1"] .stageshow-still { display: block; }`,
     extraCss: ARC_CSS,
     script: ARC_SCRIPT,
   },
+  glisse: {
+    snippet: false,
+    omitBase: true,
+    html: `<div id="glisse-root"></div>`,
+    extraCss: `html, body, #glisse-root { height: 100%; margin: 0; background: #0c0c0c; }`,
+    script: `(function () {
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/glisse.js';
+  document.body.appendChild(s);
+})();`,
+  },
 };
 
 function escapeHtml(value: string): string {

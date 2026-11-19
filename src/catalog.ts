@@ -32,6 +32,7 @@ import { StageshowDemo } from './demos/stageshow/demo';
 import { stageshowMedia } from './demos/stageshow/media';
 import { SidebarTransitionsDemo } from './demos/adam-sidebar-transitions';
 import { ArcChargeDemo } from './demos/arc-charge';
+import { GlisseDemo } from './demos/glisse';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -639,6 +640,28 @@ export const TRANSITIONS: TransitionItem[] = [
     fullRow: true,
     pro: false,
     Demo: ArcChargeDemo,
+  },
+  {
+    id: 'glisse',
+    title: 'Glisse',
+    subtitle: 'Liquid Glass controls on a wallpaper you can drag.',
+    categories: ['effects'],
+    tags: [
+      'glisse',
+      'liquid glass',
+      'glass',
+      'ios',
+      'kelvin',
+      'kelvin zhang',
+      'kelvinzhg',
+      'tab bar',
+      'slider',
+      'switch',
+    ],
+    sections: ['effects'],
+    fullRow: true,
+    pro: false,
+    Demo: GlisseDemo,
   },
 ];
 

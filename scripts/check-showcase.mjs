@@ -110,7 +110,7 @@ function stripComments(source) {
 const REQUEST_PATTERNS = [
   { label: 'script src', pattern: /<script\b[^>]*\bsrc\s*=/i },
   { label: '@import', pattern: /@import\b/i },
-  { label: 'css url', pattern: /url\(\s*(['"])(?!data:|#)(?!\1)/ },
+  { label: 'css url', pattern: /url\(\s*(['"])(?!data:|#|\$\{)(?!\1)/ },
   { label: 'fetch(', pattern: /\bfetch\s*\(/ },
   { label: 'worker', pattern: /new\s+Worker\s*\(\s*(['"])(?!blob:)/ },
   { label: 'xhr', pattern: /\bXMLHttpRequest\b/ },
@@ -170,6 +170,13 @@ function assertOffline(html, id) {
     if (conditions < 2) hits.push(`Geist OFL conditions ${conditions}`);
     if (!html.includes('Copyright (c) 2011 Google Inc.')) hits.push('missing CanvasKit licence');
     if (!html.includes('Neither the name of Google Inc.')) hits.push('missing CanvasKit BSD terms');
+  }
+  if (id === 'glisse') {
+    const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8');
+    const body = licenseFile.slice(licenseFile.indexOf('MIT License')).trim();
+    if (!body.includes('Copyright (c) 2026 Kelvin Zhang') || !code.includes(body)) {
+      hits.push('missing Glisse MIT licence');
+    }
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
   hits.push(...assertFonts(html));
@@ -232,7 +239,7 @@ const rows = [];
 const problems = [];
 for (const id of ids) {
   const html = await loaded.generateShowcase(id, read);
-  const [code, prompt] = await Promise.all([loaded.showcaseCode(id), loaded.showcasePrompt(id, read)]);
+  const [code, prompt] = await Promise.all([loaded.showcaseCode(id, read), loaded.showcasePrompt(id, read)]);
   const offline = assertOffline(html, id);
   if (offline.code !== code) problems.push(`${id}: embedded Copy code is not the card copy`);
   if (offline.prompt !== prompt) problems.push(`${id}: embedded Copy prompt is not the card prompt`);
