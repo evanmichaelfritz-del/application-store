@@ -22,17 +22,20 @@ export function GlisseCard() {
     <GlisseStage
       credit={
         <p className="glisse-credit">
-          Kelvin Zhang (
+          <a href={GLISSE_POST} target="_blank" rel="noopener noreferrer">
+            Kelvin Zhang
+          </a>{' '}
+          (
           <a href={GLISSE_POST} target="_blank" rel="noopener noreferrer">
             @kelvinzhg
           </a>
           ) ·{' '}
           <a href={GLISSE_REPO} target="_blank" rel="noopener noreferrer">
-            github.com/0kzh/glisse
+            repo
           </a>{' '}
           ·{' '}
           <a href={GLISSE_SITE} target="_blank" rel="noopener noreferrer">
-            glisse.kelvinzhang.com
+            site
           </a>
         </p>
       }

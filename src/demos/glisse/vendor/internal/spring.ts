@@ -2,7 +2,6 @@
  * MIT License
  * Copyright (c) 2026 Kelvin Zhang
  * https://github.com/0kzh/glisse
- * Pinned at 4922c852a6866ee9991d2f8c715bb1cfbe7aa2b9
  */
 
 export interface Spring {
@@ -71,7 +70,8 @@ function tick(time: number): void {
 }
 
 export function prefersReducedMotion(): boolean {
-  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const stored = document.documentElement.getAttribute("data-reduce-motion") === "1";
+  return stored || matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function createSpring(

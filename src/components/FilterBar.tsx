@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   chipSelected,
@@ -13,7 +13,7 @@ import {
   type FilterGroup,
   type GalleryFilters,
 } from '@/src/library/taxonomy';
-import { pressableWeb, textInputWeb, textWeb } from '@/src/library/webProps';
+import { pressableWeb, textInputWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { colors, fonts } from '@/src/theme';
 
 const CHIP_HOVER = '#f1f1f1';
@@ -28,6 +28,44 @@ const GROUPS: { key: FilterGroup; label: string; chips: readonly { slug: string;
   { key: 'source', label: 'Source', chips: VISIBLE_SOURCES },
   { key: 'status', label: 'Status', chips: STATUSES },
 ];
+
+type SourceFade = 'none' | 'left' | 'right' | 'both';
+
+type ScrollNode = HTMLElement;
+
+function isScrollNode(node: object | null): node is ScrollNode {
+  return node !== null && 'scrollWidth' in node && 'addEventListener' in node;
+}
+
+function useSourceFade(): { ref: { current: ComponentRef<typeof View> | null }; fade: SourceFade } {
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const [fade, setFade] = useState<SourceFade>('none');
+  useEffect(() => {
+    const el = ref.current;
+    if (!isScrollNode(el)) return;
+    const node = el;
+    const update = () => {
+      const overflow = node.scrollWidth - node.clientWidth > 1;
+      if (!overflow) {
+        setFade('none');
+        return;
+      }
+      const left = node.scrollLeft > 1;
+      const right = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+      const next: SourceFade = left && right ? 'both' : right ? 'right' : left ? 'left' : 'none';
+      setFade(next);
+    };
+    update();
+    node.addEventListener('scroll', update);
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(update) : null;
+    observer?.observe(node);
+    return () => {
+      node.removeEventListener('scroll', update);
+      observer?.disconnect();
+    };
+  }, []);
+  return { ref, fade };
+}
 
 export function FilterBar({
   typeSlug,
@@ -45,6 +83,7 @@ export function FilterBar({
   const matched = countGallery(typeSlug, filters);
   const line = resultLine(matched, total, typeName, filters);
   const showClear = filtersActive(filters);
+  const sourceRow = useSourceFade();
 
   return (
     <View style={styles.wrap}>
@@ -63,7 +102,13 @@ export function FilterBar({
         {GROUPS.map((group) => (
           <View key={group.key} style={styles.groupRow}>
             <Text style={styles.groupLabel}>{group.label}</Text>
-            <View style={styles.chips}>
+            <View
+              ref={group.key === 'source' ? sourceRow.ref : undefined}
+              style={[styles.chips, group.key === 'source' && styles.chipsNowrap]}
+              {...(group.key === 'source'
+                ? viewWeb({ dataSet: { sourceChips: 'true', sourceFade: sourceRow.fade } })
+                : {})}
+            >
               {group.chips.map((chip) => {
                 const selected = chipSelected(filters, group.key, chip.slug);
                 const next = toggleFilter(filters, group.key, chip.slug);
@@ -227,6 +272,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
+  },
+  chipsNowrap: {
+    flexWrap: 'nowrap',
+    minWidth: 0,
   },
   chip: {
     height: 30,

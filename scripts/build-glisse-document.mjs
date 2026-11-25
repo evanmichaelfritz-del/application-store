@@ -98,7 +98,7 @@ if (script.includes('sourceMappingURL') || script.includes('/agent/') || script.
   throw new Error('glisse bundle has a sourcemap or an absolute path');
 }
 
-const credit = `<p class="glisse-credit">Kelvin Zhang (<a href="${GLISSE_POST}" target="_blank" rel="noopener noreferrer">@kelvinzhg</a>) · <a href="${GLISSE_REPO}" target="_blank" rel="noopener noreferrer">github.com/0kzh/glisse</a> · <a href="${GLISSE_SITE}" target="_blank" rel="noopener noreferrer">glisse.kelvinzhang.com</a></p>`;
+const credit = `<p class="glisse-credit"><a href="${GLISSE_POST}" target="_blank" rel="noopener noreferrer">Kelvin Zhang</a> (<a href="${GLISSE_POST}" target="_blank" rel="noopener noreferrer">@kelvinzhg</a>) · <a href="${GLISSE_REPO}" target="_blank" rel="noopener noreferrer">repo</a> · <a href="${GLISSE_SITE}" target="_blank" rel="noopener noreferrer">site</a></p>`;
 
 const html = `<!DOCTYPE html>
 <html lang="en">

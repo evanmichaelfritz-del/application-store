@@ -5,7 +5,7 @@
  *   node scripts/check-showcase.mjs adam-sidebar-transitions
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -24,9 +24,7 @@ const glisseBuilt = spawnSync(process.execPath, [join(root, 'scripts/build-gliss
 });
 if (glisseBuilt.status !== 0) process.exit(glisseBuilt.status ?? 1);
 const only = process.argv[2] ?? '';
-const outdir = join(tmpdir(), 'store-showcases');
-rmSync(outdir, { recursive: true, force: true });
-mkdirSync(outdir, { recursive: true });
+const outdir = mkdtempSync(join(tmpdir(), 'store-showcases-'));
 
 function stubTsx(source) {
   const names = new Set();
@@ -45,7 +43,57 @@ function stubTsx(source) {
   return lines.join('\n');
 }
 
-const outfile = join(tmpdir(), 'showcase-generate.mjs');
+const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8').replace(/\r\n/g, '\n').trim();
+const permission = 'Permission is hereby granted, free of charge';
+const asIs = 'THE SOFTWARE IS PROVIDED "AS IS"';
+const cardOut = join(outdir, 'glisse-card.js');
+await esbuild.build({
+  entryPoints: [join(root, 'src/demos/glisse/card.web.tsx')],
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'es2022',
+  outfile: cardOut,
+  absWorkingDir: root,
+  jsx: 'automatic',
+  minify: true,
+  legalComments: 'none',
+  sourcemap: false,
+  banner: { js: `/*!\n${licenseFile}\n*/\n` },
+  define: { 'process.env.NODE_ENV': '"production"' },
+  logLevel: 'silent',
+  external: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+  plugins: [
+    {
+      name: 'css-inline',
+      setup(build) {
+        build.onResolve({ filter: /\.css\?inline$/ }, (args) => ({
+          path: join(args.resolveDir, args.path.replace(/\?inline$/, '')),
+          namespace: 'css-inline',
+        }));
+        build.onLoad({ filter: /.*/, namespace: 'css-inline' }, (args) => ({
+          contents: `export default ${JSON.stringify(readFileSync(args.path, 'utf8'))};\n`,
+          loader: 'js',
+        }));
+      },
+    },
+  ],
+});
+const cardChunk = readFileSync(cardOut, 'utf8');
+const parityJs = readFileSync(join(root, 'public/parity/glisse.js'), 'utf8');
+const parityHtml = readFileSync(join(root, 'public/parity/glisse.html'), 'utf8');
+for (const [label, text] of [
+  ['glisse.html', parityHtml],
+  ['glisse.js', parityJs],
+  ['glisse card chunk', cardChunk],
+]) {
+  if (!text.includes(permission) || !text.includes(asIs) || !text.includes(licenseFile)) {
+    console.error(`${label} is missing the MIT licence`);
+    process.exit(1);
+  }
+}
+
+const outfile = join(outdir, 'showcase-generate.mjs');
 await esbuild.build({
   entryPoints: [join(root, 'src/showcase/generate.ts')],
   bundle: true,

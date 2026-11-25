@@ -757,7 +757,7 @@ const glisseSheet = readFileSync(join(root, 'public/prompts/glisse.md'), 'utf8')
 const glisseCopy = readFileSync(join(root, 'public/parity/glisse.html'), 'utf8');
 if (fenced(glisseSheet, 'html') !== glisseCopy) glisseHits.push('glisse Code fence is not the Copy');
 const glisseProse = glisseSheet.split(/^## Code\b/m)[0];
-for (const word of ['the docs', 'his site', 'his Frost']) {
+for (const word of ['the docs', 'his site', 'his Frost', 'his spring', 'vendored library', 'pinned at', 'Pinned at', 'Upstream:']) {
   if (glisseProse.includes(word)) glisseHits.push(`glisse prompt says ${word}`);
 }
 console.log(`glisse hits: ${glisseHits.length}`);

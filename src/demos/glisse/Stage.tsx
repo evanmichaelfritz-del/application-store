@@ -164,16 +164,16 @@ export function GlisseStage({ credit = null }: { credit?: ReactNode }) {
   useCardCss();
   useWallpaperDrag(scrollerRef);
 
-  const lensStyle = {
+  const lensStyle: CSSProperties & Record<`--lg-${string}`, string> = {
     width: 210,
-    height: 150,
+    height: 120,
     borderRadius: 75,
     backgroundColor: 'transparent',
     '--lg-glass-bend': String(bend),
     '--lg-glass-dispersion': String(dispersion),
     '--lg-blur': `${blur}px`,
     '--lg-rim-shine': String(rim),
-  } as CSSProperties;
+  };
 
   return (
     <div id="glisse" className="glisse" data-theme="dark" data-testid="glisse">
@@ -199,7 +199,7 @@ export function GlisseStage({ credit = null }: { credit?: ReactNode }) {
       <div className="glisse-dock">
         <Knob label="Bend" min={0} max={1} step={0.01} value={bend} onChange={setBend} />
         <Knob label="Dispersion" min={0} max={2} step={0.05} value={dispersion} onChange={setDispersion} />
-        <Knob label="Blur" min={0} max={12} step={0.5} value={blur} unit="px" onChange={setBlur} />
+        <Knob label="Frost" min={0} max={12} step={0.5} value={blur} unit="px" onChange={setBlur} />
         <Knob label="Rim" min={0} max={1} step={0.01} value={rim} onChange={setRim} />
       </div>
       {credit}

@@ -205,6 +205,27 @@ html[data-reduce-motion="1"] [data-palette-panel] {
 html[data-reduce-motion="1"] [data-palette-panel] {
   transform: none !important;
 }
+[data-source-chips] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+}
+[data-source-chips]::-webkit-scrollbar {
+  display: none;
+}
+[data-source-fade="right"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+[data-source-fade="left"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+[data-source-fade="both"] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
 `;
 
 /** Metro web ignores +html.tsx, so the gallery chrome CSS is injected once. */

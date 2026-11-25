@@ -34,7 +34,7 @@ export const CARD_CSS = `.glisse {
 }
 .glisse-overlay {
   position: absolute;
-  inset: 0 0 108px 0;
+  inset: 0 0 148px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,6 +44,16 @@ export const CARD_CSS = `.glisse {
 }
 .glisse-overlay > * { pointer-events: auto; }
 .glisse-lens { pointer-events: none; flex: none; }
+.glisse .glisse-lens.lg-glass,
+.glisse .glisse-lens.lg-glass[data-rim],
+.glisse .glisse-lens.lg-glass[data-drawn] {
+  box-shadow:
+    0 6px 24px rgb(0 0 0 / 0.2),
+    inset 0 0 0 1.5px rgb(255 255 255 / 0.5),
+    inset 0 2px 1px rgb(255 255 255 / 0.45),
+    inset 2px 7px 24px rgb(0 0 0 / 0.09),
+    inset -2px -7px 24px rgb(255 255 255 / 0.16);
+}
 .glisse-sliders {
   display: flex;
   flex-direction: column;
@@ -75,8 +85,9 @@ export const CARD_CSS = `.glisse {
   left: 20px;
   z-index: 3;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  gap: 8px 28px;
 }
 .glisse-knob {
   display: flex;
@@ -88,7 +99,7 @@ export const CARD_CSS = `.glisse {
   line-height: 16px;
 }
 .glisse-knob > span:first-child { flex: none; width: 76px; }
-.glisse-knob .lg-slider { flex: 1; min-width: 0; }
+.glisse-knob .lg-slider { width: 240px; flex: none; }
 .glisse-knob > span:last-child {
   flex: none;
   min-width: 40px;
