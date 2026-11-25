@@ -13,6 +13,29 @@ import esbuild from 'esbuild';
 import puppeteer from 'puppeteer-core';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+const PERMISSION = 'Permission is hereby granted, free of charge';
+const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
+const cardSource = readFileSync(join(root, 'src/demos/glisse/card.web.tsx'), 'utf8');
+const shippedLicense = readFileSync(join(root, 'src/demos/glisse/shippedLicense.ts'), 'utf8');
+const sourceHits = [];
+if (!cardSource.includes("import { SHIPPED_LICENSE } from './shippedLicense'")) {
+  sourceHits.push('card.web.tsx does not import SHIPPED_LICENSE');
+}
+if (!cardSource.includes('retainShippedLicense(SHIPPED_LICENSE)')) {
+  sourceHits.push('card.web.tsx does not call retainShippedLicense(SHIPPED_LICENSE)');
+}
+if (!shippedLicense.startsWith('/*!\n@license')) {
+  sourceHits.push('shippedLicense.ts does not open with the licence comment');
+}
+if (!shippedLicense.includes(PERMISSION) || !shippedLicense.includes(AS_IS)) {
+  sourceHits.push('shippedLicense.ts is missing the MIT phrases');
+}
+if (sourceHits.length) {
+  for (const line of sourceHits) console.error(line);
+  process.exit(1);
+}
+
 const built = spawnSync(process.execPath, [join(root, 'scripts/build-skia-showcase.mjs')], {
   cwd: root,
   stdio: 'inherit',
@@ -41,56 +64,6 @@ function stubTsx(source) {
   for (const name of names) lines.push(`export const ${name} = __stub;`);
   lines.push('export default __stub;');
   return lines.join('\n');
-}
-
-const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8').replace(/\r\n/g, '\n').trim();
-const permission = 'Permission is hereby granted, free of charge';
-const asIs = 'THE SOFTWARE IS PROVIDED "AS IS"';
-const cardOut = join(outdir, 'glisse-card.js');
-await esbuild.build({
-  entryPoints: [join(root, 'src/demos/glisse/card.web.tsx')],
-  bundle: true,
-  format: 'esm',
-  platform: 'browser',
-  target: 'es2022',
-  outfile: cardOut,
-  absWorkingDir: root,
-  jsx: 'automatic',
-  minify: true,
-  legalComments: 'none',
-  sourcemap: false,
-  banner: { js: `/*!\n${licenseFile}\n*/\n` },
-  define: { 'process.env.NODE_ENV': '"production"' },
-  logLevel: 'silent',
-  external: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
-  plugins: [
-    {
-      name: 'css-inline',
-      setup(build) {
-        build.onResolve({ filter: /\.css\?inline$/ }, (args) => ({
-          path: join(args.resolveDir, args.path.replace(/\?inline$/, '')),
-          namespace: 'css-inline',
-        }));
-        build.onLoad({ filter: /.*/, namespace: 'css-inline' }, (args) => ({
-          contents: `export default ${JSON.stringify(readFileSync(args.path, 'utf8'))};\n`,
-          loader: 'js',
-        }));
-      },
-    },
-  ],
-});
-const cardChunk = readFileSync(cardOut, 'utf8');
-const parityJs = readFileSync(join(root, 'public/parity/glisse.js'), 'utf8');
-const parityHtml = readFileSync(join(root, 'public/parity/glisse.html'), 'utf8');
-for (const [label, text] of [
-  ['glisse.html', parityHtml],
-  ['glisse.js', parityJs],
-  ['glisse card chunk', cardChunk],
-]) {
-  if (!text.includes(permission) || !text.includes(asIs) || !text.includes(licenseFile)) {
-    console.error(`${label} is missing the MIT licence`);
-    process.exit(1);
-  }
 }
 
 const outfile = join(outdir, 'showcase-generate.mjs');

@@ -1,0 +1,58 @@
+/**
+ * The exported card chunk must carry Kelvin Zhang's MIT text.
+ * Run after `expo export`. Finds the JS file that contains `lg-tab-bar`.
+ *
+ *   node scripts/check-glisse-export.mjs
+ */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+// Metro chunks only. public/parity/glisse.js is copied into dist and is not the card chunk.
+const dist = join(root, 'dist', '_expo');
+const PERMISSION = 'Permission is hereby granted, free of charge';
+const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
+const COPYRIGHT = 'Copyright (c) 2026 Kelvin Zhang';
+
+function walk(dir, acc) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch (error) {
+    console.error(`glisse export: cannot read ${dir}`);
+    process.exit(1);
+  }
+  for (const name of entries) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) walk(path, acc);
+    else if (name.endsWith('.js')) acc.push(path);
+  }
+}
+
+const files = [];
+walk(dist, files);
+const chunks = [];
+for (const file of files) {
+  const text = readFileSync(file, 'utf8');
+  if (text.includes('lg-tab-bar')) chunks.push({ file, text });
+}
+if (chunks.length === 0) {
+  console.error('glisse export: no JS chunk contains lg-tab-bar');
+  process.exit(1);
+}
+let failed = false;
+for (const chunk of chunks) {
+  const missing = [];
+  if (!chunk.text.includes(PERMISSION)) missing.push(PERMISSION);
+  if (!chunk.text.includes(AS_IS)) missing.push(AS_IS);
+  if (!chunk.text.includes(COPYRIGHT)) missing.push(COPYRIGHT);
+  const rel = chunk.file.slice(root.length + 1);
+  if (missing.length) {
+    failed = true;
+    console.error(`${rel} is missing ${missing.join(' | ')}`);
+  } else {
+    console.log(`${rel} ${Buffer.byteLength(chunk.text)} carries the MIT text`);
+  }
+}
+if (failed) process.exit(1);
