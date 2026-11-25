@@ -20,6 +20,17 @@ export const CARD_CSS = `.oba {
   max-width: calc(100% - 48px);
   aspect-ratio: 1;
 }
+.oba-compact {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.oba-compact .oba-stage { width: 100%; height: 100%; }
+.oba-compact .oba-avatar-host {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+}
 .oba-panel {
   width: 400px;
   flex: none;
@@ -64,6 +75,7 @@ export const CARD_CSS = `.oba {
 }
 .oba-chip {
   appearance: none;
+  flex: none;
   height: 30px;
   padding: 0 10px;
   border-radius: 999px;
@@ -117,6 +129,7 @@ export const CARD_CSS = `.oba {
 .oba-json {
   width: 100%;
   box-sizing: border-box;
+  flex: none;
   min-height: 64px;
   height: 64px;
   resize: vertical;
@@ -130,6 +143,7 @@ export const CARD_CSS = `.oba {
 .oba-import {
   appearance: none;
   align-self: flex-start;
+  flex: none;
   height: 30px;
   padding: 0 12px;
   border-radius: 8px;
@@ -142,6 +156,7 @@ export const CARD_CSS = `.oba {
 .oba-import:hover { background: #3a3a3e; }
 .oba-errors {
   margin: 0;
+  flex: none;
   padding-left: 18px;
   color: #b42318;
   font-size: 12px;

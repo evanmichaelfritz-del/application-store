@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CARD_CSS } from './cardCss';
 import { COLOR_ROW, DEFAULT_PRESET_ID, PRESETS, presetById, type PresetGroup } from './presets';
 import { mountAvatar, type AvatarOptions, type MountedAvatar } from './vendor/core/dom';
@@ -89,8 +89,10 @@ const initial = startingPreset();
 /** One live avatar and the controls that drive it. */
 export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   useCardCss();
+  const frameRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<MountedAvatar | null>(null);
+  const [compact, setCompact] = useState(false);
   const [definition, setDefinition] = useState<AvatarDefinition>(initial.definition);
   const [color, setColor] = useState(initial.color);
   const [material, setMaterial] = useState<AvatarMaterial>('fluffy');
@@ -113,15 +115,24 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  useLayoutEffect(() => {
+    const parent = frameRef.current?.parentElement;
+    setCompact(!!parent && parent.clientWidth > 0 && parent.clientWidth < 480);
+  }, []);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     let avatar: MountedAvatar | null = null;
     let cancel = false;
-    const delay = softwareWebGL() ? 2500 : 0;
+    const delay = compact || !softwareWebGL() ? 0 : 2500;
     const timer = window.setTimeout(() => {
       if (cancel || !host.isConnected) return;
-      avatar = mountAvatar(host, optionsRef.current);
+      avatar = mountAvatar(host, {
+        ...optionsRef.current,
+        still: compact,
+        followPointer: compact ? false : optionsRef.current.followPointer,
+      });
       avatarRef.current = avatar;
     }, delay);
     return () => {
@@ -130,7 +141,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
       avatar?.destroy();
       avatarRef.current = null;
     };
-  }, []);
+  }, [compact]);
   useEffect(() => {
     avatarRef.current?.update(optionsRef.current);
   }, [definition, color, material, avatarState, mood]);
@@ -170,14 +181,22 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
     setErrors([]);
   }
 
+  useEffect(() => {
+    if (errors.length === 0) return;
+    const list = document.querySelector('[data-testid="oba-errors"]');
+    const panel = list?.closest('.oba-panel');
+    if (panel instanceof HTMLElement) panel.scrollTop = panel.scrollHeight;
+  }, [errors]);
+
   const title = presetId ? definition.name : `Imported · ${definition.name}`;
 
   return (
-    <div className="oba" data-testid="open-bot-avatar">
+    <div ref={frameRef} className={compact ? 'oba oba-compact' : 'oba'} data-testid="open-bot-avatar">
       <div className="oba-stage">
         <div ref={hostRef} className="oba-avatar-host" data-testid="oba-avatar" />
-        {credit}
+        {compact ? null : credit}
       </div>
+      {compact ? null : (
       <div className="oba-panel">
         <p className="oba-name" data-testid="oba-name">
           {title}
@@ -302,6 +321,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
           </ul>
         ) : null}
       </div>
+      )}
     </div>
   );
 }
