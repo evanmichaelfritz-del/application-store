@@ -59,7 +59,6 @@ A slider thumb lifts at stiffness 2000 and damping 80. A switch moves and recolo
 
 - The copied document is one HTML file. Its script is the library and this stage, bundled. The credit anchors are external URLs, and nothing fetches them. The document is 974px wide and centred, dock included.
 - The MIT text, Copyright (c) 2026 Kelvin Zhang, is in that file, including "Permission is hereby granted, free of charge" and "THE SOFTWARE IS PROVIDED \"AS IS\"". Stripping it is a failed copy.
-- In Chrome the lens backdrop-filter is `blur(0px) url("#glisse-backdrop-0") saturate(1.5)`. The canvas path needs AppleWebKit and not Chrome. Safari was not checked.
 - The wallpaper is an inlined 1300×1300 drawing.
 - Frost writes `--lg-blur`, 0 to 12, step 0.5.
 - Continuous, Stepped, and Disabled are on screen together.
