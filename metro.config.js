@@ -18,7 +18,7 @@ config.transformer.minifierConfig = {
   ...config.transformer.minifierConfig,
   output: {
     ...(config.transformer.minifierConfig && config.transformer.minifierConfig.output),
-    comments: /Permission is hereby granted, free of charge/,
+    comments: /@preserve|@copyright|@lic|@cc_on|^\**!|Permission is hereby granted, free of charge/i,
   },
 };
 

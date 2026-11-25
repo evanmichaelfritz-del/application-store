@@ -71,15 +71,15 @@ Mount the HTML file. It has no install step and no run command. The script reads
 
 ## Known gaps
 
-The wallpaper is an original drawing. The docs use macOS Tahoe photos, which aren't in the MIT repo.
+The wallpaper is a drawn scene inlined in the file, not a photo.
 
-The docs show one slider at a time. This stage shows Continuous, Stepped and Disabled together.
+The stage shows the Continuous, Stepped and Disabled sliders together.
 
-The docs lens can be dragged. This lens stays put.
+The lens stays in place. Dragging moves the wallpaper behind it.
 
-The type is system-ui. The docs use Akkurat Pro.
+The type is system-ui.
 
-Checked in desktop Chrome only.
+Checked in desktop Chrome only. Safari was not checked.
 
 ## Checklist
 

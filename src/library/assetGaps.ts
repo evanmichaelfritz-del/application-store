@@ -143,11 +143,11 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Phone widths are a known gap.',
   ],
   glisse: [
-    "The wallpaper is an original drawing. The docs use macOS Tahoe photos, which aren't in the MIT repo.",
-    'The docs show one slider at a time. This stage shows Continuous, Stepped and Disabled together.',
-    'The docs lens can be dragged. This lens stays put.',
-    'The type is system-ui. The docs use Akkurat Pro.',
-    'Checked in desktop Chrome only.',
+    'The wallpaper is a drawn scene inlined in the file, not a photo.',
+    'The stage shows the Continuous, Stepped and Disabled sliders together.',
+    'The lens stays in place. Dragging moves the wallpaper behind it.',
+    'The type is system-ui.',
+    'Checked in desktop Chrome only. Safari was not checked.',
   ],
   'image-generation-loader': [
     'Phone widths are a known gap. The card is measured at a 1280 desktop and stays 168×168. It does not reflow.',

@@ -56,3 +56,19 @@ for (const chunk of chunks) {
   }
 }
 if (failed) process.exit(1);
+
+const html = readFileSync(join(root, 'dist', 'index.html'), 'utf8');
+const srcs = [...html.matchAll(/src="([^"]+)"/g)].map((match) => match[1]);
+const entrySrc = srcs.find((src) => /\/index-[^/]+\.js$/.test(src));
+if (!entrySrc) {
+  console.error('glisse export: dist/index.html has no entry bundle');
+  process.exit(1);
+}
+const entryPath = join(root, 'dist', entrySrc.replace(/^\//, ''));
+const entry = readFileSync(entryPath, 'utf8');
+const reactLicenses = entry.split('@license React').length - 1;
+console.log(`${entryPath.slice(root.length + 1)} @license React ${reactLicenses}`);
+if (!entry.includes('@license React')) {
+  console.error('glisse export: entry bundle is missing @license React');
+  process.exit(1);
+}

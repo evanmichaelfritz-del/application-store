@@ -757,9 +757,15 @@ const glisseSheet = readFileSync(join(root, 'public/prompts/glisse.md'), 'utf8')
 const glisseCopy = readFileSync(join(root, 'public/parity/glisse.html'), 'utf8');
 if (fenced(glisseSheet, 'html') !== glisseCopy) glisseHits.push('glisse Code fence is not the Copy');
 const glisseProse = glisseSheet.split(/^## Code\b/m)[0];
-for (const word of ['the docs', 'his site', 'his Frost', 'his spring', 'vendored library', 'pinned at', 'Pinned at', 'Upstream:']) {
+for (const word of ['his site', 'his Frost', 'his spring', 'vendored library', 'pinned at', 'Pinned at', 'Upstream:']) {
   if (glisseProse.includes(word)) glisseHits.push(`glisse prompt says ${word}`);
 }
+// Scoped here. A global ban on "original" fails number-pop-in, success-check,
+// avatar-group-hover, card-stack-hover, input-clear-dissolve, texts-reveal,
+// tabs-sliding, drag-drop-physics, image-generation-loader, gooey, liquid-metal,
+// and arc-charge. "the docs" does not.
+if (/\boriginal\b/i.test(glisseProse)) glisseHits.push('glisse prompt says original');
+if (/\bthe docs\b/i.test(glisseProse)) glisseHits.push('glisse prompt says the docs');
 console.log(`glisse hits: ${glisseHits.length}`);
 if (glisseHits.length) {
   for (const line of glisseHits) console.error(`  ${line}`);
