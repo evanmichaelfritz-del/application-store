@@ -8,7 +8,7 @@ import { CopyLabel } from '@/src/components/CopyLabel';
 import { CheckIcon, FileDownIcon } from '@/src/components/FileDownIcon';
 import { useShowcaseTip } from '@/src/components/useShowcaseTip';
 import { SkillDownloadLink } from '@/src/components/SkillDownloadLink';
-import { fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
+import { documentIsLazy, fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyDocument, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, reloadSkill, scriptIsLazy, skillFor } from '@/src/library/assetCopy';
 import { pressCopyShowcase } from '@/src/showcase/copyShowcase';
 import { showcaseLater } from '@/src/showcase/later';
 import { installFor } from '@/src/library/assetMeta';
@@ -151,6 +151,10 @@ export function TransitionCard({ item, compact = false }: { item: TransitionItem
     const write = (text: string) => {
       setTimeout(() => writeClipboard(text), 0);
     };
+    if (documentIsLazy(item.id)) {
+      void loadCopyDocument(item.id).then(write);
+      return;
+    }
     const document = fullCopyDocument(item.id);
     if (document) {
       write(document);

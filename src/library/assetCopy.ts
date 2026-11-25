@@ -28,6 +28,24 @@ export function fullCopyDocument(id: string): string | null {
   return composePreviewDocument(item?.title ?? id, parts.html, parts.css, parts.script);
 }
 
+/** The runnable document is a public file, so the entry does not carry it. */
+const LAZY_DOCUMENT: Record<string, string> = {
+  glisse: '/parity/glisse.html',
+};
+
+export function documentIsLazy(id: string): boolean {
+  return id in LAZY_DOCUMENT;
+}
+
+export function loadCopyDocument(id: string): Promise<string> {
+  const url = LAZY_DOCUMENT[id];
+  if (!url) return Promise.resolve('');
+  return fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`Missing ${url}`);
+    return res.text();
+  });
+}
+
 /** Copy CSS, with the Gooey face filled in when this copy is built. */
 export function loadCopyCss(id: string): Promise<string> {
   return embedGooeyFont(copyTextFor(id, 'css'));
@@ -52,6 +70,7 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'spacing-tuner') return loadPublicPrompt('/prompts/spacing-tuner.md');
   if (id === 'image-generation-loader') return loadPublicPrompt('/prompts/image-generation-loader.md');
   if (id === 'stageshow') return loadPublicPrompt('/prompts/stageshow.md');
+  if (id === 'glisse') return loadPublicPrompt('/prompts/glisse.md');
   return Promise.resolve(promptFor(id));
 }
 
@@ -65,7 +84,8 @@ export function promptIsLazy(id: string): boolean {
     id === 'drag-drop-physics' ||
     id === 'spacing-tuner' ||
     id === 'image-generation-loader' ||
-    id === 'stageshow'
+    id === 'stageshow' ||
+    id === 'glisse'
   );
 }
 

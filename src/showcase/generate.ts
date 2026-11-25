@@ -24,6 +24,7 @@ const LAZY_PROMPT: Record<string, string> = {
   stageshow: '/prompts/stageshow.md',
   'yogesh-thinking-orbs': '/prompts/yogesh-thinking-orbs.md',
   'yogesh-orb-creator': '/prompts/yogesh-orb-creator.md',
+  glisse: '/prompts/glisse.md',
 };
 
 const SANS = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -35,6 +36,7 @@ export const STAGE_FLOOR: Record<string, number> = {
   'preview-tools': 520,
   'yogesh-thinking-orbs': 492,
   'yogesh-orb-creator': 560,
+  glisse: 640,
 };
 /** Width / height. Arc is 16:9. The spacing tuner is 1440×1080. */
 export const STAGE_ASPECT: Record<string, string> = {
@@ -204,7 +206,11 @@ async function inlineScript(script: string, read: ByteReader): Promise<string> {
 }
 
 /** Bytes the card's Copy code button writes. A full document when that is the copy. */
-export async function showcaseCode(id: string): Promise<string> {
+export async function showcaseCode(id: string, read?: ByteReader): Promise<string> {
+  if (id === 'glisse') {
+    if (!read) throw new Error('glisse copy needs a reader');
+    return decodeUtf8(await read('/parity/glisse.html'));
+  }
   return fullCopyDocument(id) ?? codeSlot(id, 'html');
 }
 
@@ -242,7 +248,7 @@ export async function generateShowcase(id: string, read: ByteReader): Promise<st
   // the bundle would change the card's source.
   const [faces, code, prompt, script, htmlInlined, cssInlined] = await Promise.all([
     interFaces(load),
-    showcaseCode(id),
+    showcaseCode(id, load),
     showcasePrompt(id, load),
     skia ? parts.script : inlineScript(parts.script, load),
     skia ? parts.html : inlinePaths(presentCredit(id, dropLinks(parts.html)), load),
@@ -382,7 +388,50 @@ window.addEventListener('message', function (event) {
 });
 parent.postMessage({ showcaseFontsPlease: 1 }, '*');
 ${dragCapture}`;
-  const stage = composePreviewDocument(item.title, htmlInlined, css, stageScript);
+  const composed = composePreviewDocument(item.title, htmlInlined, css, stageScript);
+  // The copy document already runs offline. The stage drops anchors so the
+  // checker does not see the credit URLs, then asks the shell for Inter.
+  // The copied file keeps the links and does not request a font.
+  const stage =
+    id === 'glisse'
+      ? dropLinks(code).replace(
+          '</body>',
+          `<script>
+function aliasInter(style) {
+  if (!style || !style.sheet || style.dataset.aliased) return;
+  style.dataset.aliased = '1';
+  var extra = '';
+  var rules = style.sheet.cssRules;
+  var i = 0;
+  for (; i < rules.length; i++) {
+    var rule = rules[i];
+    if (!rule.style || String(rule.style.fontFamily).replace(/["']/g, '') !== 'Inter') continue;
+    var family = rule.style.fontWeight === '400' ? 'Inter_400Regular' : rule.style.fontWeight === '500' ? 'Inter_500Medium' : '';
+    if (!family) continue;
+    extra += '@font-face{font-family:' + family + ';font-style:normal;font-weight:100 900;font-display:block;src:' + rule.style.getPropertyValue('src') + ';unicode-range:' + rule.style.getPropertyValue('unicode-range') + '}';
+  }
+  if (extra) style.appendChild(document.createTextNode(extra));
+}
+function installFonts(cssText) {
+  var style = document.getElementById('showcase-fonts');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'showcase-fonts';
+    style.textContent = cssText;
+    document.head.appendChild(style);
+  }
+  aliasInter(style);
+}
+window.addEventListener('message', function (event) {
+  if (event.source !== window.parent) return;
+  var data = event.data;
+  if (data && typeof data.showcaseFonts === 'string') installFonts(data.showcaseFonts);
+});
+parent.postMessage({ showcaseFontsPlease: 1 }, '*');
+</script>
+</body>`,
+        )
+      : composed;
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
   const handle = credit ? creditHandle(credit.url) : null;

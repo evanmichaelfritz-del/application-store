@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   chipSelected,
@@ -13,7 +13,7 @@ import {
   type FilterGroup,
   type GalleryFilters,
 } from '@/src/library/taxonomy';
-import { pressableWeb, textInputWeb, textWeb } from '@/src/library/webProps';
+import { pressableWeb, textInputWeb, textWeb, viewWeb } from '@/src/library/webProps';
 import { colors, fonts } from '@/src/theme';
 
 const CHIP_HOVER = '#f1f1f1';
@@ -28,6 +28,60 @@ const GROUPS: { key: FilterGroup; label: string; chips: readonly { slug: string;
   { key: 'source', label: 'Source', chips: VISIBLE_SOURCES },
   { key: 'status', label: 'Status', chips: STATUSES },
 ];
+
+type SourceFade = 'none' | 'left' | 'right' | 'both';
+
+type ScrollNode = HTMLElement;
+
+function isScrollNode(node: object | null): node is ScrollNode {
+  return node !== null && 'scrollWidth' in node && 'addEventListener' in node;
+}
+
+const SOURCE_FADE_PAD = 8;
+
+function revealInSourceRow(node: HTMLElement): void {
+  node.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  const scroller = node.closest('[data-source-chips]');
+  if (!(scroller instanceof HTMLElement)) return;
+  if (scroller.scrollWidth - scroller.clientWidth <= 1) return;
+  const chip = node.getBoundingClientRect();
+  const box = scroller.getBoundingClientRect();
+  if (chip.right > box.right - SOURCE_FADE_PAD) {
+    scroller.scrollLeft += chip.right - (box.right - SOURCE_FADE_PAD);
+  } else if (chip.left < box.left + SOURCE_FADE_PAD) {
+    scroller.scrollLeft -= box.left + SOURCE_FADE_PAD - chip.left;
+  }
+}
+
+function useSourceFade(): { ref: { current: ComponentRef<typeof View> | null }; fade: SourceFade } {
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const [fade, setFade] = useState<SourceFade>('none');
+  useEffect(() => {
+    const el = ref.current;
+    if (!isScrollNode(el)) return;
+    const node = el;
+    const update = () => {
+      const overflow = node.scrollWidth - node.clientWidth > 1;
+      if (!overflow) {
+        setFade('none');
+        return;
+      }
+      const left = node.scrollLeft > 1;
+      const right = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+      const next: SourceFade = left && right ? 'both' : right ? 'right' : left ? 'left' : 'none';
+      setFade(next);
+    };
+    update();
+    node.addEventListener('scroll', update);
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(update) : null;
+    observer?.observe(node);
+    return () => {
+      node.removeEventListener('scroll', update);
+      observer?.disconnect();
+    };
+  }, []);
+  return { ref, fade };
+}
 
 export function FilterBar({
   typeSlug,
@@ -45,6 +99,7 @@ export function FilterBar({
   const matched = countGallery(typeSlug, filters);
   const line = resultLine(matched, total, typeName, filters);
   const showClear = filtersActive(filters);
+  const sourceRow = useSourceFade();
 
   return (
     <View style={styles.wrap}>
@@ -63,7 +118,13 @@ export function FilterBar({
         {GROUPS.map((group) => (
           <View key={group.key} style={styles.groupRow}>
             <Text style={styles.groupLabel}>{group.label}</Text>
-            <View style={styles.chips}>
+            <View
+              ref={group.key === 'source' ? sourceRow.ref : undefined}
+              style={[styles.chips, group.key === 'source' && styles.chipsNowrap]}
+              {...(group.key === 'source'
+                ? viewWeb({ dataSet: { sourceChips: 'true', sourceFade: sourceRow.fade } })
+                : {})}
+            >
               {group.chips.map((chip) => {
                 const selected = chipSelected(filters, group.key, chip.slug);
                 const next = toggleFilter(filters, group.key, chip.slug);
@@ -74,6 +135,7 @@ export function FilterBar({
                     label={chip.label}
                     selected={selected}
                     muted={muted}
+                    reveal={group.key === 'source'}
                     testID={`chip-${group.key}-${chip.slug}`}
                     accessibilityLabel={`${group.label} ${chip.label}`}
                     onToggle={() => onChange(next)}
@@ -127,6 +189,7 @@ function FilterChip({
   label,
   selected,
   muted,
+  reveal,
   onToggle,
   testID,
   accessibilityLabel,
@@ -134,6 +197,7 @@ function FilterChip({
   label: string;
   selected: boolean;
   muted: boolean;
+  reveal: boolean;
   onToggle: () => void;
   testID: string;
   accessibilityLabel: string;
@@ -144,20 +208,30 @@ function FilterChip({
 
   useEffect(() => {
     const el = ref.current;
-    if (!isKeyTarget(el)) return;
-    const onKeyDown = (event: KeyEvent) => {
+    if (!isScrollNode(el)) return;
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== ' ' && event.key !== 'Spacebar') return;
       event.preventDefault();
       toggleRef.current();
     };
+    const onFocus = () => {
+      if (reveal) revealInSourceRow(el);
+    };
     el.addEventListener('keydown', onKeyDown);
-    return () => el.removeEventListener('keydown', onKeyDown);
-  }, []);
+    el.addEventListener('focus', onFocus);
+    return () => {
+      el.removeEventListener('keydown', onKeyDown);
+      el.removeEventListener('focus', onFocus);
+    };
+  }, [reveal]);
 
   return (
     <Pressable
       ref={ref}
-      onPress={onToggle}
+      onPress={() => {
+        onToggle();
+        if (reveal && isScrollNode(ref.current)) revealInSourceRow(ref.current);
+      }}
       testID={testID}
       accessibilityRole="checkbox"
       accessibilityLabel={accessibilityLabel}
@@ -227,6 +301,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
+  },
+  chipsNowrap: {
+    flexWrap: 'nowrap',
+    minWidth: 0,
   },
   chip: {
     height: 30,

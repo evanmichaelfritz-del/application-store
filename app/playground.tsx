@@ -20,7 +20,7 @@ import {
   withPreviewOrigin,
   type PreviewKind,
 } from '@/src/closedNetwork/previewSources';
-import { fullCopyDocument, loadAssetPrompt, loadCopyScript, promptIsLazy, scriptIsLazy } from '@/src/library/assetCopy';
+import { documentIsLazy, fullCopyDocument, loadAssetPrompt, loadCopyDocument, loadCopyScript, promptIsLazy, scriptIsLazy } from '@/src/library/assetCopy';
 import { writeClipboard } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { colors, fonts, radii, shadows } from '@/src/theme';
@@ -79,6 +79,10 @@ export default function PlaygroundScreen() {
     setMode('code');
     dirty.current = false;
     setScriptRetry(false);
+    if (documentIsLazy(button.id)) {
+      void loadCopyDocument(button.id).then((doc) => showDocument(doc));
+      return;
+    }
     showDocument(button.code);
   };
 

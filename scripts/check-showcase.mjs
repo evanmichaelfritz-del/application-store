@@ -1,11 +1,12 @@
 /**
  * Build every eligible showcase file and prove it is offline.
+ * Reads the committed Copy. It does not rewrite those files.
+ * Rebuild them with scripts/build-skia-showcase.mjs and scripts/build-glisse-document.mjs.
  *
  *   node scripts/check-showcase.mjs
  *   node scripts/check-showcase.mjs adam-sidebar-transitions
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -13,15 +14,31 @@ import esbuild from 'esbuild';
 import puppeteer from 'puppeteer-core';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const built = spawnSync(process.execPath, [join(root, 'scripts/build-skia-showcase.mjs')], {
-  cwd: root,
-  stdio: 'inherit',
-});
-if (built.status !== 0) process.exit(built.status ?? 1);
+
+const PERMISSION = 'Permission is hereby granted, free of charge';
+const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
+const cardSource = readFileSync(join(root, 'src/demos/glisse/card.web.tsx'), 'utf8');
+const shippedLicense = readFileSync(join(root, 'src/demos/glisse/shippedLicense.ts'), 'utf8');
+const sourceHits = [];
+if (!cardSource.includes("import { SHIPPED_LICENSE } from './shippedLicense'")) {
+  sourceHits.push('card.web.tsx does not import SHIPPED_LICENSE');
+}
+if (!cardSource.includes('retainShippedLicense(SHIPPED_LICENSE)')) {
+  sourceHits.push('card.web.tsx does not call retainShippedLicense(SHIPPED_LICENSE)');
+}
+if (!shippedLicense.startsWith('/*!\n@license')) {
+  sourceHits.push('shippedLicense.ts does not open with the licence comment');
+}
+if (!shippedLicense.includes(PERMISSION) || !shippedLicense.includes(AS_IS)) {
+  sourceHits.push('shippedLicense.ts is missing the MIT phrases');
+}
+if (sourceHits.length) {
+  for (const line of sourceHits) console.error(line);
+  process.exit(1);
+}
+
 const only = process.argv[2] ?? '';
-const outdir = join(tmpdir(), 'store-showcases');
-rmSync(outdir, { recursive: true, force: true });
-mkdirSync(outdir, { recursive: true });
+const outdir = mkdtempSync(join(tmpdir(), 'store-showcases-'));
 
 function stubTsx(source) {
   const names = new Set();
@@ -40,7 +57,7 @@ function stubTsx(source) {
   return lines.join('\n');
 }
 
-const outfile = join(tmpdir(), 'showcase-generate.mjs');
+const outfile = join(outdir, 'showcase-generate.mjs');
 await esbuild.build({
   entryPoints: [join(root, 'src/showcase/generate.ts')],
   bundle: true,
@@ -110,7 +127,7 @@ function stripComments(source) {
 const REQUEST_PATTERNS = [
   { label: 'script src', pattern: /<script\b[^>]*\bsrc\s*=/i },
   { label: '@import', pattern: /@import\b/i },
-  { label: 'css url', pattern: /url\(\s*(['"])(?!data:|#)(?!\1)/ },
+  { label: 'css url', pattern: /url\(\s*(['"])(?!data:|#|\$\{)(?!\1)/ },
   { label: 'fetch(', pattern: /\bfetch\s*\(/ },
   { label: 'worker', pattern: /new\s+Worker\s*\(\s*(['"])(?!blob:)/ },
   { label: 'xhr', pattern: /\bXMLHttpRequest\b/ },
@@ -170,6 +187,23 @@ function assertOffline(html, id) {
     if (conditions < 2) hits.push(`Geist OFL conditions ${conditions}`);
     if (!html.includes('Copyright (c) 2011 Google Inc.')) hits.push('missing CanvasKit licence');
     if (!html.includes('Neither the name of Google Inc.')) hits.push('missing CanvasKit BSD terms');
+  }
+  if (id === 'glisse') {
+    const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8').replace(/\r\n/g, '\n').trim();
+    const script = readFileSync(join(root, 'public/parity/glisse.js'), 'utf8');
+    const permission = 'Permission is hereby granted, free of charge';
+    const asIs = 'THE SOFTWARE IS PROVIDED "AS IS"';
+    if (!licenseFile.includes(permission) || !licenseFile.includes(asIs)) {
+      hits.push('vendor LICENSE lost the MIT grant');
+    }
+    for (const [label, text] of [
+      ['glisse.html', code],
+      ['glisse.js', script],
+    ]) {
+      if (!text.includes(permission) || !text.includes(asIs) || !text.includes(licenseFile)) {
+        hits.push(`${label} is missing the MIT licence`);
+      }
+    }
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
   hits.push(...assertFonts(html));
@@ -232,7 +266,7 @@ const rows = [];
 const problems = [];
 for (const id of ids) {
   const html = await loaded.generateShowcase(id, read);
-  const [code, prompt] = await Promise.all([loaded.showcaseCode(id), loaded.showcasePrompt(id, read)]);
+  const [code, prompt] = await Promise.all([loaded.showcaseCode(id, read), loaded.showcasePrompt(id, read)]);
   const offline = assertOffline(html, id);
   if (offline.code !== code) problems.push(`${id}: embedded Copy code is not the card copy`);
   if (offline.prompt !== prompt) problems.push(`${id}: embedded Copy prompt is not the card prompt`);

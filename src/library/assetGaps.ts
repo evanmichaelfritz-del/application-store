@@ -142,6 +142,13 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
   'arc-charge': [
     'Phone widths are a known gap.',
   ],
+  glisse: [
+    'The wallpaper is a drawn scene inlined in the file, not a photo.',
+    'The stage shows the Continuous, Stepped and Disabled sliders together.',
+    'The lens stays in place. Dragging moves the wallpaper behind it.',
+    'The type is system-ui.',
+    'Checked in desktop Chrome only. Safari was not checked.',
+  ],
   'image-generation-loader': [
     'Phone widths are a known gap. The card is measured at a 1280 desktop and stays 168×168. It does not reflow.',
     'A second load picks a different photo and a different wait, so a side-by-side frame will not match. The settled photo still matches its own file within 1 luma.',

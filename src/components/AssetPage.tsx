@@ -17,7 +17,7 @@ import { TransitionCard } from '@/src/components/TransitionCard';
 import { writeClipboard, writeClipboardAwait, writeClipboardFromGesture, writeClipboardNow } from '@/src/clipboard';
 import { useCopyToast } from '@/src/context/CopyToastContext';
 import { useReduceMotion } from '@/src/context/ReduceMotionContext';
-import { codeSlot, fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
+import { codeSlot, documentIsLazy, fullCopyDocument, loadAssetPrompt, loadCopyCss, loadCopyDocument, loadCopyScript, loadSkill, prefetchCopyCss, promptIsLazy, readyPrompt, reloadSkill, scriptIsLazy, skillFor, type CodeKind } from '@/src/library/assetCopy';
 import {
   addedOn,
   gapsFor,
@@ -217,6 +217,10 @@ function Found({ item }: { item: TransitionItem }) {
     const write = (text: string) => {
       setTimeout(() => writeClipboard(text), 0);
     };
+    if (documentIsLazy(item.id)) {
+      void loadCopyDocument(item.id).then(write);
+      return;
+    }
     const document = fullCopyDocument(item.id);
     if (document) {
       write(document);
@@ -501,6 +505,10 @@ function Found({ item }: { item: TransitionItem }) {
             const write = (text: string) => {
               setTimeout(() => writeClipboard(text), 0);
             };
+            if (documentIsLazy(item.id)) {
+              void loadCopyDocument(item.id).then(write);
+              return;
+            }
             const document = fullCopyDocument(item.id);
             if (document) {
               write(document);
@@ -1003,6 +1011,10 @@ const CodeBody = memo(function CodeBody({ id, kind, defer }: { id: string; kind:
       const finish = (text: string) => {
         if (live) setBody(text);
       };
+      if (documentIsLazy(id)) {
+        void loadCopyDocument(id).then(finish).catch(() => finish(''));
+        return;
+      }
       if (kind === 'script' && scriptIsLazy(id)) {
         void loadCopyScript(id).then(finish).catch(() => finish(''));
         return;
