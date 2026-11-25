@@ -149,6 +149,14 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'The type is system-ui.',
     'Checked in desktop Chrome only. Safari was not checked.',
   ],
+  'open-bot-avatar': [
+    'The card does not reflow for phone widths. Desktop 1280 is the gate.',
+    'It is a playground for one avatar, with no Generate, file-drop import, export menus or share links.',
+    'There is no listening or speaking state, so the six states are the full set.',
+    'Fluffy needs WebGL2 and otherwise draws flat.',
+    'The preview does not rotate on drag.',
+    'Checked in desktop Chrome only. Safari was not checked.',
+  ],
   'image-generation-loader': [
     'Phone widths are a known gap. The card is measured at a 1280 desktop and stays 168×168. It does not reflow.',
     'A second load picks a different photo and a different wait, so a side-by-side frame will not match. The settled photo still matches its own file within 1 luma.',

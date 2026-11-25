@@ -31,6 +31,7 @@ export function fullCopyDocument(id: string): string | null {
 /** The runnable document is a public file, so the entry does not carry it. */
 const LAZY_DOCUMENT: Record<string, string> = {
   glisse: '/parity/glisse.html',
+  'open-bot-avatar': '/parity/open-bot-avatar.html',
 };
 
 export function documentIsLazy(id: string): boolean {
@@ -71,6 +72,7 @@ export function loadAssetPrompt(id: string): Promise<string> {
   if (id === 'image-generation-loader') return loadPublicPrompt('/prompts/image-generation-loader.md');
   if (id === 'stageshow') return loadPublicPrompt('/prompts/stageshow.md');
   if (id === 'glisse') return loadPublicPrompt('/prompts/glisse.md');
+  if (id === 'open-bot-avatar') return loadPublicPrompt('/prompts/open-bot-avatar.md');
   return Promise.resolve(promptFor(id));
 }
 
@@ -85,7 +87,8 @@ export function promptIsLazy(id: string): boolean {
     id === 'spacing-tuner' ||
     id === 'image-generation-loader' ||
     id === 'stageshow' ||
-    id === 'glisse'
+    id === 'glisse' ||
+    id === 'open-bot-avatar'
   );
 }
 

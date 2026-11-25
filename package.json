@@ -49,12 +49,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 43181",
-    "export:web": "node scripts/check-vercel-routes.mjs && node scripts/check-prompts.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html && node scripts/check-glisse-export.mjs",
+    "export:web": "node scripts/check-vercel-routes.mjs && node scripts/check-prompts.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html && node scripts/check-glisse-export.mjs && node scripts/check-open-bot-avatar-export.mjs",
     "check:routes": "node scripts/check-vercel-routes.mjs",
     "check:prompts": "node scripts/check-prompts.mjs",
     "check:showcase": "node scripts/check-showcase.mjs",
-    "test": "npm run check:routes && npm run check:prompts && npm run check:showcase && npx setup-skia-web public && expo export --platform web && node scripts/check-glisse-export.mjs",
-    "postinstall": "npx setup-skia-web public && node scripts/build-skia-showcase.mjs && node scripts/build-glisse-document.mjs"
+    "test": "npm run check:routes && npm run check:prompts && npm run check:showcase && npx setup-skia-web public && expo export --platform web && node scripts/check-glisse-export.mjs && node scripts/check-open-bot-avatar-export.mjs",
+    "postinstall": "npx setup-skia-web public && node scripts/build-skia-showcase.mjs && node scripts/build-glisse-document.mjs && node scripts/build-open-bot-avatar-document.mjs"
   },
   "engines": {
     "node": ">=20"

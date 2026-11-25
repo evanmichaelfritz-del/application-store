@@ -32,6 +32,21 @@ if (!shippedLicense.startsWith('/*!\n@license')) {
 if (!shippedLicense.includes(PERMISSION) || !shippedLicense.includes(AS_IS)) {
   sourceHits.push('shippedLicense.ts is missing the MIT phrases');
 }
+const obaCard = readFileSync(join(root, 'src/demos/open-bot-avatar/card.web.tsx'), 'utf8');
+const obaLicense = readFileSync(join(root, 'src/demos/open-bot-avatar/shippedLicense.ts'), 'utf8');
+const obaCopyright = 'Copyright (c) 2026 Dominik Scholz';
+if (!obaCard.includes("import { SHIPPED_LICENSE } from './shippedLicense'")) {
+  sourceHits.push('open-bot-avatar card.web.tsx does not import SHIPPED_LICENSE');
+}
+if (!obaCard.includes('retainShippedLicense(SHIPPED_LICENSE)')) {
+  sourceHits.push('open-bot-avatar card.web.tsx does not call retainShippedLicense(SHIPPED_LICENSE)');
+}
+if (!obaLicense.startsWith('/*!\n@license')) {
+  sourceHits.push('open-bot-avatar shippedLicense.ts does not open with the licence comment');
+}
+if (!obaLicense.includes(PERMISSION) || !obaLicense.includes(AS_IS) || !obaLicense.includes(obaCopyright)) {
+  sourceHits.push('open-bot-avatar shippedLicense.ts is missing the MIT phrases');
+}
 if (sourceHits.length) {
   for (const line of sourceHits) console.error(line);
   process.exit(1);
@@ -202,6 +217,24 @@ function assertOffline(html, id) {
     ]) {
       if (!text.includes(permission) || !text.includes(asIs) || !text.includes(licenseFile)) {
         hits.push(`${label} is missing the MIT licence`);
+      }
+    }
+  }
+  if (id === 'open-bot-avatar') {
+    const licenseFile = readFileSync(join(root, 'src/demos/open-bot-avatar/vendor/LICENSE'), 'utf8')
+      .replace(/\r\n/g, '\n')
+      .trim();
+    const script = readFileSync(join(root, 'public/parity/open-bot-avatar.js'), 'utf8');
+    const phrases = [PERMISSION, AS_IS, 'Copyright (c) 2026 Dominik Scholz'];
+    for (const phrase of phrases) {
+      if (!licenseFile.includes(phrase)) hits.push(`vendor LICENSE lost ${phrase}`);
+    }
+    for (const [label, text] of [
+      ['open-bot-avatar.html', code],
+      ['open-bot-avatar.js', script],
+    ]) {
+      for (const phrase of phrases) {
+        if (!text.includes(phrase)) hits.push(`${label} is missing ${phrase}`);
       }
     }
   }

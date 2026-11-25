@@ -46,6 +46,12 @@ const CREDITS = [
     url: 'https://x.com/kelvinzhg/status/2114756680047321369',
     license: 'MIT',
   },
+  {
+    id: 'open-bot-avatar',
+    label: 'Dominik Scholz',
+    url: 'https://x.com/dom_scholz/status/2117307304395636772',
+    license: 'MIT',
+  },
 ] as const;
 
 const UNVERIFIED = [
@@ -69,7 +75,7 @@ export function creditFor(id: string): AssetCredit | null {
 
 function assertCredits() {
   const ids = Object.keys(ASSET_META);
-  if (ids.length !== 44) throw new Error(`credit map expected 44 assets, found ${ids.length}`);
+  if (ids.length !== 45) throw new Error(`credit map expected 45 assets, found ${ids.length}`);
   for (const id of ids) {
     const credit = creditFor(id);
     const unverified = UNVERIFIED.some((item) => item === id);
@@ -93,6 +99,7 @@ function assertCredits() {
     'Adam Boyle': 1,
     'Sean Galt': 1,
     'Kelvin Zhang': 1,
+    'Dominik Scholz': 1,
   } as const;
   for (const [label, expected] of Object.entries(counts)) {
     const n = CREDITS.filter((row) => row.label === label).length;
