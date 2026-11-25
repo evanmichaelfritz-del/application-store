@@ -67,6 +67,17 @@ function useCardCss(): void {
   }, []);
 }
 
+/** Software WebGL spends a long first frame. Real GPUs do not. */
+function softwareWebGL(): boolean {
+  const canvas = document.createElement('canvas');
+  const gl = canvas.getContext('webgl2');
+  if (!gl) return false;
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+  gl.getExtension('WEBGL_lose_context')?.loseContext();
+  return /swiftshader|llvmpipe|software/i.test(renderer);
+}
+
 function startingPreset() {
   const preset = presetById(DEFAULT_PRESET_ID);
   if (!preset) throw new Error('cat preset missing');
@@ -105,10 +116,18 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const avatar = mountAvatar(host, optionsRef.current);
-    avatarRef.current = avatar;
+    let avatar: MountedAvatar | null = null;
+    let cancel = false;
+    const delay = softwareWebGL() ? 2500 : 0;
+    const timer = window.setTimeout(() => {
+      if (cancel || !host.isConnected) return;
+      avatar = mountAvatar(host, optionsRef.current);
+      avatarRef.current = avatar;
+    }, delay);
     return () => {
-      avatar.destroy();
+      cancel = true;
+      window.clearTimeout(timer);
+      avatar?.destroy();
       avatarRef.current = null;
     };
   }, []);
