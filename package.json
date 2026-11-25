@@ -50,6 +50,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web --port 43181",
     "export:web": "node scripts/check-vercel-routes.mjs && node scripts/check-prompts.mjs && npx setup-skia-web public && expo export --platform web && cp dist/index.html dist/404.html && node scripts/check-glisse-export.mjs && node scripts/check-open-bot-avatar-export.mjs",
+    "vercel-build": "bash scripts/vercel-build.sh",
     "check:routes": "node scripts/check-vercel-routes.mjs",
     "check:prompts": "node scripts/check-prompts.mjs",
     "check:showcase": "node scripts/check-showcase.mjs",
