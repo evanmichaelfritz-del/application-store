@@ -210,6 +210,8 @@ html[data-reduce-motion="1"] [data-palette-panel] {
   overflow-x: auto;
   scrollbar-width: none;
   min-width: 0;
+  padding-right: 8px;
+  scroll-padding-inline: 8px;
 }
 [data-source-chips]::-webkit-scrollbar {
   display: none;

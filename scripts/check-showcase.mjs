@@ -1,10 +1,11 @@
 /**
  * Build every eligible showcase file and prove it is offline.
+ * Reads the committed Copy. It does not rewrite those files.
+ * Rebuild them with scripts/build-skia-showcase.mjs and scripts/build-glisse-document.mjs.
  *
  *   node scripts/check-showcase.mjs
  *   node scripts/check-showcase.mjs adam-sidebar-transitions
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -36,16 +37,6 @@ if (sourceHits.length) {
   process.exit(1);
 }
 
-const built = spawnSync(process.execPath, [join(root, 'scripts/build-skia-showcase.mjs')], {
-  cwd: root,
-  stdio: 'inherit',
-});
-if (built.status !== 0) process.exit(built.status ?? 1);
-const glisseBuilt = spawnSync(process.execPath, [join(root, 'scripts/build-glisse-document.mjs')], {
-  cwd: root,
-  stdio: 'inherit',
-});
-if (glisseBuilt.status !== 0) process.exit(glisseBuilt.status ?? 1);
 const only = process.argv[2] ?? '';
 const outdir = mkdtempSync(join(tmpdir(), 'store-showcases-'));
 

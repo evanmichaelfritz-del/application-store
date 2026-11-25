@@ -16,7 +16,7 @@ A 640px stage, background #0c0c0c, `data-theme="dark"`. A 1300×1300 wallpaper s
 
 - Stage: width 100%, height 640px, background #0c0c0c.
 - Wallpaper: 1300×1300. The scroller starts centred across and 30% down. A mouse drag scrolls it. The wheel scrolls it. The cursor is grab, and grabbing while the pointer is down. A 150px drag moves the wallpaper 150px.
-- Glass lens: 210×120, radius 75px, background color transparent, so the rim image stays. Drop shadow `0 6px 24px rgb(0 0 0 / 0.2)` plus inner shadows `inset 0 0 0 1.5px rgb(255 255 255 / 0.5)`, `inset 0 2px 1px rgb(255 255 255 / 0.45)`, `inset 2px 7px 24px rgb(0 0 0 / 0.09)`, and `inset -2px -7px 24px rgb(255 255 255 / 0.16)`. It does not take pointer events, so the wallpaper drags underneath it. The words Liquid and Glass on the wallpaper sit inside the lens at rest.
+- Glass lens: 210×120, radius 75px, background color transparent, so the rim image stays. Shadows: `0 4px 9px rgba(0,0,0,.16)`, `inset 0 2px 24px rgba(0,0,0,.2)`, `inset 0 -2px 24px rgba(255,255,255,.2)`. It does not take pointer events, so the wallpaper drags underneath it. The words Liquid and Glass on the wallpaper sit inside the lens at rest.
 - Tab bar: four tabs, Radio selected. Segmented control: Day, Week, Month, Week selected.
 - Continuous slider: aria-label Volume, value 40, step 1. Stepped slider: aria-label Stepped volume, value 40, step 10. Disabled slider: aria-label Disabled volume, value 40, disabled.
 - Switch: aria-label Wi-Fi, checked.
@@ -59,7 +59,7 @@ A slider thumb lifts at stiffness 2000 and damping 80. A switch moves and recolo
 
 - The copied document is one HTML file. Its script is the library and this stage, bundled. The credit anchors are external URLs, and nothing fetches them. The document is 974px wide and centred, dock included.
 - The MIT text, Copyright (c) 2026 Kelvin Zhang, is in that file, including "Permission is hereby granted, free of charge" and "THE SOFTWARE IS PROVIDED \"AS IS\"". Stripping it is a failed copy.
-- In Chrome the lens backdrop-filter is blur(Npx) saturate(1.5). The canvas path needs AppleWebKit and not Chrome. Safari was not checked.
+- In Chrome the lens backdrop-filter is `blur(0px) url("#glisse-backdrop-0") saturate(1.5)`. The canvas path needs AppleWebKit and not Chrome. Safari was not checked.
 - The wallpaper is an inlined 1300×1300 drawing.
 - Frost writes `--lg-blur`, 0 to 12, step 0.5.
 - Continuous, Stepped, and Disabled are on screen together.
@@ -71,7 +71,15 @@ Mount the HTML file. It has no install step and no run command. The script reads
 
 ## Known gaps
 
-Phone widths are a known gap. At a 1280 desktop the stage measures 974×640 and does not reflow. The wallpaper is an inlined 1300×1300 drawing. The scroller starts at scrollLeft (1300 − width) / 2 and scrollTop 0.3 × 1300. At 974px wide that is 163 and 390. The stage shows a Glass lens, a tab bar, a segmented control, three sliders, and a Wi-Fi switch. Continuous, Stepped, and Disabled are on screen together. Frost is 0 to 12, step 0.5, default 0, written as --lg-blur. The lens is 210×120, radius 75, and stays put while the wallpaper moves. The type is system-ui. In Chrome the lens backdrop-filter is blur(Npx) saturate(1.5). The canvas path needs AppleWebKit and not Chrome. Safari was not checked.
+The wallpaper is an original drawing. The docs use macOS Tahoe photos, which aren't in the MIT repo.
+
+The docs show one slider at a time. This stage shows Continuous, Stepped and Disabled together.
+
+The docs lens can be dragged. This lens stays put.
+
+The type is system-ui. The docs use Akkurat Pro.
+
+Checked in desktop Chrome only.
 
 ## Checklist
 
@@ -166,12 +174,7 @@ SOFTWARE.
 .glisse .glisse-lens.lg-glass,
 .glisse .glisse-lens.lg-glass[data-rim],
 .glisse .glisse-lens.lg-glass[data-drawn] {
-  box-shadow:
-    0 6px 24px rgb(0 0 0 / 0.2),
-    inset 0 0 0 1.5px rgb(255 255 255 / 0.5),
-    inset 0 2px 1px rgb(255 255 255 / 0.45),
-    inset 2px 7px 24px rgb(0 0 0 / 0.09),
-    inset -2px -7px 24px rgb(255 255 255 / 0.16);
+  box-shadow: 0 4px 9px rgba(0,0,0,.16), inset 0 2px 24px rgba(0,0,0,.2), inset 0 -2px 24px rgba(255,255,255,.2);
 }
 .glisse-sliders {
   display: flex;
@@ -1525,12 +1528,7 @@ void main() {
 .glisse .glisse-lens.lg-glass,
 .glisse .glisse-lens.lg-glass[data-rim],
 .glisse .glisse-lens.lg-glass[data-drawn] {
-  box-shadow:
-    0 6px 24px rgb(0 0 0 / 0.2),
-    inset 0 0 0 1.5px rgb(255 255 255 / 0.5),
-    inset 0 2px 1px rgb(255 255 255 / 0.45),
-    inset 2px 7px 24px rgb(0 0 0 / 0.09),
-    inset -2px -7px 24px rgb(255 255 255 / 0.16);
+  box-shadow: 0 4px 9px rgba(0,0,0,.16), inset 0 2px 24px rgba(0,0,0,.2), inset 0 -2px 24px rgba(255,255,255,.2);
 }
 .glisse-sliders {
   display: flex;

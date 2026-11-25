@@ -1269,12 +1269,7 @@ void main() {
 .glisse .glisse-lens.lg-glass,
 .glisse .glisse-lens.lg-glass[data-rim],
 .glisse .glisse-lens.lg-glass[data-drawn] {
-  box-shadow:
-    0 6px 24px rgb(0 0 0 / 0.2),
-    inset 0 0 0 1.5px rgb(255 255 255 / 0.5),
-    inset 0 2px 1px rgb(255 255 255 / 0.45),
-    inset 2px 7px 24px rgb(0 0 0 / 0.09),
-    inset -2px -7px 24px rgb(255 255 255 / 0.16);
+  box-shadow: 0 4px 9px rgba(0,0,0,.16), inset 0 2px 24px rgba(0,0,0,.2), inset 0 -2px 24px rgba(255,255,255,.2);
 }
 .glisse-sliders {
   display: flex;

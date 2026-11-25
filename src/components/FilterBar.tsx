@@ -37,6 +37,22 @@ function isScrollNode(node: object | null): node is ScrollNode {
   return node !== null && 'scrollWidth' in node && 'addEventListener' in node;
 }
 
+const SOURCE_FADE_PAD = 8;
+
+function revealInSourceRow(node: HTMLElement): void {
+  node.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  const scroller = node.closest('[data-source-chips]');
+  if (!(scroller instanceof HTMLElement)) return;
+  if (scroller.scrollWidth - scroller.clientWidth <= 1) return;
+  const chip = node.getBoundingClientRect();
+  const box = scroller.getBoundingClientRect();
+  if (chip.right > box.right - SOURCE_FADE_PAD) {
+    scroller.scrollLeft += chip.right - (box.right - SOURCE_FADE_PAD);
+  } else if (chip.left < box.left + SOURCE_FADE_PAD) {
+    scroller.scrollLeft -= box.left + SOURCE_FADE_PAD - chip.left;
+  }
+}
+
 function useSourceFade(): { ref: { current: ComponentRef<typeof View> | null }; fade: SourceFade } {
   const ref = useRef<ComponentRef<typeof View>>(null);
   const [fade, setFade] = useState<SourceFade>('none');
@@ -119,6 +135,7 @@ export function FilterBar({
                     label={chip.label}
                     selected={selected}
                     muted={muted}
+                    reveal={group.key === 'source'}
                     testID={`chip-${group.key}-${chip.slug}`}
                     accessibilityLabel={`${group.label} ${chip.label}`}
                     onToggle={() => onChange(next)}
@@ -172,6 +189,7 @@ function FilterChip({
   label,
   selected,
   muted,
+  reveal,
   onToggle,
   testID,
   accessibilityLabel,
@@ -179,6 +197,7 @@ function FilterChip({
   label: string;
   selected: boolean;
   muted: boolean;
+  reveal: boolean;
   onToggle: () => void;
   testID: string;
   accessibilityLabel: string;
@@ -189,20 +208,30 @@ function FilterChip({
 
   useEffect(() => {
     const el = ref.current;
-    if (!isKeyTarget(el)) return;
-    const onKeyDown = (event: KeyEvent) => {
+    if (!isScrollNode(el)) return;
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== ' ' && event.key !== 'Spacebar') return;
       event.preventDefault();
       toggleRef.current();
     };
+    const onFocus = () => {
+      if (reveal) revealInSourceRow(el);
+    };
     el.addEventListener('keydown', onKeyDown);
-    return () => el.removeEventListener('keydown', onKeyDown);
-  }, []);
+    el.addEventListener('focus', onFocus);
+    return () => {
+      el.removeEventListener('keydown', onKeyDown);
+      el.removeEventListener('focus', onFocus);
+    };
+  }, [reveal]);
 
   return (
     <Pressable
       ref={ref}
-      onPress={onToggle}
+      onPress={() => {
+        onToggle();
+        if (reveal && isScrollNode(ref.current)) revealInSourceRow(ref.current);
+      }}
       testID={testID}
       accessibilityRole="checkbox"
       accessibilityLabel={accessibilityLabel}
