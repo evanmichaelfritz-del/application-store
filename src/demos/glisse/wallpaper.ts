@@ -27,8 +27,8 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="1300" 
 <path d="M0 760C240 620 400 700 580 750C790 810 940 680 1300 750V1300H0Z" fill="#2a3868"/>
 <path d="M0 840C280 740 500 900 740 830C990 760 1120 900 1300 850V1300H0Z" fill="#1a2448"/>
 <rect y="900" width="1300" height="400" fill="url(#lake)"/>
-<text x="650" y="625" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="52" font-weight="700" letter-spacing="-1">Liquid</text>
-<text x="650" y="675" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="52" font-weight="700" letter-spacing="-1">Glass</text>
+<text x="650" y="478" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="52" font-weight="700" letter-spacing="-1">Liquid</text>
+<text x="650" y="528" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="52" font-weight="700" letter-spacing="-1">Glass</text>
 </svg>`;
 
 export const WALLPAPER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SVG)}`;
