@@ -168,7 +168,7 @@ export function GlisseStage({ credit = null }: { credit?: ReactNode }) {
     width: 210,
     height: 150,
     borderRadius: 75,
-    background: 'none',
+    backgroundColor: 'transparent',
     '--lg-glass-bend': String(bend),
     '--lg-glass-dispersion': String(dispersion),
     '--lg-blur': `${blur}px`,

@@ -18,6 +18,11 @@ const built = spawnSync(process.execPath, [join(root, 'scripts/build-skia-showca
   stdio: 'inherit',
 });
 if (built.status !== 0) process.exit(built.status ?? 1);
+const glisseBuilt = spawnSync(process.execPath, [join(root, 'scripts/build-glisse-document.mjs')], {
+  cwd: root,
+  stdio: 'inherit',
+});
+if (glisseBuilt.status !== 0) process.exit(glisseBuilt.status ?? 1);
 const only = process.argv[2] ?? '';
 const outdir = join(tmpdir(), 'store-showcases');
 rmSync(outdir, { recursive: true, force: true });
@@ -172,10 +177,20 @@ function assertOffline(html, id) {
     if (!html.includes('Neither the name of Google Inc.')) hits.push('missing CanvasKit BSD terms');
   }
   if (id === 'glisse') {
-    const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8');
-    const body = licenseFile.slice(licenseFile.indexOf('MIT License')).trim();
-    if (!body.includes('Copyright (c) 2026 Kelvin Zhang') || !code.includes(body)) {
-      hits.push('missing Glisse MIT licence');
+    const licenseFile = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8').replace(/\r\n/g, '\n').trim();
+    const script = readFileSync(join(root, 'public/parity/glisse.js'), 'utf8');
+    const permission = 'Permission is hereby granted, free of charge';
+    const asIs = 'THE SOFTWARE IS PROVIDED "AS IS"';
+    if (!licenseFile.includes(permission) || !licenseFile.includes(asIs)) {
+      hits.push('vendor LICENSE lost the MIT grant');
+    }
+    for (const [label, text] of [
+      ['glisse.html', code],
+      ['glisse.js', script],
+    ]) {
+      if (!text.includes(permission) || !text.includes(asIs) || !text.includes(licenseFile)) {
+        hits.push(`${label} is missing the MIT licence`);
+      }
     }
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');
