@@ -13,10 +13,16 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist', '_expo');
 const MARKER = 'oba-avatar-host';
-const PERMISSION = 'Permission is hereby granted, free of charge';
-const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
-const COPYRIGHT = 'Copyright (c) 2026 Dominik Scholz';
+const LICENSE = readFileSync(join(root, 'src/demos/open-bot-avatar/vendor/LICENSE'), 'utf8')
+  .replace(/\r\n/g, '\n')
+  .trim();
 const PIN = '646793af2c86604539e02faa344e9793ab2aefe8';
+
+function carriesLicense(text, license) {
+  if (text.includes(license)) return true;
+  const escaped = license.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return text.includes(escaped);
+}
 
 function walk(dir, acc) {
   let entries;
@@ -47,9 +53,7 @@ if (chunks.length === 0) {
 let failed = false;
 for (const chunk of chunks) {
   const missing = [];
-  if (!chunk.text.includes(PERMISSION)) missing.push(PERMISSION);
-  if (!chunk.text.includes(AS_IS)) missing.push(AS_IS);
-  if (!chunk.text.includes(COPYRIGHT)) missing.push(COPYRIGHT);
+  if (!carriesLicense(chunk.text, LICENSE)) missing.push('the full LICENSE block');
   if (!chunk.text.includes(PIN)) missing.push(PIN);
   const rel = chunk.file.slice(root.length + 1);
   if (missing.length) {

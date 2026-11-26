@@ -41,8 +41,15 @@ export const CARD_CSS = `.oba {
   border-left: 1px solid rgba(23, 24, 28, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
+.oba-pair {
+  display: flex;
+  gap: 8px;
+}
+.oba-pair > .oba-field { flex: 1; min-width: 0; }
+.oba-pair .oba-chip { padding: 0 8px; }
+.oba-pair .oba-row { flex-wrap: nowrap; }
 .oba-name {
   margin: 0;
   font-size: 13px;

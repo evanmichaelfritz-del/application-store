@@ -234,9 +234,8 @@ function assertOffline(html, id) {
       ['open-bot-avatar.html', code],
       ['open-bot-avatar.js', script],
     ]) {
-      for (const phrase of [...phrases, pin]) {
-        if (!text.includes(phrase)) hits.push(`${label} is missing ${phrase}`);
-      }
+      if (!text.includes(licenseFile)) hits.push(`${label} is missing the MIT licence`);
+      if (!text.includes(pin)) hits.push(`${label} is missing ${pin}`);
     }
   }
   if (!html.includes('prefers-reduced-motion')) hits.push('missing reduced motion');

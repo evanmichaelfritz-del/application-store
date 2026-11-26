@@ -89,15 +89,36 @@ function useCardCss(): void {
   }, []);
 }
 
-/** Software WebGL spends a long first frame. Real GPUs do not. */
+let softwareGl: boolean | null = null;
+
+/** SwiftShader, llvmpipe, and other software renderers. A real GPU string is false. */
 function softwareWebGL(): boolean {
+  if (softwareGl !== null) return softwareGl;
+  softwareGl = false;
+  if (typeof document === 'undefined') return softwareGl;
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl2');
-  if (!gl) return false;
+  if (!gl) return softwareGl;
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
   const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
   gl.getExtension('WEBGL_lose_context')?.loseContext();
-  return /swiftshader|llvmpipe|software/i.test(renderer);
+  softwareGl = /swiftshader|llvmpipe|software/i.test(renderer);
+  return softwareGl;
+}
+
+function stallLine(finish: Finish): string {
+  switch (finish) {
+    case 'fluffy':
+      return 'Fluffy was too slow here, so the finish is Flat.';
+    case 'glass':
+      return 'Glass was too slow here, so the finish is Flat.';
+    case 'flat':
+      return 'Fluffy was too slow here, so the finish is Flat.';
+    default: {
+      const never: never = finish;
+      return never;
+    }
+  }
 }
 
 function startingPreset() {
@@ -117,7 +138,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   const [compact, setCompact] = useState(false);
   const [definition, setDefinition] = useState<AvatarDefinition>(initial.definition);
   const [color, setColor] = useState(initial.color);
-  const [finish, setFinish] = useState<Finish>('fluffy');
+  const [finish, setFinish] = useState<Finish>(() => (softwareWebGL() ? 'flat' : 'fluffy'));
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
   const [mood, setMood] = useState<AvatarMood>('neutral');
   const [followPointer, setFollowPointer] = useState(true);
@@ -138,7 +159,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   };
   const optionsRef = useRef(options);
   optionsRef.current = options;
-  const softHold = useRef(0);
+  const software = softwareWebGL();
 
   useLayoutEffect(() => {
     const parent = frameRef.current?.parentElement;
@@ -148,64 +169,42 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    let avatar: MountedAvatar | null = null;
-    let cancel = false;
-    const soft = !compact && softwareWebGL() && optionsRef.current.material !== 'flat';
-    softHold.current = soft ? performance.now() + 2500 : 0;
-    const timer = window.setTimeout(() => {
-      if (cancel || !host.isConnected) return;
-      const current = optionsRef.current;
-      avatar = mountAvatar(host, {
-        ...current,
-        material: performance.now() < softHold.current ? 'flat' : current.material,
-        still: compact,
-        followPointer: compact ? false : current.followPointer,
-      });
-      avatarRef.current = avatar;
-      if (softHold.current === 0) return;
-      window.setTimeout(() => {
-        if (cancel) return;
-        softHold.current = 0;
-        const next = optionsRef.current;
-        avatar?.update({ material: next.material });
-      }, 2500);
-    }, 0);
+    const avatar = mountAvatar(host, {
+      ...optionsRef.current,
+      still: compact,
+      followPointer: compact ? false : optionsRef.current.followPointer,
+    });
+    avatarRef.current = avatar;
     return () => {
-      cancel = true;
-      window.clearTimeout(timer);
-      avatar?.destroy();
+      avatar.destroy();
       avatarRef.current = null;
     };
   }, [compact]);
   useEffect(() => {
-    const next = optionsRef.current;
-    avatarRef.current?.update(
-      performance.now() < softHold.current && next.material !== 'flat' ? { ...next, material: 'flat' } : next,
-    );
+    avatarRef.current?.update(optionsRef.current);
   }, [definition, color, finish, avatarState, mood, followPointer]);
 
   useEffect(() => {
-    if (compact || finish === 'flat') return;
+    if (compact || !softwareWebGL() || (finish !== 'fluffy' && finish !== 'glass')) return;
     let last = performance.now();
     let samples = 0;
-    const slow: number[] = [];
+    let slow = 0;
     let raf = 0;
-    const label = finishLabel(finish);
+    const line = stallLine(finish);
     const tick = (now: number) => {
       const gap = now - last;
       last = now;
       samples += 1;
       if (samples > 1) {
         if (gap > STALL_MS) {
-          slow.push(Math.round(gap));
-          if (slow.length >= STALL_FRAMES) {
-            const shown = slow.slice(-STALL_FRAMES);
-            setStall(`${label} frames were ${shown.join(', ')} ms, so the finish is Flat.`);
+          slow += 1;
+          if (slow >= STALL_FRAMES) {
+            setStall(line);
             setFinish('flat');
             return;
           }
         } else {
-          slow.length = 0;
+          slow = 0;
         }
       }
       raf = requestAnimationFrame(tick);
@@ -286,43 +285,44 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             ))}
           </div>
         </div>
-        <div className="oba-field" role="group" aria-label="Mood">
-          <span className="oba-label">Mood</span>
-          <div className="oba-row">
-            {MOODS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="oba-chip"
-                aria-pressed={mood === item}
-                data-testid={`oba-mood-${item}`}
-                onClick={() => setMood(item)}
-              >
-                {moodLabel(item)}
-              </button>
-            ))}
+        <div className="oba-pair">
+          <div className="oba-field" role="group" aria-label="Mood">
+            <span className="oba-label">Mood</span>
+            <div className="oba-row">
+              {MOODS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="oba-chip"
+                  aria-pressed={mood === item}
+                  data-testid={`oba-mood-${item}`}
+                  onClick={() => setMood(item)}
+                >
+                  {moodLabel(item)}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="oba-field" role="group" aria-label="Finish">
-          <span className="oba-label">Finish</span>
-          <div className="oba-row">
-            {FINISHES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="oba-chip"
-                aria-pressed={finish === item}
-                data-testid={`oba-material-${item}`}
-                onClick={() => {
-                  setFinish(item);
-                  if (item === 'flat') setStall(null);
-                }}
-              >
-                {finishLabel(item)}
-              </button>
-            ))}
+          <div className="oba-field" role="group" aria-label="Finish">
+            <span className="oba-label">Finish</span>
+            <div className="oba-row">
+              {FINISHES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="oba-chip"
+                  aria-pressed={finish === item}
+                  data-testid={`oba-material-${item}`}
+                  onClick={() => {
+                    setStall(null);
+                    setFinish(item);
+                  }}
+                >
+                  {finishLabel(item)}
+                </button>
+              ))}
+            </div>
           </div>
-          {stall ? <p className="oba-stall">{stall}</p> : null}
         </div>
         <div className="oba-field">
           <span className="oba-label">Pointer</span>
@@ -337,6 +337,11 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             Eyes follow cursor
           </button>
         </div>
+        {stall || (software && finish === 'flat') ? (
+          <p className="oba-stall" role="status" data-testid="oba-stall">
+            {stall ?? 'Software WebGL starts on Flat.'}
+          </p>
+        ) : null}
         <div className="oba-field">
           <span className="oba-label">Preset</span>
           <div className="oba-presets">
