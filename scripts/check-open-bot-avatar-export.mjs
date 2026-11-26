@@ -18,10 +18,20 @@ const LICENSE = readFileSync(join(root, 'src/demos/open-bot-avatar/vendor/LICENS
   .trim();
 const PIN = '646793af2c86604539e02faa344e9793ab2aefe8';
 
-function carriesLicense(text, license) {
-  if (text.includes(license)) return true;
+function blockCount(text, block) {
+  let count = 0;
+  let at = 0;
+  while (true) {
+    const next = text.indexOf(block, at);
+    if (next < 0) return count;
+    count += 1;
+    at = next + block.length;
+  }
+}
+
+function licenseCopies(text, license) {
   const escaped = license.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-  return text.includes(escaped);
+  return blockCount(text, license) + blockCount(text, escaped);
 }
 
 function walk(dir, acc) {
@@ -52,15 +62,13 @@ if (chunks.length === 0) {
 }
 let failed = false;
 for (const chunk of chunks) {
-  const missing = [];
-  if (!carriesLicense(chunk.text, LICENSE)) missing.push('the full LICENSE block');
-  if (!chunk.text.includes(PIN)) missing.push(PIN);
+  const copies = licenseCopies(chunk.text, LICENSE);
   const rel = chunk.file.slice(root.length + 1);
-  if (missing.length) {
+  if (copies !== 1 || !chunk.text.includes(PIN)) {
     failed = true;
-    console.error(`${rel} is missing ${missing.join(' | ')}`);
+    console.error(`${rel} has ${copies} full LICENSE blocks`);
   } else {
-    console.log(`${rel} ${Buffer.byteLength(chunk.text)} carries the MIT text`);
+    console.log(`${rel} ${Buffer.byteLength(chunk.text)} carries one MIT block`);
   }
 }
 if (failed) process.exit(1);

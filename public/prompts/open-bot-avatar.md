@@ -76,7 +76,7 @@ The stage does not hold a second avatar.
 
 The state row cannot grow past six buttons.
 
-Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat. When three frames in a row take over 250 ms, the finish switches to Flat and the panel says so.
+Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat, and if Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.
 
 Dragging the stage does not rotate the avatar.
 
@@ -103,31 +103,6 @@ States defined in JSON are not supported; the six built-in states are the full s
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Open Bot Avatar</title>
-<!--
-MIT License
-
-Copyright (c) 2026 Dominik Scholz
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-646793af2c86604539e02faa344e9793ab2aefe8
--->
 <style>
 .oba {
   width: 960px;

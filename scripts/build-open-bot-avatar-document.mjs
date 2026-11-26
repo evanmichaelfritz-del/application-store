@@ -87,9 +87,6 @@ const html = `<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Open Bot Avatar</title>
-<!--
-${shipped}
--->
 <style>
 ${CARD_CSS}
 html, body { margin: 0; height: 100%; background: #f3f3f4; }
@@ -134,14 +131,33 @@ if (cardChunk.includes('sourceMappingURL') || cardChunk.includes('/agent/') || c
   throw new Error('open-bot-avatar card chunk has a sourcemap or an absolute path');
 }
 
-function requireLicense(label, text) {
-  if (!text.includes(license) || !text.includes(PERMISSION) || !text.includes(AS_IS) || !text.includes(COPYRIGHT) || !text.includes(PIN)) {
-    throw new Error(`${label} is missing the MIT licence`);
+function blockCount(text, block) {
+  let count = 0;
+  let at = 0;
+  while (true) {
+    const next = text.indexOf(block, at);
+    if (next < 0) return count;
+    count += 1;
+    at = next + block.length;
   }
 }
-requireLicense('public/parity/open-bot-avatar.js', script);
-requireLicense('public/parity/open-bot-avatar.html', html);
-requireLicense('open-bot-avatar card chunk', cardChunk);
+
+function licenseCopies(text) {
+  const escaped = license.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return blockCount(text, license) + blockCount(text, escaped);
+}
+
+function requireOneLicense(label, text) {
+  const copies = licenseCopies(text);
+  if (copies !== 1 || !text.includes(PIN)) {
+    throw new Error(`${label} has ${copies} MIT licence blocks`);
+  }
+}
+requireOneLicense('public/parity/open-bot-avatar.js', script);
+requireOneLicense('public/parity/open-bot-avatar.html', html);
+if (!cardChunk.includes(license) || !cardChunk.includes(PIN)) {
+  throw new Error('open-bot-avatar card chunk is missing the MIT licence');
+}
 rmSync(cardDir, { recursive: true, force: true });
 
 writeFileSync(join(root, 'public/parity/open-bot-avatar.html'), html);

@@ -227,14 +227,30 @@ function assertOffline(html, id) {
     const script = readFileSync(join(root, 'public/parity/open-bot-avatar.js'), 'utf8');
     const phrases = [PERMISSION, AS_IS, 'Copyright (c) 2026 Dominik Scholz'];
     const pin = '646793af2c86604539e02faa344e9793ab2aefe8';
+    const escapedLicense = licenseFile.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    const copiesOf = (text) => {
+      const count = (block) => {
+        let n = 0;
+        let at = 0;
+        while (true) {
+          const next = text.indexOf(block, at);
+          if (next < 0) return n;
+          n += 1;
+          at = next + block.length;
+        }
+      };
+      return count(licenseFile) + count(escapedLicense);
+    };
     for (const phrase of phrases) {
       if (!licenseFile.includes(phrase)) hits.push(`vendor LICENSE lost ${phrase}`);
     }
     for (const [label, text] of [
       ['open-bot-avatar.html', code],
       ['open-bot-avatar.js', script],
+      ['open-bot-avatar prompt', prompt],
     ]) {
-      if (!text.includes(licenseFile)) hits.push(`${label} is missing the MIT licence`);
+      const copies = copiesOf(text);
+      if (copies !== 1) hits.push(`${label} has ${copies} MIT licence blocks`);
       if (!text.includes(pin)) hits.push(`${label} is missing ${pin}`);
     }
   }
