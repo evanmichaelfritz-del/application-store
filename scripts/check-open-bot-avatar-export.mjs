@@ -1,8 +1,9 @@
 /**
  * The exported card chunk must carry Dominik Scholz's MIT text.
- * Run after `expo export`. Finds the JS file under dist/_expo that contains
- * `oba-avatar-host`. public/parity/open-bot-avatar.js is copied into dist and
- * is not that chunk.
+ * The exported Copy and its prompt must carry that text once, with the pin
+ * after it. Run after `expo export`. The card chunk is the JS file under
+ * dist/_expo that contains `oba-avatar-host`. public/parity/open-bot-avatar.js
+ * is copied into dist/parity and is not that chunk.
  *
  *   node scripts/check-open-bot-avatar-export.mjs
  */
@@ -69,6 +70,54 @@ for (const chunk of chunks) {
     console.error(`${rel} has ${copies} full LICENSE blocks`);
   } else {
     console.log(`${rel} ${Buffer.byteLength(chunk.text)} carries one MIT block`);
+  }
+}
+if (failed) process.exit(1);
+
+const followed = `${LICENSE}\n\n${PIN}`;
+const copyFiles = [
+  ['dist/parity/open-bot-avatar.html', join(root, 'dist', 'parity', 'open-bot-avatar.html')],
+  ['dist/parity/open-bot-avatar.js', join(root, 'dist', 'parity', 'open-bot-avatar.js')],
+  ['dist/prompts/open-bot-avatar.md', join(root, 'dist', 'prompts', 'open-bot-avatar.md')],
+];
+
+function codeSection(markdown) {
+  const heading = '\n## Code\n';
+  const at = markdown.indexOf(heading);
+  if (at < 0) return null;
+  const body = markdown.slice(at + heading.length);
+  const open = body.indexOf('```html\n');
+  if (open < 0) return null;
+  const start = open + '```html\n'.length;
+  const close = body.indexOf('\n```', start);
+  if (close < 0) return null;
+  return body.slice(start, close);
+}
+
+for (const [label, path] of copyFiles) {
+  let text;
+  try {
+    text = readFileSync(path, 'utf8');
+  } catch (error) {
+    failed = true;
+    console.error(`open-bot-avatar export: cannot read ${label}`);
+    continue;
+  }
+  if (label.endsWith('.md')) {
+    const section = codeSection(text);
+    if (section === null) {
+      failed = true;
+      console.error(`${label} Code section is missing`);
+      continue;
+    }
+    text = section;
+  }
+  const copies = blockCount(text, followed);
+  if (copies !== 1) {
+    failed = true;
+    console.error(`${label} has ${copies} full LICENSE blocks followed by ${PIN}`);
+  } else {
+    console.log(`${label} carries one MIT block`);
   }
 }
 if (failed) process.exit(1);
