@@ -137,6 +137,7 @@ const publicPrompt = {
   'image-generation-loader': readFileSync(join(root, 'public/prompts/image-generation-loader.md'), 'utf8'),
   stageshow: readFileSync(join(root, 'public/prompts/stageshow.md'), 'utf8'),
   glisse: readFileSync(join(root, 'public/prompts/glisse.md'), 'utf8'),
+  'open-bot-avatar': readFileSync(join(root, 'public/prompts/open-bot-avatar.md'), 'utf8'),
 };
 
 function missingSections(text) {
@@ -769,5 +770,25 @@ if (/\bthe docs\b/i.test(glisseProse)) glisseHits.push('glisse prompt says the d
 console.log(`glisse hits: ${glisseHits.length}`);
 if (glisseHits.length) {
   for (const line of glisseHits) console.error(`  ${line}`);
+  process.exit(1);
+}
+
+/** Open Bot Avatar's ## Code fence is the Copy document, byte for byte. */
+const obaHits = [];
+const obaSheet = readFileSync(join(root, 'public/prompts/open-bot-avatar.md'), 'utf8');
+const obaCopy = readFileSync(join(root, 'public/parity/open-bot-avatar.html'), 'utf8');
+if (fenced(obaSheet, 'html') !== obaCopy) obaHits.push('open-bot-avatar Code fence is not the Copy');
+const obaProse = obaSheet.split(/^## Code\b/m)[0];
+for (const word of ['his site', 'the docs', 'pinned at', 'Pinned at', 'vendored', 'Vendored', 'Upstream:', 'provenance']) {
+  if (obaProse.includes(word)) obaHits.push(`open-bot-avatar prompt says ${word}`);
+}
+for (const word of ['preview', 'gallery']) {
+  const pattern = new RegExp(`(?<![A-Za-z0-9_])${word}(?![A-Za-z0-9_])`, 'i');
+  if (pattern.test(obaProse)) obaHits.push(`open-bot-avatar prompt says ${word}`);
+}
+if (/\boriginal\b/i.test(obaProse)) obaHits.push('open-bot-avatar prompt says original');
+console.log(`open-bot-avatar hits: ${obaHits.length}`);
+if (obaHits.length) {
+  for (const line of obaHits) console.error(`  ${line}`);
   process.exit(1);
 }

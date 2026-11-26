@@ -47,6 +47,7 @@ export const ADDED_ON: Record<string, string> = {
   'adam-sidebar-transitions': 'Nov 9, 2026',
   'arc-charge': 'Nov 11, 2026',
   glisse: 'Nov 19, 2026',
+  'open-bot-avatar': 'Nov 25, 2026',
 };
 
 export function addedOn(id: string): string | null {

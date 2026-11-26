@@ -33,6 +33,7 @@ import { stageshowMedia } from './demos/stageshow/media';
 import { SidebarTransitionsDemo } from './demos/adam-sidebar-transitions';
 import { ArcChargeDemo } from './demos/arc-charge';
 import { GlisseDemo } from './demos/glisse';
+import { OpenBotAvatarDemo } from './demos/open-bot-avatar';
 import type { NavSection } from './sections';
 
 /** One async chunk for every Skia demo. CanvasKit boots in its own chunk first. */
@@ -662,6 +663,26 @@ export const TRANSITIONS: TransitionItem[] = [
     fullRow: true,
     pro: false,
     Demo: GlisseDemo,
+  },
+  {
+    id: 'open-bot-avatar',
+    title: 'Open Bot Avatar',
+    subtitle: 'One live avatar. State, mood, finish, preset, and colour.',
+    categories: ['ai'],
+    tags: [
+      'open-bot-avatar',
+      'avatar',
+      'bot',
+      'fluffy',
+      'dominik',
+      'dominik scholz',
+      'dom_scholz',
+      'tools',
+    ],
+    sections: ['tools'],
+    fullRow: true,
+    pro: false,
+    Demo: OpenBotAvatarDemo,
   },
 ];
 

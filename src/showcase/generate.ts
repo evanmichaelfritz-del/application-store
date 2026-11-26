@@ -25,6 +25,7 @@ const LAZY_PROMPT: Record<string, string> = {
   'yogesh-thinking-orbs': '/prompts/yogesh-thinking-orbs.md',
   'yogesh-orb-creator': '/prompts/yogesh-orb-creator.md',
   glisse: '/prompts/glisse.md',
+  'open-bot-avatar': '/prompts/open-bot-avatar.md',
 };
 
 const SANS = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -37,6 +38,7 @@ export const STAGE_FLOOR: Record<string, number> = {
   'yogesh-thinking-orbs': 492,
   'yogesh-orb-creator': 560,
   glisse: 640,
+  'open-bot-avatar': 720,
 };
 /** Width / height. Arc is 16:9. The spacing tuner is 1440×1080. */
 export const STAGE_ASPECT: Record<string, string> = {
@@ -207,9 +209,9 @@ async function inlineScript(script: string, read: ByteReader): Promise<string> {
 
 /** Bytes the card's Copy code button writes. A full document when that is the copy. */
 export async function showcaseCode(id: string, read?: ByteReader): Promise<string> {
-  if (id === 'glisse') {
-    if (!read) throw new Error('glisse copy needs a reader');
-    return decodeUtf8(await read('/parity/glisse.html'));
+  if (id === 'glisse' || id === 'open-bot-avatar') {
+    if (!read) throw new Error(`${id} copy needs a reader`);
+    return decodeUtf8(await read(`/parity/${id}.html`));
   }
   return fullCopyDocument(id) ?? codeSlot(id, 'html');
 }
@@ -393,7 +395,7 @@ ${dragCapture}`;
   // checker does not see the credit URLs, then asks the shell for Inter.
   // The copied file keeps the links and does not request a font.
   const stage =
-    id === 'glisse'
+    id === 'glisse' || id === 'open-bot-avatar'
       ? dropLinks(code).replace(
           '</body>',
           `<script>

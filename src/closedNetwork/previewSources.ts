@@ -1627,6 +1627,17 @@ html[data-reduce-motion="1"] .stageshow-still { display: block; }`,
   document.body.appendChild(s);
 })();`,
   },
+  'open-bot-avatar': {
+    snippet: false,
+    omitBase: true,
+    html: `<div id="oba-root"></div>`,
+    extraCss: `html, body, #oba-root { height: 100%; margin: 0; background: #f3f3f4; }`,
+    script: `(function () {
+  var s = document.createElement('script');
+  s.src = location.origin + '/parity/open-bot-avatar.js';
+  document.body.appendChild(s);
+})();`,
+  },
 };
 
 function escapeHtml(value: string): string {

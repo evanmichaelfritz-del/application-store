@@ -11,9 +11,15 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Metro chunks only. public/parity/glisse.js is copied into dist and is not the card chunk.
 const dist = join(root, 'dist', '_expo');
-const PERMISSION = 'Permission is hereby granted, free of charge';
-const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
-const COPYRIGHT = 'Copyright (c) 2026 Kelvin Zhang';
+const LICENSE = readFileSync(join(root, 'src/demos/glisse/vendor/LICENSE'), 'utf8')
+  .replace(/\r\n/g, '\n')
+  .trim();
+
+function carriesLicense(text, license) {
+  if (text.includes(license)) return true;
+  const escaped = license.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return text.includes(escaped);
+}
 
 function walk(dir, acc) {
   let entries;
@@ -43,14 +49,10 @@ if (chunks.length === 0) {
 }
 let failed = false;
 for (const chunk of chunks) {
-  const missing = [];
-  if (!chunk.text.includes(PERMISSION)) missing.push(PERMISSION);
-  if (!chunk.text.includes(AS_IS)) missing.push(AS_IS);
-  if (!chunk.text.includes(COPYRIGHT)) missing.push(COPYRIGHT);
   const rel = chunk.file.slice(root.length + 1);
-  if (missing.length) {
+  if (!carriesLicense(chunk.text, LICENSE)) {
     failed = true;
-    console.error(`${rel} is missing ${missing.join(' | ')}`);
+    console.error(`${rel} is missing the full LICENSE block`);
   } else {
     console.log(`${rel} ${Buffer.byteLength(chunk.text)} carries the MIT text`);
   }
