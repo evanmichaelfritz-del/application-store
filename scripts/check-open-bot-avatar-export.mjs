@@ -1,7 +1,8 @@
 /**
  * The exported card chunk must carry Dominik Scholz's MIT text.
- * The exported Copy and its prompt must carry that text once, with the pin
- * after it. Run after `expo export`. The card chunk is the JS file under
+ * The exported Copy and its prompt must each carry that text once, counted
+ * without the pin, plain or escaped, and that one block must be followed by
+ * the pin. Run after `expo export`. The card chunk is the JS file under
  * dist/_expo that contains `oba-avatar-host`. public/parity/open-bot-avatar.js
  * is copied into dist/parity and is not that chunk.
  *
@@ -103,19 +104,23 @@ for (const [label, path] of copyFiles) {
     console.error(`open-bot-avatar export: cannot read ${label}`);
     continue;
   }
+  let section = text;
   if (label.endsWith('.md')) {
-    const section = codeSection(text);
+    section = codeSection(text);
     if (section === null) {
       failed = true;
       console.error(`${label} Code section is missing`);
       continue;
     }
-    text = section;
   }
-  const copies = blockCount(text, followed);
-  if (copies !== 1) {
+  const blocks = licenseCopies(text, LICENSE);
+  const sectionBlocks = licenseCopies(section, LICENSE);
+  const followedCopies = blockCount(section, followed);
+  if (blocks !== 1 || sectionBlocks !== 1 || followedCopies !== 1) {
     failed = true;
-    console.error(`${label} has ${copies} full LICENSE blocks followed by ${PIN}`);
+    console.error(
+      `${label} has ${blocks} full LICENSE blocks and ${followedCopies} followed by ${PIN}`,
+    );
   } else {
     console.log(`${label} carries one MIT block`);
   }
