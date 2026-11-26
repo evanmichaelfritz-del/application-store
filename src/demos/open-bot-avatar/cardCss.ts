@@ -86,19 +86,17 @@ export const CARD_CSS = `.oba {
   cursor: pointer;
 }
 .oba-states .oba-chip { width: 100%; }
-.oba-chip[aria-checked="true"] {
+.oba-chip[aria-pressed="true"] {
   background: #17181c;
   border-color: #17181c;
   color: #ffffff;
 }
 .oba-chip:hover { background: #f1f1f1; }
-.oba-chip[aria-checked="true"]:hover { background: #3a3a3e; }
+.oba-chip[aria-pressed="true"]:hover { background: #3a3a3e; }
 .oba-presets {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 216px;
-  overflow: auto;
 }
 .oba-preset-group {
   display: flex;
@@ -123,8 +121,32 @@ export const CARD_CSS = `.oba {
   border: 1px solid rgba(23, 24, 28, 0.18);
   cursor: pointer;
 }
-.oba-swatch[aria-checked="true"] {
+.oba-swatch[aria-pressed="true"] {
   box-shadow: 0 0 0 2px #f3f3f4, 0 0 0 4px #17181c;
+}
+.oba-switch {
+  appearance: none;
+  flex: none;
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(23, 24, 28, 0.12);
+  background: #ffffff;
+  color: #17181c;
+  font: 500 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+.oba-switch[aria-checked="true"] {
+  background: #17181c;
+  border-color: #17181c;
+  color: #ffffff;
+}
+.oba-stall {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(23, 24, 28, 0.72);
 }
 .oba-json {
   width: 100%;

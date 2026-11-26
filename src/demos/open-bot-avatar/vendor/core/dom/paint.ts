@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * The canvas renderer, the default for live avatars: paints flat avatar frames
@@ -23,11 +43,11 @@
  */
 import { avatarExtent, preparedVolume } from '../render';
 import type { AvatarFrame, FramePath, FrameShape, Matrix } from '../render';
-import type { AvatarDefinition, AvatarMaterial } from '../types';
+import type { AvatarDefinition } from '../types';
 import type { Volume } from '../volume';
 import { eyeBox, paintEye } from './eye';
-import { paintFluffyMark } from './fluffy/marks';
-import { renderFluffy } from './fluffy/renderer';
+import { paintMark } from './materials/marks';
+import { canvasMaterialOf, type AvatarMaterial } from './materials/material';
 
 /** A square in viewBox units. */
 export interface Square {
@@ -48,8 +68,6 @@ export interface Bounds {
 export const FIT_SLACK = 8;
 /** Margin a frame keeps from the bitmap's edge for antialiasing, viewBox units. */
 export const FIT_PAD = 1;
-/** How far a fluffy coat's pile reaches past the frame's flat bounds, viewBox units. */
-const PILE_MARGIN = 3;
 
 /**
  * The square to lay the bitmap out over: `prev` while it still holds `b`, else `prev` grown to
@@ -80,9 +98,12 @@ export function fitSquare(prev: Square | null, b: Bounds, cap: Square): Square {
 }
 
 interface Section {
+  d: string;
   box: FramePath['box'];
   path: Path2D;
   rule: CanvasFillRule;
+  /** A mark's part that is a ball or a capsule (see MarkPart.round). */
+  round: boolean;
 }
 
 const MAX_SECTIONS = 4096;
@@ -164,7 +185,7 @@ const isMark = (shape: FrameShape) => shape.key.startsWith('mark-');
 
 /**
  * Paint one frame `size` CSS pixels wide. `fill` and `ink` override the frame's colors with any
- * canvas color. A `fluffy` body falls back to flat where fluffy can't be drawn.
+ * canvas color. A material falls back to flat where it cannot be drawn.
  */
 export function paintCanvas(surface: CanvasSurface, frame: AvatarFrame, size: number, fill = frame.color, ink = frame.ink, material: AvatarMaterial = 'flat') {
   const { canvas, ctx } = surface;
@@ -173,17 +194,20 @@ export function paintCanvas(surface: CanvasSurface, frame: AvatarFrame, size: nu
   const scale = (size / 100) * dpr;
   const layout = `${size}|${dpr}`;
   if (sections.size > MAX_SECTIONS) sections.clear();
-  for (const { id, d, evenOdd, box } of frame.paths) {
-    if (!sections.has(id)) sections.set(id, { box, path: new Path2D(d), rule: evenOdd ? 'evenodd' : 'nonzero' });
+  for (const { id, d, evenOdd, box, round } of frame.paths) {
+    // A mark's part may come with another outline under its id (a host's mark is its own code): then it is made anew.
+    const known = sections.get(id);
+    if (!known || known.d !== d || known.round !== (round === true)) sections.set(id, { d, box, path: new Path2D(d), rule: evenOdd ? 'evenodd' : 'nonzero', round: round === true });
   }
   const { matrices, bounds } = framePlacement(frame);
-  const volume = material === 'fluffy' ? surface.volume : null;
-  const fluffy = volume !== null;
-  if (fluffy) {
-    bounds.x0 -= PILE_MARGIN;
-    bounds.y0 -= PILE_MARGIN;
-    bounds.x1 += PILE_MARGIN;
-    bounds.y1 += PILE_MARGIN;
+  const finish = canvasMaterialOf(material);
+  const volume = finish ? surface.volume : null;
+  if (finish) {
+    const margin = finish.margin ?? 0;
+    bounds.x0 -= margin;
+    bounds.y0 -= margin;
+    bounds.x1 += margin;
+    bounds.y1 += margin;
   }
   const fit = fitSquare(surface.layout === layout ? surface.fit : null, bounds, surface.cap);
   if (surface.layout === layout && fit === surface.fit) {
@@ -204,7 +228,9 @@ export function paintCanvas(surface: CanvasSurface, frame: AvatarFrame, size: nu
 
   // The whole body and its eyes as one image, unless it has shrunk away into a mark.
   const { view, scale: bodyScale, eyes } = frame.surface;
-  const coat = volume && bodyScale > 0.001 ? renderFluffy(volume(), view, { color: fill, ink, eyes }, scale) : null;
+  const coat = finish && volume && bodyScale > 0.001
+    ? finish.render(volume(), view, { color: fill, ink, eyes }, scale)
+    : null;
   let coatPainted = false;
   ctx.lineCap = 'round';
   ctx.strokeStyle = ink;
@@ -216,7 +242,8 @@ export function paintCanvas(surface: CanvasSurface, frame: AvatarFrame, size: nu
     if (shape.kind === 'slice') {
       const section = sections.get(shape.path) as Section;
       if (isMark(shape)) {
-        if (!fluffy || !paintFluffyMark(ctx, section.box, scale, fill)) ctx.fill(section.path, section.rule);
+        // In the material where it can draw the part, else as a plain fill.
+        if (!finish || !paintMark(finish, ctx, section, scale, fill)) ctx.fill(section.path, section.rule);
       } else if (!coat) {
         ctx.fill(section.path, section.rule);
       } else if (!coatPainted) {

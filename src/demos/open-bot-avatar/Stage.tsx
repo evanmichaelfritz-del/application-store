@@ -1,14 +1,19 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { CARD_CSS } from './cardCss';
 import { COLOR_ROW, DEFAULT_PRESET_ID, PRESETS, presetById, type PresetGroup } from './presets';
-import { mountAvatar, type AvatarOptions, type MountedAvatar } from './vendor/core/dom';
+import { mountAvatar, type AvatarMaterial, type AvatarOptions, type MountedAvatar } from './vendor/core/dom';
+import { fluffy } from './vendor/core/dom/materials/fluffy';
+import { glass } from './vendor/core/dom/materials/glass';
 import { validateAvatar } from './vendor/core';
-import type { AvatarDefinition, AvatarMaterial, AvatarMood, AvatarState } from './vendor/core/types';
+import type { AvatarDefinition, AvatarMood, AvatarState } from './vendor/core/types';
 
 const STATES: readonly AvatarState[] = ['idle', 'thinking', 'working', 'waiting', 'blocked', 'done'];
 const MOODS: readonly AvatarMood[] = ['neutral', 'happy'];
-const MATERIALS: readonly AvatarMaterial[] = ['flat', 'fluffy'];
-const GROUPS: readonly PresetGroup[] = ['Examples', 'Gallery'];
+type Finish = 'flat' | 'fluffy' | 'glass';
+const FINISHES: readonly Finish[] = ['flat', 'fluffy', 'glass'];
+const GROUPS: readonly PresetGroup[] = ['Examples', 'More'];
+const STALL_MS = 250;
+const STALL_FRAMES = 3;
 
 function stateLabel(state: AvatarState): string {
   switch (state) {
@@ -44,14 +49,31 @@ function moodLabel(mood: AvatarMood): string {
   }
 }
 
-function materialLabel(material: AvatarMaterial): string {
-  switch (material) {
+function finishLabel(finish: Finish): string {
+  switch (finish) {
     case 'flat':
       return 'Flat';
     case 'fluffy':
       return 'Fluffy';
+    case 'glass':
+      return 'Glass';
     default: {
-      const never: never = material;
+      const never: never = finish;
+      return never;
+    }
+  }
+}
+
+function finishValue(finish: Finish): AvatarMaterial {
+  switch (finish) {
+    case 'flat':
+      return 'flat';
+    case 'fluffy':
+      return fluffy;
+    case 'glass':
+      return glass;
+    default: {
+      const never: never = finish;
       return never;
     }
   }
@@ -95,25 +117,28 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   const [compact, setCompact] = useState(false);
   const [definition, setDefinition] = useState<AvatarDefinition>(initial.definition);
   const [color, setColor] = useState(initial.color);
-  const [material, setMaterial] = useState<AvatarMaterial>('fluffy');
+  const [finish, setFinish] = useState<Finish>('fluffy');
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
   const [mood, setMood] = useState<AvatarMood>('neutral');
+  const [followPointer, setFollowPointer] = useState(true);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
   const [json, setJson] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+  const [stall, setStall] = useState<string | null>(null);
 
   const options: AvatarOptions = {
     definition,
     color,
-    material,
+    material: finishValue(finish),
     state: avatarState,
     mood,
-    followPointer: true,
+    followPointer,
     reducedMotion: 'system',
     label: definition.name,
   };
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const softHold = useRef(0);
 
   useLayoutEffect(() => {
     const parent = frameRef.current?.parentElement;
@@ -125,16 +150,26 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
     if (!host) return;
     let avatar: MountedAvatar | null = null;
     let cancel = false;
-    const delay = compact || !softwareWebGL() ? 0 : 2500;
+    const soft = !compact && softwareWebGL() && optionsRef.current.material !== 'flat';
+    softHold.current = soft ? performance.now() + 2500 : 0;
     const timer = window.setTimeout(() => {
       if (cancel || !host.isConnected) return;
+      const current = optionsRef.current;
       avatar = mountAvatar(host, {
-        ...optionsRef.current,
+        ...current,
+        material: performance.now() < softHold.current ? 'flat' : current.material,
         still: compact,
-        followPointer: compact ? false : optionsRef.current.followPointer,
+        followPointer: compact ? false : current.followPointer,
       });
       avatarRef.current = avatar;
-    }, delay);
+      if (softHold.current === 0) return;
+      window.setTimeout(() => {
+        if (cancel) return;
+        softHold.current = 0;
+        const next = optionsRef.current;
+        avatar?.update({ material: next.material });
+      }, 2500);
+    }, 0);
     return () => {
       cancel = true;
       window.clearTimeout(timer);
@@ -143,8 +178,41 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
     };
   }, [compact]);
   useEffect(() => {
-    avatarRef.current?.update(optionsRef.current);
-  }, [definition, color, material, avatarState, mood]);
+    const next = optionsRef.current;
+    avatarRef.current?.update(
+      performance.now() < softHold.current && next.material !== 'flat' ? { ...next, material: 'flat' } : next,
+    );
+  }, [definition, color, finish, avatarState, mood, followPointer]);
+
+  useEffect(() => {
+    if (compact || finish === 'flat') return;
+    let last = performance.now();
+    let samples = 0;
+    const slow: number[] = [];
+    let raf = 0;
+    const label = finishLabel(finish);
+    const tick = (now: number) => {
+      const gap = now - last;
+      last = now;
+      samples += 1;
+      if (samples > 1) {
+        if (gap > STALL_MS) {
+          slow.push(Math.round(gap));
+          if (slow.length >= STALL_FRAMES) {
+            const shown = slow.slice(-STALL_FRAMES);
+            setStall(`${label} frames were ${shown.join(', ')} ms, so the finish is Flat.`);
+            setFinish('flat');
+            return;
+          }
+        } else {
+          slow.length = 0;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [compact, finish]);
 
   function choosePreset(id: string): void {
     const preset = presetById(id);
@@ -201,16 +269,15 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
         <p className="oba-name" data-testid="oba-name">
           {title}
         </p>
-        <div className="oba-field" role="radiogroup" aria-label="State">
+        <div className="oba-field" role="group" aria-label="State">
           <span className="oba-label">State</span>
           <div className="oba-states">
             {STATES.map((state) => (
               <button
                 key={state}
                 type="button"
-                role="radio"
                 className="oba-chip"
-                aria-checked={avatarState === state}
+                aria-pressed={avatarState === state}
                 data-testid={`oba-state-${state}`}
                 onClick={() => setAvatarState(state)}
               >
@@ -219,16 +286,15 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             ))}
           </div>
         </div>
-        <div className="oba-field" role="radiogroup" aria-label="Mood">
+        <div className="oba-field" role="group" aria-label="Mood">
           <span className="oba-label">Mood</span>
           <div className="oba-row">
             {MOODS.map((item) => (
               <button
                 key={item}
                 type="button"
-                role="radio"
                 className="oba-chip"
-                aria-checked={mood === item}
+                aria-pressed={mood === item}
                 data-testid={`oba-mood-${item}`}
                 onClick={() => setMood(item)}
               >
@@ -237,38 +303,53 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             ))}
           </div>
         </div>
-        <div className="oba-field" role="radiogroup" aria-label="Material">
-          <span className="oba-label">Material</span>
+        <div className="oba-field" role="group" aria-label="Finish">
+          <span className="oba-label">Finish</span>
           <div className="oba-row">
-            {MATERIALS.map((item) => (
+            {FINISHES.map((item) => (
               <button
                 key={item}
                 type="button"
-                role="radio"
                 className="oba-chip"
-                aria-checked={material === item}
+                aria-pressed={finish === item}
                 data-testid={`oba-material-${item}`}
-                onClick={() => setMaterial(item)}
+                onClick={() => {
+                  setFinish(item);
+                  if (item === 'flat') setStall(null);
+                }}
               >
-                {materialLabel(item)}
+                {finishLabel(item)}
               </button>
             ))}
           </div>
+          {stall ? <p className="oba-stall">{stall}</p> : null}
+        </div>
+        <div className="oba-field">
+          <span className="oba-label">Pointer</span>
+          <button
+            type="button"
+            role="switch"
+            className="oba-switch"
+            aria-checked={followPointer}
+            data-testid="oba-follow"
+            onClick={() => setFollowPointer((value) => !value)}
+          >
+            Eyes follow cursor
+          </button>
         </div>
         <div className="oba-field">
           <span className="oba-label">Preset</span>
           <div className="oba-presets">
             {GROUPS.map((group) => (
-              <div key={group} className="oba-preset-group" role="radiogroup" aria-label={group}>
+              <div key={group} className="oba-preset-group" role="group" aria-label={group}>
                 <span className="oba-group-name">{group}</span>
                 <div className="oba-row">
                   {PRESETS.filter((preset) => preset.group === group).map((preset) => (
                     <button
                       key={preset.definition.id}
                       type="button"
-                      role="radio"
                       className="oba-chip"
-                      aria-checked={presetId === preset.definition.id}
+                      aria-pressed={presetId === preset.definition.id}
                       data-testid={`oba-preset-${preset.definition.id}`}
                       onClick={() => choosePreset(preset.definition.id)}
                     >
@@ -280,18 +361,17 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             ))}
           </div>
         </div>
-        <div className="oba-field" role="radiogroup" aria-label="Colour">
+        <div className="oba-field" role="group" aria-label="Colour">
           <span className="oba-label">Colour</span>
           <div className="oba-swatches">
             {COLOR_ROW.map((swatch) => (
               <button
                 key={swatch.value}
                 type="button"
-                role="radio"
                 className="oba-swatch"
                 style={{ background: swatch.value }}
                 aria-label={swatch.name}
-                aria-checked={color.toLowerCase() === swatch.value}
+                aria-pressed={color.toLowerCase() === swatch.value}
                 data-testid={`oba-color-${swatch.value.slice(1)}`}
                 onClick={() => setColor(swatch.value)}
               />
@@ -305,6 +385,8 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
             value={json}
             spellCheck={false}
             aria-label="Avatar JSON"
+            aria-invalid={errors.length > 0}
+            aria-describedby={errors.length > 0 ? 'oba-json-errors' : undefined}
             data-testid="oba-json"
             placeholder="Paste an avatar definition"
             onChange={(event) => setJson(event.target.value)}
@@ -314,7 +396,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
           Import
         </button>
         {errors.length > 0 ? (
-          <ul className="oba-errors" data-testid="oba-errors">
+          <ul className="oba-errors" id="oba-json-errors" role="alert" data-testid="oba-errors">
             {errors.map((error) => (
               <li key={error}>{error}</li>
             ))}

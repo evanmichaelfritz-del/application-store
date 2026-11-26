@@ -37,7 +37,7 @@ function avatar(value: AvatarJson): AvatarDefinition {
   };
 }
 
-const GALLERY = [book, brain, bull, bunny, camera, cat, cloud, egg, ghost, magnifier, paintBrush, palette, rocket, shield, star, witchHat].map(
+const MORE = [book, brain, bull, bunny, camera, cat, cloud, egg, ghost, magnifier, paintBrush, palette, rocket, shield, star, witchHat].map(
   (value) => avatar(value),
 );
 
@@ -57,7 +57,7 @@ export const COLOR_ROW = [
   { value: '#7a7a7a', name: 'Gray' },
 ] as const;
 
-export type PresetGroup = 'Examples' | 'Gallery';
+export type PresetGroup = 'Examples' | 'More';
 
 export type Preset = {
   group: PresetGroup;
@@ -73,7 +73,7 @@ function colorFor(id: string): string {
 
 export const PRESETS: readonly Preset[] = [
   ...examples.map((definition) => ({ group: 'Examples' as const, definition, color: colorFor(definition.id) })),
-  ...GALLERY.map((definition) => ({ group: 'Gallery' as const, definition, color: colorFor(definition.id) })),
+  ...MORE.map((definition) => ({ group: 'More' as const, definition, color: colorFor(definition.id) })),
 ];
 
 export const DEFAULT_PRESET_ID = 'cat';

@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * A live avatar in any DOM element, without a framework.
@@ -21,10 +41,11 @@
  */
 import { createAnimator } from '../animator';
 import { pointerGaze } from '../follow';
-import { resolveLook } from '../motion';
+import { lookOf, type AvatarStateDefinition } from '../motion';
 import { DEFAULT_COLOR, DEFAULT_EYE_COLOR, liveFrame, renderAvatarScene, renderAvatarSvg, sceneFrame, type SceneFrame } from '../render';
-import type { AvatarDefinition, AvatarMaterial, AvatarMood, AvatarState, RenderOptions } from '../types';
+import type { AvatarDefinition, AvatarMood, AvatarState, RenderOptions } from '../types';
 import { requestFrame, subscribeFrames } from './clock';
+import { canvasMaterialOf, type AvatarMaterial } from './materials/material';
 import { canvasSupported, mountCanvas, paintCanvas, type CanvasSurface } from './paint';
 import { trackPointer } from './pointer';
 import { prefersReducedMotion } from './reduced';
@@ -36,14 +57,19 @@ export interface AvatarOptions {
   /** Eye color: #rgb or #rrggbb, or any CSS color. Defaults to a near-black ink. */
   eyeColor?: string;
   /**
-   * The body's finish: 'flat' (default), or 'fluffy' for a coat of fur with the eyes set into it.
-   * Fluffy needs the canvas renderer and WebGL2; without them the avatar draws flat.
+   * The body's finish: 'flat' (default), or an imported material object.
+   * Materials need canvas; the built-in fluffy and glass finishes also need WebGL2.
+   * Import from open-bot-avatar/materials/fluffy or open-bot-avatar/materials/glass.
+   * A material is a value, not a name: `material: "fluffy"` draws flat and warns once.
    */
   material?: AvatarMaterial;
   /** Volume amount 0..14 (6 = natural depth, 0 = flat). */
   depth?: number;
-  /** What the bot is doing (default `idle`). Changes ease from what is on screen. */
-  state?: AvatarState;
+  /**
+   * What the bot is doing (default `idle`): one of the six states by name, or a definition of the
+   * host's own. Changes ease from what is on screen.
+   */
+  state?: AvatarState | AvatarStateDefinition;
   /**
    * How the bot feels (default `neutral`): it shapes the eyes on top of any state. `idle` and
    * `thinking` are still accepted here from before `state` existed and mean those states.
@@ -59,7 +85,7 @@ export interface AvatarOptions {
   view?: { yaw: number; pitch: number };
   /** true or false to force; 'system' (default) follows prefers-reduced-motion. */
   reducedMotion?: boolean | 'system';
-  /** Render one fixed pose and never animate (thumbnails, lists): a static SVG, or for fluffy one painted canvas. */
+  /** Render one fixed pose and never animate (thumbnails, lists): a static SVG, or for a material one painted canvas. */
   still?: boolean;
   /**
    * How a live avatar draws. 'canvas' (default) paints each frame to one canvas: one compositor layer
@@ -178,10 +204,10 @@ const VIEW_MARGIN = 100;
 const FRAME_SLACK = 0.004;
 
 /**
- * The frame that last painted a fluffy still. They take turns, one a frame: the first paint of a
- * shape builds its mesh, and a gallery that changes finish asks for all of its stills at once.
+ * The frame that last painted a material still. They take turns, one a frame: the first paint of a
+ * shape prepares its geometry, and a gallery that changes finish asks for all of its stills at once.
  */
-let fluffyStillAt = -1;
+let materialStillAt = -1;
 
 export function mountAvatar(host: HTMLElement, initial: AvatarOptions): MountedAvatar {
   let opts: AvatarOptions = { ...initial };
@@ -250,8 +276,8 @@ export function mountAvatar(host: HTMLElement, initial: AvatarOptions): MountedA
     lastStill = '';
   };
 
-  /** Whether the avatar is painted in fluffy: on a canvas, live or still. */
-  const fluffy = () => opts.material === 'fluffy' && opts.renderer !== 'scene' && canvasSupported();
+  /** Imported materials use a painted canvas even for stills. */
+  const canvasMaterial = () => canvasMaterialOf(opts.material) !== null && opts.renderer !== 'scene' && canvasSupported();
 
   const paint = (p: AvatarOptions, options: RenderOptions) => {
     if (scene || lastStill) clear();
@@ -271,7 +297,7 @@ export function mountAvatar(host: HTMLElement, initial: AvatarOptions): MountedA
     const reducedMotion = p.reducedMotion === 'system' || p.reducedMotion === undefined ? prefersReducedMotion() : p.reducedMotion;
     const now = performance.now();
     // `mood: 'idle' | 'thinking'` are the states they were before `state` existed.
-    const look = resolveLook({ state: p.state, mood: p.mood, motion: p.mood });
+    const look = lookOf({ state: p.state, mood: p.mood, motion: p.mood });
     try {
       if (p.still) {
         const options: RenderOptions = {
@@ -284,7 +310,7 @@ export function mountAvatar(host: HTMLElement, initial: AvatarOptions): MountedA
           gaze: p.lookAt ?? undefined,
           reducedMotion: true,
         };
-        if (fluffy()) {
+        if (canvasMaterial()) {
           // Nothing to paint until the host has a size; the resize that gives it one redraws.
           if (size > 0) paint(p, { ...options, size });
           failed = false;
@@ -352,9 +378,9 @@ export function mountAvatar(host: HTMLElement, initial: AvatarOptions): MountedA
       // Stills, and live avatars out of view, only redraw after a change; live avatars in view every
       // frame they ask for. A change still draws offscreen, so the content is current when printed.
       if ((opts.still || !visible) && !dirty) return false;
-      if (opts.still && size > 0 && fluffy()) {
-        if (fluffyStillAt === time) return true;
-        fluffyStillAt = time;
+      if (opts.still && size > 0 && canvasMaterial()) {
+        if (materialStillAt === time) return true;
+        materialStillAt = time;
       }
       dirty = false;
       const more = draw(time, pointer);

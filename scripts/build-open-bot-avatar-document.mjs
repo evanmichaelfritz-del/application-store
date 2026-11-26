@@ -46,10 +46,12 @@ if (!license.includes(COPYRIGHT)) throw new Error('vendor LICENSE is missing Dom
 if (!license.includes(PERMISSION) || !license.includes(AS_IS)) throw new Error('vendor LICENSE lost the MIT grant');
 if (license.includes('*/')) throw new Error('vendor LICENSE cannot sit in a block comment');
 
-const licenseBanner = `/*!\n${license}\n*/\n`;
+const PIN = '646793af2c86604539e02faa344e9793ab2aefe8';
+const shipped = `${license}\n\n${PIN}`;
+const licenseBanner = `/*!\n${shipped}\n*/\n`;
 writeFileSync(
   join(root, 'src/demos/open-bot-avatar/shippedLicense.ts'),
-  `/*!\n@license\n${license}\n*/\nexport const SHIPPED_LICENSE = ${JSON.stringify(license)};\n`,
+  `/*!\n@license\n${shipped}\n*/\nexport const SHIPPED_LICENSE = ${JSON.stringify(shipped)};\n`,
 );
 
 const outfile = join(root, 'public/parity/open-bot-avatar.js');
@@ -86,7 +88,7 @@ const html = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Open Bot Avatar</title>
 <!--
-${license}
+${shipped}
 -->
 <style>
 ${CARD_CSS}
@@ -133,7 +135,7 @@ if (cardChunk.includes('sourceMappingURL') || cardChunk.includes('/agent/') || c
 }
 
 function requireLicense(label, text) {
-  if (!text.includes(license) || !text.includes(PERMISSION) || !text.includes(AS_IS) || !text.includes(COPYRIGHT)) {
+  if (!text.includes(license) || !text.includes(PERMISSION) || !text.includes(AS_IS) || !text.includes(COPYRIGHT) || !text.includes(PIN)) {
     throw new Error(`${label} is missing the MIT licence`);
   }
 }

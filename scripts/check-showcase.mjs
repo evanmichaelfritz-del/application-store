@@ -226,6 +226,7 @@ function assertOffline(html, id) {
       .trim();
     const script = readFileSync(join(root, 'public/parity/open-bot-avatar.js'), 'utf8');
     const phrases = [PERMISSION, AS_IS, 'Copyright (c) 2026 Dominik Scholz'];
+    const pin = '646793af2c86604539e02faa344e9793ab2aefe8';
     for (const phrase of phrases) {
       if (!licenseFile.includes(phrase)) hits.push(`vendor LICENSE lost ${phrase}`);
     }
@@ -233,7 +234,7 @@ function assertOffline(html, id) {
       ['open-bot-avatar.html', code],
       ['open-bot-avatar.js', script],
     ]) {
-      for (const phrase of phrases) {
+      for (const phrase of [...phrases, pin]) {
         if (!text.includes(phrase)) hits.push(`${label} is missing ${phrase}`);
       }
     }

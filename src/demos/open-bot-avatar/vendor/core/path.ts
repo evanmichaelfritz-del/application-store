@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * Restricted SVG path geometry: parser, normalizer and flattener.
@@ -53,8 +73,12 @@ function tokenize(d: string): (string | number)[] {
   return tokens;
 }
 
-/** Parse and convert to absolute M/L/C/Q/A/Z segments. Throws PathError. */
-export function parsePath(d: string): Segment[] {
+/**
+ * Parse and convert to absolute M/L/C/Q/A/Z segments. Throws PathError. `bounded` (the default)
+ * rejects coordinates far outside the 0..100 viewBox; a mark's outline, drawn about its own centre,
+ * is parsed without.
+ */
+export function parsePath(d: string, bounded = true): Segment[] {
   if (typeof d !== 'string' || d.trim() === '') throw new PathError('path is empty');
   if (d.length > PATH_LIMITS.maxChars) throw new PathError(`path longer than ${PATH_LIMITS.maxChars} characters`);
   const tokens = tokenize(d);
@@ -144,7 +168,7 @@ export function parsePath(d: string): Segment[] {
   }
   if (open) out.push({ c: 'Z' });
   if (subpaths > PATH_LIMITS.maxSubpaths) throw new PathError(`more than ${PATH_LIMITS.maxSubpaths} subpaths`);
-  for (const s of out) {
+  for (const s of bounded ? out : []) {
     for (const [k, v] of Object.entries(s)) {
       if (k === 'c' || typeof v !== 'number') continue;
       if (k === 'rot' || k === 'large' || k === 'sweep') continue;

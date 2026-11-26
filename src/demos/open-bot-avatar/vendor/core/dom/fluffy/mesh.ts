@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * The fluffy body as a triangle mesh: surface nets over the union of the avatar's parts. One vertex
@@ -13,10 +33,11 @@
  * Building a mesh takes tens of milliseconds, so the renderer keeps what it builds (see renderer.ts).
  */
 import { EdgeIndex } from '../../distance';
-import { edgeBands, type Bounds } from '../../path';
+import { edgeBands } from '../../path';
 import { EYE_H, EYE_W, GAZE_X, GAZE_Y, HAPPY_ARC } from '../../validate';
 import type { Volume, VolumePart } from '../../volume';
-import { SOCKET_PAD } from './socket';
+import { halfDepth, type Capsule, type MaterialShape } from '../materials/shape';
+import { SOCKET_PAD } from '../materials/socket';
 
 export interface FluffyMesh {
   /** Position and outward normal per vertex (6 floats). */
@@ -39,20 +60,9 @@ export interface IndexRange {
   count: number;
 }
 
-/** A state mark: a vertical capsule centered at the origin. Equal width and height give a ball. */
-export interface Capsule {
-  bounds: Bounds;
-  radius: number;
-}
-
-export type FluffyShape = Volume | Capsule;
-
+export type { Capsule } from '../materials/shape';
+export type FluffyShape = MaterialShape;
 const isCapsule = (shape: FluffyShape): shape is Capsule => 'radius' in shape;
-
-/** Front-to-back half extent of a shape, viewBox units. */
-export function halfDepth(shape: FluffyShape): number {
-  return isCapsule(shape) ? shape.radius : Math.max(0.5, ...shape.parts.map((part) => part.depth / 2));
-}
 
 /** Grid spacing, viewBox units. */
 const STEP = 1.05;

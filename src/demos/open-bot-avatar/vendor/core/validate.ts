@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 import { bounds, edgeBands, filledArea, flattenPath, parsePath, PathError, serializePath, splitSubpaths } from './path';
 import type { Bounds, Point } from './path';
@@ -162,8 +182,8 @@ export function gazeRange(polys: Point[][], eyes: AvatarEyes): GazeRange {
   return { left: reach(-1, 0), right: reach(1, 0), up: reach(0, -1), down: reach(0, 1) };
 }
 
-export function analyzeBody(path: string): BodyAnalysis {
-  const segs = parsePath(path);
+export function analyzeBody(path: string, bounded = true): BodyAnalysis {
+  const segs = parsePath(path, bounded);
   const polys = flattenPath(segs);
   const b = bounds(polys);
   const whole = edgeBands(polys);

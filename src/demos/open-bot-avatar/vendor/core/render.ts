@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * Renderers for a validated silhouette + eye placement with implied volume
@@ -432,6 +452,8 @@ export interface FramePath {
   d: string;
   evenOdd: boolean;
   box: { x: number; y: number; w: number; h: number };
+  /** Set on a mark's part that is a circle or an upright capsule filling `box` (see MarkPart). */
+  round?: boolean;
 }
 
 /**
@@ -582,7 +604,17 @@ interface Effects {
   /** How much of its size the body keeps while it gives way to a mark (0 = gone). */
   body: number;
   ribbons: { d: string; box: Box; front: boolean; fill: string; gradient: RibbonGradient }[];
-  marks: { id: string; d: string; box: Box; matrix: M }[];
+  marks: { id: string; d: string; box: Box; matrix: M; round: boolean }[];
+}
+
+/**
+ * A mark's part in a path id, after the avatar's own prefix. A body's slices are numbered, so a
+ * part's name must not be a number, and it goes into markup, so it must be plain: a name of
+ * letters and digits that starts with a letter is kept (the built-in parts' are), and any other
+ * is replaced by a hash of it, set apart by a hyphen no kept name has.
+ */
+function markId(shape: string): string {
+  return /^[A-Za-z][A-Za-z0-9]*$/.test(shape) ? shape : `m-${hashString(String(shape)).toString(36)}`;
 }
 
 function effectsOf(p: Prepared, pose: Pose, options: RenderOptions): Effects {
@@ -591,7 +623,7 @@ function effectsOf(p: Prepared, pose: Pose, options: RenderOptions): Effects {
   const still = options.reducedMotion === true;
   const [cx, cy] = pivotOf(b);
   return {
-    body: bodyScale(pose.bang, pose.dots),
+    body: bodyScale(pose.marks),
     // No ribbons are out below a presence of 0.01 (see ribbonPieces), so their rims are not measured for it.
     ribbons: still || pose.ribbons <= 0.01 ? [] : ribbonPieces(b, pose.ribbons, p.seed, time, pose.sweep, pose.cage, ribbonsFollow(pose.cage >= 0.5 ? p.rims().cage : p.rims().work, pose, b)).map((r) => {
       const hue = ribbonPalette(options.color, p.seed)[r.ribbon];
@@ -605,12 +637,13 @@ function effectsOf(p: Prepared, pose: Pose, options: RenderOptions): Effects {
         gradient: long ? { x1: r.from[0], y1: r.from[1], x2: r.to[0], y2: r.to[1], stops } : { x1: r.from[0], y1: r.from[1], x2: r.from[0] + 0.01, y2: r.from[1], stops: [stops[1], stops[1], stops[1]] },
       };
     }),
-    marks: markParts(b, pose.bang, pose.dots, p.seed, time, still).map((part) => {
+    marks: markParts(b, pose.marks, p.seed, time, still).map((part) => {
       const turn: M = [Math.cos(part.turn), Math.sin(part.turn), -Math.sin(part.turn), Math.cos(part.turn), 0, 0];
       return {
-        id: `${p.id}-${part.shape}`,
+        id: `${p.id}-${markId(part.shape)}`,
         d: part.d,
         box: part.box,
+        round: part.round === true,
         matrix: mul(about(cx, cy, turn), mul(translate(part.x, part.y), [part.scale, 0, 0, part.scale, 0, 0])),
       };
     }),
@@ -674,8 +707,11 @@ function flatFrame(definition: AvatarDefinition, options: RenderOptions, size: n
       r.front === front ? [{ kind: 'ribbon' as const, key: `ribbon-${i}`, d: r.d, box: r.box, matrix: fixed as M, front, fill: r.fill, gradient: r.gradient }] : [],
     );
   const marks = fx.marks.map((mark, i): FrameShape => {
-    if (!paths.has(mark.id)) paths.set(mark.id, { id: mark.id, d: mark.d, evenOdd: false, box: mark.box });
-    return { kind: 'slice', key: `mark-${i}`, path: mark.id, matrix: mul(fixed as M, mark.matrix) };
+    // Two parts of one name share a path; given different outlines, the later one gets a path of its own.
+    const taken = paths.get(mark.id);
+    const id = taken && taken.d !== mark.d ? `${mark.id}-${hashString(mark.d).toString(36)}` : mark.id;
+    if (!paths.has(id)) paths.set(id, { id, d: mark.d, evenOdd: false, box: mark.box, ...(mark.round ? { round: true } : {}) });
+    return { kind: 'slice', key: `mark-${i}`, path: id, matrix: mul(fixed as M, mark.matrix) };
   });
   return {
     name: p.def.name, color, ink, paths: [...paths.values()], root,
@@ -713,7 +749,8 @@ function ribbonSvg(d: string, g: RibbonGradient): string {
 /** Render a definition to a standalone SVG string. Throws if the definition is invalid. */
 export function renderAvatarSvg(definition: AvatarDefinition, options: RenderOptions = {}): string {
   const frame = avatarFrame(definition, options);
-  const defsMarkup = frame.paths.map((d) => `<path id="${d.id}" d="${d.d}"${d.evenOdd ? ' fill-rule="evenodd"' : ''}/>`).join('');
+  // A mark's outline is the host's own text: it is escaped. Every other path is serialized from numbers.
+  const defsMarkup = frame.paths.map((d) => `<path id="${d.id}" d="${esc(d.d)}"${d.evenOdd ? ' fill-rule="evenodd"' : ''}/>`).join('');
   const body = frame.shapes
     .map((s) =>
       s.kind === 'slice' ? `<use href="#${s.path}" transform="${mat(s.matrix)}"/>`
@@ -871,7 +908,7 @@ export function sceneFrame(definition: AvatarDefinition, options: RenderOptions 
     view: (fx.body < 1 ? `scale(${r4(fx.body)}) ` : '') + `rotateX(${r4(pose.pitch)}rad) rotateY(${r4(pose.yaw)}rad)`,
     body: fx.body,
     back: piece(false),
-    front: piece(true) + fx.marks.map((mark) => `<path d="${mark.d}" transform="${mat(mark.matrix)}"/>`).join(''),
+    front: piece(true) + fx.marks.map((mark) => `<path d="${esc(mark.d)}" transform="${mat(mark.matrix)}"/>`).join(''),
     stack,
     slices: p.vol.parts.flatMap((part) => (stack === 'z' ? part.zSlices : part.xSlices).map((s) => kept[k++] && drawn(s))),
     eyes: states.map((e, i) => ({

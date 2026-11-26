@@ -1,0 +1,185 @@
+/*!
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+/**
+ * The marks of a state in a material. A material only renders shapes (see material.ts); this
+ * turns a mark's part into one and keeps what comes back. A part that is a ball or a capsule (the
+ * three dots, both parts of the exclamation mark) is a ready capsule; any other outline is built
+ * into a volume as an avatar's body is, so it is drawn in its own shape. Either is rendered once
+ * per material, shape, color and size and kept as a sprite, since a mark only ever moves,
+ * squashes and fades.
+ */
+import { filledArea, flattenPath, parsePath, serializePath, type Segment } from '../../path';
+import { viewBasis, type FramePath } from '../../render';
+import { analyzeBody } from '../../validate';
+import { buildVolume, type Volume } from '../../volume';
+import type { CanvasMaterial } from './material';
+import type { Capsule } from './shape';
+
+/** Radius of a mark's model, viewBox units: enough for a short pile or a rim to read on a small dot. */
+const RADIUS = 12;
+const FRONT = viewBasis(0, 0);
+/** Sprites are rendered a little larger than they are drawn, for the top of a hop. */
+const HEADROOM = 1.12;
+
+const models = new Map<number, Capsule>();
+/** Each material's sprites: two materials never share one, whatever their ids. */
+const sprites = new WeakMap<CanvasMaterial, Map<string, Sprite>>();
+/** A rendered mark: its image, and the square it covers in its model's units (`radius` to each side of (cx, cy)). */
+interface Sprite { canvas: HTMLCanvasElement; cx: number; cy: number; radius: number }
+const MAX_SPRITES = 32;
+
+/** Paint a part that is a ball or a capsule filling `box`, from the ready model of that aspect. */
+function paintCapsule(material: CanvasMaterial, ctx: CanvasRenderingContext2D, box: FramePath['box'], scale: number, color: string): boolean {
+  const aspect = Math.round((1000 * box.h) / box.w) / 1000;
+  let model = models.get(aspect);
+  if (!model) {
+    const halfHeight = RADIUS * aspect;
+    model = { radius: RADIUS, bounds: { minX: -RADIUS, maxX: RADIUS, minY: -halfHeight, maxY: halfHeight } };
+    if (models.size >= MAX_OUTLINES) models.clear();
+    models.set(aspect, model);
+  }
+  /** Drawn units per model unit. */
+  const unit = box.w / (2 * RADIUS);
+  // Whole powers of two, so a mark that grows or shrinks keeps the same image.
+  const density = Math.min(8, Math.max(0.5, 2 ** Math.ceil(Math.log2(HEADROOM * scale * unit))));
+  const sprite = spriteOf(material, `${aspect}|${color}|${density}`, model, color, density);
+  if (!sprite) return false;
+  const radius = sprite.radius * unit;
+  ctx.drawImage(sprite.canvas, -radius, -radius, 2 * radius, 2 * radius);
+  return true;
+}
+
+/** The sprite of a model in a color at a density (device pixels per model unit), rendered when first asked for. */
+function spriteOf(material: CanvasMaterial, key: string, model: Capsule | Volume, color: string, density: number): Sprite | null {
+  let kept = sprites.get(material);
+  if (!kept) sprites.set(material, (kept = new Map()));
+  let sprite = kept.get(key);
+  if (sprite) return sprite;
+  const image = material.render(model, FRONT, { color, ink: color, eyes: [] }, density);
+  if (!image) return null;
+  // The material's canvas may be shared with the body: keep a copy.
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = image.size;
+  const copy = canvas.getContext('2d');
+  if (!copy) return null;
+  copy.drawImage(image.canvas, image.x, image.y, image.size, image.size, 0, 0, image.size, image.size);
+  sprite = { canvas, cx: image.cx, cy: image.cy, radius: image.radius };
+  if (kept.size >= MAX_SPRITES) kept.delete(kept.keys().next().value!);
+  kept.set(key, sprite);
+  return sprite;
+}
+
+/**
+ * An outline as a model: a volume in the 100-unit box an avatar's body is built in, the outline's
+ * box centred on CENTRE, `scale` model units to one of the outline's own.
+ */
+interface OutlineModel { key: string; volume: Volume; scale: number; cx: number; cy: number }
+const CENTRE = 50;
+/** The larger side of an outline's box is at most this long in its model, units. */
+const FIT = 84;
+/** Models by outline, and by the model's own path: one outline at two sizes is one model. */
+const outlines = new Map<string, OutlineModel | null>();
+const volumes = new Map<string, Volume>();
+const MAX_OUTLINES = 64;
+
+/**
+ * The model of an outline, or null for one no volume can be built from. Its stroke is made as
+ * wide as a capsule's model (twice RADIUS), so the pile reads on it as it does on the built-in
+ * marks: the width of the stroke is taken as twice the outline's filled area over the length of
+ * its contours.
+ */
+export function outlineModel(d: string, box: FramePath['box']): OutlineModel | null {
+  // The box says where the outline's centre is and how large the model may be.
+  const name = `${d}|${box.x},${box.y},${box.w},${box.h}`;
+  const known = outlines.get(name);
+  if (known !== undefined) return known;
+  let model: OutlineModel | null = null;
+  try {
+    const segs = parsePath(d, false);
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+    const moved = (scale: number) => {
+      const X = (x: number) => CENTRE + (x - cx) * scale, Y = (y: number) => CENTRE + (y - cy) * scale;
+      return segs.map((s): Segment => {
+        if (s.c === 'Z') return s;
+        if (s.c === 'A') return { ...s, rx: s.rx * scale, ry: s.ry * scale, x: X(s.x), y: Y(s.y) };
+        if (s.c === 'C') return { ...s, x1: X(s.x1), y1: Y(s.y1), x2: X(s.x2), y2: Y(s.y2), x: X(s.x), y: Y(s.y) };
+        if (s.c === 'Q') return { ...s, x1: X(s.x1), y1: Y(s.y1), x: X(s.x), y: Y(s.y) };
+        return { ...s, x: X(s.x), y: Y(s.y) };
+      });
+    };
+    // Measured at the largest the model may be, whatever size the outline is drawn at: the area
+    // that is filled (contours wound opposite ways both count) and the length of its contours.
+    const fit = FIT / Math.max(box.w, box.h);
+    const polys = flattenPath(moved(fit));
+    let round = 0;
+    for (const poly of polys) poly.forEach(([x, y], i) => (round += Math.hypot(poly[(i + 1) % poly.length][0] - x, poly[(i + 1) % poly.length][1] - y)));
+    const stroke = (2 * filledArea(polys)) / round;
+    const scale = fit * Math.min(1, (2 * RADIUS) / stroke);
+    if (stroke > 0 && Number.isFinite(scale)) {
+      const key = serializePath(moved(scale));
+      let volume = volumes.get(key);
+      if (!volume) {
+        // A mark has no eyes: the volume only needs somewhere to put them.
+        // The outline fits the box; a curve's control points may lie well outside it, as a body's may not.
+        const def = { version: 1 as const, id: 'mark', name: 'mark', body: { path: key }, eyes: { x: CENTRE, y: CENTRE, spacing: 10, scale: 1 } };
+        volume = buildVolume(def, 1, analyzeBody(key, false));
+        if (volumes.size >= MAX_OUTLINES) volumes.delete(volumes.keys().next().value!);
+        volumes.set(key, volume);
+      }
+      model = { key, volume, scale, cx, cy };
+    }
+  } catch {
+    model = null;
+  }
+  if (outlines.size >= MAX_OUTLINES) outlines.delete(outlines.keys().next().value!);
+  outlines.set(name, model);
+  return model;
+}
+
+/** Paint a part of any outline `d` in its own shape, from a volume built from the outline. */
+function paintOutline(material: CanvasMaterial, ctx: CanvasRenderingContext2D, d: string, box: FramePath['box'], scale: number, color: string): boolean {
+  const model = outlineModel(d, box);
+  if (!model) return false;
+  // Whole powers of two, so a mark that grows or shrinks keeps the same image.
+  const density = Math.min(8, Math.max(0.5, 2 ** Math.ceil(Math.log2((HEADROOM * scale) / model.scale))));
+  const sprite = spriteOf(material, `${model.key}|${color}|${density}`, model.volume, color, density);
+  if (!sprite) return false;
+  const radius = sprite.radius / model.scale;
+  ctx.drawImage(sprite.canvas, model.cx + (sprite.cx - CENTRE) / model.scale - radius, model.cy + (sprite.cy - CENTRE) / model.scale - radius, 2 * radius, 2 * radius);
+  return true;
+}
+
+/**
+ * Paint one part of a mark in a material, under the context's transform (which animates it).
+ * `scale` is device pixels per viewBox unit. False where the material can't draw it (it returned
+ * no image, or the outline can't be built into a volume): the caller fills the part's path.
+ */
+export function paintMark(
+  material: CanvasMaterial, ctx: CanvasRenderingContext2D, part: { d: string; box: FramePath['box']; round: boolean }, scale: number, color: string,
+): boolean {
+  return part.round ? paintCapsule(material, ctx, part.box, scale, color) : paintOutline(material, ctx, part.d, part.box, scale, color);
+}

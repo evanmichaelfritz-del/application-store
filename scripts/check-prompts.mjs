@@ -782,6 +782,10 @@ const obaProse = obaSheet.split(/^## Code\b/m)[0];
 for (const word of ['his site', 'the docs', 'pinned at', 'Pinned at', 'vendored', 'Vendored', 'Upstream:', 'provenance']) {
   if (obaProse.includes(word)) obaHits.push(`open-bot-avatar prompt says ${word}`);
 }
+for (const word of ['preview', 'gallery']) {
+  const pattern = new RegExp(`(?<![A-Za-z0-9_])${word}(?![A-Za-z0-9_])`, 'i');
+  if (pattern.test(obaProse)) obaHits.push(`open-bot-avatar prompt says ${word}`);
+}
 if (/\boriginal\b/i.test(obaProse)) obaHits.push('open-bot-avatar prompt says original');
 console.log(`open-bot-avatar hits: ${obaHits.length}`);
 if (obaHits.length) {

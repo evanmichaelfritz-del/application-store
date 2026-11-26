@@ -150,11 +150,11 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'Checked in desktop Chrome only. Safari was not checked.',
   ],
   'open-bot-avatar': [
-    'The card does not reflow for phone widths. Desktop 1280 is the gate.',
-    'It is a playground for one avatar, with no Generate, file-drop import, export menus or share links.',
-    'There is no listening or speaking state, so the six states are the full set.',
-    'Fluffy needs WebGL2 and otherwise draws flat.',
-    'The preview does not rotate on drag.',
+    'The card does not reflow for phone widths.',
+    'One avatar is on the stage. The controls are the six states, mood, finish, the pointer switch, the preset list, colour, and a JSON box.',
+    'The state buttons are idle, thinking, working, waiting, blocked, and done.',
+    'Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL2 at 420px, Fluffy frames after the first were 1717, 1717 and 2083 ms, and Glass frames were 2017, 517 and 583 ms. Three frames over 250 ms return the finish to Flat.',
+    'Dragging the stage does not rotate the avatar.',
     'Checked in desktop Chrome only. Safari was not checked.',
   ],
   'image-generation-loader': [

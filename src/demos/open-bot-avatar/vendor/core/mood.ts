@@ -1,14 +1,35 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * Changes of state and mood as pure functions a frame loop steps: the pose
  * eases from what is on screen into the new state and mood (see blendPoses in
  * motion.ts), and a change during a change continues from where it is.
  */
+import type { AvatarStateDefinition } from './motion';
 import type { AvatarMood, AvatarMotion, AvatarMotionBlend, AvatarState } from './types';
 
 /** Length of a mood change, ms. */
@@ -26,7 +47,7 @@ export function moodProgress(elapsedMs: number): number {
 
 /** A state and mood on screen, possibly still easing in over what came before. */
 export interface MoodState {
-  state?: AvatarState;
+  state?: AvatarState | AvatarStateDefinition;
   mood?: AvatarMood;
   /** @deprecated Use `state` and `mood`. */
   motion?: AvatarMotion;

@@ -16,6 +16,7 @@ const MARKER = 'oba-avatar-host';
 const PERMISSION = 'Permission is hereby granted, free of charge';
 const AS_IS = 'THE SOFTWARE IS PROVIDED "AS IS"';
 const COPYRIGHT = 'Copyright (c) 2026 Dominik Scholz';
+const PIN = '646793af2c86604539e02faa344e9793ab2aefe8';
 
 function walk(dir, acc) {
   let entries;
@@ -49,6 +50,7 @@ for (const chunk of chunks) {
   if (!chunk.text.includes(PERMISSION)) missing.push(PERMISSION);
   if (!chunk.text.includes(AS_IS)) missing.push(AS_IS);
   if (!chunk.text.includes(COPYRIGHT)) missing.push(COPYRIGHT);
+  if (!chunk.text.includes(PIN)) missing.push(PIN);
   const rel = chunk.file.slice(root.length + 1);
   if (missing.length) {
     failed = true;

@@ -1,8 +1,28 @@
 /*!
- * MIT License
- * Copyright (c) 2026 Dominik Scholz
- * https://github.com/DominikScholz/open-bot-avatar
- */
+646793af2c86604539e02faa344e9793ab2aefe8
+
+MIT License
+
+Copyright (c) 2026 Dominik Scholz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 /**
  * Avatar definition contract v1 (see docs/avatar-contract.md).
@@ -12,6 +32,7 @@
  * (color, implied volume, view, gaze, blinking, motion) is owned by the
  * runtime renderer.
  */
+import type { AvatarStateDefinition } from './motion';
 
 export interface AvatarEyes {
   /** Center of the eye pair, viewBox units. */
@@ -59,7 +80,7 @@ export interface AvatarMotionBlend {
   from:
     | AvatarMotion
     | {
-        state?: AvatarState;
+        state?: AvatarState | AvatarStateDefinition;
         mood?: AvatarMood;
         /** @deprecated Use `state` and `mood`. */
         motion?: AvatarMotion;
@@ -69,9 +90,6 @@ export interface AvatarMotionBlend {
       };
   t: number;
 }
-
-/** A body's finish: a flat fill, or a coat of fluffy fur (live avatars on a canvas, see AvatarOptions). */
-export type AvatarMaterial = 'flat' | 'fluffy';
 
 export interface RenderOptions {
   /** Body color as #rgb or #rrggbb. Invalid values fall back to the default. */
@@ -95,8 +113,8 @@ export interface RenderOptions {
    * over the idle pose so following can start and stop without a jump.
    */
   gaze?: { x: number; y: number; weight?: number };
-  /** What the bot is doing (default `idle`). */
-  state?: AvatarState;
+  /** What the bot is doing (default `idle`): one of the six states by name, or a definition of the host's own. */
+  state?: AvatarState | AvatarStateDefinition;
   /** How the bot feels (default `neutral`). */
   mood?: AvatarMood;
   /** @deprecated Use `state` and `mood`; they win when given. */
