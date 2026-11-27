@@ -12,8 +12,18 @@ const MOODS: readonly AvatarMood[] = ['neutral', 'happy'];
 type Finish = 'flat' | 'fluffy' | 'glass';
 const FINISHES: readonly Finish[] = ['flat', 'fluffy', 'glass'];
 const GROUPS: readonly PresetGroup[] = ['Examples', 'More'];
+/**
+ * Drop Fluffy or Glass to Flat after this many consecutive visible frames,
+ * each slower than STALL_MS. 250 ms is 4 fps. The first frames are skipped
+ * so the shader compile is not in the run. A hidden page does not count,
+ * and becoming visible again resets the clock so the return gap is not a
+ * slow frame. A frame on time clears the run. A slow paint still counts
+ * when that paint is itself a long task.
+ */
 const STALL_MS = 250;
 const STALL_FRAMES = 3;
+/** Frames to ignore after Fluffy or Glass starts, covering the first paint. */
+const WARMUP_FRAMES = 2;
 
 function stateLabel(state: AvatarState): string {
   switch (state) {
@@ -89,31 +99,42 @@ function useCardCss(): void {
   }, []);
 }
 
-let softwareGl: boolean | null = null;
+type GlKind = 'none' | 'software' | 'gpu';
+let glKind: GlKind | null = null;
 
-/** SwiftShader, llvmpipe, and other software renderers. A real GPU string is false. */
-function softwareWebGL(): boolean {
-  if (softwareGl !== null) return softwareGl;
-  softwareGl = false;
-  if (typeof document === 'undefined') return softwareGl;
+/**
+ * `none` when the page has no WebGL2. `software` for SwiftShader, llvmpipe,
+ * and other software renderers. `gpu` for a real GPU string. The server has
+ * no canvas, so it reports `gpu` and does not cache that answer.
+ */
+function webglKind(): GlKind {
+  if (glKind !== null) return glKind;
+  if (typeof document === 'undefined') return 'gpu';
+  glKind = 'none';
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl2');
-  if (!gl) return softwareGl;
+  if (!gl) return glKind;
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
   const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
   gl.getExtension('WEBGL_lose_context')?.loseContext();
-  softwareGl = /swiftshader|llvmpipe|software/i.test(renderer);
-  return softwareGl;
+  glKind = /swiftshader|llvmpipe|software/i.test(renderer) ? 'software' : 'gpu';
+  return glKind;
 }
 
-function stallLine(finish: Finish): string {
+function softwareWebGL(): boolean {
+  return webglKind() === 'software';
+}
+
+function startingFinish(): Finish {
+  return webglKind() === 'gpu' ? 'fluffy' : 'flat';
+}
+
+function stallLine(finish: 'fluffy' | 'glass'): string {
   switch (finish) {
     case 'fluffy':
       return 'Fluffy was too slow here, so the finish is Flat.';
     case 'glass':
       return 'Glass was too slow here, so the finish is Flat.';
-    case 'flat':
-      return 'Fluffy was too slow here, so the finish is Flat.';
     default: {
       const never: never = finish;
       return never;
@@ -138,7 +159,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   const [compact, setCompact] = useState(false);
   const [definition, setDefinition] = useState<AvatarDefinition>(initial.definition);
   const [color, setColor] = useState(initial.color);
-  const [finish, setFinish] = useState<Finish>(() => (softwareWebGL() ? 'flat' : 'fluffy'));
+  const [finish, setFinish] = useState<Finish>(startingFinish);
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
   const [mood, setMood] = useState<AvatarMood>('neutral');
   const [followPointer, setFollowPointer] = useState(true);
@@ -185,32 +206,51 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   }, [definition, color, finish, avatarState, mood, followPointer]);
 
   useEffect(() => {
-    if (compact || !softwareWebGL() || (finish !== 'fluffy' && finish !== 'glass')) return;
+    if (compact || (finish !== 'fluffy' && finish !== 'glass')) return;
+    const line = stallLine(finish);
     let last = performance.now();
-    let samples = 0;
     let slow = 0;
     let raf = 0;
-    const line = stallLine(finish);
+    let warmup = WARMUP_FRAMES;
+    const resetClock = () => {
+      slow = 0;
+      last = performance.now();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') resetClock();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     const tick = (now: number) => {
       const gap = now - last;
       last = now;
-      samples += 1;
-      if (samples > 1) {
-        if (gap > STALL_MS) {
-          slow += 1;
-          if (slow >= STALL_FRAMES) {
-            setStall(line);
-            setFinish('flat');
-            return;
-          }
-        } else {
-          slow = 0;
+      if (document.hidden) {
+        slow = 0;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (warmup > 0) {
+        warmup -= 1;
+        slow = 0;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      if (gap > STALL_MS) {
+        slow += 1;
+        if (slow >= STALL_FRAMES) {
+          setStall(line);
+          setFinish('flat');
+          return;
         }
+      } else {
+        slow = 0;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [compact, finish]);
 
   function choosePreset(id: string): void {

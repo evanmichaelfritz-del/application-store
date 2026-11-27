@@ -54,7 +54,7 @@
     "check:routes": "node scripts/check-vercel-routes.mjs",
     "check:prompts": "node scripts/check-prompts.mjs",
     "check:showcase": "node scripts/check-showcase.mjs",
-    "test": "npm run check:routes && npm run check:prompts && npm run check:showcase && npx setup-skia-web public && expo export --platform web && node scripts/check-glisse-export.mjs && node scripts/check-open-bot-avatar-export.mjs",
+    "test": "npm run check:routes && npm run check:prompts && node scripts/check-open-bot-avatar-stall.mjs && npm run check:showcase && npx setup-skia-web public && expo export --platform web && node scripts/check-glisse-export.mjs && node scripts/check-open-bot-avatar-export.mjs",
     "postinstall": "npx setup-skia-web public && node scripts/build-skia-showcase.mjs && node scripts/build-glisse-document.mjs && node scripts/build-open-bot-avatar-document.mjs"
   },
   "engines": {
