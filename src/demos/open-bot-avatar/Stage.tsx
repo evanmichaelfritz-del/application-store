@@ -12,6 +12,15 @@ const MOODS: readonly AvatarMood[] = ['neutral', 'happy'];
 type Finish = 'flat' | 'fluffy' | 'glass';
 const FINISHES: readonly Finish[] = ['flat', 'fluffy', 'glass'];
 const GROUPS: readonly PresetGroup[] = ['Examples', 'More'];
+/**
+ * Drop Fluffy or Glass to Flat after this many consecutive frames, each
+ * slower than STALL_MS. 250 ms is 4 fps, far below a frame this coat paints
+ * while a GPU is keeping up. The first sample is ignored, so a shader compile
+ * on the first paint does not count. One later slow frame is a hitch: that
+ * compile spilling one frame, or the single gap when a hidden tab is shown
+ * again. A frame on time clears the run. Three in a row means the finish
+ * is still stuck. The same check runs on a real GPU and on software WebGL.
+ */
 const STALL_MS = 250;
 const STALL_FRAMES = 3;
 
@@ -185,7 +194,7 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
   }, [definition, color, finish, avatarState, mood, followPointer]);
 
   useEffect(() => {
-    if (compact || !softwareWebGL() || (finish !== 'fluffy' && finish !== 'glass')) return;
+    if (compact || (finish !== 'fluffy' && finish !== 'glass')) return;
     let last = performance.now();
     let samples = 0;
     let slow = 0;
