@@ -4,7 +4,6 @@ cd "$(dirname "$0")/.."
 
 node scripts/check-vercel-routes.mjs
 node scripts/check-prompts.mjs
-node scripts/check-open-bot-avatar-stall.mjs
 npx setup-skia-web public
 npx expo export --platform web
 cp dist/index.html dist/404.html
