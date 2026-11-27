@@ -1,7 +1,5 @@
 /**
  * Headless check of the Open Bot Avatar stall watchdog.
- * A hidden page and long main-thread tasks must not drop Fluffy to Flat.
- * Three slow frames that are not long tasks must.
  *
  *   node scripts/check-open-bot-avatar-stall.mjs
  */
@@ -20,7 +18,10 @@ if (!chrome) {
   process.exit(1);
 }
 
+const FLUFFY_LINE = 'Fluffy was too slow here, so the finish is Flat.';
+const GLASS_LINE = 'Glass was too slow here, so the finish is Flat.';
 const failures = [];
+
 function expect(label, ok, detail) {
   if (ok) console.log(`ok ${label}`);
   else {
@@ -29,7 +30,7 @@ function expect(label, ok, detail) {
   }
 }
 
-function spoofGpu() {
+function installGpuSpoof(reduced) {
   const proto = HTMLCanvasElement.prototype;
   const orig = proto.getContext;
   proto.getContext = function (type, attrs) {
@@ -53,6 +54,7 @@ function spoofGpu() {
     };
     return gl;
   };
+  if (!reduced) return;
   const markReduced = () => {
     if (document.documentElement) document.documentElement.setAttribute('data-reduce-motion', '1');
   };
@@ -79,6 +81,49 @@ async function readCard(page) {
   });
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** One main-thread block. The next animation frame is a single slow gap. */
+async function blockOnce(page, ms) {
+  await page.evaluate(
+    (hold) =>
+      new Promise((resolve) => {
+        const start = performance.now();
+        while (performance.now() - start < hold) {
+          /* one long task */
+        }
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+    ms,
+  );
+}
+
+/** Consecutive animation frames that are slow because each one runs a long task. */
+async function slowFrames(page, count, ms) {
+  await page.evaluate(
+    (times, hold) =>
+      new Promise((resolve) => {
+        let left = times;
+        const step = () => {
+          requestAnimationFrame(() => {
+            const start = performance.now();
+            while (performance.now() - start < hold) {
+              /* this frame is a long task */
+            }
+            left -= 1;
+            if (left > 0) step();
+            else requestAnimationFrame(() => resolve());
+          });
+        };
+        step();
+      }),
+    count,
+    ms,
+  );
+}
+
 const browser = await puppeteer.launch({
   executablePath: chrome,
   headless: true,
@@ -90,9 +135,9 @@ const missing = await browser.newPage();
 await missing.evaluateOnNewDocument(blockWebGL);
 await missing.goto(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await missing.waitForSelector('[data-testid="oba-material-flat"]', { timeout: 30000 });
-await new Promise((resolve) => setTimeout(resolve, 400));
+await sleep(300);
 const noGl = await readCard(missing);
-expect('no WebGL2 starts on Flat', noGl.finish === 'flat' && noGl.stall !== 'Fluffy was too slow here, so the finish is Flat.', JSON.stringify(noGl));
+expect('no WebGL2 starts on Flat', noGl.finish === 'flat' && noGl.stall !== FLUFFY_LINE, JSON.stringify(noGl));
 await missing.close();
 
 const software = await browser.newPage();
@@ -106,61 +151,89 @@ expect(
 );
 await software.close();
 
+const natural = await browser.newPage();
+await natural.evaluateOnNewDocument(installGpuSpoof, false);
+await natural.goto(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+await natural.waitForSelector('[data-testid="oba-material-fluffy"]', { timeout: 30000 });
+await natural
+  .waitForFunction(
+    (line) => document.querySelector('[data-testid="oba-stall"]')?.textContent === line,
+    { timeout: 25000 },
+    FLUFFY_LINE,
+  )
+  .catch(() => undefined);
+const naturalCard = await readCard(natural);
+expect(
+  'sustained Fluffy frames that are long tasks drop to Flat',
+  naturalCard.finish === 'flat' && naturalCard.stall === FLUFFY_LINE,
+  JSON.stringify(naturalCard),
+);
+await natural.close();
+
 const gpu = await browser.newPage();
-await gpu.evaluateOnNewDocument(spoofGpu);
+await gpu.evaluateOnNewDocument(installGpuSpoof, true);
 await gpu.goto(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await gpu.waitForSelector('[data-testid="oba-material-fluffy"]', { timeout: 30000 });
-await new Promise((resolve) => setTimeout(resolve, 1500));
+await sleep(1200);
 const opened = await readCard(gpu);
-expect('real-GPU path is still Fluffy after warmup', opened.finish === 'fluffy' && opened.stall === null, JSON.stringify(opened));
+expect('a calm load stays on Fluffy', opened.finish === 'fluffy' && opened.stall === null, JSON.stringify(opened));
 
 if (opened.finish === 'fluffy') {
+  await blockOnce(gpu, 1300);
+  await sleep(400);
+  const one = await readCard(gpu);
+  expect('a single 1.3 s block does not drop', one.finish === 'fluffy' && one.stall === null, JSON.stringify(one));
+
   await gpu.evaluate(() => {
-    const hidden = { value: true };
-    Object.defineProperty(Document.prototype, 'hidden', { configurable: true, get: () => hidden.value });
+    const flag = { hidden: true };
+    Object.defineProperty(Document.prototype, 'hidden', { configurable: true, get: () => flag.hidden });
     Object.defineProperty(Document.prototype, 'visibilityState', {
       configurable: true,
-      get: () => (hidden.value ? 'hidden' : 'visible'),
+      get: () => (flag.hidden ? 'hidden' : 'visible'),
     });
     document.dispatchEvent(new Event('visibilitychange'));
-    for (let i = 0; i < 4; i += 1) {
-      const start = performance.now();
-      while (performance.now() - start < 320) {
-        /* long task while the page is hidden */
-      }
+    const start = performance.now();
+    while (performance.now() - start < 1500) {
+      /* gap while the page is hidden */
     }
-    hidden.value = false;
+    flag.hidden = false;
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  const afterJank = await readCard(gpu);
-  expect(
-    'long tasks and a hidden page do not drop',
-    afterJank.finish === 'fluffy' && afterJank.stall === null,
-    JSON.stringify(afterJank),
-  );
+  await sleep(500);
+  const hidden = await readCard(gpu);
+  expect('a hidden-tab gap does not drop', hidden.finish === 'fluffy' && hidden.stall === null, JSON.stringify(hidden));
 
-  if (afterJank.finish === 'fluffy') {
-    const errors = [];
-    gpu.on('pageerror', (error) => errors.push(String(error)));
-    await gpu.evaluate(() => {
-      const orig = window.requestAnimationFrame.bind(window);
-      window.requestAnimationFrame = (cb) => orig((time) => {
-        window.setTimeout(() => cb(performance.now()), 280);
-      });
-    });
-    await gpu.waitForFunction(
-      () => document.querySelector('[data-testid="oba-stall"]')?.textContent === 'Fluffy was too slow here, so the finish is Flat.',
-      { timeout: 8000 },
-    ).catch(() => undefined);
-    if (errors.length) console.error(errors.join('\n'));
+  if (hidden.finish === 'fluffy') {
+    await slowFrames(gpu, 4, 320);
+    await sleep(300);
     const dropped = await readCard(gpu);
     expect(
-      'three slow frames drop to Flat',
-      dropped.finish === 'flat' && dropped.stall === 'Fluffy was too slow here, so the finish is Flat.',
+      'three slow Fluffy frames drop to Flat',
+      dropped.finish === 'flat' && dropped.stall === FLUFFY_LINE,
       JSON.stringify(dropped),
     );
   }
+}
+await gpu.close();
+
+const glass = await browser.newPage();
+await glass.evaluateOnNewDocument(installGpuSpoof, true);
+await glass.goto(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+await glass.waitForSelector('[data-testid="oba-material-glass"]', { timeout: 30000 });
+await sleep(800);
+await glass.click('[data-testid="oba-material-glass"]');
+await sleep(600);
+const glassReady = await readCard(glass);
+expect('Glass can be shown', glassReady.finish === 'glass' && glassReady.stall === null, JSON.stringify(glassReady));
+if (glassReady.finish === 'glass') {
+  await slowFrames(glass, 4, 320);
+  await sleep(300);
+  const glassDrop = await readCard(glass);
+  expect(
+    'three slow Glass frames drop to Flat',
+    glassDrop.finish === 'flat' && glassDrop.stall === GLASS_LINE,
+    JSON.stringify(glassDrop),
+  );
 }
 
 await browser.close();

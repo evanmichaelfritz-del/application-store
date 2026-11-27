@@ -13,17 +13,17 @@ type Finish = 'flat' | 'fluffy' | 'glass';
 const FINISHES: readonly Finish[] = ['flat', 'fluffy', 'glass'];
 const GROUPS: readonly PresetGroup[] = ['Examples', 'More'];
 /**
- * Drop Fluffy or Glass to Flat after this many consecutive frames, each
- * slower than STALL_MS. 250 ms is 4 fps. Counting starts on the frame after
- * the coat has painted, so the shader compile is not in the run. A hidden
- * page, the frame that follows it, and a frame that overlaps a long task
- * do not count. A frame on time clears the run. Three in a row means the
- * finish is still stuck.
+ * Drop Fluffy or Glass to Flat after this many consecutive visible frames,
+ * each slower than STALL_MS. 250 ms is 4 fps. The first frames are skipped
+ * so the shader compile is not in the run. A hidden page does not count,
+ * and becoming visible again resets the clock so the return gap is not a
+ * slow frame. A frame on time clears the run. A slow paint still counts
+ * when that paint is itself a long task.
  */
 const STALL_MS = 250;
 const STALL_FRAMES = 3;
-/** Frames to wait for a visible paint before counting anyway. */
-const PAINT_WAIT_FRAMES = 12;
+/** Frames to ignore after Fluffy or Glass starts, covering the first paint. */
+const WARMUP_FRAMES = 2;
 
 function stateLabel(state: AvatarState): string {
   switch (state) {
@@ -142,42 +142,6 @@ function stallLine(finish: 'fluffy' | 'glass'): string {
   }
 }
 
-/** A few pixels of the live canvas, so a new coat can be told from the previous one. */
-function paintMark(host: HTMLElement | null): string {
-  const canvas = host?.querySelector('canvas');
-  if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 2) return '';
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return '';
-  try {
-    const points = [0.35, 0.5, 0.65];
-    const parts: string[] = [`${canvas.width}`];
-    for (const yof of points) {
-      for (const xof of points) {
-        const pixel = ctx.getImageData(
-          Math.min(canvas.width - 1, Math.floor(canvas.width * xof)),
-          Math.min(canvas.height - 1, Math.floor(canvas.height * yof)),
-          1,
-          1,
-        ).data;
-        parts.push(`${pixel[0]},${pixel[1]},${pixel[2]},${pixel[3]}`);
-      }
-    }
-    return parts.join(';');
-  } catch {
-    return '';
-  }
-}
-
-function overlapsLongTask(start: number, end: number): boolean {
-  if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') return false;
-  const entries = performance.getEntriesByType('longtask');
-  for (const entry of entries) {
-    const taskEnd = entry.startTime + entry.duration;
-    if (entry.startTime < end && taskEnd > start) return true;
-  }
-  return false;
-}
-
 function startingPreset() {
   const preset = presetById(DEFAULT_PRESET_ID);
   if (!preset) throw new Error('cat preset missing');
@@ -243,29 +207,11 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
 
   useEffect(() => {
     if (compact || (finish !== 'fluffy' && finish !== 'glass')) return;
-    const host = hostRef.current;
     const line = stallLine(finish);
     let last = performance.now();
     let slow = 0;
     let raf = 0;
-    let phase: 'seek' | 'settle' | 'count' = 'seek';
-    let seekFrames = 0;
-    const baseline = paintMark(host);
-    const tasks: { start: number; end: number }[] = [];
-    let observer: PerformanceObserver | null = null;
-    try {
-      if (typeof PerformanceObserver !== 'undefined') {
-        observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            tasks.push({ start: entry.startTime, end: entry.startTime + entry.duration });
-          }
-          if (tasks.length > 40) tasks.splice(0, tasks.length - 40);
-        });
-        observer.observe({ type: 'longtask', buffered: true });
-      }
-    } catch {
-      observer = null;
-    }
+    let warmup = WARMUP_FRAMES;
     const resetClock = () => {
       slow = 0;
       last = performance.now();
@@ -275,30 +221,16 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
     };
     document.addEventListener('visibilitychange', onVisibility);
     const tick = (now: number) => {
-      const prev = last;
-      const gap = now - prev;
+      const gap = now - last;
       last = now;
       if (document.hidden) {
         slow = 0;
         raf = requestAnimationFrame(tick);
         return;
       }
-      if (phase === 'seek') {
-        seekFrames += 1;
-        const mark = paintMark(host);
-        if ((mark !== '' && mark !== baseline) || seekFrames >= PAINT_WAIT_FRAMES) phase = 'settle';
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      if (phase === 'settle') {
-        phase = 'count';
+      if (warmup > 0) {
+        warmup -= 1;
         slow = 0;
-        last = now;
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      const longTask = tasks.some((task) => task.start < now && task.end > prev) || overlapsLongTask(prev, now);
-      if (longTask) {
         raf = requestAnimationFrame(tick);
         return;
       }
@@ -318,7 +250,6 @@ export function OpenBotAvatarStage({ credit }: { credit?: ReactNode }) {
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisibility);
-      observer?.disconnect();
     };
   }, [compact, finish]);
 
