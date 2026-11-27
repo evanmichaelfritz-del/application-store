@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { OBA_POST, OBA_PROFILE, OBA_REPO, OBA_SITE } from './links';
+import { OBA_REPO, OBA_SITE } from './links';
 import { SHIPPED_LICENSE } from './shippedLicense';
 import { OpenBotAvatarStage } from './Stage';
 
@@ -22,16 +22,8 @@ export function OpenBotAvatarCard() {
     <OpenBotAvatarStage
       credit={
         <p className="oba-credit">
-          <a href={OBA_PROFILE} target="_blank" rel="noopener noreferrer">
+          <a href={OBA_REPO} target="_blank" rel="noopener noreferrer">
             Dominik Scholz
-          </a>{' '}
-          (
-          <a href={OBA_PROFILE} target="_blank" rel="noopener noreferrer">
-            @dom_scholz
-          </a>
-          ) ·{' '}
-          <a href={OBA_POST} target="_blank" rel="noopener noreferrer">
-            post
           </a>{' '}
           ·{' '}
           <a href={OBA_REPO} target="_blank" rel="noopener noreferrer">

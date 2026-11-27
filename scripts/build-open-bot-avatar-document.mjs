@@ -1,7 +1,8 @@
 /**
  * Bundle the Open Bot Avatar card into one offline document and the parity script.
  * No sourcemap and no absolute path. The MIT text is an esbuild banner in
- * open-bot-avatar.js, in the HTML that embeds that script, and in the card chunk.
+ * open-bot-avatar.js and in the HTML that embeds that script. The card chunk
+ * carries that same text once, as the shipped string.
  *
  *   node scripts/build-open-bot-avatar-document.mjs
  */
@@ -31,8 +32,6 @@ function exportedTemplate(file, name) {
   return body.slice(0, end);
 }
 
-const OBA_POST = exportedString('src/demos/open-bot-avatar/links.ts', 'OBA_POST');
-const OBA_PROFILE = exportedString('src/demos/open-bot-avatar/links.ts', 'OBA_PROFILE');
 const OBA_REPO = exportedString('src/demos/open-bot-avatar/links.ts', 'OBA_REPO');
 const OBA_SITE = exportedString('src/demos/open-bot-avatar/links.ts', 'OBA_SITE');
 const CARD_CSS = exportedTemplate('src/demos/open-bot-avatar/cardCss.ts', 'CARD_CSS');
@@ -79,7 +78,7 @@ if (script.includes('sourceMappingURL') || script.includes('/agent/') || script.
   throw new Error('open-bot-avatar bundle has a sourcemap or an absolute path');
 }
 
-const credit = `<p class="oba-credit"><a href="${OBA_PROFILE}" target="_blank" rel="noopener noreferrer">Dominik Scholz</a> (<a href="${OBA_PROFILE}" target="_blank" rel="noopener noreferrer">@dom_scholz</a>) · <a href="${OBA_POST}" target="_blank" rel="noopener noreferrer">post</a> · <a href="${OBA_REPO}" target="_blank" rel="noopener noreferrer">repo</a> · <a href="${OBA_SITE}" target="_blank" rel="noopener noreferrer">site</a></p>`;
+const credit = `<p class="oba-credit"><a href="${OBA_REPO}" target="_blank" rel="noopener noreferrer">Dominik Scholz</a> · <a href="${OBA_REPO}" target="_blank" rel="noopener noreferrer">repo</a> · <a href="${OBA_SITE}" target="_blank" rel="noopener noreferrer">site</a></p>`;
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -121,7 +120,6 @@ await esbuild.build({
   minify: true,
   legalComments: 'none',
   sourcemap: false,
-  banner: { js: licenseBanner },
   define: { 'process.env.NODE_ENV': '"production"' },
   external: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   logLevel: 'silent',
@@ -155,9 +153,7 @@ function requireOneLicense(label, text) {
 }
 requireOneLicense('public/parity/open-bot-avatar.js', script);
 requireOneLicense('public/parity/open-bot-avatar.html', html);
-if (!cardChunk.includes(license) || !cardChunk.includes(PIN)) {
-  throw new Error('open-bot-avatar card chunk is missing the MIT licence');
-}
+requireOneLicense('open-bot-avatar card chunk', cardChunk);
 rmSync(cardDir, { recursive: true, force: true });
 
 writeFileSync(join(root, 'public/parity/open-bot-avatar.html'), html);

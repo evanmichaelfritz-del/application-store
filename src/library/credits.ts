@@ -49,7 +49,7 @@ const CREDITS = [
   {
     id: 'open-bot-avatar',
     label: 'Dominik Scholz',
-    url: 'https://x.com/dom_scholz/status/2117307304395636772',
+    url: 'https://github.com/DominikScholz/open-bot-avatar',
     license: 'MIT',
   },
 ] as const;

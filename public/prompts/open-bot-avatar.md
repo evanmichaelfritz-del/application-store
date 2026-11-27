@@ -6,11 +6,11 @@
 - title: Open Bot Avatar
 - subtitle: One live avatar. State, mood, finish, preset, and colour.
 
-Dominik Scholz (@dom_scholz). Post: https://x.com/dom_scholz/status/2117307304395636772. Repo: https://github.com/DominikScholz/open-bot-avatar. Site: https://dominikscholz.github.io/open-bot-avatar/. The library is MIT, Copyright (c) 2026 Dominik Scholz. The copied document carries that full licence.
+Dominik Scholz. Repo: https://github.com/DominikScholz/open-bot-avatar. Site: https://dominikscholz.github.io/open-bot-avatar/. The library is MIT, Copyright (c) 2026 Dominik Scholz. The copied document carries that full licence.
 
 ## Stage content
 
-A 960×720 stage, background #f3f3f4. The left side holds one square avatar, 420px, Cat in #f8a01c, idle, neutral, with Eyes follow cursor on. On a GPU the finish starts Fluffy. On software WebGL the finish starts Flat and Fluffy is not mounted. The right side is a 400px panel: six states, mood and finish on one row, the pointer switch, a preset list, a colour row, and a JSON box with Import. The credit links Dominik Scholz and @dom_scholz, plus the post, the repo, and the site. The visible words are Dominik Scholz, @dom_scholz, post, repo, and site.
+A 960×720 stage, background #f3f3f4. The left side holds one square avatar, 420px, Cat in #f8a01c, idle, neutral, with Eyes follow cursor on. On a GPU the finish starts Fluffy. On software WebGL the finish starts Flat and Fluffy is not mounted. The right side is a 400px panel: six states, mood and finish on one row, the pointer switch, a preset list, a colour row, and a JSON box with Import. The credit links Dominik Scholz, the repo, and the site. The visible words are Dominik Scholz, repo, and site.
 
 ## Geometry and values
 
@@ -74,15 +74,13 @@ The card does not reflow for phone widths.
 
 The stage does not hold a second avatar.
 
-The state row cannot grow past six buttons.
+The six built-in states are the full set. The state row cannot grow past them, and a state defined in JSON is not supported.
 
-Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat, and if Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.
+Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat. Pressing Fluffy or Glass freezes the page for about 4–18 s on the home page and about 35 s on the asset page. If Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.
 
 Dragging the stage does not rotate the avatar.
 
 Checked in desktop Chrome only. Safari was not checked.
-
-States defined in JSON are not supported; the six built-in states are the full set.
 
 ## Checklist
 
@@ -91,7 +89,7 @@ States defined in JSON are not supported; the six built-in states are the full s
 - [ ] Controller, Mug, and Sprout each replace the avatar and take their own colour. Book, Ghost, and Rocket do the same.
 - [ ] Amber, Blue, and White each recolour the body.
 - [ ] This definition imports and draws: `{"version":1,"id":"box","name":"Box","body":{"path":"M20 20 H80 V80 H20 Z"},"eyes":{"x":50,"y":46,"spacing":15,"scale":1}}`. `{ "version": 1 }` lists the errors and leaves the avatar in place. `{` lists a syntax error.
-- [ ] Reduced motion snaps the pose. The credit shows Dominik Scholz and @dom_scholz as links, and also links the post, the repo, and the site. No address is written out in the stage.
+- [ ] Reduced motion snaps the pose. The credit shows Dominik Scholz as a link, and also links the repo and the site. No address is written out in the stage.
 - [ ] The document includes the MIT text and does not request a font, a script, or an image.
 
 ## Code
@@ -329,7 +327,7 @@ body { display: flex; justify-content: center; align-items: center; }
 <body>
 <div id="oba-frame">
 <div id="oba-root"></div>
-<p class="oba-credit"><a href="https://x.com/dom_scholz" target="_blank" rel="noopener noreferrer">Dominik Scholz</a> (<a href="https://x.com/dom_scholz" target="_blank" rel="noopener noreferrer">@dom_scholz</a>) · <a href="https://x.com/dom_scholz/status/2117307304395636772" target="_blank" rel="noopener noreferrer">post</a> · <a href="https://github.com/DominikScholz/open-bot-avatar" target="_blank" rel="noopener noreferrer">repo</a> · <a href="https://dominikscholz.github.io/open-bot-avatar/" target="_blank" rel="noopener noreferrer">site</a></p>
+<p class="oba-credit"><a href="https://github.com/DominikScholz/open-bot-avatar" target="_blank" rel="noopener noreferrer">Dominik Scholz</a> · <a href="https://github.com/DominikScholz/open-bot-avatar" target="_blank" rel="noopener noreferrer">repo</a> · <a href="https://dominikscholz.github.io/open-bot-avatar/" target="_blank" rel="noopener noreferrer">site</a></p>
 </div>
 <script>
 /*!

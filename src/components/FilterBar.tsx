@@ -242,6 +242,7 @@ function FilterChip({
         const hover = Boolean((state as { hovered?: boolean }).hovered);
         return [
           styles.chip,
+          reveal && styles.chipSource,
           styles.pointer,
           hover && !selected && styles.chipHover,
           selected && styles.chipOn,
@@ -316,6 +317,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     boxSizing: 'border-box',
+  },
+  chipSource: {
+    paddingHorizontal: 8,
   },
   chipHover: {
     backgroundColor: CHIP_HOVER,

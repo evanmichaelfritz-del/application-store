@@ -676,7 +676,6 @@ export const TRANSITIONS: TransitionItem[] = [
       'fluffy',
       'dominik',
       'dominik scholz',
-      'dom_scholz',
       'tools',
     ],
     sections: ['tools'],
