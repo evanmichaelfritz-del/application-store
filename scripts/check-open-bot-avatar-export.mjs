@@ -136,9 +136,14 @@ if (!entrySrc) {
 }
 const entryPath = join(root, 'dist', entrySrc.replace(/^\//, ''));
 const entry = readFileSync(entryPath, 'utf8');
+// One header in each of the React modules Metro places in the entry. 0 and
+// any other count, including 2 or more, fail.
+const EXPECTED_REACT_LICENSES = 7;
 const reactLicenses = entry.split('@license React').length - 1;
 console.log(`${entryPath.slice(root.length + 1)} @license React ${reactLicenses}`);
-if (!entry.includes('@license React')) {
-  console.error('open-bot-avatar export: entry bundle is missing @license React');
+if (reactLicenses !== EXPECTED_REACT_LICENSES) {
+  console.error(
+    `open-bot-avatar export: entry bundle has ${reactLicenses} @license React blocks, expected ${EXPECTED_REACT_LICENSES}`,
+  );
   process.exit(1);
 }

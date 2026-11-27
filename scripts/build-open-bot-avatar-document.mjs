@@ -1,7 +1,8 @@
 /**
  * Bundle the Open Bot Avatar card into one offline document and the parity script.
  * No sourcemap and no absolute path. The MIT text is an esbuild banner in
- * open-bot-avatar.js, in the HTML that embeds that script, and in the card chunk.
+ * open-bot-avatar.js and in the HTML that embeds that script. The card chunk
+ * carries that same text once, as the shipped string.
  *
  *   node scripts/build-open-bot-avatar-document.mjs
  */
@@ -121,7 +122,6 @@ await esbuild.build({
   minify: true,
   legalComments: 'none',
   sourcemap: false,
-  banner: { js: licenseBanner },
   define: { 'process.env.NODE_ENV': '"production"' },
   external: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   logLevel: 'silent',
@@ -155,9 +155,7 @@ function requireOneLicense(label, text) {
 }
 requireOneLicense('public/parity/open-bot-avatar.js', script);
 requireOneLicense('public/parity/open-bot-avatar.html', html);
-if (!cardChunk.includes(license) || !cardChunk.includes(PIN)) {
-  throw new Error('open-bot-avatar card chunk is missing the MIT licence');
-}
+requireOneLicense('open-bot-avatar card chunk', cardChunk);
 rmSync(cardDir, { recursive: true, force: true });
 
 writeFileSync(join(root, 'public/parity/open-bot-avatar.html'), html);

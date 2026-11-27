@@ -74,15 +74,13 @@ The card does not reflow for phone widths.
 
 The stage does not hold a second avatar.
 
-The state row cannot grow past six buttons.
+The six built-in states are the full set. The state row cannot grow past them, and a state defined in JSON is not supported.
 
-Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat, and if Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.
+Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat, and pressing Fluffy or Glass can freeze the page for several seconds. If Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.
 
 Dragging the stage does not rotate the avatar.
 
 Checked in desktop Chrome only. Safari was not checked.
-
-States defined in JSON are not supported; the six built-in states are the full set.
 
 ## Checklist
 
