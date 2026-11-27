@@ -153,7 +153,7 @@ export const ASSET_GAPS: Readonly<Record<string, readonly string[]>> = {
     'The card does not reflow for phone widths.',
     'The stage does not hold a second avatar.',
     'The six built-in states are the full set. The state row cannot grow past them, and a state defined in JSON is not supported.',
-    'Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat. Pressing Fluffy or Glass freezes the page for about 4–18 s on the home page and about 35 s on the asset page. If Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.',
+    'Fluffy and Glass need WebGL2. Without it the body draws flat. On software WebGL the card starts on Flat, and pressing Fluffy or Glass can freeze the page for several seconds. If Fluffy or Glass is picked and three frames in a row take over 250 ms, the finish switches back to Flat and the panel says so.',
     'Dragging the stage does not rotate the avatar.',
     'Checked in desktop Chrome only. Safari was not checked.',
   ],

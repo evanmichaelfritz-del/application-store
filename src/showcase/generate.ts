@@ -436,7 +436,8 @@ parent.postMessage({ showcaseFontsPlease: 1 }, '*');
       : composed;
   const facet = facetLine(id) ?? '';
   const credit = creditFor(id);
-  const handle = credit ? creditHandle(credit.url) : null;
+  // This card's own credit has no handle. The repo path is not one.
+  const handle = credit && id !== 'open-bot-avatar' ? creditHandle(credit.url) : null;
   const creditText = credit ? (handle ? `${credit.label} (@${handle})` : credit.label) : '';
   const creditLine = credit
     ? `<p class="credit"><a href="${esc(credit.url)}">${esc(creditText)}</a></p>`
